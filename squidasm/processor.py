@@ -1,10 +1,10 @@
 import logging
 
-from netqasm.parser import Parser
-from netqasm.processor import Processor
-from netqasm.encoder import Instruction
+from pydynaa import EventExpression
 from netsquid.components.qprocessor import QuantumProcessor
 from netsquid.components.instructions import INSTR_INIT, INSTR_X, INSTR_H
+from netqasm.processor import Processor
+from netqasm.encoder import Instruction
 
 
 class NetSquidProcessor(Processor):
@@ -15,9 +15,9 @@ class NetSquidProcessor(Processor):
         Instruction.H: INSTR_H,
     }
 
-    def __init__(self, qdevice=None, num_qubits=5):
+    def __init__(self, name=None, qdevice=None, num_qubits=5):
         """Executes a NetQASM using a NetSquid quantum processor to execute quantum instructions"""
-        super().__init__()
+        super().__init__(name=name, num_qubits=num_qubits)
         if qdevice is None:
             qdevice = QuantumProcessor("QPD", num_qubits=num_qubits)
         if not isinstance(qdevice, QuantumProcessor):
@@ -31,7 +31,9 @@ class NetSquidProcessor(Processor):
         ns_instr = self.__class__.NS_INSTR_MAPPING.get(instr)
         if ns_instr is None:
             raise RuntimeError("Don't know how to map the instruction {instr} to a netquid instruction")
-        self._qdevice.execute_instruction(ns_instr, qubit_mapping=[position], physical=False)  # TODO physical?
+        # self._qdevice.execute_instruction(ns_instr, qubit_mapping=[position], physical=False)  # TODO physical?
+        self._qdevice.execute_instruction(ns_instr, qubit_mapping=[position])  # TODO physical?
+        yield EventExpression(source=self._qdevice, event_type=self._qdevice.evtype_program_done)
 
     def _do_single_meas(self, q_address, q_index, c_address, c_index):
         position = self._get_position(q_address, q_index)
@@ -62,13 +64,3 @@ class NetSquidProcessor(Processor):
         if len(new_positions) < num_positions:
             raise MemoryError("No more qubits left to put in a register")
         return new_positions
-
-
-class FromStringNetSquidProcessor(NetSquidProcessor):
-    def __init__(self, qdevice=None, num_qubits=5, subroutine=""):
-        super().__init__(qdevice=qdevice, num_qubits=num_qubits)
-        self._subroutine = subroutine
-
-    def get_next_subroutine(self):
-        parser = Parser(self._subroutine)
-        return parser.instructions

@@ -1,6 +1,6 @@
 import logging
 
-from squidasm.processor import FromStringNetSquidProcessor
+from squidasm.processor import NetSquidProcessor
 
 
 def test_processor():
@@ -21,5 +21,5 @@ EXIT:
 // this is also a comment
 """
 
-    nq_processor = FromStringNetSquidProcessor(subroutine=subroutine)
-    nq_processor.execute_next_subroutine()
+    nq_processor = NetSquidProcessor()
+    nq_processor.execute_subroutine(subroutine=subroutine)
