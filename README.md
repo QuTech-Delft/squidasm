@@ -4,12 +4,12 @@ SquidASM (0.0.0)
 Welcome to SquidASM's README.
 
 To install the package do:
-```bash
+```sh
 make install
 ```
 
 To verify the installation do:
-```
+```sh
 make verify
 ```
 
