@@ -3,6 +3,7 @@ SOURCEDIR      = squidasm
 TESTS_DIR      = tests
 EXAMPLES_DIR   = examples
 RUNEXAMPLES    = ${EXAMPLES_DIR}/run_examples.py
+PIP_FLAGS    = --extra-index-url=https://${NETSQUIDPYPI_USER}:${NETSQUIDPYPI_PWD}@pypi.netsquid.org
 MINCOV         = 0
 
 help:
@@ -21,8 +22,16 @@ help:
 test-deps:
 	@$(PYTHON3) -m pip install -r test_requirements.txt
 
-requirements python-deps:
+requirements python-deps: _check_variables
 	@$(PYTHON3) -m pip install -r requirements.txt ${PIP_FLAGS}
+
+_check_variables:
+ifndef NETSQUIDPYPI_USER
+	$(error Set the environment variable NETSQUIDPYPI_USER before uploading)
+endif
+ifndef NETSQUIDPYPI_PWD
+	$(error Set the environment variable NETSQUIDPYPI_PWD before uploading)
+endif
 
 clean:
 	@/usr/bin/find . -name '*.pyc' -delete

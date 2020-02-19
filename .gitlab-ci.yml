@@ -18,9 +18,22 @@ install:
             - venv
         expire_in: 1 hour
     before_script:
+        ## Add private key to server access
+        - eval $(ssh-agent -s)
+        - mkdir -p ~/.ssh
+        - chmod 700 ~/.ssh
+        - echo "$SSH_PRIVATE_KEY" | ssh-add -
+        - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+        - chmod 644 ~/.ssh/known_hosts
+        ## Create a virtual environment
         - pip3 install virtualenv
         - virtualenv venv
         - source venv/bin/activate
+        ## Install netqasm
+        - git clone git@gitlab.tudelft.nl:qinc-wehner/netqasm/netqasm.git
+        - cd netqasm
+        - pip install .
+        - cd ..
     script: make install
     only:
         - master
