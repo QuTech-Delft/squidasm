@@ -19,13 +19,13 @@ class SimpleCommunicator:
     def run(self, num_times=1):
         for _ in range(num_times):
             self._submit_subroutine()
-        self._signel_stop()
+        self._signal_stop()
 
     def _submit_subroutine(self):
         self._logger.debug(f"SimpleCommunicator for node {self._node_name} puts the next subroutine")
         self._subroutine_queue.put(self._subroutine)
 
-    def _signel_stop(self):
+    def _signal_stop(self):
         self._subroutine_queue.put(Signal.STOP)
 
 

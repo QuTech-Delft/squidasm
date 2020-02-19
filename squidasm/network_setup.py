@@ -19,7 +19,7 @@ def get_nodes(names, num_qubits=5):
 
 
 def get_qdevice(name="QPD", num_qubits=5):
-    return QuantumProcessor(name=name, num_qubits=num_qubits, phys_instructions=[
+    return QuantumProcessor(name=name, num_positions=num_qubits, phys_instructions=[
         PhysicalInstruction(INSTR_INIT, duration=1),
         PhysicalInstruction(INSTR_X, duration=2),
         PhysicalInstruction(INSTR_H, duration=3),

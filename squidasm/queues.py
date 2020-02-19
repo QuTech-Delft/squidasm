@@ -14,9 +14,7 @@ def get_queue(node_name, key=None):
     if queue is None:
         queue = Queue()
         _QUEUES[absolute_key] = queue
-        return queue
-    else:
-        return queue
+    return queue
 
 
 def signal_queue(node_name, signal, key=None):

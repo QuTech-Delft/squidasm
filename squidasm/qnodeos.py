@@ -36,8 +36,9 @@ class SubroutineHandler(NodeProtocol):
             self._logger.debug(f"SubroutineHandler at node {self.node} handles the signal {item}")
             self._handle_signal(signal=item)
         else:
-            self._logger.debug(f"SubroutineHandler at node {self.node} executing next subroutine")
-            yield from self._execute_subroutine(subroutine=item)
+            self._logger.debug(f"SubroutineHandler at node {self.node} executing next subroutine "
+                               f"from app ID {item.app_id}")
+            yield from self._execute_instructions(instructions=item.instructions)
             self._logger.debug(f"SubroutineHandler at node {self.node} marking subroutine as done")
             self._task_done()
 
@@ -51,8 +52,8 @@ class SubroutineHandler(NodeProtocol):
             else:
                 return item
 
-    def _execute_subroutine(self, subroutine):
-        yield from self._processor.execute_subroutine(subroutine=subroutine)
+    def _execute_instructions(self, instructions):
+        yield from self._processor.execute_instructions(instructions=instructions)
 
     def _task_done(self):
         self._subroutine_queue.task_done()
@@ -67,9 +68,6 @@ class SubroutineHandler(NodeProtocol):
 
 def test():
     logging.basicConfig(level=logging.DEBUG)
-    # for logger_name in logging.root.manager.loggerDict:
-    #     logger = logging.getLogger(logger_name)
-    #     logger.setLevel(logging.DEBUG)
     alice = get_node(name="Alice", num_qubits=5)
     subroutine_handler = SubroutineHandler(alice)
 
