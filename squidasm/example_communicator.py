@@ -1,10 +1,7 @@
-from time import sleep
 import logging
 from threading import Thread
 
 from squidasm.queues import get_queue, Signal
-from squidasm.network_setup import get_node
-from squidasm.qnodeos import SubroutineHandler
 from squidasm.backend import Backend
 
 

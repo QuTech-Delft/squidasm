@@ -26,8 +26,8 @@ class NetSquidProcessor(Processor):
 
         self._qubit_positions_used = []
 
-    def _do_one_single_qubit_instr(self, instr, address, index):
-        position = self._get_position(address, index)
+    def _do_single_qubit_instr(self, instr, subroutine_id, address):
+        position = self._get_position(subroutine_id, address)
         ns_instr = self.__class__.NS_INSTR_MAPPING.get(instr)
         if ns_instr is None:
             raise RuntimeError("Don't know how to map the instruction {instr} to a netquid instruction")
@@ -35,32 +35,22 @@ class NetSquidProcessor(Processor):
         self._qdevice.execute_instruction(ns_instr, qubit_mapping=[position])  # TODO physical?
         yield EventExpression(source=self._qdevice, event_type=self._qdevice.evtype_program_done)
 
-    def _do_single_meas(self, q_address, q_index, c_address, c_index):
-        position = self._get_position(q_address, q_index)
+    def _do_meas(self, subroutine_id, q_address, c_address):
+        position = self._get_position(subroutine_id, q_address)
         outcome = self._qdevice.measure(position)[0][0]
+        app_id = self._get_app_id(subroutine_id=subroutine_id)
         try:
-            self._set_address_value(c_address, c_index, outcome)
+            self._set_address_value(app_id=app_id, address=c_address, value=outcome)
         except IndexError:
             logging.warning("Measurement outcome dropped since no more entries in classical register")
 
-    def _get_position(self, address, index):
-        register = self._get_allocated_register(address)
-        if index >= len(register):
-            raise RuntimeError("Index out of bounds in quantum register with address {address}")
-        position = register[index]
-        return position
+    def _get_position(self, subroutine_id, address):
+        return self._get_position_in_unit_module(subroutine_id, address)
 
-    def _allocate_new_quantum_register(self, num_entries):
-        positions = self._get_unused_positions(num_positions=num_entries)
-        return positions
-
-    def _get_unused_positions(self, num_positions):
-        used_positions = sum([used_positions for used_positions in self._quantum_registers.values()], [])
-        new_positions = []
-        for position in range(self._qdevice.num_positions):
-            if position not in used_positions:
-                new_positions.append(position)
-                self._qubit_positions_used.append(position)
-        if len(new_positions) < num_positions:
-            raise MemoryError("No more qubits left to put in a register")
-        return new_positions
+    def _get_unused_physical_qubit(self, address):
+        # Assuming that the topology of the unit module is a complete graph
+        # is does not matter which unused physical qubit we choose for now
+        for physical_address in range(self._qdevice.num_positions):
+            if physical_address not in self._used_physical_qubit_addresses:
+                return physical_address
+        raise RuntimeError("No more qubits left in qdevice")
