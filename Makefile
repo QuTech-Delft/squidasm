@@ -1,9 +1,9 @@
 PYTHON3        = python3
 SOURCEDIR      = squidasm
-TESTS_DIR      = tests
-EXAMPLES_DIR   = examples
-RUNEXAMPLES    = ${EXAMPLES_DIR}/run_examples.py
-PIP_FLAGS    = --extra-index-url=https://${NETSQUIDPYPI_USER}:${NETSQUIDPYPI_PWD}@pypi.netsquid.org
+TESTDIR        = tests
+EXAMPLEDIR     = examples
+RUNEXAMPLES    = ${EXAMPLEDIR}/run_examples.py
+PIP_FLAGS      = --extra-index-url=https://${NETSQUIDPYPI_USER}:${NETSQUIDPYPI_PWD}@pypi.netsquid.org
 MINCOV         = 0
 
 help:
