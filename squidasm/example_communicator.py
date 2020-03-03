@@ -1,10 +1,9 @@
 import logging
-# from threading import Thread
 
 from squidasm.queues import get_queue, Signal
-# from squidasm.backend import Backend
 from squidasm.run import run_applications
 from squidasm.sdk import Message, InitNewAppMessage, MessageType
+from netqasm.sdk.shared_memory import get_shared_memory
 from netqasm.parser import Parser
 
 
@@ -38,15 +37,16 @@ class SimpleCommunicator:
 
     def _signal_stop(self):
         self._subroutine_queue.put(Message(type=MessageType.SIGNAL, msg=Signal.STOP))
+        self._subroutine_queue.join()
 
 
 def test():
     logging.basicConfig(level=logging.DEBUG)
     subroutine = """
-# NETQASM 1.0
+# NETQASM 0.0
 # APPID 0
 # DEFINE op h
-# DEFINE q @0
+# DEFINE q q0
 qtake q!
 init q!
 op! q! // this is a comment
@@ -77,30 +77,43 @@ EXIT:
         "Bob": run_bob,
     })
 
-    # def run_backend():
-    #     logging.debug("Starting backend thread")
-    #     backend = Backend(["Alice", "Bob"])
-    #     backend.start()
-    #     logging.debug("End backend thread")
 
-    # app_functions = [run_alice, run_bob]
-    # backend_function = run_backend
+def test_meas_many():
+    logging.basicConfig(level=logging.DEBUG)
+    subroutine = """
+# NETQASM 0.0
+# APPID 0
+array(10) ms
+store i 0
+LOOP:
+beq i 10 EXIT
+qtake q
+init q
+h q
+meas q ms[]
+qfree q
+add i i 1
+beq 0 0 LOOP
+EXIT:
+// this is also a comment
+"""
+    print("Applications at Alice will submit the following subroutine to QDevice:")
+    print(subroutine)
+    print()
 
-    # # Start the application threads
-    # app_threads = []
-    # for app_function in app_functions:
-    #     thread = Thread(target=app_function)
-    #     thread.start()
-    #     app_threads.append(thread)
+    def run_alice():
+        logging.debug("Starting Alice thread")
+        communicator = SimpleCommunicator("Alice", subroutine=subroutine)
+        communicator.run(num_times=1)
+        logging.debug("End Alice thread")
 
-    # # Start the backend thread
-    # backend_thread = Thread(target=backend_function)
-    # backend_thread.start()
+    run_applications({
+        "Alice": run_alice,
+    })
 
-    # # Join the application threads (not the backend, since it will run forever)
-    # for app_thread in app_threads:
-    #     app_thread.join()
+    shared_memory = get_shared_memory("Alice", key=0)
+    print(shared_memory)
 
 
 if __name__ == '__main__':
-    test()
+    test_meas_many()

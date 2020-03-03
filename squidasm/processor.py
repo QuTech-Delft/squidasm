@@ -27,7 +27,7 @@ class NetSquidProcessor(Processor):
         self._qubit_positions_used = []
 
     def _do_single_qubit_instr(self, instr, subroutine_id, address):
-        position = self._get_position(subroutine_id, address)
+        position = self._get_position(subroutine_id=subroutine_id, address=address)
         ns_instr = self.__class__.NS_INSTR_MAPPING.get(instr)
         if ns_instr is None:
             raise RuntimeError("Don't know how to map the instruction {instr} to a netquid instruction")
@@ -35,12 +35,12 @@ class NetSquidProcessor(Processor):
         self._qdevice.execute_instruction(ns_instr, qubit_mapping=[position])  # TODO physical?
         yield EventExpression(source=self._qdevice, event_type=self._qdevice.evtype_program_done)
 
-    def _do_meas(self, subroutine_id, q_address, c_address):
-        position = self._get_position(subroutine_id, q_address)
+    def _do_meas(self, subroutine_id, q_address, c_operand):
+        position = self._get_position(subroutine_id=subroutine_id, address=q_address)
         outcome = self._qdevice.measure(position)[0][0]
         app_id = self._get_app_id(subroutine_id=subroutine_id)
         try:
-            self._set_address_value(app_id=app_id, address=c_address, value=outcome)
+            self._set_address_value(app_id=app_id, operand=c_operand, value=outcome)
         except IndexError:
             logging.warning("Measurement outcome dropped since no more entries in classical register")
 
