@@ -17,6 +17,7 @@ def test_two_nodes():
             q2.X()
             q1.X()
             q2.H()
+        assert len(alice.active_qubits) == 0
         logging.debug("End Alice thread")
 
     def run_bob():
@@ -28,6 +29,7 @@ def test_two_nodes():
             q2.X()
             q1.X()
             q2.H()
+        assert len(bob.active_qubits) == 0
         logging.debug("End Bob thread")
 
     run_applications({
@@ -74,7 +76,6 @@ def test_measure_loop():
             alice.flush()
             outcomes = alice.shared_memory[2:2 + num]
             avg = sum(outcomes) / num
-            # print(outcomes)
             print(f"Average: {avg}")
             assert 0.4 <= avg <= 0.6
 
@@ -84,6 +85,8 @@ def test_measure_loop():
 
 
 def test_nested_loop():
+    logging.basicConfig(level=logging.DEBUG)
+
     def run_alice():
         with NetSquidConnection("Alice") as alice:
             num = 10
@@ -97,6 +100,8 @@ def test_nested_loop():
             alice.loop(outer_body, num, var_address='j')
             alice.flush()
             print(alice.shared_memory[:10])
+            assert alice.shared_memory[0] == num
+            assert alice.shared_memory[1] == num
 
     run_applications({
         "Alice": run_alice,
@@ -104,4 +109,7 @@ def test_nested_loop():
 
 
 if __name__ == '__main__':
+    test_two_nodes()
+    test_measure()
+    test_measure_loop()
     test_nested_loop()

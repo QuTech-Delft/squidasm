@@ -1,6 +1,7 @@
 import logging
 from threading import Thread
 
+from netqasm.sdk.shared_memory import reset_memories
 from squidasm.backend import Backend
 
 
@@ -13,6 +14,7 @@ def run_applications(applications):
         Keys should be names of nodes
         Values should be the functions
     """
+    reset_memories()
     node_names = list(applications.keys())
     app_functions = list(applications.values())
 
@@ -33,6 +35,6 @@ def run_applications(applications):
     backend_thread = Thread(target=run_backend)
     backend_thread.start()
 
-    # Join the application threads (not the backend, since it will run forever)
+    # Join the application threads (not the backend)
     for app_thread in app_threads:
         app_thread.join()

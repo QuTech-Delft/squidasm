@@ -39,10 +39,7 @@ class NetSquidConnection(NetQASMConnection):
         self._signal_stop()
 
     def _submit_subroutine(self, subroutine, block=True):
-        indented_instructions = '\n'.join(f"    {instr}" for instr in subroutine.instructions)
-        self._logger.debug("Puts the next subroutine "
-                           f"(netqasm_version={subroutine.netqasm_version}, app_id={subroutine.app_id}):\n"
-                           f"{indented_instructions}")
+        self._logger.debug(f"Puts the next subroutine:\n{subroutine}")
         self._subroutine_queue.put(Message(type=MessageType.SUBROUTINE, msg=subroutine))
         if block:
             self._subroutine_queue.join()

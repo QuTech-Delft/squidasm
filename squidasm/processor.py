@@ -5,6 +5,7 @@ from netsquid.components.qprocessor import QuantumProcessor
 from netsquid.components.instructions import INSTR_INIT, INSTR_X, INSTR_H
 from netqasm.processor import Processor
 from netqasm.encoder import Instruction
+from squidasm.network_setup import get_qdevice
 
 
 class NetSquidProcessor(Processor):
@@ -19,7 +20,7 @@ class NetSquidProcessor(Processor):
         """Executes a NetQASM using a NetSquid quantum processor to execute quantum instructions"""
         super().__init__(name=name, num_qubits=num_qubits)
         if qdevice is None:
-            qdevice = QuantumProcessor("QPD", num_qubits=num_qubits)
+            qdevice = get_qdevice(num_qubits=num_qubits)
         if not isinstance(qdevice, QuantumProcessor):
             raise TypeError(f"qdevice should be a QuantumProcessor, not {type(qdevice)}")
         self._qdevice = qdevice
@@ -31,8 +32,7 @@ class NetSquidProcessor(Processor):
         ns_instr = self.__class__.NS_INSTR_MAPPING.get(instr)
         if ns_instr is None:
             raise RuntimeError("Don't know how to map the instruction {instr} to a netquid instruction")
-        # self._qdevice.execute_instruction(ns_instr, qubit_mapping=[position], physical=False)  # TODO physical?
-        self._qdevice.execute_instruction(ns_instr, qubit_mapping=[position])  # TODO physical?
+        self._qdevice.execute_instruction(ns_instr, qubit_mapping=[position])
         yield EventExpression(source=self._qdevice, event_type=self._qdevice.evtype_program_done)
 
     def _do_meas(self, subroutine_id, q_address, c_operand):

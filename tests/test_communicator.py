@@ -1,43 +1,8 @@
 import logging
 
-from squidasm.queues import get_queue, Signal
-from squidasm.run import run_applications
-from squidasm.sdk import Message, InitNewAppMessage, MessageType
 from netqasm.sdk.shared_memory import get_shared_memory
-from netqasm.parser import Parser
-
-
-class SimpleCommunicator:
-    def __init__(self, node_name, subroutine, app_id=0, max_qubits=5):
-        self._subroutine = Parser(subroutine).subroutine
-        self._node_name = node_name
-        self._subroutine_queue = get_queue(node_name)
-        self._init_new_app(app_id=app_id, max_qubits=max_qubits)
-
-        self._logger = logging.getLogger(f"{self.__class__.__name__}({self._node_name})")
-
-    def _init_new_app(self, app_id, max_qubits):
-        """Informs the backend of the new application and how many qubits it will maximally use"""
-        self._subroutine_queue.put(Message(
-            type=MessageType.INIT_NEW_APP,
-            msg=InitNewAppMessage(
-                app_id=app_id,
-                max_qubits=max_qubits,
-            ),
-        ))
-
-    def run(self, num_times=1):
-        for _ in range(num_times):
-            self._submit_subroutine()
-        self._signal_stop()
-
-    def _submit_subroutine(self):
-        self._logger.debug(f"SimpleCommunicator for node {self._node_name} puts the next subroutine")
-        self._subroutine_queue.put(Message(type=MessageType.SUBROUTINE, msg=self._subroutine))
-
-    def _signal_stop(self):
-        self._subroutine_queue.put(Message(type=MessageType.SIGNAL, msg=Signal.STOP))
-        self._subroutine_queue.join()
+from squidasm.run import run_applications
+from squidasm.communicator import SimpleCommunicator
 
 
 def test():
@@ -47,7 +12,7 @@ def test():
 # APPID 0
 # DEFINE op h
 # DEFINE q q0
-qtake q!
+qalloc q!
 init q!
 op! q! // this is a comment
 meas q! m
@@ -76,18 +41,23 @@ EXIT:
         "Alice": run_alice,
         "Bob": run_bob,
     })
+    for node in ["Alice", "Bob"]:
+        shared_memory = get_shared_memory(node, key=0)
+        print(shared_memory[:10])
+        assert shared_memory[0] in set([0, 1])
 
 
 def test_meas_many():
     logging.basicConfig(level=logging.DEBUG)
-    subroutine = """
+    num_times = 100
+    subroutine = f"""
 # NETQASM 0.0
 # APPID 0
-array(10) ms
+array({num_times}) ms
 store i 0
 LOOP:
-beq i 10 EXIT
-qtake q
+beq i {num_times} EXIT
+qalloc q
 init q
 h q
 meas q ms[]
@@ -112,8 +82,15 @@ EXIT:
     })
 
     shared_memory = get_shared_memory("Alice", key=0)
-    print(shared_memory)
+    outcomes = shared_memory[0]
+    i = shared_memory[1]
+    assert i == num_times
+    assert len(outcomes) == num_times
+    avg = sum(outcomes) / num_times
+    print(avg)
+    assert 0.4 <= avg <= 0.6
 
 
 if __name__ == '__main__':
+    test()
     test_meas_many()

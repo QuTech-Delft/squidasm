@@ -2,13 +2,11 @@ import logging
 from queue import Empty
 from types import GeneratorType
 
-import netsquid as ns
 from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
 from squidasm.sdk import MessageType
 from squidasm.processor import NetSquidProcessor
 from squidasm.queues import get_queue, Signal
-from squidasm.network_setup import get_node
 
 
 class SubroutineHandler(NodeProtocol):
@@ -45,8 +43,6 @@ class SubroutineHandler(NodeProtocol):
         output = self._message_handlers[item.type](item.msg)
         if isinstance(output, GeneratorType):
             yield from output
-        else:
-            return output
 
     def _fetch_next_item(self):
         while True:
@@ -84,47 +80,3 @@ class SubroutineHandler(NodeProtocol):
             self.stop()
         else:
             raise ValueError(f"Unkown signal {signal}")
-
-
-def test():
-    logging.basicConfig(level=logging.DEBUG)
-    alice = get_node(name="Alice", num_qubits=5)
-    subroutine_handler = SubroutineHandler(alice)
-
-    # Put subroutine in queue
-    queue = get_queue(alice.name)
-    subroutine = """
-# NETQASM 1.0
-# APPID 0
-# DEFINE op h
-# DEFINE q @0
-creg(1) m
-qreg(1) q!
-init q!
-op! q! // this is a comment
-meas q! m
-beq m[0] 0 EXIT
-x q!
-EXIT:
-output m
-// this is also a comment
-"""
-    queue.put(subroutine)
-    # Make sure to signal to stop after
-    queue.put(Signal.STOP)
-
-    # Starting subroutine
-    subroutine_handler.start()
-
-    # Starting netsquid
-    ns.sim_run()
-
-    output_data = subroutine_handler._processor.output_data
-    assert len(output_data) == 1
-    assert output_data[0].address == 1
-    assert len(output_data[0].data) == 1
-    assert output_data[0].data[0] in [0, 1]
-
-
-if __name__ == '__main__':
-    test()
