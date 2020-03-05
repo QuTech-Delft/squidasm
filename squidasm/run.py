@@ -5,7 +5,7 @@ from netqasm.sdk.shared_memory import reset_memories
 from squidasm.backend import Backend
 
 
-def run_applications(applications):
+def run_applications(applications, post_function=None):
     """Executes functions containing application scripts,
 
     Parameters
@@ -13,6 +13,10 @@ def run_applications(applications):
     applications : dict
         Keys should be names of nodes
         Values should be the functions
+    post_function : None or function
+        A function to be applied to the backend (:class:`~.backend.Backend`)
+        after the execution. This can be used for debugging, e.g. getting the
+        quantum states after execution etc.
     """
     reset_memories()
     node_names = list(applications.keys())
@@ -22,6 +26,8 @@ def run_applications(applications):
         logging.debug(f"Starting netsquid backend thread with nodes {node_names}")
         backend = Backend(node_names)
         backend.start()
+        if post_function is not None:
+            post_function(backend)
         logging.debug("End backend thread")
 
     # Start the application threads

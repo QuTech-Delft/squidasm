@@ -4,18 +4,15 @@ from types import GeneratorType
 
 from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
-from squidasm.sdk import MessageType
-from squidasm.processor import NetSquidProcessor
+from squidasm.messages import MessageType
+from squidasm.executioner import NetSquidExecutioner
 from squidasm.queues import get_queue, Signal
 
 
 class SubroutineHandler(NodeProtocol):
     def __init__(self, node):
         super().__init__(node=node)
-        self._processor = NetSquidProcessor(
-            name=node.name,
-            qdevice=self.node.qmemory,
-        )
+        self._executioner = NetSquidExecutioner(node=node)
 
         self._subroutine_queue = get_queue(self.node.name)
 
@@ -25,12 +22,26 @@ class SubroutineHandler(NodeProtocol):
 
         self._logger = logging.getLogger(f"{self.__class__.__name__}({self.node.name})")
 
+    @property
+    def network_stack(self):
+        return self._executioner.network_stack
+
+    @network_stack.setter
+    def network_stack(self, network_stack):
+        self._executioner.network_stack = network_stack
+
+    def get_epr_reaction_handler(self):
+        return self._executioner._handle_epr_response
+
     def _get_message_handlers(self):
         return {
             MessageType.SIGNAL: self._handle_signal,
             MessageType.SUBROUTINE: self._handle_subroutine,
             MessageType.INIT_NEW_APP: self._handle_init_new_app,
         }
+
+    def add_network_stack(self, network_stack):
+        self._executioner.network_stack = network_stack
 
     def run(self):
         while self.is_running:
@@ -49,7 +60,7 @@ class SubroutineHandler(NodeProtocol):
             try:
                 item = self._subroutine_queue.get(block=False)
             except Empty:
-                self._schedule_now(self._loop_event)
+                self._schedule_after(1, self._loop_event)
                 yield EventExpression(source=self, event_type=self._loop_event)
             else:
                 return item
@@ -61,7 +72,8 @@ class SubroutineHandler(NodeProtocol):
         self._logger.debug(f"SubroutineHandler at node {self.node} marking subroutine as done")
 
     def _execute_subroutine(self, subroutine):
-        yield from self._processor.execute_subroutine(subroutine=subroutine)
+        print(subroutine)
+        yield from self._executioner.execute_subroutine(subroutine=subroutine)
 
     def _task_done(self):
         self._subroutine_queue.task_done()
@@ -71,7 +83,7 @@ class SubroutineHandler(NodeProtocol):
         max_qubits = msg.max_qubits
         self._logger.debug(f"SubroutineHandler at node {self.node} allocating a new "
                            f"unit module of size {max_qubits} for application with app ID {app_id}")
-        self._processor.init_new_application(app_id=app_id, max_qubits=max_qubits)
+        self._executioner.init_new_application(app_id=app_id, max_qubits=max_qubits)
 
     def _handle_signal(self, signal):
         self._logger.debug(f"SubroutineHandler at node {self.node} handles the signal {signal}")
