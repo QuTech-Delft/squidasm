@@ -72,7 +72,6 @@ class SubroutineHandler(NodeProtocol):
         self._logger.debug(f"SubroutineHandler at node {self.node} marking subroutine as done")
 
     def _execute_subroutine(self, subroutine):
-        print(subroutine)
         yield from self._executioner.execute_subroutine(subroutine=subroutine)
 
     def _task_done(self):

@@ -33,13 +33,13 @@ def get_current_node_ids(block=True):
 
 
 class Backend:
-    def __init__(self, node_names, num_qubits=5):
+    def __init__(self, node_names, node_ids=None, num_qubits=5):
         """Sets up the qmemories, nodes, connections and subroutine-handlers
         used to process NetQASM instructions.
 
         The Backend should be started by calling `start`, which also starts pydynaa.
         """
-        self._nodes = get_nodes(node_names, num_qubits=num_qubits)
+        self._nodes = get_nodes(node_names, node_ids=node_ids, num_qubits=num_qubits)
         self._subroutine_handlers = self._get_subroutine_handlers(self._nodes)
         reaction_handlers = {node_name: self._subroutine_handlers[node_name].get_epr_reaction_handler()
                              for node_name in self._nodes}

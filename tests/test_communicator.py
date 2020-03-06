@@ -7,7 +7,7 @@ from squidasm.communicator import SimpleCommunicator
 
 
 def test():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
     subroutine = """
 # NETQASM 0.0
 # APPID 0
@@ -22,9 +22,8 @@ x q!
 EXIT:
 // this is also a comment
 """
-    print("Applications at Alice and Bob will submit the following subroutine to QDevice:")
-    print(subroutine)
-    print()
+    logging.info("Applications at Alice and Bob will submit the following subroutine to QDevice:")
+    logging.info(subroutine)
 
     def run_alice():
         logging.debug("Starting Alice thread")
@@ -38,18 +37,20 @@ EXIT:
         communicator.run(num_times=1)
         logging.debug("End Bob thread")
 
+    def post_function(backend):
+        for node_name in ["Alice", "Bob"]:
+            shared_memory = get_shared_memory(node_name, key=0)
+            logging.info(shared_memory[:10])
+            assert shared_memory[0] in set([0, 1])
+
     run_applications({
         "Alice": run_alice,
         "Bob": run_bob,
-    })
-    for node in ["Alice", "Bob"]:
-        shared_memory = get_shared_memory(node, key=0)
-        print(shared_memory[:10])
-        assert shared_memory[0] in set([0, 1])
+    }, post_function=post_function)
 
 
 def test_meas_many():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
     num_times = 100
     subroutine = f"""
 # NETQASM 0.0
@@ -68,9 +69,8 @@ beq 0 0 LOOP
 EXIT:
 // this is also a comment
 """
-    print("Applications at Alice will submit the following subroutine to QDevice:")
-    print(subroutine)
-    print()
+    logging.info("Applications at Alice will submit the following subroutine to QDevice:")
+    logging.info(subroutine)
 
     def run_alice():
         logging.debug("Starting Alice thread")
@@ -78,22 +78,23 @@ EXIT:
         communicator.run(num_times=1)
         logging.debug("End Alice thread")
 
+    def post_function(backend):
+        shared_memory = get_shared_memory("Alice", key=0)
+        outcomes = shared_memory[0]
+        i = shared_memory[1]
+        assert i == num_times
+        assert len(outcomes) == num_times
+        avg = sum(outcomes) / num_times
+        logging.info(avg)
+        assert 0.4 <= avg <= 0.6
+
     run_applications({
         "Alice": run_alice,
-    })
-
-    shared_memory = get_shared_memory("Alice", key=0)
-    outcomes = shared_memory[0]
-    i = shared_memory[1]
-    assert i == num_times
-    assert len(outcomes) == num_times
-    avg = sum(outcomes) / num_times
-    print(avg)
-    assert 0.4 <= avg <= 0.6
+    }, post_function=post_function)
 
 
 def test_teleport():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
     subroutine_alice = """
 # NETQASM 0.0
 # APPID 0
@@ -137,7 +138,7 @@ wait entinfo
 
     def post_function(backend):
         shared_memory_alice = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
-        print(shared_memory_alice[:5])
+        logging.info(shared_memory_alice[:5])
         m1, m2 = shared_memory_alice[3:5]
         expected_states = {
             (0, 0): np.array([[0.5, 0.5], [0.5, 0.5]]),
@@ -146,8 +147,8 @@ wait entinfo
             (1, 1): np.array([[0.5, -0.5], [-0.5, 0.5]]),
         }
         state = backend._nodes["Bob"].qmemory._get_qubits(0)[0].qstate.dm
-        print(f"m1 = {m1}, m2 = {m2}")
-        print(f"state = {state}")
+        logging.info(f"m1 = {m1}, m2 = {m2}")
+        logging.info(f"state = {state}")
         assert np.all(np.isclose(expected_states[m1, m2], state))
 
     run_applications({
@@ -222,7 +223,7 @@ wait entinfo
 
     def post_function(backend):
         shared_memory_alice = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
-        print(shared_memory_alice[:5])
+        logging.info(shared_memory_alice[:5])
         alice_state = backend._nodes["Alice"].qmemory._get_qubits(0)[0].qstate
         bob_state = backend._nodes["Bob"].qmemory._get_qubits(0)[0].qstate
         assert alice_state is bob_state
@@ -308,7 +309,7 @@ wait entinfo
 
     def post_function(backend):
         shared_memory_alice = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
-        print(shared_memory_alice[:5])
+        logging.info(shared_memory_alice[:5])
         for i in range(2):
             alice_state = backend._nodes["Alice"].qmemory._get_qubits(i)[0].qstate
             bob_state = backend._nodes["Bob"].qmemory._get_qubits(i)[0].qstate
@@ -398,7 +399,7 @@ wait entinfo
 
     def post_function(backend):
         shared_memory_alice = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
-        print(shared_memory_alice[:5])
+        logging.info(shared_memory_alice[:5])
         m = shared_memory_alice[3]
         states = []
         for pos, node in zip([0, 0, 1], ["Alice", "Bob", "Bob"]):
@@ -421,7 +422,7 @@ wait entinfo
             expected_state[6, 1] = 0.5
             expected_state[6, 6] = 0.5
 
-        print(states[0].dm)
+        logging.info(states[0].dm)
 
         assert np.all(np.isclose(expected_state, states[0].dm))
 
@@ -432,9 +433,9 @@ wait entinfo
 
 
 if __name__ == '__main__':
-    # test()
-    # test_meas_many()
-    # test_teleport()
-    # test_set_create_args()
-    # test_multiple_pairs()
-    # test_make_ghz()
+    test()
+    test_meas_many()
+    test_teleport()
+    test_set_create_args()
+    test_multiple_pairs()
+    test_make_ghz()

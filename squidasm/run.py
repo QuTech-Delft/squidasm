@@ -44,3 +44,4 @@ def run_applications(applications, post_function=None):
     # Join the application threads (not the backend)
     for app_thread in app_threads:
         app_thread.join()
+    # backend_thread.join()

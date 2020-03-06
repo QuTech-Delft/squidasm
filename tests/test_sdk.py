@@ -54,7 +54,7 @@ def test_measure():
                 alice.flush()
                 count += m
             avg = count / num
-            print(avg)
+            logging.info(avg)
             assert 0.4 <= avg <= 0.6
 
     run_applications({
@@ -78,7 +78,7 @@ def test_measure_loop():
             alice.flush()
             outcomes = alice.shared_memory[2:2 + num]
             avg = sum(outcomes) / num
-            print(f"Average: {avg}")
+            logging.info(f"Average: {avg}")
             assert 0.4 <= avg <= 0.6
 
     run_applications({
@@ -101,7 +101,7 @@ def test_nested_loop():
                 alice.loop(inner_body, num, var_address='i')
             alice.loop(outer_body, num, var_address='j')
             alice.flush()
-            print(alice.shared_memory[:10])
+            logging.info(alice.shared_memory[:10])
             assert alice.shared_memory[0] == num
             assert alice.shared_memory[1] == num
 
@@ -133,7 +133,7 @@ def test_create_epr():
              [0, 0, 0, 0],
              [0.5, 0, 0, 0.5]])
 
-        print(f"state = {alice_state.dm}")
+        logging.info(f"state = {alice_state.dm}")
         assert np.all(np.isclose(expected_state, alice_state.dm))
 
     run_applications({
@@ -159,7 +159,7 @@ def test_teleport():
             q.H()
             m1 = q.measure()
             m2 = epr.measure()
-            print(f"m1, m2 = {m1}, {m2}")
+            logging.info(f"m1, m2 = {m1}, {m2}")
 
     def run_bob():
         with NetSquidConnection("Bob") as bob:
@@ -167,7 +167,7 @@ def test_teleport():
 
     def post_function(backend):
         shared_memory_alice = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
-        print(shared_memory_alice[:5])
+        logging.info(shared_memory_alice[:5])
         m1, m2 = shared_memory_alice[0:2]
         expected_states = {
             (0, 0): np.array([[0.5, 0.5], [0.5, 0.5]]),
@@ -176,7 +176,7 @@ def test_teleport():
             (1, 1): np.array([[0.5, -0.5], [-0.5, 0.5]]),
         }
         state = backend._nodes["Bob"].qmemory._get_qubits(0)[0].qstate.dm
-        print(f"state = {state}")
+        logging.info(f"state = {state}")
         assert np.all(np.isclose(expected_states[m1, m2], state))
 
     run_applications({
