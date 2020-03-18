@@ -1,18 +1,9 @@
 import logging
-from enum import Enum, auto
-from collections import namedtuple
 
 from netqasm.sdk import NetQASMConnection
 from squidasm.queues import get_queue, Signal
-
-Message = namedtuple("Message", ["type", "msg"])
-InitNewAppMessage = namedtuple("InitNewAppMessage", ["app_id", "max_qubits"])
-
-
-class MessageType(Enum):
-    SUBROUTINE = auto()
-    SIGNAL = auto()
-    INIT_NEW_APP = auto()
+from squidasm.backend import get_current_node_ids
+from squidasm.messages import Message, InitNewAppMessage, MessageType
 
 
 class NetSquidConnection(NetQASMConnection):
@@ -46,3 +37,10 @@ class NetSquidConnection(NetQASMConnection):
 
     def _signal_stop(self):
         self._subroutine_queue.put(Message(type=MessageType.SIGNAL, msg=Signal.STOP))
+
+    def _get_remote_node_id(self, node_name):
+        current_node_ids = get_current_node_ids()
+        node_id = current_node_ids.get(node_name)
+        if node_id is None:
+            raise ValueError("Unknown node with name {node_name}")
+        return node_id

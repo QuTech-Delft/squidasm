@@ -1,8 +1,13 @@
-image: adahlberg/nlblueprintci:18.04
+image: adahlberg/nlblueprintci:19.04
 
 .source_venv: &venv
     before_script:
         - source venv/bin/activate
+
+cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+        - venv
 
 stages:
     - install
@@ -13,10 +18,10 @@ stages:
 
 install:
     stage: install
-    artifacts:
-        paths:
-            - venv
-        expire_in: 1 hour
+    # artifacts:
+    #     paths:
+    #         - venv
+    #     expire_in: 1 hour
     before_script:
         ## Add private key to server access
         - eval $(ssh-agent -s)

@@ -22,13 +22,11 @@ To run a file (`simple_measure.nqasm`) containing the script:
 # APPID 0
 # DEFINE op h
 # DEFINE q @0
-creg(1) m
-qreg(1) q!
+qalloc q!
 init q!
 op! q! // this is a comment
 meas q! m
-output m
-beq m[0] 0 EXIT
+beq m 0 EXIT
 x q!
 EXIT:
 // this is also a comment

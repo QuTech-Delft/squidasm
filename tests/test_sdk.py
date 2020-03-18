@@ -1,4 +1,6 @@
 import logging
+import numpy as np
+from time import sleep
 
 from netqasm.sdk import Qubit
 from squidasm.sdk import NetSquidConnection
@@ -6,7 +8,7 @@ from squidasm.run import run_applications
 
 
 def test_two_nodes():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
 
     def run_alice():
         logging.debug("Starting Alice thread")
@@ -52,7 +54,7 @@ def test_measure():
                 alice.flush()
                 count += m
             avg = count / num
-            print(avg)
+            logging.info(avg)
             assert 0.4 <= avg <= 0.6
 
     run_applications({
@@ -76,7 +78,7 @@ def test_measure_loop():
             alice.flush()
             outcomes = alice.shared_memory[2:2 + num]
             avg = sum(outcomes) / num
-            print(f"Average: {avg}")
+            logging.info(f"Average: {avg}")
             assert 0.4 <= avg <= 0.6
 
     run_applications({
@@ -85,7 +87,7 @@ def test_measure_loop():
 
 
 def test_nested_loop():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
 
     def run_alice():
         with NetSquidConnection("Alice") as alice:
@@ -99,7 +101,7 @@ def test_nested_loop():
                 alice.loop(inner_body, num, var_address='i')
             alice.loop(outer_body, num, var_address='j')
             alice.flush()
-            print(alice.shared_memory[:10])
+            logging.info(alice.shared_memory[:10])
             assert alice.shared_memory[0] == num
             assert alice.shared_memory[1] == num
 
@@ -108,8 +110,92 @@ def test_nested_loop():
     })
 
 
+def test_create_epr():
+    # logging.basicConfig(level=logging.DEBUG)
+
+    def run_alice():
+        with NetSquidConnection("Alice") as alice:
+            # Wait a little to Bob has installed rule to recv
+            sleep(0.1)
+
+            # Create entanglement
+            alice.createEPR("Bob")[0]
+
+    def run_bob():
+        with NetSquidConnection("Bob") as bob:
+            bob.recvEPR("Alice")
+
+    def post_function(backend):
+        alice_state = backend._nodes["Alice"].qmemory._get_qubits(0)[0].qstate
+        bob_state = backend._nodes["Bob"].qmemory._get_qubits(0)[0].qstate
+        assert alice_state is bob_state
+        expected_state = np.array(
+            [[0.5, 0, 0, 0.5],
+             [0, 0, 0, 0],
+             [0, 0, 0, 0],
+             [0.5, 0, 0, 0.5]])
+
+        logging.info(f"state = {alice_state.dm}")
+        assert np.all(np.isclose(expected_state, alice_state.dm))
+
+    run_applications({
+        "Alice": run_alice,
+        "Bob": run_bob,
+    }, post_function=post_function)
+
+
+def test_teleport():
+    # logging.basicConfig(level=logging.DEBUG)
+
+    def run_alice():
+        with NetSquidConnection("Alice") as alice:
+            # Wait a little to Bob has installed rule to recv
+            sleep(0.1)
+
+            # Create a qubit
+            q = Qubit(alice)
+            q.H()
+
+            # Create entanglement
+            epr = alice.createEPR("Bob")[0]
+
+            # Teleport
+            q.cnot(epr)
+            q.H()
+            m1 = q.measure()
+            m2 = epr.measure()
+            logging.info(f"m1, m2 = {m1}, {m2}")
+
+    def run_bob():
+        with NetSquidConnection("Bob") as bob:
+            bob.recvEPR("Alice")
+
+    def post_function(backend):
+        shared_memory_alice = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
+        logging.info(shared_memory_alice[:5])
+        m1, m2 = shared_memory_alice[0:2]
+        expected_states = {
+            (0, 0): np.array([[0.5, 0.5], [0.5, 0.5]]),
+            (0, 1): np.array([[0.5, 0.5], [0.5, 0.5]]),
+            (1, 0): np.array([[0.5, -0.5], [-0.5, 0.5]]),
+            (1, 1): np.array([[0.5, -0.5], [-0.5, 0.5]]),
+        }
+        state = backend._nodes["Bob"].qmemory._get_qubits(0)[0].qstate.dm
+        logging.info(f"state = {state}")
+        expected = expected_states[m1, m2]
+        logging.info(f"expected = {expected}")
+        assert np.all(np.isclose(expected, state))
+
+    run_applications({
+        "Alice": run_alice,
+        "Bob": run_bob,
+    }, post_function=post_function)
+
+
 if __name__ == '__main__':
     test_two_nodes()
     test_measure()
     test_measure_loop()
     test_nested_loop()
+    test_create_epr()
+    test_teleport()

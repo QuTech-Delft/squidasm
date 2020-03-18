@@ -46,5 +46,5 @@ EXIT:
     # Starting netsquid
     ns.sim_run()
 
-    shared_memory = subroutine_handler._processor._shared_memories[app_id]
+    shared_memory = subroutine_handler._executioner._shared_memories[app_id]
     assert shared_memory[0] in set([0, 1])

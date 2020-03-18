@@ -1,2 +1,3 @@
 netqasm
-netsquid
+netsquid>=0.8.0,<0.9.0
+netsquid-magic>=1.5.0,<2.0.0
