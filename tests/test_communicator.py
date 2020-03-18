@@ -242,7 +242,7 @@ wait entinfo
 
 
 def test_multiple_pairs():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
     subroutine_alice = """
 # NETQASM 0.0
 # APPID 0
@@ -329,7 +329,7 @@ wait entinfo
 
 
 def test_make_ghz():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
     subroutine_alice = """
 # NETQASM 0.0
 # APPID 0

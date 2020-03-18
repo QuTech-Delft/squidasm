@@ -8,7 +8,7 @@ from squidasm.run import run_applications
 
 
 def test_two_nodes():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
 
     def run_alice():
         logging.debug("Starting Alice thread")
@@ -87,7 +87,7 @@ def test_measure_loop():
 
 
 def test_nested_loop():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
 
     def run_alice():
         with NetSquidConnection("Alice") as alice:
@@ -111,17 +111,19 @@ def test_nested_loop():
 
 
 def test_create_epr():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
 
     def run_alice():
         with NetSquidConnection("Alice") as alice:
+            # Wait a little to Bob has installed rule to recv
             sleep(0.1)
+
             # Create entanglement
             alice.createEPR("Bob")[0]
 
     def run_bob():
         with NetSquidConnection("Bob") as bob:
-            bob.recvEPR("Alice")[0]
+            bob.recvEPR("Alice")
 
     def post_function(backend):
         alice_state = backend._nodes["Alice"].qmemory._get_qubits(0)[0].qstate
@@ -143,10 +145,13 @@ def test_create_epr():
 
 
 def test_teleport():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
 
     def run_alice():
         with NetSquidConnection("Alice") as alice:
+            # Wait a little to Bob has installed rule to recv
+            sleep(0.1)
+
             # Create a qubit
             q = Qubit(alice)
             q.H()
@@ -163,7 +168,7 @@ def test_teleport():
 
     def run_bob():
         with NetSquidConnection("Bob") as bob:
-            bob.recvEPR("Alice")[0]
+            bob.recvEPR("Alice")
 
     def post_function(backend):
         shared_memory_alice = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
@@ -177,7 +182,9 @@ def test_teleport():
         }
         state = backend._nodes["Bob"].qmemory._get_qubits(0)[0].qstate.dm
         logging.info(f"state = {state}")
-        assert np.all(np.isclose(expected_states[m1, m2], state))
+        expected = expected_states[m1, m2]
+        logging.info(f"expected = {expected}")
+        assert np.all(np.isclose(expected, state))
 
     run_applications({
         "Alice": run_alice,
@@ -186,9 +193,9 @@ def test_teleport():
 
 
 if __name__ == '__main__':
-    # test_two_nodes()
-    # test_measure()
-    # test_measure_loop()
-    # test_nested_loop()
-    # test_create_epr()
+    test_two_nodes()
+    test_measure()
+    test_measure_loop()
+    test_nested_loop()
+    test_create_epr()
     test_teleport()

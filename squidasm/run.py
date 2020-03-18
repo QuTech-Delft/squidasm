@@ -1,5 +1,5 @@
 import logging
-from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 
 from netqasm.sdk.shared_memory import reset_memories
 from squidasm.backend import Backend
@@ -30,18 +30,19 @@ def run_applications(applications, post_function=None):
             post_function(backend)
         logging.debug("End backend thread")
 
-    # Start the application threads
-    app_threads = []
-    for app_function in app_functions:
-        thread = Thread(target=app_function)
-        thread.start()
-        app_threads.append(thread)
+    with ThreadPoolExecutor(max_workers=len(node_names) + 1) as executor:
+        # Start the application threads
+        app_futures = []
+        for app_function in app_functions:
+            future = executor.submit(app_function)
+            app_futures.append(future)
 
-    # Start the backend thread
-    backend_thread = Thread(target=run_backend)
-    backend_thread.start()
+        # Start the backend thread
+        backend_future = executor.submit(run_backend)
 
-    # Join the application threads (not the backend)
-    for app_thread in app_threads:
-        app_thread.join()
-    # backend_thread.join()
+        # Join the application threads and the backend
+        for app_future in app_futures:
+            app_future.result()
+        backend_future.result()
+
+    reset_memories()
