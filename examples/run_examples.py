@@ -14,15 +14,16 @@ def main():
 
     for root, folders, files in os.walk(path_to_here):
         for filename in files:
-            if filename.startswith("example_") and filename.endswith(".py"):
+            if filename.startswith("example") and filename.endswith(".py"):
                 filepath = os.path.join(root, filename)
                 members = runpy.run_path(filepath)
                 if "main" in members:
                     main = members["main"]
-                    if _has_first_argument(main, "no_output"):
-                        main(no_output=True)
-                    else:
-                        print(f"The main function in {filename} does not take the argument 'no_output'")
+                    main()
+                    # if _has_first_argument(main, "no_output"):
+                    #     main(no_output=True)
+                    # else:
+                    #     print(f"The main function in {filename} does not take the argument 'no_output'")
                 else:
                     print(f"The example {filename} does not have a main function")
 

@@ -30,7 +30,7 @@ class SimpleCommunicator:
         self._signal_stop()
 
     def _submit_subroutine(self):
-        self._logger.debug(f"SimpleCommunicator for node {self._node_name} puts the next subroutine")
+        self._logger.debug(f"SimpleCommunicator for node {self._node_name} puts the next subroutine:\n{self._subroutine}")
         self._subroutine_queue.put(Message(type=MessageType.SUBROUTINE, msg=self._subroutine))
 
     def _signal_stop(self):

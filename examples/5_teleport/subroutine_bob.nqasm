@@ -1,0 +1,7 @@
+# NETQASM 0.0
+# APPID 0
+array(1) epr_address
+store epr_address[0] 0
+array(1) entinfo
+recv_epr(0, 0) epr_address entinfo
+wait entinfo
