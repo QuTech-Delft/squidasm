@@ -5,7 +5,7 @@ qalloc q
 init q
 
 // Perform a Hadamard gate
-h q // this is a comment
+h q
 
 // Measure the qubit
 meas q m
