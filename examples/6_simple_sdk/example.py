@@ -6,7 +6,7 @@ from squidasm.run import run_applications
 
 
 def main():
-    # logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
 
     def run_alice():
         with NetSquidConnection("Alice") as alice:
