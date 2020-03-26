@@ -1,27 +1,11 @@
 image: adahlberg/nlblueprintci:19.04
 
-.source_venv: &venv
-    before_script:
-        - source venv/bin/activate
+.only_mr: &only_mr
+    only:
+        - master
+        - merge_requests
 
-cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-        - venv
-
-stages:
-    - install
-    - lint
-    - tests
-    - examples
-    - deploy
-
-install:
-    stage: install
-    # artifacts:
-    #     paths:
-    #         - venv
-    #     expire_in: 1 hour
+.install: &install
     before_script:
         ## Add private key to server access
         - eval $(ssh-agent -s)
@@ -30,40 +14,33 @@ install:
         - echo "$SSH_PRIVATE_KEY" | ssh-add -
         - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
         - chmod 644 ~/.ssh/known_hosts
-        ## Create a virtual environment
-        - pip3 install virtualenv
-        - virtualenv venv
-        - source venv/bin/activate
         ## Install netqasm
         - git clone git@gitlab.tudelft.nl:qinc-wehner/netqasm/netqasm.git
         - cd netqasm
         - pip install .
         - cd ..
-    script: make install
-    only:
-        - master
-        - merge_requests
+        - make install
+
+stages:
+    - lint
+    - tests
+    - examples
+    - deploy
 
 lint:
-    <<: *venv
+    <<: *install
     stage: lint
     script: make lint
-    only:
-        - master
-        - merge_requests
+    <<: *only_mr
 
 test:
-    <<: *venv
+    <<: *install
     stage: tests
     script: make tests
-    only:
-        - master
-        - merge_requests
+    <<: *only_mr
 
 examples:
-    <<: *venv
+    <<: *install
     stage: examples
     script: make examples
-    only:
-        - master
-        - merge_requests
+    <<: *only_mr
