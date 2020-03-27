@@ -1,6 +1,7 @@
 import os
 import runpy
 import inspect
+import logging
 
 
 def _has_first_argument(function, argument):
@@ -10,6 +11,7 @@ def _has_first_argument(function, argument):
 
 
 def main():
+    logging.basicConfig(level=logging.WARNING)
     path_to_here = os.path.dirname(os.path.abspath(__file__))
 
     for root, folders, files in os.walk(path_to_here):
