@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from pydynaa import EventExpression, EventType, Entity
 from netsquid.nodes.node import Node
-from netsquid.components.instructions import INSTR_INIT, INSTR_X, INSTR_H, INSTR_CNOT
+from netsquid.components.instructions import INSTR_INIT, INSTR_X, INSTR_Z, INSTR_H, INSTR_CNOT
 from netsquid_magic.link_layer import LinkLayerCreate, LinkLayerRecv, ReturnType, RequestType, get_creator_node_id
 
 from netqasm.executioner import Executioner
@@ -33,6 +33,7 @@ class NetSquidExecutioner(Executioner, Entity):
     NS_INSTR_MAPPING = {
         Instruction.INIT: INSTR_INIT,
         Instruction.X: INSTR_X,
+        Instruction.Z: INSTR_Z,
         Instruction.H: INSTR_H,
         Instruction.CNOT: INSTR_CNOT,
     }

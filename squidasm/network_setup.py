@@ -1,7 +1,7 @@
 
 from netsquid.nodes import Node
 from netsquid.components import QuantumProcessor, PhysicalInstruction
-from netsquid.components.instructions import INSTR_INIT, INSTR_X, INSTR_H, INSTR_CNOT
+from netsquid.components.instructions import INSTR_INIT, INSTR_X, INSTR_Z, INSTR_H, INSTR_CNOT
 
 
 def get_node(name, node_id=None, num_qubits=5):
@@ -27,6 +27,7 @@ def get_qdevice(name="QPD", num_qubits=5):
         # TODO durations
         PhysicalInstruction(INSTR_INIT, duration=1),
         PhysicalInstruction(INSTR_X, duration=2),
+        PhysicalInstruction(INSTR_Z, duration=2),
         PhysicalInstruction(INSTR_H, duration=3),
         PhysicalInstruction(INSTR_CNOT, duration=3),
     ])
