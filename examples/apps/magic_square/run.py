@@ -7,7 +7,7 @@ from bobTest import main as bob_main
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    # logging.basicConfig(level=logging.DEBUG)
     run_applications({
         "Alice": alice_main,
         "Bob": bob_main,

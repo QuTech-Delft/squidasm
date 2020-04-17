@@ -1,9 +1,9 @@
-import pytest
 import logging
 import numpy as np
 from time import sleep
 
 from netqasm.sdk import Qubit, ThreadSocket
+from netqasm.parsing import parse_register
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
 
@@ -49,7 +49,7 @@ def test_measure():
             for _ in range(num):
                 q = Qubit(alice)
                 q.H()
-                m = q.measure('m')
+                m = q.measure()
                 alice.flush()
                 count += m
             avg = count / num
@@ -61,24 +61,21 @@ def test_measure():
     })
 
 
-@pytest.mark.skip(reason="Currently not working, see TODO note")
 def test_measure_loop():
-
-    # TODO There is currently no way to return the measurement outcomes in this case
 
     def run_alice():
         with NetSquidConnection("Alice") as alice:
             num = 100
 
+            outcomes = alice.new_array(100)
+
             def body(alice):
                 q = Qubit(alice)
                 q.H()
-                q.measure()
+                q.measure(array=outcomes, index="R0")
 
-            alice.loop(body, stop=num)
+            alice.loop(body, stop=num, loop_register="R0")
             alice.flush()
-            outcomes = alice.shared_memory[0, :]
-            print(outcomes)
             assert len(outcomes) == num
             avg = sum(outcomes) / num
             logging.info(f"Average: {avg}")
@@ -89,30 +86,31 @@ def test_measure_loop():
     })
 
 
-@pytest.mark.skip(reason="Currently not working, see TODO note")
 def test_nested_loop():
-
-    # TODO does not work since we need to use different loop registers
+    inner_num = 10
+    outer_num = 8
+    inner_reg = "R0"
+    outer_reg = "R1"
 
     def run_alice():
         with NetSquidConnection("Alice") as alice:
-            num = 10
 
             def outer_body(alice):
                 def inner_body(alice):
                     q = Qubit(alice)
                     q.release()
 
-                alice.loop(inner_body, num)
-            alice.loop(outer_body, num)
-            alice.flush()
-            logging.info(alice.shared_memory[:10])
-            assert alice.shared_memory[0] == num
-            assert alice.shared_memory[1] == num
+                alice.loop(inner_body, inner_num, loop_register=inner_reg)
+            alice.loop(outer_body, outer_num, loop_register=outer_reg)
+
+    def post_function(backend):
+        executioner = backend._subroutine_handlers["Alice"]._executioner
+        assert executioner._get_register(app_id=0, register=parse_register(inner_reg)) == inner_num
+        assert executioner._get_register(app_id=0, register=parse_register(outer_reg)) == outer_num
 
     run_applications({
         "Alice": run_alice,
-    })
+    }, post_function=post_function)
 
 
 def test_create_epr():
@@ -166,8 +164,8 @@ def test_teleport_without_corrections():
             # Teleport
             q.cnot(epr)
             q.H()
-            m1 = q.measure('m1')
-            m2 = epr.measure('m2')
+            m1 = q.measure()
+            m2 = epr.measure()
             outcomes.append(m1)
             outcomes.append(m2)
 
@@ -216,8 +214,8 @@ def test_teleport():
             # Teleport
             q.cnot(epr)
             q.H()
-            m1 = q.measure('m1')
-            m2 = epr.measure('m2')
+            m1 = q.measure()
+            m2 = epr.measure()
 
         logging.info(f"m1, m2 = {m1}, {m2}")
 
@@ -257,8 +255,8 @@ if __name__ == '__main__':
     # logging.basicConfig(level=logging.DEBUG)
     test_two_nodes()
     test_measure()
-    # test_measure_loop()
-    # test_nested_loop()
+    test_measure_loop()
+    test_nested_loop()
     test_create_epr()
     test_teleport_without_corrections()
     test_teleport()

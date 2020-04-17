@@ -124,6 +124,5 @@ def parity_meas(qubits, bases, node, negative=False):
             if flip_basis[i] == 'K':
                 qubits[i].K()
     if negative:
-        return (m + 1) % 2
-    else:
-        return m
+        m.add(1, mod=2)
+    return m

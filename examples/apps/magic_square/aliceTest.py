@@ -47,74 +47,62 @@ import random
 def main():
 
     # Initialize the connection
-    Alice = CQCConnection("Alice")
+    with CQCConnection("Alice") as Alice:
 
-    # Wait a little for recv rules to be installed
-    sleep(0.1)
+        # Wait a little for recv rules to be installed
+        sleep(0.1)
 
-    # Create EPR pairs
-    q1 = Alice.createEPR("Bob")[0]
-    q2 = Alice.createEPR("Bob")[0]
+        # Create EPR pairs
+        q1 = Alice.createEPR("Bob")[0]
+        q2 = Alice.createEPR("Bob")[0]
 
-    # TODO
-    Alice.flush()
+        # TODO
+        Alice.flush()
 
-    # Make sure we order the qubits consistently with Bob
-    # Get entanglement IDs
-    q1_ID = q1.entanglement_info.sequence_number
-    q2_ID = q2.entanglement_info.sequence_number
-    # q1_ID = 0
-    # q2_ID = 1
+        # Make sure we order the qubits consistently with Bob
+        # Get entanglement IDs
+        q1_ID = q1.entanglement_info.sequence_number
+        q2_ID = q2.entanglement_info.sequence_number
+        # q1_ID = 0
+        # q2_ID = 1
 
-    if q1_ID < q2_ID:
-        qa = q1
-        qc = q2
-    else:
-        qa = q2
-        qc = q1
+        if q1_ID < q2_ID:
+            qa = q1
+            qc = q2
+        else:
+            qa = q2
+            qc = q1
 
-    # Get the row
-    row = random.randint(0, 2)
+        # Get the row
+        row = random.randint(0, 2)
 
-    # Perform the three measurements
-    if row == 0:
-        m0 = parity_meas([qa, qc], "XI", Alice)
-        m1 = parity_meas([qa, qc], "XX", Alice)
-        m2 = parity_meas([qa, qc], "IX", Alice)
-    elif row == 1:
-        m0 = parity_meas([qa, qc], "XZ", Alice)
-        m1 = parity_meas([qa, qc], "YY", Alice)
-        m2 = parity_meas([qa, qc], "ZX", Alice)
-    elif row == 2:
-        m0 = parity_meas([qa, qc], "IZ", Alice)
-        m1 = parity_meas([qa, qc], "ZZ", Alice)
-        m2 = parity_meas([qa, qc], "ZI", Alice)
-    else:
-        raise ValueError(f"Not a row in the square {row}")
+        # Perform the three measurements
+        if row == 0:
+            m0 = parity_meas([qa, qc], "XI", Alice)
+            m1 = parity_meas([qa, qc], "XX", Alice)
+            m2 = parity_meas([qa, qc], "IX", Alice)
+        elif row == 1:
+            m0 = parity_meas([qa, qc], "XZ", Alice, negative=True)
+            m1 = parity_meas([qa, qc], "YY", Alice)
+            m2 = parity_meas([qa, qc], "ZX", Alice, negative=True)
+        elif row == 2:
+            m0 = parity_meas([qa, qc], "IZ", Alice)
+            m1 = parity_meas([qa, qc], "ZZ", Alice)
+            m2 = parity_meas([qa, qc], "ZI", Alice)
+        else:
+            raise ValueError(f"Not a row in the square {row}")
 
-    Alice.flush()
-    # TODO
-    if row == 1:
-        m0 = (m0 + 1) % 2
-        m2 = (m2 + 1) % 2
-
-    print("\n")
-    print("==========================")
-    print("App {}: row is:".format(Alice.name))
+    to_print = "\n\n"
+    to_print += "==========================\n"
+    to_print += f"App Alice: row is:\n"
     for _ in range(row):
-        print("(___)")
-    print("({}{}{})".format(m0, m1, m2))
+        to_print += "(___)\n"
+    to_print += f"({m0}{m1}{m2})\n"
     for _ in range(2-row):
-        print("(___)")
-    print("==========================")
-    print("\n")
-
-    # Clear qubits
-    # qa.measure()
-    # qc.measure()
-
-    # Stop the connections
-    Alice.close()
+        to_print += "(___)\n"
+    to_print += "==========================\n"
+    to_print += "\n\n"
+    print(to_print)
 
 
 ##################################################################################################
