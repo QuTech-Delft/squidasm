@@ -1,5 +1,5 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from netqasm.sdk.shared_memory import reset_memories
 from squidasm.backend import Backend
@@ -41,8 +41,7 @@ def run_applications(applications, post_function=None):
         backend_future = executor.submit(run_backend)
 
         # Join the application threads and the backend
-        for app_future in app_futures:
-            app_future.result()
-        backend_future.result()
+        for future in as_completed([backend_future] + app_futures):
+            future.result()
 
     reset_memories()

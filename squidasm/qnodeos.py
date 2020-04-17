@@ -4,6 +4,7 @@ from types import GeneratorType
 
 from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
+from netqasm.parsing import parse_binary_subroutine
 from squidasm.messages import MessageType
 from squidasm.executioner import NetSquidExecutioner
 from squidasm.queues import get_queue, Signal
@@ -45,10 +46,10 @@ class SubroutineHandler(NodeProtocol):
 
     def run(self):
         while self.is_running:
-            yield from self._execute_next_subroutine()
+            yield from self._handle_next_message()
             self._task_done()
 
-    def _execute_next_subroutine(self):
+    def _handle_next_message(self):
         self._logger.debug(f"SubroutineHandler at node {self.node} fetching item in the queue")
         item = yield from self._fetch_next_item()
         output = self._message_handlers[item.type](item.msg)
@@ -66,6 +67,7 @@ class SubroutineHandler(NodeProtocol):
                 return item
 
     def _handle_subroutine(self, subroutine):
+        subroutine = parse_binary_subroutine(subroutine)
         self._logger.debug(f"SubroutineHandler at node {self.node} executing next subroutine "
                            f"from app ID {subroutine.app_id}")
         yield from self._execute_subroutine(subroutine=subroutine)

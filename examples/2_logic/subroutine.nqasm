@@ -1,9 +1,10 @@
 # NETQASM 0.0
 # APPID 0
-qalloc q
-init q
-h q
-meas q m
-beq m 0 EXIT
-x q
+set Q0 0
+qalloc Q0
+init Q0
+h Q0
+meas Q0 M0
+beq M0 0 EXIT
+x Q0
 EXIT:

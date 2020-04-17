@@ -1,5 +1,6 @@
 import logging
 
+from netsquid_magic.link_layer import LinkLayerOKTypeK
 from netqasm.sdk import NetQASMConnection
 from squidasm.queues import get_queue, Signal
 from squidasm.backend import get_current_node_ids
@@ -7,6 +8,11 @@ from squidasm.messages import Message, InitNewAppMessage, MessageType
 
 
 class NetSquidConnection(NetQASMConnection):
+
+    # Class to use to pack entanglement information
+    # TODO how to handle other types?
+    ENT_INFO = LinkLayerOKTypeK
+
     def __init__(self, name, app_id=None, max_qubits=5):
         self._subroutine_queue = get_queue(name)
         super().__init__(name=name, app_id=app_id, max_qubits=max_qubits)
@@ -44,3 +50,10 @@ class NetSquidConnection(NetQASMConnection):
         if node_id is None:
             raise ValueError("Unknown node with name {node_name}")
         return node_id
+
+    def _get_remote_node_name(self, remote_node_id):
+        current_node_ids = get_current_node_ids()
+        for node_name, node_id in current_node_ids.items():
+            if node_id == remote_node_id:
+                return node_name
+        raise ValueError("Unknown node with id {remote_node_id}")
