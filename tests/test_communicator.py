@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from time import sleep
 
 from netqasm.logging import set_log_level, get_netqasm_logger
 from netqasm.parsing import parse_register
@@ -152,6 +153,7 @@ wait_all @entinfo![0:{OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
+        sleep(0.1)
         communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
@@ -247,6 +249,7 @@ wait_all @entinfo![0:{OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
+        sleep(0.1)
         communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
@@ -342,6 +345,7 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
+        sleep(0.1)
         communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
@@ -443,6 +447,7 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
+        sleep(0.1)
         communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
