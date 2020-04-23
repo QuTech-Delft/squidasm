@@ -18,14 +18,14 @@ class NetworkStack(BaseNetworkStack):
         return link_layer_service.put(request)
 
 
-def setup_link_layer_services(nodes, reaction_handlers):
+def setup_link_layer_services(nodes, reaction_handlers, network_config=None):
     node_names = list(nodes.keys())
     link_layer_services = defaultdict(dict)
     for i, node_name1 in enumerate(node_names):
         for j in range(i + 1, len(node_names)):
             node_name2 = node_names[j]
             node_pair = [nodes[node_name1], nodes[node_name2]]
-            magic_protocol = setup_magic_link_layer_protocol(node_pair=node_pair)
+            magic_protocol = setup_magic_link_layer_protocol(node_pair=node_pair, network_config=network_config)
             for node, remote_node in [node_pair, reversed(node_pair)]:
                 reaction_handler = reaction_handlers[node.name]
                 link_layer_service = LinkLayerService(
@@ -39,7 +39,8 @@ def setup_link_layer_services(nodes, reaction_handlers):
     return link_layer_services
 
 
-def setup_magic_link_layer_protocol(node_pair):
+def setup_magic_link_layer_protocol(node_pair, network_config=None):
+    # TODO use network config for setting up magic distributor
     magic_distributor = PerfectStateMagicDistributor(node_pair, state_delay=1)
     translation_unit = SingleClickTranslationUnit()
     magic_protocol = MagicLinkLayerProtocol(
@@ -51,8 +52,8 @@ def setup_magic_link_layer_protocol(node_pair):
     return magic_protocol
 
 
-def setup_network_stacks(nodes, reaction_handlers):
-    link_layer_services = setup_link_layer_services(nodes, reaction_handlers)
+def setup_network_stacks(nodes, reaction_handlers, network_config=None):
+    link_layer_services = setup_link_layer_services(nodes, reaction_handlers, network_config=network_config)
     network_stacks = {}
     for node_name, node in nodes.items():
         network_stack = NetworkStack(node=node, link_layer_services=link_layer_services[node_name])

@@ -2,6 +2,7 @@ import os
 import runpy
 import inspect
 import logging
+from netqasm.logging import set_log_level
 
 
 def _has_first_argument(function, argument):
@@ -11,7 +12,7 @@ def _has_first_argument(function, argument):
 
 
 def main():
-    logging.basicConfig(level=logging.WARNING)
+    set_log_level(logging.WARNING)
     path_to_here = os.path.dirname(os.path.abspath(__file__))
 
     for root, folders, files in os.walk(path_to_here):
@@ -22,10 +23,6 @@ def main():
                 if "main" in members:
                     main = members["main"]
                     main()
-                    # if _has_first_argument(main, "no_output"):
-                    #     main(no_output=True)
-                    # else:
-                    #     print(f"The main function in {filename} does not take the argument 'no_output'")
                 else:
                     print(f"The example {filename} does not have a main function")
 

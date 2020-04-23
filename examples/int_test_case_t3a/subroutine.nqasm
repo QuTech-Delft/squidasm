@@ -7,7 +7,7 @@ set Q0 0     // qubit virtual address
 set R0 0     // loop index
 set R1 0     // counts 0s
 set R2 0     // counts 1s
-set R3 30000 // iterations
+set R3 300 // iterations
 
 // Loop entry
 LOOP:

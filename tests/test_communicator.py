@@ -1,11 +1,15 @@
 import logging
 import numpy as np
+from time import sleep
 
+from netqasm.logging import set_log_level, get_netqasm_logger
 from netqasm.parsing import parse_register
 from netqasm.sdk.shared_memory import get_shared_memory
 from netqasm.network_stack import CREATE_FIELDS, OK_FIELDS
 from squidasm.run import run_applications
 from squidasm.communicator import SimpleCommunicator
+
+logger = get_netqasm_logger()
 
 
 def test():
@@ -26,26 +30,26 @@ EXIT:
 ret_reg m!
 // this is also a comment
 """
-    logging.info("Applications at Alice and Bob will submit the following subroutine to QDevice:")
-    logging.info(subroutine)
+    logger.info("Applications at Alice and Bob will submit the following subroutine to QDevice:")
+    logger.info(subroutine)
 
     def run_alice():
-        logging.debug("Starting Alice thread")
+        logger.debug("Starting Alice thread")
         communicator = SimpleCommunicator("Alice", subroutine=subroutine)
         communicator.run(num_times=1)
-        logging.debug("End Alice thread")
+        logger.debug("End Alice thread")
 
     def run_bob():
-        logging.debug("Starting Bob thread")
+        logger.debug("Starting Bob thread")
         communicator = SimpleCommunicator("Bob", subroutine=subroutine)
         communicator.run(num_times=1)
-        logging.debug("End Bob thread")
+        logger.debug("End Bob thread")
 
     def post_function(backend):
         for node_name in ["Alice", "Bob"]:
             shared_memory = get_shared_memory(node_name, key=0)
             outcome = shared_memory.get_register(parse_register("M0"))
-            logging.info(f"m = {outcome}")
+            logger.info(f"m = {outcome}")
             assert outcome in set([0, 1])
 
     run_applications({
@@ -81,14 +85,14 @@ ret_reg i!
 ret_arr ms!
 // this is also a comment
 """
-    logging.info("Applications at Alice will submit the following subroutine to QDevice:")
-    logging.info(subroutine)
+    logger.info("Applications at Alice will submit the following subroutine to QDevice:")
+    logger.info(subroutine)
 
     def run_alice():
-        logging.debug("Starting Alice thread")
+        logger.debug("Starting Alice thread")
         communicator = SimpleCommunicator("Alice", subroutine=subroutine)
         communicator.run(num_times=1)
-        logging.debug("End Alice thread")
+        logger.debug("End Alice thread")
 
     def post_function(backend):
         shared_memory = get_shared_memory("Alice", key=0)
@@ -97,7 +101,7 @@ ret_arr ms!
         assert i == num_times
         assert len(outcomes) == num_times
         avg = sum(outcomes) / num_times
-        logging.info(avg)
+        logger.info(avg)
         assert 0.4 <= avg <= 0.6
 
     run_applications({
@@ -148,16 +152,17 @@ wait_all @entinfo![0:{OK_FIELDS}]
 """
 
     def run_alice():
-        logging.debug("Starting Alice thread")
+        logger.debug("Starting Alice thread")
+        sleep(0.1)
         communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
         communicator.run(num_times=1)
-        logging.debug("End Alice thread")
+        logger.debug("End Alice thread")
 
     def run_bob():
-        logging.debug("Starting Bob thread")
+        logger.debug("Starting Bob thread")
         communicator = SimpleCommunicator("Bob", subroutine=subroutine_0_bob)
         communicator.run(num_times=1)
-        logging.debug("End Bob thread")
+        logger.debug("End Bob thread")
 
     def post_function(backend):
         shared_memory_alice = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
@@ -170,8 +175,8 @@ wait_all @entinfo![0:{OK_FIELDS}]
             (1, 1): np.array([[0.5, -0.5], [-0.5, 0.5]]),
         }
         state = backend._nodes["Bob"].qmemory._get_qubits(0)[0].qstate.dm
-        logging.info(f"m1 = {m1}, m2 = {m2}")
-        logging.info(f"state = {state}")
+        logger.info(f"m1 = {m1}, m2 = {m2}")
+        logger.info(f"state = {state}")
         assert np.all(np.isclose(expected_states[m1, m2], state))
 
     run_applications({
@@ -243,16 +248,17 @@ wait_all @entinfo![0:{OK_FIELDS}]
 """
 
     def run_alice():
-        logging.debug("Starting Alice thread")
+        logger.debug("Starting Alice thread")
+        sleep(0.1)
         communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
         communicator.run(num_times=1)
-        logging.debug("End Alice thread")
+        logger.debug("End Alice thread")
 
     def run_bob():
-        logging.debug("Starting Bob thread")
+        logger.debug("Starting Bob thread")
         communicator = SimpleCommunicator("Bob", subroutine=subroutine_0_bob)
         communicator.run(num_times=1)
-        logging.debug("End Bob thread")
+        logger.debug("End Bob thread")
 
     def post_function(backend):
         alice_physical_qubit = backend._subroutine_handlers["Alice"]._executioner._get_position(0, 0)
@@ -338,16 +344,17 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 """
 
     def run_alice():
-        logging.debug("Starting Alice thread")
+        logger.debug("Starting Alice thread")
+        sleep(0.1)
         communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
         communicator.run(num_times=1)
-        logging.debug("End Alice thread")
+        logger.debug("End Alice thread")
 
     def run_bob():
-        logging.debug("Starting Bob thread")
+        logger.debug("Starting Bob thread")
         communicator = SimpleCommunicator("Bob", subroutine=subroutine_0_bob)
         communicator.run(num_times=1)
-        logging.debug("End Bob thread")
+        logger.debug("End Bob thread")
 
     def post_function(backend):
         for i in range(2):
@@ -439,21 +446,22 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 """
 
     def run_alice():
-        logging.debug("Starting Alice thread")
+        logger.debug("Starting Alice thread")
+        sleep(0.1)
         communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
         communicator.run(num_times=1)
-        logging.debug("End Alice thread")
+        logger.debug("End Alice thread")
 
     def run_bob():
-        logging.debug("Starting Bob thread")
+        logger.debug("Starting Bob thread")
         communicator = SimpleCommunicator("Bob", subroutine=subroutine_0_bob)
         communicator.run(num_times=1)
-        logging.debug("End Bob thread")
+        logger.debug("End Bob thread")
 
     def post_function(backend):
         shared_memory_alice = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
         m = shared_memory_alice.get_register(parse_register("M0"))
-        logging.info(f"m = {m}")
+        logger.info(f"m = {m}")
         states = []
         for pos, node in zip([0, 0, 1], ["Alice", "Bob", "Bob"]):
             physical_pos = backend._subroutine_handlers[node]._executioner._get_position(0, pos)
@@ -476,7 +484,7 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
             expected_state[6, 1] = 0.5
             expected_state[6, 6] = 0.5
 
-        logging.info(states[0].dm)
+        logger.info(states[0].dm)
 
         assert np.all(np.isclose(expected_state, states[0].dm))
 
@@ -487,7 +495,7 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
 
 if __name__ == '__main__':
-    # logging.basicConfig(level=logging.DEBUG)
+    set_log_level(logging.WARNING)
     test()
     test_meas_many()
     test_teleport()

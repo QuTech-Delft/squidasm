@@ -1,27 +1,27 @@
-import logging
 from queue import Empty
 from types import GeneratorType
 
 from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
 from netqasm.parsing import parse_binary_subroutine
+from netqasm.logging import get_netqasm_logger
 from squidasm.messages import MessageType
 from squidasm.executioner import NetSquidExecutioner
 from squidasm.queues import get_queue, Signal
 
 
 class SubroutineHandler(NodeProtocol):
-    def __init__(self, node):
+    def __init__(self, node, instr_log_dir=None):
         super().__init__(node=node)
-        self._executioner = NetSquidExecutioner(node=node)
+        self._executioner = NetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
 
-        self._subroutine_queue = get_queue(self.node.name)
+        self._message_queue = get_queue(self.node.name)
 
         self._message_handlers = self._get_message_handlers()
 
         self._loop_event = EventType("LOOP", "event for looping without blocking")
 
-        self._logger = logging.getLogger(f"{self.__class__.__name__}({self.node.name})")
+        self._logger = get_netqasm_logger(f"{self.__class__.__name__}({self.node.name})")
 
     @property
     def network_stack(self):
@@ -57,11 +57,14 @@ class SubroutineHandler(NodeProtocol):
             yield from output
 
     def _fetch_next_item(self):
+        # TODO fix waiting time if there are not events on timeline
+        # can't be to small since it will then take forever to advance
+        after = 1
         while True:
             try:
-                item = self._subroutine_queue.get(block=False)
+                item = self._message_queue.get(block=False)
             except Empty:
-                self._schedule_after(1, self._loop_event)
+                self._schedule_after(after, self._loop_event)
                 yield EventExpression(source=self, event_type=self._loop_event)
             else:
                 return item
@@ -77,7 +80,7 @@ class SubroutineHandler(NodeProtocol):
         yield from self._executioner.execute_subroutine(subroutine=subroutine)
 
     def _task_done(self):
-        self._subroutine_queue.task_done()
+        self._message_queue.task_done()
 
     def _handle_init_new_app(self, msg):
         app_id = msg.app_id
