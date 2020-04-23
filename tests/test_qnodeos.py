@@ -1,7 +1,8 @@
 import logging
 import netsquid as ns
 
-from netqasm.parser import Parser
+from netqasm.logging import set_log_level
+from netqasm.parsing import parse_text_subroutine, parse_register
 from netqasm.sdk.shared_memory import reset_memories
 from squidasm.network_setup import get_node
 from squidasm.qnodeos import SubroutineHandler
@@ -10,7 +11,7 @@ from squidasm.sdk import Message, MessageType, InitNewAppMessage
 
 
 def test():
-    logging.basicConfig(level=logging.DEBUG)
+    set_log_level(logging.DEBUG)
     reset_memories()
     alice = get_node(name="Alice", num_qubits=5)
     subroutine_handler = SubroutineHandler(alice)
@@ -21,22 +22,25 @@ def test():
 # NETQASM 1.0
 # APPID 0
 # DEFINE op h
-# DEFINE q q0
+# DEFINE q Q0
+# DEFINE m M0
+set q! 0
 qalloc q!
 init q!
 op! q! // this is a comment
-meas q! m
-beq m 0 EXIT
+meas q! m!
+bez m! EXIT
 x q!
 EXIT:
+ret_reg m!
 // this is also a comment
 """
     # Initialize the new application
     app_id = 0
     queue.put(Message(type=MessageType.INIT_NEW_APP, msg=InitNewAppMessage(app_id=app_id, max_qubits=1)))
     # Put the subroutine
-    subroutine = Parser(subroutine).subroutine
-    queue.put(Message(type=MessageType.SUBROUTINE, msg=subroutine))
+    subroutine = parse_text_subroutine(subroutine)
+    queue.put(Message(type=MessageType.SUBROUTINE, msg=bytes(subroutine)))
     # Make sure to signal to stop after
     queue.put(Message(type=MessageType.SIGNAL, msg=Signal.STOP))
 
@@ -47,4 +51,5 @@ EXIT:
     ns.sim_run()
 
     shared_memory = subroutine_handler._executioner._shared_memories[app_id]
-    assert shared_memory[0] in set([0, 1])
+    m = shared_memory.get_register(parse_register("M0"))
+    assert m in set([0, 1])

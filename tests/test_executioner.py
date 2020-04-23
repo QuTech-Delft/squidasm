@@ -3,28 +3,32 @@ import numpy as np
 import netsquid as ns
 from netsquid.protocols import NodeProtocol
 
-from netqasm.parser import Parser
+from netqasm.logging import set_log_level
+from netqasm.parsing import parse_text_subroutine, parse_register
 from squidasm.executioner import NetSquidExecutioner
 from squidasm.network_setup import get_node
 
 
 def test_executioner():
-    logging.getLogger().setLevel(logging.DEBUG)
+    set_log_level(logging.DEBUG)
     subroutine = """
 # NETQASM 1.0
 # APPID 0
 # DEFINE op h
-# DEFINE q q0
+# DEFINE q Q0
+# DEFINE m M0
+set q! 0
 qalloc q!
 init q!
 op! q! // this is a comment
-meas q! m
-beq m 0 EXIT
+meas q! m!
+bez m! EXIT
 x q!
 EXIT:
+ret_reg m!
 // this is also a comment
 """
-    subroutine = Parser(subroutine).subroutine
+    subroutine = parse_text_subroutine(subroutine)
     app_id = 0
     node = get_node("Alice")
     executioner = NetSquidExecutioner(node=node)
@@ -39,7 +43,8 @@ EXIT:
     ns.sim_run()
 
     shared_memory = executioner._shared_memories[app_id]
-    assert shared_memory[0] in set([0, 1])
+    m = shared_memory.get_register(parse_register("M0"))
+    assert m in set([0, 1])
     qubit = executioner._qdevice._get_qubits(0)[0]
     dm = qubit.qstate.dm
     expected_dm = np.array([[1, 0], [0, 0]])

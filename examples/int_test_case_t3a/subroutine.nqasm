@@ -1,0 +1,39 @@
+# NETQASM 0.0
+# APPID 0
+
+// Setup classical registers
+set C1 1     // constant 1
+set Q0 0     // qubit virtual address
+set R0 0     // loop index
+set R1 0     // counts 0s
+set R2 0     // counts 1s
+set R3 300 // iterations
+
+// Loop entry
+LOOP:
+beq R0 R3 EXIT
+
+// Loop body
+qalloc Q0
+init Q0
+x Q0
+meas Q0 M0
+
+// Count outcomes
+bez M0 ZERO
+// bnz M0 ZERO
+add R2 R2 C1
+jmp END
+ZERO:
+add R1 R1 C1
+END:
+
+qfree Q0
+add R0 R0 C1
+
+// Loop exit
+jmp LOOP
+EXIT:
+
+ret_reg R1
+ret_reg R2
