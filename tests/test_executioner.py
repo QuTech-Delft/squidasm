@@ -3,13 +3,14 @@ import numpy as np
 import netsquid as ns
 from netsquid.protocols import NodeProtocol
 
+from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
 from squidasm.executioner import NetSquidExecutioner
 from squidasm.network_setup import get_node
 
 
 def test_executioner():
-    logging.getLogger().setLevel(logging.DEBUG)
+    set_log_level(logging.DEBUG)
     subroutine = """
 # NETQASM 1.0
 # APPID 0

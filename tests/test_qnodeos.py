@@ -1,6 +1,7 @@
 import logging
 import netsquid as ns
 
+from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
 from netqasm.sdk.shared_memory import reset_memories
 from squidasm.network_setup import get_node
@@ -10,7 +11,7 @@ from squidasm.sdk import Message, MessageType, InitNewAppMessage
 
 
 def test():
-    logging.basicConfig(level=logging.DEBUG)
+    set_log_level(logging.DEBUG)
     reset_memories()
     alice = get_node(name="Alice", num_qubits=5)
     subroutine_handler = SubroutineHandler(alice)

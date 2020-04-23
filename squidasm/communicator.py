@@ -1,6 +1,5 @@
-import logging
-
 from netqasm.parsing import parse_text_subroutine
+from netqasm.logging import get_netqasm_logger
 from squidasm.queues import get_queue, Signal
 from squidasm.sdk import Message, InitNewAppMessage, MessageType
 
@@ -12,7 +11,7 @@ class SimpleCommunicator:
         self._subroutine_queue = get_queue(node_name)
         self._init_new_app(app_id=app_id, max_qubits=max_qubits)
 
-        self._logger = logging.getLogger(f"{self.__class__.__name__}({self._node_name})")
+        self._logger = get_netqasm_logger(f"{self.__class__.__name__}({self._node_name})")
 
     def _init_new_app(self, app_id, max_qubits):
         """Informs the backend of the new application and how many qubits it will maximally use"""

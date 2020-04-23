@@ -32,18 +32,43 @@ def get_current_node_ids(block=True):
     return {node_name: node.ID for node_name, node in backend.nodes.items()}
 
 
+def get_node_id(name):
+    current_node_ids = get_current_node_ids()
+    node_id = current_node_ids.get(name)
+    if node_id is None:
+        raise ValueError(f"Unknown node with name {name}")
+    return node_id
+
+
+def get_node_name(node_id):
+    current_node_ids = get_current_node_ids()
+    for node_name, tmp_node_id in current_node_ids.items():
+        if tmp_node_id == node_id:
+            return node_name
+    raise ValueError(f"Unknown node with id {node_id}")
+
+
 class Backend:
-    def __init__(self, node_names, node_ids=None, num_qubits=5):
+    def __init__(self, node_names, node_ids=None, num_qubits=5, instr_log_dir=None, network_config=None):
         """Sets up the qmemories, nodes, connections and subroutine-handlers
         used to process NetQASM instructions.
 
         The Backend should be started by calling `start`, which also starts pydynaa.
         """
-        self._nodes = get_nodes(node_names, node_ids=node_ids, num_qubits=num_qubits)
-        self._subroutine_handlers = self._get_subroutine_handlers(self._nodes)
+        self._nodes = get_nodes(
+            node_names,
+            node_ids=node_ids,
+            num_qubits=num_qubits,
+            network_config=network_config,
+        )
+        self._subroutine_handlers = self._get_subroutine_handlers(self._nodes, instr_log_dir=instr_log_dir)
         reaction_handlers = {node_name: self._subroutine_handlers[node_name].get_epr_reaction_handler()
                              for node_name in self._nodes}
-        network_stacks = setup_network_stacks(nodes=self._nodes, reaction_handlers=reaction_handlers)
+        network_stacks = setup_network_stacks(
+            nodes=self._nodes,
+            reaction_handlers=reaction_handlers,
+            network_config=network_config,
+        )
         for node_name in self._nodes.keys():
             network_stack = network_stacks[node_name]
             subroutine_handler = self._subroutine_handlers[node_name]
@@ -58,10 +83,10 @@ class Backend:
         return self._subroutine_handlers
 
     @staticmethod
-    def _get_subroutine_handlers(nodes):
+    def _get_subroutine_handlers(nodes, instr_log_dir):
         subroutine_handlers = {}
         for node in nodes.values():
-            subroutine_handler = SubroutineHandler(node)
+            subroutine_handler = SubroutineHandler(node, instr_log_dir=instr_log_dir)
             subroutine_handlers[node.name] = subroutine_handler
         return subroutine_handlers
 

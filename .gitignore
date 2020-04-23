@@ -1,6 +1,8 @@
 *.pyc
 *.DS_Store
 *.out
+*.log
+*.pkl
 /docs/build/*
 /build/*
 /dist/*
