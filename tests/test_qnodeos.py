@@ -37,7 +37,14 @@ ret_reg m!
 """
     # Initialize the new application
     app_id = 0
-    queue.put(Message(type=MessageType.INIT_NEW_APP, msg=InitNewAppMessage(app_id=app_id, max_qubits=1)))
+    queue.put(Message(
+        type=MessageType.INIT_NEW_APP,
+        msg=InitNewAppMessage(
+            app_id=app_id,
+            max_qubits=1,
+            circuit_rules=None,
+        ),
+    ))
     # Put the subroutine
     subroutine = parse_text_subroutine(subroutine)
     queue.put(Message(type=MessageType.SUBROUTINE, msg=bytes(subroutine)))

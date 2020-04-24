@@ -1,21 +1,72 @@
+from time import sleep
 from collections import defaultdict
 
-from netsquid_magic.link_layer import LinkLayerService, MagicLinkLayerProtocol, SingleClickTranslationUnit
+from pydynaa import Entity, EventType, EventExpression
+from netsquid_magic.link_layer import (
+    LinkLayerService,
+    MagicLinkLayerProtocol,
+    SingleClickTranslationUnit,
+    LinkLayerRecv,
+)
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 
 from netqasm.network_stack import BaseNetworkStack
 
 
-class NetworkStack(BaseNetworkStack):
+class NetworkStack(BaseNetworkStack, Entity):
     def __init__(self, node, link_layer_services):
         self._node = node
         self._link_layer_services = link_layer_services
 
-    def put(self, remote_node_id, request):
+        self._loop_event = EventType("LOOP", "event for looping without blocking")
+
+    def put(self, request):
+        remote_node_id = request.remote_node_id
         link_layer_service = self._link_layer_services.get(remote_node_id)
         if link_layer_service is None:
             raise ValueError(f"The node with ID {remote_node_id} is not known to the network")
         return link_layer_service.put(request)
+
+    def setup_circuits(self, circuit_rules=None):
+        if circuit_rules is None:
+            return
+        self._setup_recv_rules(recv_rules=circuit_rules.recv_rules)
+        # Wait until other nodes have setup correct recv rules that this one needs
+        yield from self._wait_for_circuits(create_rules=circuit_rules.create_rules)
+
+    def _setup_recv_rules(self, recv_rules):
+        for recv_rule in recv_rules:
+            recv_request = self._get_recv_request(
+                remote_node_id=recv_rule.remote_node_id,
+                purpose_id=recv_rule.purpose_id,
+            )
+            self.put(request=recv_request)
+
+    def _get_recv_request(self, remote_node_id, purpose_id):
+        return LinkLayerRecv(
+            remote_node_id=remote_node_id,
+            purpose_id=purpose_id,
+        )
+
+    def _wait_for_circuits(self, create_rules):
+        for create_rule in create_rules:
+            # TODO always skip 1 nanosecond simulated time?
+            after = 1
+            while True:
+                if self._has_rule(rule=create_rule):
+                    break
+                self._schedule_after(after, self._loop_event)
+                yield EventExpression(source=self, event_type=self._loop_event)
+                sleep(0.1)
+
+    def _has_rule(self, rule):
+        # TODO the magic snippet doesn't use the Rule class so use a tuple
+        remote_rule = self._node.ID, rule.purpose_id
+        # TODO this is a hacky way to get whether the rule is set for now
+        # should be changed to have a proper way to do this without calling private methods
+        link_layer_service = self._link_layer_services[rule.remote_node_id]
+        magic_protocol = link_layer_service._magic_protocol
+        return remote_rule in magic_protocol._recv_rules[rule.remote_node_id]
 
 
 def setup_link_layer_services(nodes, reaction_handlers, network_config=None):

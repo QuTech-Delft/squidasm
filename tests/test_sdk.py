@@ -232,7 +232,7 @@ def test_nested_loop():
 def test_create_epr():
 
     def run_alice():
-        with NetSquidConnection("Alice") as alice:
+        with NetSquidConnection("Alice", epr_to="Bob") as alice:
             # Wait a little to Bob has installed rule to recv
             sleep(0.1)
 
@@ -240,7 +240,7 @@ def test_create_epr():
             alice.createEPR("Bob")[0]
 
     def run_bob():
-        with NetSquidConnection("Bob") as bob:
+        with NetSquidConnection("Bob", epr_from="Alice") as bob:
             bob.recvEPR("Alice")
 
     def post_function(backend):
@@ -266,7 +266,7 @@ def test_teleport_without_corrections():
     outcomes = []
 
     def run_alice():
-        with NetSquidConnection("Alice") as alice:
+        with NetSquidConnection("Alice", epr_to="Bob") as alice:
             # Wait a little to Bob has installed rule to recv
             sleep(0.1)
 
@@ -286,7 +286,7 @@ def test_teleport_without_corrections():
             outcomes.append(m2)
 
     def run_bob():
-        with NetSquidConnection("Bob") as bob:
+        with NetSquidConnection("Bob", epr_from="Alice") as bob:
             bob.recvEPR("Alice")
 
     def post_function(backend):
@@ -313,7 +313,7 @@ def test_teleport_without_corrections():
 def test_teleport():
     def run_alice():
         socket = NetSquidSocket("Alice", "Bob")
-        with NetSquidConnection("Alice") as alice:
+        with NetSquidConnection("Alice", epr_to="Bob") as alice:
             # Wait a little to Bob has installed rule to recv
             sleep(0.1)
 
@@ -338,7 +338,7 @@ def test_teleport():
 
     def run_bob():
         socket = NetSquidSocket("Bob", "Alice")
-        with NetSquidConnection("Bob") as bob:
+        with NetSquidConnection("Bob", epr_from="Alice") as bob:
             epr = bob.recvEPR("Alice")[0]
             bob.flush()
 
@@ -365,7 +365,7 @@ def test_teleport():
 
 
 if __name__ == '__main__':
-    set_log_level(logging.WARNING)
+    set_log_level(logging.INFO)
     test_two_nodes()
     test_measure()
     test_measure_if_conn()

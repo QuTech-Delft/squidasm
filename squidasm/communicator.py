@@ -1,27 +1,36 @@
 from netqasm.parsing import parse_text_subroutine
 from netqasm.logging import get_netqasm_logger
+from netqasm.network_stack import CircuitRules
 from squidasm.queues import get_queue, Signal
 from squidasm.sdk import Message, InitNewAppMessage, MessageType
+from squidasm.sdk import get_rules
 
 
 class SimpleCommunicator:
-    def __init__(self, node_name, subroutine, app_id=0, max_qubits=5):
+    def __init__(self, node_name, subroutine, app_id=0, max_qubits=5, epr_to=None, epr_from=None):
         self._subroutine = parse_text_subroutine(subroutine)
         self._node_name = node_name
         self._subroutine_queue = get_queue(node_name)
-        self._init_new_app(app_id=app_id, max_qubits=max_qubits)
+        circuit_rules = self._get_circuit_rules(epr_to=epr_to, epr_from=epr_from)
+        self._init_new_app(app_id=app_id, max_qubits=max_qubits, circuit_rules=circuit_rules)
 
         self._logger = get_netqasm_logger(f"{self.__class__.__name__}({self._node_name})")
 
-    def _init_new_app(self, app_id, max_qubits):
+    def _init_new_app(self, app_id, max_qubits, circuit_rules):
         """Informs the backend of the new application and how many qubits it will maximally use"""
         self._subroutine_queue.put(Message(
             type=MessageType.INIT_NEW_APP,
             msg=InitNewAppMessage(
                 app_id=app_id,
                 max_qubits=max_qubits,
+                circuit_rules=circuit_rules
             ),
         ))
+
+    def _get_circuit_rules(self, epr_to=None, epr_from=None):
+        create_rules = get_rules(rule_spec=epr_to)
+        recv_rules = get_rules(rule_spec=epr_from)
+        return CircuitRules(create_rules=create_rules, recv_rules=recv_rules)
 
     def run(self, num_times=1):
         for _ in range(num_times):
