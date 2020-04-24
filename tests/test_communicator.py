@@ -1,6 +1,5 @@
 import logging
 import numpy as np
-from time import sleep
 
 from netqasm.logging import set_log_level, get_netqasm_logger
 from netqasm.parsing import parse_register
@@ -153,14 +152,21 @@ wait_all @entinfo![0:{OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
-        sleep(0.1)
-        communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
+        communicator = SimpleCommunicator(
+            "Alice",
+            subroutine=subroutine_alice,
+            epr_to="Bob",
+        )
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
     def run_bob():
         logger.debug("Starting Bob thread")
-        communicator = SimpleCommunicator("Bob", subroutine=subroutine_0_bob)
+        communicator = SimpleCommunicator(
+            "Bob",
+            subroutine=subroutine_0_bob,
+            epr_from="Alice",
+        )
         communicator.run(num_times=1)
         logger.debug("End Bob thread")
 
@@ -249,14 +255,21 @@ wait_all @entinfo![0:{OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
-        sleep(0.1)
-        communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
+        communicator = SimpleCommunicator(
+            "Alice",
+            subroutine=subroutine_alice,
+            epr_to="Bob",
+        )
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
     def run_bob():
         logger.debug("Starting Bob thread")
-        communicator = SimpleCommunicator("Bob", subroutine=subroutine_0_bob)
+        communicator = SimpleCommunicator(
+            "Bob",
+            subroutine=subroutine_0_bob,
+            epr_from="Alice",
+        )
         communicator.run(num_times=1)
         logger.debug("End Bob thread")
 
@@ -345,14 +358,21 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
-        sleep(0.1)
-        communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
+        communicator = SimpleCommunicator(
+            "Alice",
+            subroutine=subroutine_alice,
+            epr_to="Bob",
+        )
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
     def run_bob():
         logger.debug("Starting Bob thread")
-        communicator = SimpleCommunicator("Bob", subroutine=subroutine_0_bob)
+        communicator = SimpleCommunicator(
+            "Bob",
+            subroutine=subroutine_0_bob,
+            epr_from="Alice",
+        )
         communicator.run(num_times=1)
         logger.debug("End Bob thread")
 
@@ -447,14 +467,21 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
-        sleep(0.1)
-        communicator = SimpleCommunicator("Alice", subroutine=subroutine_alice)
+        communicator = SimpleCommunicator(
+            "Alice",
+            subroutine=subroutine_alice,
+            epr_to="Bob",
+        )
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
     def run_bob():
         logger.debug("Starting Bob thread")
-        communicator = SimpleCommunicator("Bob", subroutine=subroutine_0_bob)
+        communicator = SimpleCommunicator(
+            "Bob",
+            subroutine=subroutine_0_bob,
+            epr_from="Alice",
+        )
         communicator.run(num_times=1)
         logger.debug("End Bob thread")
 
@@ -495,7 +522,7 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
 
 if __name__ == '__main__':
-    set_log_level(logging.WARNING)
+    set_log_level(logging.INFO)
     test()
     test_meas_many()
     test_teleport()

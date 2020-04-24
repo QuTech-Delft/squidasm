@@ -85,9 +85,15 @@ class SubroutineHandler(NodeProtocol):
     def _handle_init_new_app(self, msg):
         app_id = msg.app_id
         max_qubits = msg.max_qubits
+        circuit_rules = msg.circuit_rules
         self._logger.debug(f"SubroutineHandler at node {self.node} allocating a new "
-                           f"unit module of size {max_qubits} for application with app ID {app_id}")
-        self._executioner.init_new_application(app_id=app_id, max_qubits=max_qubits)
+                           f"unit module of size {max_qubits} for application with app ID {app_id}.\n"
+                           f"Setting up circuit rules:\n{circuit_rules}")
+        yield from self._executioner.init_new_application(
+            app_id=app_id,
+            max_qubits=max_qubits,
+            circuit_rules=circuit_rules,
+        )
 
     def _handle_signal(self, signal):
         self._logger.debug(f"SubroutineHandler at node {self.node} handles the signal {signal}")

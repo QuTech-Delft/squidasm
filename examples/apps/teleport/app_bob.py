@@ -10,7 +10,13 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
     socket = NetSquidSocket("bob", "alice")
 
     # Initialize the connection
-    with NetSquidConnection("bob", track_lines=track_lines, log_subroutines_dir=log_subroutines_dir) as bob:
+    bob = NetSquidConnection(
+        "bob",
+        track_lines=track_lines,
+        log_subroutines_dir=log_subroutines_dir,
+        epr_from="alice",
+    )
+    with bob:
         epr = bob.recvEPR("alice")[0]
         bob.flush()
 

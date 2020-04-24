@@ -122,7 +122,7 @@ class NetSquidExecutioner(Executioner, Entity):
 
         return LinkLayerCreate(**kwargs)
 
-    def _get_recv_request(self, subroutine_id, remote_node_id, purpose_id):
+    def _get_recv_request(self, remote_node_id, purpose_id):
         return LinkLayerRecv(
             remote_node_id=remote_node_id,
             purpose_id=purpose_id,
