@@ -1,3 +1,4 @@
+from time import sleep
 from multiprocessing.pool import ThreadPool
 
 from netqasm.sdk.shared_memory import reset_memories
@@ -5,6 +6,16 @@ from netqasm.logging import get_netqasm_logger
 from squidasm.backend import Backend
 
 logger = get_netqasm_logger()
+
+
+def as_completed(futures):
+    futures = list(futures)
+    while len(futures) > 0:
+        for i, future in enumerate(futures):
+            if future.ready():
+                futures.pop(i)
+                yield future
+        sleep(0.1)
 
 
 def run_applications(applications, post_function=None, instr_log_dir=None, network_config=None):
@@ -47,7 +58,7 @@ def run_applications(applications, post_function=None, instr_log_dir=None, netwo
             app_futures.append(future)
 
         # Join the application threads and the backend
-        for future in [backend_future] + app_futures:
+        for future in as_completed([backend_future] + app_futures):
             future.get()
 
     reset_memories()
