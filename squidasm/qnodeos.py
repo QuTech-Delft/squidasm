@@ -1,13 +1,14 @@
+# from time import sleep
 from queue import Empty
 from types import GeneratorType
 
-from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
 from netqasm.parsing import parse_binary_subroutine
 from netqasm.logging import get_netqasm_logger
 from squidasm.messages import MessageType
 from squidasm.executioner import NetSquidExecutioner
 from squidasm.queues import get_queue, Signal
+from squidasm.thread_util import Sleeper
 
 
 class SubroutineHandler(NodeProtocol):
@@ -19,7 +20,7 @@ class SubroutineHandler(NodeProtocol):
 
         self._message_handlers = self._get_message_handlers()
 
-        self._loop_event = EventType("LOOP", "event for looping without blocking")
+        self._sleeper = Sleeper()
 
         self._logger = get_netqasm_logger(f"{self.__class__.__name__}({self.node.name})")
 
@@ -57,15 +58,13 @@ class SubroutineHandler(NodeProtocol):
             yield from output
 
     def _fetch_next_item(self):
-        # TODO fix waiting time if there are not events on timeline
-        # can't be to small since it will then take forever to advance
-        after = 1
         while True:
             try:
                 item = self._message_queue.get(block=False)
             except Empty:
-                self._schedule_after(after, self._loop_event)
-                yield EventExpression(source=self, event_type=self._loop_event)
+                # Wait a little until checking again
+                yield self._sleeper.sleep()
+
             else:
                 return item
 
