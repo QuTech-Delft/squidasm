@@ -1,12 +1,9 @@
 import random
-import pytest
 import logging
 import numpy as np
-from time import sleep
 
 from netqasm.sdk import Qubit
 from netqasm.logging import set_log_level, get_netqasm_logger
-from netqasm.parsing import parse_register
 from squidasm.sdk import NetSquidConnection, NetSquidSocket
 from squidasm.run import run_applications
 
@@ -108,8 +105,6 @@ def test_measure_if_future():
     })
 
 
-# TODO
-@pytest.mark.skip(reason='Need to fix bug with loop')
 def test_new_array():
     def run_alice():
         num = 10
@@ -124,7 +119,7 @@ def test_new_array():
                 q = Qubit(alice)
                 with array.get_future_index(loop_register).if_eq(1):
                     q.X()
-                q.measure(array=outcomes, index=loop_register)
+                q.measure(future=outcomes.get_future_index(loop_register))
 
             alice.loop(body, stop=num, loop_register=loop_register)
         outcomes = list(outcomes)
@@ -137,14 +132,14 @@ def test_new_array():
     })
 
 
-# TODO
-@pytest.mark.skip(reason='not working yet')
 def test_post_epr():
 
-    num = 2
+    num = 10
+
+    node_outcomes = {}
 
     def run_alice():
-        with NetSquidConnection("Alice") as alice:
+        with NetSquidConnection("Alice", epr_to="Bob") as alice:
 
             outcomes = alice.new_array(num)
 
@@ -153,12 +148,12 @@ def test_post_epr():
                 outcome = outcomes.get_future_index(pair)
                 q.measure(outcome)
 
-            alice.createEPR("Bob", number=num, post_routine=post_create)
+            alice.createEPR("Bob", number=num, post_routine=post_create, sequential=True)
 
-        print(list(outcomes))
+        node_outcomes["Alice"] = list(outcomes)
 
     def run_bob():
-        with NetSquidConnection("Bob") as bob:
+        with NetSquidConnection("Bob", epr_from="Alice") as bob:
 
             outcomes = bob.new_array(num)
 
@@ -167,14 +162,17 @@ def test_post_epr():
                 outcome = outcomes.get_future_index(pair)
                 q.measure(outcome)
 
-            bob.recvEPR("Bob", number=num, post_routine=post_recv)
+            bob.recvEPR("Alice", number=num, post_routine=post_recv, sequential=True)
 
-        print(list(outcomes))
+        node_outcomes["Bob"] = list(outcomes)
 
     run_applications({
         "Alice": run_alice,
         "Bob": run_bob,
     })
+
+    logger.info(node_outcomes)
+    assert node_outcomes["Alice"] == node_outcomes["Bob"]
 
 
 def test_measure_loop():
@@ -211,31 +209,31 @@ def test_nested_loop():
     def run_alice():
         with NetSquidConnection("Alice") as alice:
 
+            array = alice.new_array(2, init_values=[0, 0])
+            i = array.get_future_index(0)
+            j = array.get_future_index(1)
+
             def outer_body(alice):
                 def inner_body(alice):
                     q = Qubit(alice)
                     q.release()
+                    j.add(1)
+                i.add(1)
 
                 alice.loop(inner_body, inner_num, loop_register=inner_reg)
             alice.loop(outer_body, outer_num, loop_register=outer_reg)
-
-    def post_function(backend):
-        executioner = backend._subroutine_handlers["Alice"]._executioner
-        assert executioner._get_register(app_id=0, register=parse_register(inner_reg)) == inner_num
-        assert executioner._get_register(app_id=0, register=parse_register(outer_reg)) == outer_num
+        assert i == outer_num
+        assert j == outer_num * inner_num
 
     run_applications({
         "Alice": run_alice,
-    }, post_function=post_function)
+    })
 
 
 def test_create_epr():
 
     def run_alice():
         with NetSquidConnection("Alice", epr_to="Bob") as alice:
-            # Wait a little to Bob has installed rule to recv
-            sleep(0.1)
-
             # Create entanglement
             alice.createEPR("Bob")[0]
 
@@ -267,9 +265,6 @@ def test_teleport_without_corrections():
 
     def run_alice():
         with NetSquidConnection("Alice", epr_to="Bob") as alice:
-            # Wait a little to Bob has installed rule to recv
-            sleep(0.1)
-
             # Create a qubit
             q = Qubit(alice)
             q.H()
@@ -314,9 +309,6 @@ def test_teleport():
     def run_alice():
         socket = NetSquidSocket("Alice", "Bob")
         with NetSquidConnection("Alice", epr_to="Bob") as alice:
-            # Wait a little to Bob has installed rule to recv
-            sleep(0.1)
-
             # Create a qubit
             q = Qubit(alice)
             q.H()
@@ -365,13 +357,13 @@ def test_teleport():
 
 
 if __name__ == '__main__':
-    set_log_level(logging.INFO)
+    set_log_level(logging.WARNING)
     test_two_nodes()
     test_measure()
     test_measure_if_conn()
     test_measure_if_future()
-    # test_new_array()
-    # test_post_epr()
+    test_new_array()
+    test_post_epr()
     test_measure_loop()
     test_nested_loop()
     test_create_epr()

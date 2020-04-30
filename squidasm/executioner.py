@@ -1,6 +1,7 @@
 from enum import Enum
+from collections import namedtuple
 
-from pydynaa import EventExpression, EventType, Entity
+from pydynaa import EventExpression, EventType, Entity, EventHandler
 from netsquid.nodes.node import Node
 from netsquid.components.instructions import (
     INSTR_INIT,
@@ -15,12 +16,20 @@ from netsquid.components.instructions import (
     INSTR_CZ,
 )
 import netsquid as ns
+from netsquid_magic.sleeper import Sleeper
 from netsquid_magic.link_layer import LinkLayerCreate, LinkLayerRecv, ReturnType, RequestType, get_creator_node_id
 
 from netqasm.executioner import Executioner
 from netqasm.instructions import Instruction
 from netqasm.network_stack import OK_FIELDS
 from netqasm.parsing import parse_address
+
+
+PendingEPRResponse = namedtuple("PendingEPRResponse", [
+    "response",
+    "epr_cmd_data",
+    "pair_index",
+])
 
 
 class NetSquidExecutioner(Executioner, Entity):
@@ -56,6 +65,20 @@ class NetSquidExecutioner(Executioner, Entity):
 
         # Handle responsed for entanglement generation
         self._epr_response_handlers = self._get_epr_response_handlers()
+
+        # Keep track of pending epr responses to handle
+        self._pending_epr_responses = []
+
+        # Sleeper
+        self._sleeper = Sleeper()
+
+        # Handler for calling epr data
+        self._handle_epr_data_handler = EventHandler(lambda Event: self._handle_epr_data())
+        # self._wait(
+        #     handler=handle_epr_data_handler,
+        #     entity=self._sleeper,
+        #     event_type=self._sleeper._event,
+        # )
 
     def _get_simulated_time(self):
         return ns.sim_time()
@@ -129,11 +152,18 @@ class NetSquidExecutioner(Executioner, Entity):
         )
 
     def _handle_epr_response(self, response):
+        # TODO
+        # if not hasattr(self, "_count"):
+        #     self._count = 1
+        # print(f"handling for {self._count}'th time")
+        # self._count += 1
         self._epr_response_handlers[response.type](response)
 
     def _handle_epr_err_response(self, response):
         raise RuntimeError(f"Got the following error from the network stack: {response}")
 
+    # import snoop
+    # @snoop
     def _handle_epr_ok_k_response(self, response):
         # NOTE this will probably be handled differently in an actual implementation
         # but is done in a simple way for now to allow for simulation
@@ -147,6 +177,10 @@ class NetSquidExecutioner(Executioner, Entity):
             epr_cmd_data = self._epr_create_requests[create_id]
         else:
             purpose_id = response.purpose_id
+            # TODO this should be handled by putting requests in a queue or so to avoid this error from happening
+            if len(self._epr_recv_requests[purpose_id]) == 0:
+                raise RuntimeError(f"{self._name} got a OK for entanglement generation "
+                                   f"but without a provided RECV request for purpose ID {purpose_id}")
             epr_cmd_data = self._epr_recv_requests[purpose_id][0]
 
         pair_index = epr_cmd_data.tot_pairs - epr_cmd_data.pairs_left
@@ -160,18 +194,60 @@ class NetSquidExecutioner(Executioner, Entity):
                 self._epr_recv_requests[purpose_id].pop(0)
 
         # Extract qubit addresses
+        # TODO
+        # subroutine_id = epr_cmd_data.subroutine_id
+        # physical_address = response.logical_qubit_id
+        # app_id = self._get_app_id(subroutine_id=subroutine_id)
+        # virtual_address = self._get_virtual_address_from_epr_data(epr_cmd_data, pair_index, app_id)
+
+        self._pending_epr_responses.append(
+            PendingEPRResponse(
+                response=response,
+                epr_cmd_data=epr_cmd_data,
+                pair_index=pair_index,
+            )
+        )
+
+        self._handle_epr_data()
+
+    def _handle_epr_data(self):
+        if len(self._pending_epr_responses) == 0:
+            return
+        pending_epr_response = self._pending_epr_responses[0]
+        epr_cmd_data = pending_epr_response.epr_cmd_data
+        pair_index = pending_epr_response.pair_index
+
+        # Extract qubit addresses
         subroutine_id = epr_cmd_data.subroutine_id
-        physical_address = response.logical_qubit_id
         app_id = self._get_app_id(subroutine_id=subroutine_id)
         virtual_address = self._get_virtual_address_from_epr_data(epr_cmd_data, pair_index, app_id)
 
+        # If the virtual address is currently in use, we should wait
+        if self._has_virtual_address(app_id=app_id, virtual_address=virtual_address):
+            self._logger.debug(f"Since virtual address {virtual_address} is in use, "
+                               "handling of epr will wait and try again.")
+            # self._sleeper.sleep()
+            self._wait_once(
+                handler=self._handle_epr_data_handler,
+                expression=self._sleeper.sleep(),
+            )
+            return
+
+        # Since we now handle it, pop if from the pending ones
+        self._pending_epr_responses.pop(0)
+
         # Update qubit mapping
+        response = pending_epr_response.response
+        physical_address = response.logical_qubit_id
+        self._logger.debug(f"Virtual qubit address {virtual_address} will now be mapped to "
+                           f"physical address {physical_address}")
         self._allocate_physical_qubit(
             subroutine_id=subroutine_id,
             virtual_address=virtual_address,
             physical_address=physical_address,
         )
 
+        self._logger.debug("Storing entanglement information for pair {pair_index}")
         # Store the entanglement information
         ent_info = [entry.value if isinstance(entry, Enum) else entry for entry in response]
         ent_info_array_address = epr_cmd_data.ent_info_array_address
@@ -179,6 +255,8 @@ class NetSquidExecutioner(Executioner, Entity):
         arr_start = pair_index * OK_FIELDS
         arr_stop = (pair_index + 1) * OK_FIELDS
         self._app_arrays[app_id][ent_info_array_address, arr_start:arr_stop] = ent_info
+
+        self._handle_epr_data()
 
     def _get_virtual_address_from_epr_data(self, epr_cmd_data, pair_index, app_id):
         q_array_address = epr_cmd_data.q_array_address
@@ -196,7 +274,8 @@ class NetSquidExecutioner(Executioner, Entity):
         return [self._get_position(subroutine_id=subroutine_id, address=address) for address in addresses]
 
     def _get_position(self, subroutine_id, address):
-        return self._get_position_in_unit_module(subroutine_id, address)
+        app_id = self._get_app_id(subroutine_id=subroutine_id)
+        return self._get_position_in_unit_module(app_id=app_id, address=address)
 
     def _get_unused_physical_qubit(self):
         # Assuming that the topology of the unit module is a complete graph

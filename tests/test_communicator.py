@@ -274,10 +274,17 @@ wait_all @entinfo![0:{OK_FIELDS}]
         logger.debug("End Bob thread")
 
     def post_function(backend):
-        alice_physical_qubit = backend._subroutine_handlers["Alice"]._executioner._get_position(0, 0)
-        bob_physical_qubit = backend._subroutine_handlers["Bob"]._executioner._get_position(0, 0)
-        alice_state = backend._nodes["Alice"].qmemory._get_qubits(alice_physical_qubit)[0].qstate
-        bob_state = backend._nodes["Bob"].qmemory._get_qubits(bob_physical_qubit)[0].qstate
+        states = []
+        for node_name in ["Alice", "Bob"]:
+            executioner = backend._subroutine_handlers[node_name]._executioner
+            physical_qubit = executioner._get_position_in_unit_module(app_id=0, address=0)
+            state = backend._nodes[node_name].qmemory._get_qubits(physical_qubit)[0].qstate
+            states.append(state)
+        # alice_physical_qubit = backend._subroutine_handlers["Alice"]._executioner._get_position(0, 0)
+        # bob_physical_qubit = backend._subroutine_handlers["Bob"]._executioner._get_position(0, 0)
+        # alice_state = backend._nodes["Alice"].qmemory._get_qubits(alice_physical_qubit)[0].qstate
+        # bob_state = backend._nodes["Bob"].qmemory._get_qubits(bob_physical_qubit)[0].qstate
+        alice_state, bob_state = states
         assert alice_state is bob_state
         expected_state = np.array(
             [[0.5, 0, 0, 0.5],
@@ -378,10 +385,17 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
     def post_function(backend):
         for i in range(2):
-            alice_physical_qubit = backend._subroutine_handlers["Alice"]._executioner._get_position(0, i)
-            bob_physical_qubit = backend._subroutine_handlers["Bob"]._executioner._get_position(0, i)
-            alice_state = backend._nodes["Alice"].qmemory._get_qubits(alice_physical_qubit)[0].qstate
-            bob_state = backend._nodes["Bob"].qmemory._get_qubits(bob_physical_qubit)[0].qstate
+            states = []
+            for node_name in ["Alice", "Bob"]:
+                executioner = backend._subroutine_handlers[node_name]._executioner
+                physical_qubit = executioner._get_position_in_unit_module(app_id=0, address=0)
+                state = backend._nodes[node_name].qmemory._get_qubits(physical_qubit)[0].qstate
+                states.append(state)
+            # alice_physical_qubit = backend._subroutine_handlers["Alice"]._executioner._get_position(0, i)
+            # bob_physical_qubit = backend._subroutine_handlers["Bob"]._executioner._get_position(0, i)
+            # alice_state = backend._nodes["Alice"].qmemory._get_qubits(alice_physical_qubit)[0].qstate
+            # bob_state = backend._nodes["Bob"].qmemory._get_qubits(bob_physical_qubit)[0].qstate
+            alice_state, bob_state = states
             assert alice_state is bob_state
             expected_state = np.array(
                 [[0.5, 0, 0, 0.5],
@@ -491,7 +505,8 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
         logger.info(f"m = {m}")
         states = []
         for pos, node in zip([0, 0, 1], ["Alice", "Bob", "Bob"]):
-            physical_pos = backend._subroutine_handlers[node]._executioner._get_position(0, pos)
+            executioner = backend._subroutine_handlers[node]._executioner
+            physical_pos = executioner._get_position_in_unit_module(app_id=0, address=pos)
             state = backend._nodes[node].qmemory._get_qubits(physical_pos)[0].qstate
             states.append(state)
         for i, state1 in enumerate(states):
