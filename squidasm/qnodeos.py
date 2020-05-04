@@ -14,6 +14,7 @@ from squidasm.queues import get_queue, Signal
 
 class SubroutineHandler(NodeProtocol):
     def __init__(self, node, instr_log_dir=None):
+        """An extremely simplified version of QNodeOS for handling NetQASM subroutines"""
         super().__init__(node=node)
         self._executioner = NetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
 

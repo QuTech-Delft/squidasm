@@ -73,12 +73,8 @@ class NetSquidExecutioner(Executioner, Entity):
         self._sleeper = Sleeper()
 
         # Handler for calling epr data
+        self._handle_pending_epr_responses_handler = EventHandler(lambda Event: self._handle_pending_epr_responses())
         self._handle_epr_data_handler = EventHandler(lambda Event: self._handle_epr_data())
-        # self._wait(
-        #     handler=handle_epr_data_handler,
-        #     entity=self._sleeper,
-        #     event_type=self._sleeper._event,
-        # )
 
     def _get_simulated_time(self):
         return ns.sim_time()
@@ -152,18 +148,27 @@ class NetSquidExecutioner(Executioner, Entity):
         )
 
     def _handle_epr_response(self, response):
-        # TODO
-        # if not hasattr(self, "_count"):
-        #     self._count = 1
-        # print(f"handling for {self._count}'th time")
-        # self._count += 1
-        self._epr_response_handlers[response.type](response)
+        self._pending_epr_responses.append(response)
+        self._handle_pending_epr_responses()
+
+    def _handle_pending_epr_responses(self):
+        if len(self._pending_epr_responses) == 0:
+            return
+        response = self._pending_epr_responses[0]
+        handled = self._epr_response_handlers[response.type](response)
+        if handled:
+            self._pending_epr_responses.pop(0)
+        else:
+            self._wait_once(
+                handler=self._handle_pending_epr_responses_handler,
+                expression=self._sleeper.sleep(),
+            )
+            return
+        self._handle_pending_epr_responses()
 
     def _handle_epr_err_response(self, response):
         raise RuntimeError(f"Got the following error from the network stack: {response}")
 
-    # import snoop
-    # @snoop
     def _handle_epr_ok_k_response(self, response):
         # NOTE this will probably be handled differently in an actual implementation
         # but is done in a simple way for now to allow for simulation
@@ -177,45 +182,13 @@ class NetSquidExecutioner(Executioner, Entity):
             epr_cmd_data = self._epr_create_requests[create_id]
         else:
             purpose_id = response.purpose_id
-            # TODO this should be handled by putting requests in a queue or so to avoid this error from happening
             if len(self._epr_recv_requests[purpose_id]) == 0:
-                raise RuntimeError(f"{self._name} got a OK for entanglement generation "
-                                   f"but without a provided RECV request for purpose ID {purpose_id}")
+                self._logger.debug(f"Since there is yet not recv request for purpose ID {purpose_id}, "
+                                   "handling of epr will wait and try again.")
+                return False
             epr_cmd_data = self._epr_recv_requests[purpose_id][0]
 
         pair_index = epr_cmd_data.tot_pairs - epr_cmd_data.pairs_left
-        epr_cmd_data.pairs_left -= 1
-
-        # Check if this was the last pair
-        if epr_cmd_data.pairs_left == 0:
-            if creator_node_id == self._node.ID:
-                self._epr_create_requests.pop(create_id)
-            else:
-                self._epr_recv_requests[purpose_id].pop(0)
-
-        # Extract qubit addresses
-        # TODO
-        # subroutine_id = epr_cmd_data.subroutine_id
-        # physical_address = response.logical_qubit_id
-        # app_id = self._get_app_id(subroutine_id=subroutine_id)
-        # virtual_address = self._get_virtual_address_from_epr_data(epr_cmd_data, pair_index, app_id)
-
-        self._pending_epr_responses.append(
-            PendingEPRResponse(
-                response=response,
-                epr_cmd_data=epr_cmd_data,
-                pair_index=pair_index,
-            )
-        )
-
-        self._handle_epr_data()
-
-    def _handle_epr_data(self):
-        if len(self._pending_epr_responses) == 0:
-            return
-        pending_epr_response = self._pending_epr_responses[0]
-        epr_cmd_data = pending_epr_response.epr_cmd_data
-        pair_index = pending_epr_response.pair_index
 
         # Extract qubit addresses
         subroutine_id = epr_cmd_data.subroutine_id
@@ -226,18 +199,18 @@ class NetSquidExecutioner(Executioner, Entity):
         if self._has_virtual_address(app_id=app_id, virtual_address=virtual_address):
             self._logger.debug(f"Since virtual address {virtual_address} is in use, "
                                "handling of epr will wait and try again.")
-            # self._sleeper.sleep()
-            self._wait_once(
-                handler=self._handle_epr_data_handler,
-                expression=self._sleeper.sleep(),
-            )
-            return
+            return False
 
-        # Since we now handle it, pop if from the pending ones
-        self._pending_epr_responses.pop(0)
+        epr_cmd_data.pairs_left -= 1
+
+        # Check if this was the last pair
+        if epr_cmd_data.pairs_left == 0:
+            if creator_node_id == self._node.ID:
+                self._epr_create_requests.pop(create_id)
+            else:
+                self._epr_recv_requests[purpose_id].pop(0)
 
         # Update qubit mapping
-        response = pending_epr_response.response
         physical_address = response.logical_qubit_id
         self._logger.debug(f"Virtual qubit address {virtual_address} will now be mapped to "
                            f"physical address {physical_address}")
@@ -256,7 +229,7 @@ class NetSquidExecutioner(Executioner, Entity):
         arr_stop = (pair_index + 1) * OK_FIELDS
         self._app_arrays[app_id][ent_info_array_address, arr_start:arr_stop] = ent_info
 
-        self._handle_epr_data()
+        return True
 
     def _get_virtual_address_from_epr_data(self, epr_cmd_data, pair_index, app_id):
         q_array_address = epr_cmd_data.q_array_address
