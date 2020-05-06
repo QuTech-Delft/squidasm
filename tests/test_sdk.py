@@ -121,7 +121,7 @@ def test_new_array():
                     q.X()
                 q.measure(future=outcomes.get_future_index(loop_register))
 
-            alice.loop(body, stop=num, loop_register=loop_register)
+            alice.loop_body(body, stop=num, loop_register=loop_register)
         outcomes = list(outcomes)
         logger.debug(f"outcomes: {outcomes}")
         logger.debug(f"init_values: {init_values}")
@@ -175,25 +175,148 @@ def test_post_epr():
     assert node_outcomes["Alice"] == node_outcomes["Bob"]
 
 
+def test_post_epr_context():
+
+    num = 10
+
+    node_outcomes = {}
+
+    def run_alice():
+        with NetSquidConnection("Alice", epr_to="Bob") as alice:
+
+            outcomes = alice.new_array(num)
+
+            with alice.create_epr_context("Bob", number=num, sequential=True) as (q, pair):
+                q.H()
+                outcome = outcomes.get_future_index(pair)
+                q.measure(outcome)
+
+        node_outcomes["Alice"] = list(outcomes)
+
+    def run_bob():
+        with NetSquidConnection("Bob", epr_from="Alice") as bob:
+
+            outcomes = bob.new_array(num)
+
+            with bob.recv_epr_context("Alice", number=num, sequential=True) as (q, pair):
+                q.H()
+                outcome = outcomes.get_future_index(pair)
+                q.measure(outcome)
+
+        node_outcomes["Bob"] = list(outcomes)
+
+    run_applications({
+        "Alice": run_alice,
+        "Bob": run_bob,
+    })
+
+    logger.info(node_outcomes)
+    assert node_outcomes["Alice"] == node_outcomes["Bob"]
+
+
 def test_measure_loop():
 
     def run_alice():
         with NetSquidConnection("Alice") as alice:
             num = 100
 
-            outcomes = alice.new_array(100)
+            outcomes = alice.new_array(num)
 
             def body(alice):
                 q = Qubit(alice)
                 q.H()
                 q.measure(future=outcomes.get_future_index("R0"))
 
-            alice.loop(body, stop=num, loop_register="R0")
+            alice.loop_body(body, stop=num, loop_register="R0")
             alice.flush()
             assert len(outcomes) == num
             avg = sum(outcomes) / num
             logger.info(f"Average: {avg}")
             assert 0.4 <= avg <= 0.6
+
+    run_applications({
+        "Alice": run_alice,
+    })
+
+
+def test_measure_loop_context():
+
+    def run_alice():
+        with NetSquidConnection("Alice") as alice:
+            half = 5
+            num = half * 2
+
+            outcomes = alice.new_array(num)
+            even = alice.new_array(init_values=[0]).get_future_index(0)
+
+            with alice.loop(num) as i:
+                q = Qubit(alice)
+                with even.if_eq(0):
+                    q.X()
+                outcome = outcomes.get_future_index(i)
+                q.measure(outcome)
+                even.add(1, mod=2)
+
+            alice.flush()
+            assert len(outcomes) == num
+            print(f'outcomes = {list(outcomes)}')
+            expected = [1, 0] * half
+            print(f'expected = {expected}')
+            assert list(outcomes) == expected
+
+    run_applications({
+        "Alice": run_alice,
+    })
+
+
+def test_foreach():
+
+    def run_alice():
+        with NetSquidConnection("Alice") as alice:
+            num = 10
+
+            outcomes = alice.new_array(num)
+            rand_nums = alice.new_array(num, init_values=[random.randint(0, 1) for _ in range(num)])
+            i = alice.new_array(1, init_values=[0]).get_future_index(0)
+
+            with rand_nums.foreach() as r:
+                q = Qubit(alice)
+                with r.if_eq(1):
+                    q.X()
+                q.measure(future=outcomes.get_future_index(i))
+                i.add(1)
+
+            alice.flush()
+            assert len(outcomes) == num
+            print(f'rand_nums = {list(rand_nums)}')
+            print(f'outcomes = {list(outcomes)}')
+            assert list(rand_nums) == list(outcomes)
+
+    run_applications({
+        "Alice": run_alice,
+    })
+
+
+def test_enumerate():
+
+    def run_alice():
+        with NetSquidConnection("Alice") as alice:
+            num = 10
+
+            outcomes = alice.new_array(num)
+            rand_nums = alice.new_array(num, init_values=[random.randint(0, 1) for _ in range(num)])
+
+            with rand_nums.enumerate() as (i, r):
+                q = Qubit(alice)
+                with r.if_eq(1):
+                    q.X()
+                q.measure(future=outcomes.get_future_index(i))
+
+            alice.flush()
+            assert len(outcomes) == num
+            print(f'rand_nums = {list(rand_nums)}')
+            print(f'outcomes = {list(outcomes)}')
+            assert list(rand_nums) == list(outcomes)
 
     run_applications({
         "Alice": run_alice,
@@ -220,8 +343,8 @@ def test_nested_loop():
                     j.add(1)
                 i.add(1)
 
-                alice.loop(inner_body, inner_num, loop_register=inner_reg)
-            alice.loop(outer_body, outer_num, loop_register=outer_reg)
+                alice.loop_body(inner_body, inner_num, loop_register=inner_reg)
+            alice.loop_body(outer_body, outer_num, loop_register=outer_reg)
         assert i == outer_num
         assert j == outer_num * inner_num
 
@@ -357,15 +480,19 @@ def test_teleport():
 
 
 if __name__ == '__main__':
-    set_log_level(logging.WARNING)
-    test_two_nodes()
-    test_measure()
-    test_measure_if_conn()
-    test_measure_if_future()
-    test_new_array()
-    test_post_epr()
-    test_measure_loop()
-    test_nested_loop()
-    test_create_epr()
-    test_teleport_without_corrections()
-    test_teleport()
+    set_log_level(logging.INFO)
+    # test_two_nodes()
+    # test_measure()
+    # test_measure_if_conn()
+    # test_measure_if_future()
+    # test_new_array()
+    # test_post_epr()
+    # test_post_epr_context()
+    # test_measure_loop()
+    test_measure_loop_context()
+    # test_foreach()
+    # test_enumerate()
+    # test_nested_loop()
+    # test_create_epr()
+    # test_teleport_without_corrections()
+    # test_teleport()
