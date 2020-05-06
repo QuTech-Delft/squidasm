@@ -8,10 +8,10 @@ from netsquid_magic.link_layer import (
     SingleClickTranslationUnit,
     LinkLayerRecv,
 )
+from netsquid_magic.sleeper import Sleeper
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 
 from netqasm.network_stack import BaseNetworkStack
-from squidasm.thread_util import Sleeper
 
 
 class NetworkStack(BaseNetworkStack):

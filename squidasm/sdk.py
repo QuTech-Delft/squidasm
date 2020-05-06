@@ -3,7 +3,7 @@ from netqasm.sdk import NetQASMConnection, ThreadSocket
 from netqasm.network_stack import CircuitRules, Rule
 from squidasm.queues import get_queue, Signal
 from squidasm.backend import get_node_id, get_node_name
-from squidasm.messages import Message, InitNewAppMessage, MessageType
+from squidasm.messages import Message, InitNewAppMessage, MessageType, StopAppMessage
 
 
 class NetSquidConnection(NetQASMConnection):
@@ -56,18 +56,23 @@ class NetSquidConnection(NetQASMConnection):
         """Block until flushed subroutines finish"""
         self._message_queue.join()
 
-    def close(self, release_qubits=True):
-        super().close(release_qubits=release_qubits)
-        self._signal_stop()
-
     def _submit_subroutine(self, subroutine, block=True):
         self._logger.debug(f"Puts the next subroutine:\n{subroutine}")
         self._message_queue.put(Message(type=MessageType.SUBROUTINE, msg=subroutine))
         if block:
             self._message_queue.join()
 
-    def _signal_stop(self):
-        self._message_queue.put(Message(type=MessageType.SIGNAL, msg=Signal.STOP))
+    def _signal_stop(self, stop_backend=True):
+        self._message_queue.put(Message(
+            type=MessageType.STOP_APP,
+            msg=StopAppMessage(app_id=self._appID),
+        ))
+
+        if stop_backend:
+            self._message_queue.put(Message(
+                type=MessageType.SIGNAL,
+                msg=Signal.STOP,
+            ))
 
     def _get_remote_node_id(self, name):
         return get_node_id(name=name)
