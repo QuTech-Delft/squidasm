@@ -1,21 +1,11 @@
-from time import sleep
 from multiprocessing.pool import ThreadPool
 
 from netqasm.sdk.shared_memory import reset_memories
 from netqasm.logging import get_netqasm_logger
 from squidasm.backend import Backend
+from squidasm.thread_util import as_completed
 
 logger = get_netqasm_logger()
-
-
-def as_completed(futures):
-    futures = list(futures)
-    while len(futures) > 0:
-        for i, future in enumerate(futures):
-            if future.ready():
-                futures.pop(i)
-                yield future
-        sleep(0.1)
 
 
 def run_applications(applications, post_function=None, instr_log_dir=None, network_config=None):

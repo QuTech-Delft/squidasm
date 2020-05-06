@@ -18,7 +18,7 @@ from netqasm.logging import (
     _InstrLogHeaders,
     get_netqasm_logger,
 )
-from squidasm.run import run_applications
+from .run import run_applications
 
 logger = get_netqasm_logger()
 
