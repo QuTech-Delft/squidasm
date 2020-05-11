@@ -63,6 +63,29 @@ def test_measure():
     })
 
 
+def test_rotations():
+
+    def run_alice():
+        with NetSquidConnection("Alice") as alice:
+            count = 0
+            num = 10
+            for _ in range(num):
+                q = Qubit(alice)
+                q.rot_X(n=1, d=1)  # pi / 2
+                q.rot_X(n=2, d=2)  # 2 pi / 4
+                q.rot_Y(n=1, d=1)  # pi / 2
+                q.rot_Y(n=2, d=2)  # 2 pi / 4
+                m = q.measure()
+                alice.flush()
+                count += m
+            logger.info(count)
+            assert count == 0
+
+    run_applications({
+        "Alice": run_alice,
+    })
+
+
 def test_measure_if_conn():
     def run_alice():
         num = 10
@@ -481,18 +504,19 @@ def test_teleport():
 
 if __name__ == '__main__':
     set_log_level(logging.INFO)
-    # test_two_nodes()
-    # test_measure()
-    # test_measure_if_conn()
-    # test_measure_if_future()
-    # test_new_array()
-    # test_post_epr()
-    # test_post_epr_context()
-    # test_measure_loop()
+    test_two_nodes()
+    test_measure()
+    test_rotations()
+    test_measure_if_conn()
+    test_measure_if_future()
+    test_new_array()
+    test_post_epr()
+    test_post_epr_context()
+    test_measure_loop()
     test_measure_loop_context()
-    # test_foreach()
-    # test_enumerate()
-    # test_nested_loop()
-    # test_create_epr()
-    # test_teleport_without_corrections()
-    # test_teleport()
+    test_foreach()
+    test_enumerate()
+    test_nested_loop()
+    test_create_epr()
+    test_teleport_without_corrections()
+    test_teleport()

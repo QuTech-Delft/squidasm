@@ -21,6 +21,7 @@ class NetSquidConnection(NetQASMConnection):
         log_subroutines_dir=None,
         epr_to=None,
         epr_from=None,
+        compiler=None,
     ):
         self._message_queue = get_queue(name)
         super().__init__(
@@ -31,6 +32,7 @@ class NetSquidConnection(NetQASMConnection):
             log_subroutines_dir=log_subroutines_dir,
             epr_to=epr_to,
             epr_from=epr_from,
+            compiler=compiler,
         )
 
     def _init_new_app(self, max_qubits, circuit_rules=None):
