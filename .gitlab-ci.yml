@@ -15,7 +15,13 @@ image: adahlberg/nlblueprintci:19.04
         - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
         - chmod 644 ~/.ssh/known_hosts
         ## Install netqasm
-        - git clone git@gitlab.tudelft.nl:qinc-wehner/netqasm/netqasm.git
+        - echo $CI_COMMIT_REF_NAME
+        - echo $CI_COMMIT_BRANCH
+        # Use master if merging to master otherwise develop
+        # if not merging then use master if on master otherwise develop
+        - BRANCH="$(if [ "$CI_COMMIT_BRANCH" == "" ]; then if [ "$CI_COMMIT_REF_NAME" == "develop" ]; then echo "master"; else echo "develop"; fi; else if [ "$CI_COMMIT_REF_NAME" == "develop" ]; then echo "master"; else echo "develop"; fi; fi)"
+        - echo $BRANCH
+        - git clone git@gitlab.tudelft.nl:qinc-wehner/netqasm/netqasm.git -b $BRANCH
         - cd netqasm
         - pip install .
         - cd ..
