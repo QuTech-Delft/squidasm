@@ -38,6 +38,9 @@ def get_qdevice(name="QPD", num_qubits=5, network_config=None):
             PhysicalInstruction(ns_instructions.INSTR_K, duration=3),
             PhysicalInstruction(ns_instructions.INSTR_S, duration=3),
             PhysicalInstruction(ns_instructions.INSTR_T, duration=4),
+            PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=4),
+            PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=4),
+            PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=4),
             PhysicalInstruction(ns_instructions.INSTR_CNOT, duration=5),
             PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5),
         ]

@@ -12,6 +12,9 @@ from netsquid.components.instructions import (
     INSTR_K,
     INSTR_S,
     INSTR_T,
+    INSTR_ROT_X,
+    INSTR_ROT_Y,
+    INSTR_ROT_Z,
     INSTR_CNOT,
     INSTR_CZ,
 )
@@ -43,6 +46,9 @@ class NetSquidExecutioner(Executioner, Entity):
         Instruction.K: INSTR_K,
         Instruction.S: INSTR_S,
         Instruction.T: INSTR_T,
+        Instruction.ROT_X: INSTR_ROT_X,
+        Instruction.ROT_Y: INSTR_ROT_Y,
+        Instruction.ROT_Z: INSTR_ROT_Z,
         Instruction.CNOT: INSTR_CNOT,
         Instruction.CPHASE: INSTR_CZ,
     }
@@ -95,21 +101,32 @@ class NetSquidExecutioner(Executioner, Entity):
 
     def _do_single_qubit_instr(self, instr, subroutine_id, address):
         position = self._get_position(subroutine_id=subroutine_id, address=address)
-        ns_instr = self.__class__.NS_INSTR_MAPPING.get(instr)
-        if ns_instr is None:
-            raise RuntimeError(f"Don't know how to map the instruction {instr} to a netquid instruction")
+        ns_instr = self._get_netsquid_instruction(instr=instr)
         self._logger.debug(f"Doing instr {instr} on qubit {position}")
         self.qdevice.execute_instruction(ns_instr, qubit_mapping=[position])
         yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
 
+    def _do_single_qubit_rotation(self, instr, subroutine_id, address, angle):
+        """Performs a single qubit rotation with the given angle"""
+        position = self._get_position(subroutine_id=subroutine_id, address=address)
+        ns_instr = self._get_netsquid_instruction(instr=instr)
+        self._logger.debug(f"Doing instr {instr} with angle {angle} on qubit {position}")
+        self.qdevice.execute_instruction(ns_instr, qubit_mapping=[position], angle=angle)
+        yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
+
     def _do_two_qubit_instr(self, instr, subroutine_id, address1, address2):
         positions = self._get_positions(subroutine_id=subroutine_id, addresses=[address1, address2])
-        ns_instr = self.__class__.NS_INSTR_MAPPING.get(instr)
-        if ns_instr is None:
-            raise RuntimeError("Don't know how to map the instruction {instr} to a netquid instruction")
+        ns_instr = self._get_netsquid_instruction(instr=instr)
         self._logger.debug(f"Doing instr {instr} on qubits {positions}")
         self.qdevice.execute_instruction(ns_instr, qubit_mapping=positions)
         yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
+
+    @classmethod
+    def _get_netsquid_instruction(cls, instr):
+        ns_instr = cls.NS_INSTR_MAPPING.get(instr)
+        if ns_instr is None:
+            raise RuntimeError("Don't know how to map the instruction {instr} to a netquid instruction")
+        return ns_instr
 
     def _do_meas(self, subroutine_id, q_address):
         position = self._get_position(subroutine_id=subroutine_id, address=q_address)
