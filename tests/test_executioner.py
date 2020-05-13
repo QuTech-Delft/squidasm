@@ -33,7 +33,7 @@ ret_reg m!
     node = get_node("Alice")
     executioner = NetSquidExecutioner(node=node)
     # Consume the generator
-    list(executioner.init_new_application(app_id=app_id, max_qubits=1))
+    executioner.init_new_application(app_id=app_id, max_qubits=1)
 
     class ExecuteProtocol(NodeProtocol):
         def run(self):

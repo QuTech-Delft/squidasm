@@ -20,7 +20,7 @@ from netsquid.components.instructions import (
 )
 import netsquid as ns
 from netsquid_magic.sleeper import Sleeper
-from netsquid_magic.link_layer import LinkLayerCreate, LinkLayerRecv, ReturnType, RequestType, get_creator_node_id
+from netsquid_magic.link_layer import LinkLayerCreate, ReturnType, RequestType, get_creator_node_id
 
 from netqasm.executioner import Executioner
 from netqasm.instructions import Instruction
@@ -138,10 +138,13 @@ class NetSquidExecutioner(Executioner, Entity):
         self._schedule_after(1, self._wait_event)
         yield EventExpression(source=self, event_type=self._wait_event)
 
-    def _get_create_request(self, subroutine_id, remote_node_id, purpose_id, arg_array_address):
+    def _get_create_request(self, subroutine_id, remote_node_id, epr_socket_id, arg_array_address):
+        purpose_id = self._network_stack._get_purpose_id(
+            remote_node_id=remote_node_id,
+            epr_socket_id=epr_socket_id,
+        )
         app_id = self._get_app_id(subroutine_id=subroutine_id)
         args = self._app_arrays[app_id][arg_array_address, :]
-        # NOTE remote_node_id and purpose_id comes as direct arguments
         args = [remote_node_id, purpose_id] + args
 
         # Use defaults if not specified
@@ -157,12 +160,6 @@ class NetSquidExecutioner(Executioner, Entity):
         kwargs["type"] = RequestType(kwargs["type"])
 
         return LinkLayerCreate(**kwargs)
-
-    def _get_recv_request(self, remote_node_id, purpose_id):
-        return LinkLayerRecv(
-            remote_node_id=remote_node_id,
-            purpose_id=purpose_id,
-        )
 
     def _handle_epr_response(self, response):
         self._pending_epr_responses.append(response)

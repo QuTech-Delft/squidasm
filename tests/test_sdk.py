@@ -2,9 +2,9 @@ import random
 import logging
 import numpy as np
 
-from netqasm.sdk import Qubit
+from netqasm.sdk import Qubit, ThreadSocket, EPRSocket
 from netqasm.logging import set_log_level, get_netqasm_logger
-from squidasm.sdk import NetSquidConnection, NetSquidSocket
+from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
 
 logger = get_netqasm_logger()
@@ -162,7 +162,8 @@ def test_post_epr():
     node_outcomes = {}
 
     def run_alice():
-        with NetSquidConnection("Alice", epr_to="Bob") as alice:
+        epr_socket = EPRSocket("Bob")
+        with NetSquidConnection("Alice", epr_sockets=[epr_socket]) as alice:
 
             outcomes = alice.new_array(num)
 
@@ -171,12 +172,13 @@ def test_post_epr():
                 outcome = outcomes.get_future_index(pair)
                 q.measure(outcome)
 
-            alice.createEPR("Bob", number=num, post_routine=post_create, sequential=True)
+            epr_socket.create(number=num, post_routine=post_create, sequential=True)
 
         node_outcomes["Alice"] = list(outcomes)
 
     def run_bob():
-        with NetSquidConnection("Bob", epr_from="Alice") as bob:
+        epr_socket = EPRSocket("Alice")
+        with NetSquidConnection("Bob", epr_sockets=[epr_socket]) as bob:
 
             outcomes = bob.new_array(num)
 
@@ -185,7 +187,7 @@ def test_post_epr():
                 outcome = outcomes.get_future_index(pair)
                 q.measure(outcome)
 
-            bob.recvEPR("Alice", number=num, post_routine=post_recv, sequential=True)
+            epr_socket.recv(number=num, post_routine=post_recv, sequential=True)
 
         node_outcomes["Bob"] = list(outcomes)
 
@@ -205,11 +207,12 @@ def test_post_epr_context():
     node_outcomes = {}
 
     def run_alice():
-        with NetSquidConnection("Alice", epr_to="Bob") as alice:
+        epr_socket = EPRSocket("Bob")
+        with NetSquidConnection("Alice", epr_sockets=[epr_socket]) as alice:
 
             outcomes = alice.new_array(num)
 
-            with alice.create_epr_context("Bob", number=num, sequential=True) as (q, pair):
+            with epr_socket.create_context(number=num, sequential=True) as (q, pair):
                 q.H()
                 outcome = outcomes.get_future_index(pair)
                 q.measure(outcome)
@@ -217,11 +220,12 @@ def test_post_epr_context():
         node_outcomes["Alice"] = list(outcomes)
 
     def run_bob():
-        with NetSquidConnection("Bob", epr_from="Alice") as bob:
+        epr_socket = EPRSocket("Alice")
+        with NetSquidConnection("Bob", epr_sockets=[epr_socket]) as bob:
 
             outcomes = bob.new_array(num)
 
-            with bob.recv_epr_context("Alice", number=num, sequential=True) as (q, pair):
+            with epr_socket.recv_context(number=num, sequential=True) as (q, pair):
                 q.H()
                 outcome = outcomes.get_future_index(pair)
                 q.measure(outcome)
@@ -379,13 +383,15 @@ def test_nested_loop():
 def test_create_epr():
 
     def run_alice():
-        with NetSquidConnection("Alice", epr_to="Bob") as alice:
+        epr_socket = EPRSocket("Bob")
+        with NetSquidConnection("Alice", epr_sockets=[epr_socket]):
             # Create entanglement
-            alice.createEPR("Bob")[0]
+            epr_socket.create()[0]
 
     def run_bob():
-        with NetSquidConnection("Bob", epr_from="Alice") as bob:
-            bob.recvEPR("Alice")
+        epr_socket = EPRSocket("Alice")
+        with NetSquidConnection("Bob", epr_sockets=[epr_socket]):
+            epr_socket.recv()
 
     def post_function(backend):
         alice_state = backend._nodes["Alice"].qmemory._get_qubits(0)[0].qstate
@@ -410,13 +416,14 @@ def test_teleport_without_corrections():
     outcomes = []
 
     def run_alice():
-        with NetSquidConnection("Alice", epr_to="Bob") as alice:
+        epr_socket = EPRSocket("Bob")
+        with NetSquidConnection("Alice", epr_sockets=[epr_socket]) as alice:
             # Create a qubit
             q = Qubit(alice)
             q.H()
 
             # Create entanglement
-            epr = alice.createEPR("Bob")[0]
+            epr = epr_socket.create()[0]
 
             # Teleport
             q.cnot(epr)
@@ -427,8 +434,9 @@ def test_teleport_without_corrections():
             outcomes.append(m2)
 
     def run_bob():
-        with NetSquidConnection("Bob", epr_from="Alice") as bob:
-            bob.recvEPR("Alice")
+        epr_socket = EPRSocket("Alice")
+        with NetSquidConnection("Bob", epr_sockets=[epr_socket]):
+            epr_socket.recv()
 
     def post_function(backend):
         m1, m2 = outcomes
@@ -453,14 +461,15 @@ def test_teleport_without_corrections():
 
 def test_teleport():
     def run_alice():
-        socket = NetSquidSocket("Alice", "Bob")
-        with NetSquidConnection("Alice", epr_to="Bob") as alice:
+        socket = ThreadSocket("Alice", "Bob")
+        epr_socket = EPRSocket("Bob")
+        with NetSquidConnection("Alice", epr_sockets=[epr_socket]) as alice:
             # Create a qubit
             q = Qubit(alice)
             q.H()
 
             # Create entanglement
-            epr = alice.createEPR("Bob")[0]
+            epr = epr_socket.create()[0]
 
             # Teleport
             q.cnot(epr)
@@ -475,9 +484,10 @@ def test_teleport():
         socket.send(msg)
 
     def run_bob():
-        socket = NetSquidSocket("Bob", "Alice")
-        with NetSquidConnection("Bob", epr_from="Alice") as bob:
-            epr = bob.recvEPR("Alice")[0]
+        socket = ThreadSocket("Bob", "Alice")
+        epr_socket = EPRSocket("Alice")
+        with NetSquidConnection("Bob", epr_sockets=[epr_socket]) as bob:
+            epr = epr_socket.recv()[0]
             bob.flush()
 
             # Get the corrections

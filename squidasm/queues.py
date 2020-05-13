@@ -1,11 +1,8 @@
 from queue import Queue
-from enum import Enum, auto
+
+from netqasm.messages import Signal
 
 _QUEUES = {}
-
-
-class Signal(Enum):
-    STOP = auto()
 
 
 def get_queue(node_name, key=None):

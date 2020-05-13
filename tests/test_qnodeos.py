@@ -4,10 +4,10 @@ import netsquid as ns
 from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
 from netqasm.sdk.shared_memory import reset_memories
+from netqasm.messages import Message, MessageType, InitNewAppMessage
 from squidasm.network_setup import get_node
 from squidasm.qnodeos import SubroutineHandler
 from squidasm.queues import get_queue, Signal
-from squidasm.sdk import Message, MessageType, InitNewAppMessage
 
 
 def test():
@@ -42,7 +42,6 @@ ret_reg m!
         msg=InitNewAppMessage(
             app_id=app_id,
             max_qubits=1,
-            circuit_rules=None,
         ),
     ))
     # Put the subroutine

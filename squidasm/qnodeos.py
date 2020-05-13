@@ -1,4 +1,3 @@
-# from time import sleep
 from queue import Empty
 from types import GeneratorType
 
@@ -7,7 +6,7 @@ from netsquid_magic.sleeper import Sleeper
 
 from netqasm.parsing import parse_binary_subroutine
 from netqasm.logging import get_netqasm_logger
-from squidasm.messages import MessageType
+from netqasm.messages import MessageType
 from squidasm.executioner import NetSquidExecutioner
 from squidasm.queues import get_queue, Signal
 
@@ -43,6 +42,7 @@ class SubroutineHandler(NodeProtocol):
             MessageType.SUBROUTINE: self._handle_subroutine,
             MessageType.INIT_NEW_APP: self._handle_init_new_app,
             MessageType.STOP_APP: self._handle_stop_app,
+            MessageType.OPEN_EPR_SOCKET: self._handle_open_epr_socket,
         }
 
     def add_network_stack(self, network_stack):
@@ -87,14 +87,11 @@ class SubroutineHandler(NodeProtocol):
     def _handle_init_new_app(self, msg):
         app_id = msg.app_id
         max_qubits = msg.max_qubits
-        circuit_rules = msg.circuit_rules
         self._logger.debug(f"Allocating a new "
-                           f"unit module of size {max_qubits} for application with app ID {app_id}.\n"
-                           f"Setting up circuit rules:\n{circuit_rules}")
-        yield from self._executioner.init_new_application(
+                           f"unit module of size {max_qubits} for application with app ID {app_id}.\n")
+        self._executioner.init_new_application(
             app_id=app_id,
             max_qubits=max_qubits,
-            circuit_rules=circuit_rules,
         )
 
     def _handle_stop_app(self, msg):
@@ -109,3 +106,10 @@ class SubroutineHandler(NodeProtocol):
             self.stop()
         else:
             raise ValueError(f"Unkown signal {signal}")
+
+    def _handle_open_epr_socket(self, msg):
+        yield from self._executioner.setup_epr_socket(
+            epr_socket_id=msg.epr_socket_id,
+            remote_node_id=msg.remote_node_id,
+            remote_epr_socket_id=msg.remote_epr_socket_id,
+        )
