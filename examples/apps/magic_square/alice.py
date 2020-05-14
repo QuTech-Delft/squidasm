@@ -3,6 +3,7 @@ from time import sleep
 
 from netqasm.sdk.toolbox.measurements import parity_meas
 from netqasm.logging import get_netqasm_logger
+from netqasm.sdk import EPRSocket
 from squidasm.sdk import NetSquidConnection
 
 logger = get_netqasm_logger()
@@ -10,15 +11,18 @@ logger = get_netqasm_logger()
 
 def main():
 
+    # Create a EPR socket for entanglement generation
+    epr_socket = EPRSocket("Bob")
+
     # Initialize the connection
-    with NetSquidConnection("Alice") as Alice:
+    with NetSquidConnection("Alice", epr_sockets=[epr_socket]) as Alice:
 
         # Wait a little for recv rules to be installed
         sleep(0.1)
 
         # Create EPR pairs
-        q1 = Alice.createEPR("Bob")[0]
-        q2 = Alice.createEPR("Bob")[0]
+        q1 = epr_socket.create()[0]
+        q2 = epr_socket.create()[0]
 
         # TODO put in single subroutine?
         Alice.flush()

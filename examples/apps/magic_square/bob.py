@@ -2,6 +2,7 @@ import random
 
 from netqasm.logging import get_netqasm_logger
 from netqasm.sdk.toolbox.measurements import parity_meas
+from netqasm.sdk import EPRSocket
 from squidasm.sdk import NetSquidConnection
 
 logger = get_netqasm_logger()
@@ -9,12 +10,15 @@ logger = get_netqasm_logger()
 
 def main():
 
+    # Create a EPR socket for entanglement generation
+    epr_socket = EPRSocket("Alice")
+
     # Initialize the connection
-    with NetSquidConnection("Bob") as Bob:
+    with NetSquidConnection("Bob", epr_sockets=[epr_socket]) as Bob:
 
         # Create EPR pairs
-        q1 = Bob.recvEPR("Alice")[0]
-        q2 = Bob.recvEPR("Alice")[0]
+        q1 = epr_socket.recv()[0]
+        q2 = epr_socket.recv()[0]
 
         Bob.flush()
 

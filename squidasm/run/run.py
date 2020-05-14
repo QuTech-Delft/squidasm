@@ -4,8 +4,14 @@ from netqasm.sdk.shared_memory import reset_memories
 from netqasm.logging import get_netqasm_logger
 from squidasm.backend import Backend
 from squidasm.thread_util import as_completed
+from squidasm.network_stack import reset_network
 
 logger = get_netqasm_logger()
+
+
+def reset():
+    reset_memories()
+    reset_network()
 
 
 def run_applications(applications, post_function=None, instr_log_dir=None, network_config=None):
@@ -21,7 +27,7 @@ def run_applications(applications, post_function=None, instr_log_dir=None, netwo
         after the execution. This can be used for debugging, e.g. getting the
         quantum states after execution etc.
     """
-    reset_memories()
+    reset()
     node_names = list(applications.keys())
     apps = list(applications.values())
 
@@ -51,4 +57,4 @@ def run_applications(applications, post_function=None, instr_log_dir=None, netwo
         for future in as_completed([backend_future] + app_futures):
             future.get()
 
-    reset_memories()
+    reset()

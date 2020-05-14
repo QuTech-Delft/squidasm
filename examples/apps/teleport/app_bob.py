@@ -1,5 +1,7 @@
 from netqasm.logging import get_netqasm_logger
-from squidasm.sdk import NetSquidConnection, NetSquidSocket
+from netqasm.sdk import EPRSocket
+from netqasm.sdk import ThreadSocket as Socket
+from squidasm.sdk import NetSquidConnection
 
 logger = get_netqasm_logger()
 
@@ -7,17 +9,20 @@ logger = get_netqasm_logger()
 def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
 
     # Create a socket to recv classical information
-    socket = NetSquidSocket("bob", "alice")
+    socket = Socket("bob", "alice")
+
+    # Create a EPR socket for entanglement generation
+    epr_socket = EPRSocket("alice")
 
     # Initialize the connection
     bob = NetSquidConnection(
         "bob",
         track_lines=track_lines,
         log_subroutines_dir=log_subroutines_dir,
-        epr_from="alice",
+        epr_sockets=[epr_socket]
     )
     with bob:
-        epr = bob.recvEPR("alice")[0]
+        epr = epr_socket.recv()[0]
         bob.flush()
 
         # Get the corrections
