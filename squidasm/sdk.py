@@ -1,5 +1,9 @@
-from netsquid_magic.link_layer import LinkLayerOKTypeK
-from netqasm.sdk import NetQASMConnection
+from netsquid_magic.link_layer import (
+    LinkLayerOKTypeK,
+    LinkLayerOKTypeM,
+    LinkLayerOKTypeR,
+)
+from netqasm.sdk import NetQASMConnection, EPRType
 from squidasm.queues import get_queue
 from squidasm.backend import get_node_id, get_node_name
 
@@ -7,8 +11,11 @@ from squidasm.backend import get_node_id, get_node_name
 class NetSquidConnection(NetQASMConnection):
 
     # Class to use to pack entanglement information
-    # TODO how to handle other types?
-    ENT_INFO = LinkLayerOKTypeK
+    ENT_INFO = {
+        EPRType.K: LinkLayerOKTypeK,
+        EPRType.M: LinkLayerOKTypeM,
+        EPRType.R: LinkLayerOKTypeR,
+    }
 
     def __init__(
         self,
