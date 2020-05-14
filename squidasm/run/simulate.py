@@ -33,9 +33,13 @@ def load_app_config(app_dir, node_name):
     ext = '.yaml'
     file_path = os.path.join(app_dir, f"{node_name}{ext}")
     if os.path.exists(file_path):
-        return load_yaml(file_path=file_path)
+        config = load_yaml(file_path=file_path)
     else:
+        config = None
+    if config is None:
         return {}
+    else:
+        return config
 
 
 def get_network_config_path(app_dir):
@@ -189,7 +193,7 @@ def simulate_apps(
 
     # NOTE a post function can be used to for example extract quantum state after the subroutine if needed
     # def post_function(backend):
-    #     state = backend._nodes["Bob"].qmemory._get_qubits(0)[0].qstate.dm
+    #     state = backend._nodes["bob"].qmemory._get_qubits(0)[0].qstate.dm
     #     logger.info(f"state = {state}")
     #     expected = np.array([[0.5, 0.5], [0.5, 0.5]])
     #     logger.info(f"expected = {expected}")

@@ -15,6 +15,12 @@ gates:
       duration: 3
     - instruction: INSTR_T
       duration: 4
+    - instruction: INSTR_ROT_X
+      duration: 4
+    - instruction: INSTR_ROT_Y
+      duration: 4
+    - instruction: INSTR_ROT_Z
+      duration: 4
     - instruction: INSTR_CNOT
       duration: 5
     - instruction: INSTR_CZ
