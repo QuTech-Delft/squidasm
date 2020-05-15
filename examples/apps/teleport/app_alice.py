@@ -37,8 +37,11 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
         alice._release_qubits_on_exit = False
 
     # Send the correction information
-    msg = str((int(m1), int(m2)))
+    m1, m2 = int(m1), int(m2)
+    msg = str((m1, m2))
     socket.send(msg)
+
+    return {'m1': m1, 'm2': m2}
 
 
 if __name__ == "__main__":
