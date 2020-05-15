@@ -1,8 +1,9 @@
 import random
 import logging
+from collections import defaultdict
 import numpy as np
 
-from netqasm.sdk import Qubit, ThreadSocket, EPRSocket
+from netqasm.sdk import Qubit, ThreadSocket, EPRSocket, EPRType
 from netqasm.logging import set_log_level, get_netqasm_logger
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
@@ -512,6 +513,35 @@ def test_teleport():
     }, post_function=post_function)
 
 
+def test_create_epr_m():
+    outcomes = defaultdict(list)
+
+    num = 10
+
+    def run_alice():
+        epr_socket = EPRSocket("Bob")
+        with NetSquidConnection("Alice", epr_sockets=[epr_socket]):
+            ent_infos = epr_socket.create(number=num, tp=EPRType.M)
+            for ent_info in ent_infos:
+                outcomes['Alice'].append(ent_info.measurement_outcome)
+
+    def run_bob():
+        epr_socket = EPRSocket("Alice")
+        with NetSquidConnection("Bob", epr_sockets=[epr_socket]):
+            ent_infos = epr_socket.recv(number=num, tp=EPRType.M)
+            for ent_info in ent_infos:
+                outcomes['Bob'].append(ent_info.measurement_outcome)
+
+    run_applications({
+        "Alice": run_alice,
+        "Bob": run_bob,
+    })
+
+    print(outcomes)
+    for i in range(num):
+        assert int(outcomes['Alice'][i]) == int(outcomes['Bob'][i])
+
+
 if __name__ == '__main__':
     set_log_level(logging.INFO)
     test_two_nodes()
@@ -530,3 +560,4 @@ if __name__ == '__main__':
     test_create_epr()
     test_teleport_without_corrections()
     test_teleport()
+    test_create_epr_m()

@@ -138,6 +138,9 @@ class NetSquidExecutioner(Executioner, Entity):
         self._schedule_after(1, self._wait_event)
         yield EventExpression(source=self, event_type=self._wait_event)
 
+    def _is_create_keep_request(self, request):
+        return request.type == RequestType.K
+
     def _get_create_request(self, subroutine_id, remote_node_id, epr_socket_id, arg_array_address):
         purpose_id = self._network_stack._get_purpose_id(
             remote_node_id=remote_node_id,
@@ -166,43 +169,98 @@ class NetSquidExecutioner(Executioner, Entity):
         self._handle_pending_epr_responses()
 
     def _handle_pending_epr_responses(self):
+        # NOTE this will probably be handled differently in an actual implementation
+        # but is done in a simple way for now to allow for simulation
         if len(self._pending_epr_responses) == 0:
             return
+
         response = self._pending_epr_responses[0]
-        handled = self._epr_response_handlers[response.type](response)
-        if handled:
-            self._pending_epr_responses.pop(0)
+
+        if response.type == ReturnType.ERR:
+            self._handle_epr_err_response(response)
         else:
-            self._wait_once(
-                handler=self._handle_pending_epr_responses_handler,
-                expression=self._sleeper.sleep(),
-            )
-            return
+            self._logger.debug("Handling EPR OK ({response.type}) response from network stack")
+            info = self._extract_epr_info(response=response)
+            if info is not None:
+                epr_cmd_data, pair_index, is_creator, request_key = info
+                handled = self._epr_response_handlers[response.type](
+                    epr_cmd_data=epr_cmd_data,
+                    response=response,
+                    pair_index=pair_index,
+                )
+            else:
+                handled = False
+            if handled:
+                epr_cmd_data.pairs_left -= 1
+
+                self._handle_last_epr_pair(
+                    epr_cmd_data=epr_cmd_data,
+                    is_creator=is_creator,
+                    request_key=request_key,
+                )
+
+                self._store_ent_info(
+                    epr_cmd_data=epr_cmd_data,
+                    response=response,
+                    pair_index=pair_index,
+                )
+                self._pending_epr_responses.pop(0)
+            else:
+                self._wait_once(
+                    handler=self._handle_pending_epr_responses_handler,
+                    expression=self._sleeper.sleep(),
+                )
+                return
+
         self._handle_pending_epr_responses()
 
     def _handle_epr_err_response(self, response):
         raise RuntimeError(f"Got the following error from the network stack: {response}")
 
-    def _handle_epr_ok_k_response(self, response):
-        # NOTE this will probably be handled differently in an actual implementation
-        # but is done in a simple way for now to allow for simulation
-        self._logger.debug("Handling EPR OK (type K) response from network stack")
-
+    def _extract_epr_info(self, response):
         creator_node_id = get_creator_node_id(self._node.ID, response)
 
         # Retreive the data for this request (depending on if we are creator or receiver
         if creator_node_id == self._node.ID:
+            is_creator = True
             create_id = response.create_id
             epr_cmd_data = self._epr_create_requests[create_id]
+            request_key = create_id
         else:
+            is_creator = False
             purpose_id = response.purpose_id
             if len(self._epr_recv_requests[purpose_id]) == 0:
                 self._logger.debug(f"Since there is yet not recv request for purpose ID {purpose_id}, "
                                    "handling of epr will wait and try again.")
-                return False
+                return None
             epr_cmd_data = self._epr_recv_requests[purpose_id][0]
+            request_key = purpose_id
 
         pair_index = epr_cmd_data.tot_pairs - epr_cmd_data.pairs_left
+
+        return epr_cmd_data, pair_index, is_creator, request_key
+
+    def _handle_last_epr_pair(self, epr_cmd_data, is_creator, request_key):
+        # Check if this was the last pair
+        if epr_cmd_data.pairs_left == 0:
+            if is_creator:
+                self._epr_create_requests.pop(request_key)
+            else:
+                self._epr_recv_requests[request_key].pop(0)
+
+    def _store_ent_info(self, epr_cmd_data, response, pair_index):
+        self._logger.debug("Storing entanglement information for pair {pair_index}")
+        # Store the entanglement information
+        ent_info = [entry.value if isinstance(entry, Enum) else entry for entry in response]
+        ent_info_array_address = epr_cmd_data.ent_info_array_address
+        # Start and stop of slice
+        arr_start = pair_index * OK_FIELDS
+        arr_stop = (pair_index + 1) * OK_FIELDS
+        subroutine_id = epr_cmd_data.subroutine_id
+        app_id = self._get_app_id(subroutine_id=subroutine_id)
+        self._app_arrays[app_id][ent_info_array_address, arr_start:arr_stop] = ent_info
+
+    def _handle_epr_ok_k_response(self, epr_cmd_data, response, pair_index):
 
         # Extract qubit addresses
         subroutine_id = epr_cmd_data.subroutine_id
@@ -215,15 +273,6 @@ class NetSquidExecutioner(Executioner, Entity):
                                "handling of epr will wait and try again.")
             return False
 
-        epr_cmd_data.pairs_left -= 1
-
-        # Check if this was the last pair
-        if epr_cmd_data.pairs_left == 0:
-            if creator_node_id == self._node.ID:
-                self._epr_create_requests.pop(create_id)
-            else:
-                self._epr_recv_requests[purpose_id].pop(0)
-
         # Update qubit mapping
         physical_address = response.logical_qubit_id
         self._logger.debug(f"Virtual qubit address {virtual_address} will now be mapped to "
@@ -234,15 +283,6 @@ class NetSquidExecutioner(Executioner, Entity):
             physical_address=physical_address,
         )
 
-        self._logger.debug("Storing entanglement information for pair {pair_index}")
-        # Store the entanglement information
-        ent_info = [entry.value if isinstance(entry, Enum) else entry for entry in response]
-        ent_info_array_address = epr_cmd_data.ent_info_array_address
-        # Start and stop of slice
-        arr_start = pair_index * OK_FIELDS
-        arr_stop = (pair_index + 1) * OK_FIELDS
-        self._app_arrays[app_id][ent_info_array_address, arr_start:arr_stop] = ent_info
-
         return True
 
     def _get_virtual_address_from_epr_data(self, epr_cmd_data, pair_index, app_id):
@@ -251,11 +291,13 @@ class NetSquidExecutioner(Executioner, Entity):
         virtual_address = self._get_array_entry(app_id=app_id, array_entry=array_entry)
         return virtual_address
 
-    def _handle_epr_ok_m_response(self, response):
-        raise NotImplementedError
+    def _handle_epr_ok_m_response(self, epr_cmd_data, response, pair_index):
+        # M request are always handled
+        return True
 
     def _handle_epr_ok_r_response(self, response):
         raise NotImplementedError
+        return True
 
     def _get_positions(self, subroutine_id, addresses):
         return [self._get_position(subroutine_id=subroutine_id, address=address) for address in addresses]
