@@ -27,7 +27,13 @@ def main(track_lines=True, log_subroutines_dir=None, row=0, strategy=None):
     epr_socket = EPRSocket("bob")
 
     # Initialize the connection
-    with NetSquidConnection("alice", epr_sockets=[epr_socket]) as alice:
+    alice = NetSquidConnection(
+        "alice",
+        track_lines=track_lines,
+        log_subroutines_dir=log_subroutines_dir,
+        epr_sockets=[epr_socket],
+    )
+    with alice:
 
         # Wait a little for recv rules to be installed
         sleep(0.1)

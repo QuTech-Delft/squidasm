@@ -73,7 +73,8 @@ def run_applications(
         for future, name in as_completed([backend_future] + app_futures, names=names):
             output[name] = future.get()
             # if name == 'backend' and output is not None:
-        save_output(output=output, output_file=output_file)
+        if output_file is not None:
+            save_output(output=output, output_file=output_file)
 
     reset()
 

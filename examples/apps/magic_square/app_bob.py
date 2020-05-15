@@ -26,7 +26,13 @@ def main(track_lines=True, log_subroutines_dir=None, col=0, strategy=None):
     epr_socket = EPRSocket("alice")
 
     # Initialize the connection
-    with NetSquidConnection("bob", epr_sockets=[epr_socket]) as bob:
+    bob = NetSquidConnection(
+        "bob",
+        track_lines=track_lines,
+        log_subroutines_dir=log_subroutines_dir,
+        epr_sockets=[epr_socket],
+    )
+    with bob:
 
         # Create EPR pairs
         q1 = epr_socket.recv()[0]

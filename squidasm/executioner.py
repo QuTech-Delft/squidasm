@@ -179,7 +179,7 @@ class NetSquidExecutioner(Executioner, Entity):
         if response.type == ReturnType.ERR:
             self._handle_epr_err_response(response)
         else:
-            self._logger.debug("Handling EPR OK ({response.type}) response from network stack")
+            self._logger.debug(f"Handling EPR OK ({response.type}) response from network stack")
             info = self._extract_epr_info(response=response)
             if info is not None:
                 epr_cmd_data, pair_index, is_creator, request_key = info
@@ -249,7 +249,7 @@ class NetSquidExecutioner(Executioner, Entity):
                 self._epr_recv_requests[request_key].pop(0)
 
     def _store_ent_info(self, epr_cmd_data, response, pair_index):
-        self._logger.debug("Storing entanglement information for pair {pair_index}")
+        self._logger.debug(f"Storing entanglement information for pair {pair_index}")
         # Store the entanglement information
         ent_info = [entry.value if isinstance(entry, Enum) else entry for entry in response]
         ent_info_array_address = epr_cmd_data.ent_info_array_address
