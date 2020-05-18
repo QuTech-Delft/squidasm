@@ -13,8 +13,8 @@ except ImportError:
 
 from netqasm.logging import (
     set_log_level,
-    _INSTR_LOG_FIELD_DELIM,
-    _INSTR_LOG_HDR_DELIM,
+    _LOG_FIELD_DELIM,
+    _LOG_HDR_DELIM,
     _InstrLogHeaders,
     get_netqasm_logger,
 )
@@ -124,12 +124,12 @@ def _add_hln_to_log(log_file_path, subroutines_file_path):
 
 
 def _add_hln_to_log_line(subroutines, log_line):
-    fields = log_line.split(_INSTR_LOG_FIELD_DELIM)
+    fields = log_line.split(_LOG_FIELD_DELIM)
     prc = None
     sid = None
     for field in fields:
-        if _INSTR_LOG_HDR_DELIM in field:
-            hdr, value = field.split(_INSTR_LOG_HDR_DELIM)
+        if _LOG_HDR_DELIM in field:
+            hdr, value = field.split(_LOG_HDR_DELIM)
             if hdr == _InstrLogHeaders.PRC.value:
                 prc = int(value)
             if hdr == _InstrLogHeaders.SID.value:
@@ -140,8 +140,8 @@ def _add_hln_to_log_line(subroutines, log_line):
         raise RuntimeError("Couldn't find SID field in log file")
     subroutine = subroutines[sid]
     hln = subroutine.commands[prc].lineno
-    fields.insert(-2, f"{_InstrLogHeaders.HLN.value}{_INSTR_LOG_HDR_DELIM}{hln}")
-    log_line = _INSTR_LOG_FIELD_DELIM.join(fields)
+    fields.insert(-2, f"{_InstrLogHeaders.HLN.value}{_LOG_HDR_DELIM}{hln}")
+    log_line = _LOG_FIELD_DELIM.join(fields)
     return log_line
 
 
