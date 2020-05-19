@@ -2,11 +2,12 @@
 from collections import defaultdict
 from timeit import default_timer as timer
 
+from qlink_interface import LinkLayerRecv
+
 from netsquid_magic.link_layer import (
     LinkLayerService,
     MagicLinkLayerProtocol,
     SingleClickTranslationUnit,
-    LinkLayerRecv,
 )
 from netsquid_magic.sleeper import Sleeper
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
