@@ -9,7 +9,7 @@ logger = get_netqasm_logger()
 def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
 
     # Create a socket to recv classical information
-    socket = Socket("bob", "alice")
+    socket = Socket("bob", "alice", comm_log_dir=log_subroutines_dir)
 
     # Create a EPR socket for entanglement generation
     epr_socket = EPRSocket("alice")
