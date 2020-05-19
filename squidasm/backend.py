@@ -82,6 +82,17 @@ class Backend:
     def subroutine_handlers(self):
         return self._subroutine_handlers
 
+    @property
+    def qmemories(self):
+        return {node_name: node.qmemory for node_name, node in self.nodes.items()}
+
+    @property
+    def executioners(self):
+        return {
+            node_name: subroutine_handler._executioner
+            for node_name, subroutine_handler in self.subroutine_handlers.items()
+        }
+
     @staticmethod
     def _get_subroutine_handlers(nodes, instr_log_dir):
         subroutine_handlers = {}

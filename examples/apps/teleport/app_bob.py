@@ -6,7 +6,7 @@ from squidasm.sdk import NetSquidConnection
 logger = get_netqasm_logger()
 
 
-def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
+def main(track_lines=True, log_subroutines_dir=None):
 
     # Create a socket to recv classical information
     socket = Socket("bob", "alice", comm_log_dir=log_subroutines_dir)
@@ -21,6 +21,7 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
         log_subroutines_dir=log_subroutines_dir,
         epr_sockets=[epr_socket]
     )
+    bob._clear_app_on_exit = False
     with bob:
         epr = epr_socket.recv()[0]
         bob.flush()

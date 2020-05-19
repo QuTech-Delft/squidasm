@@ -3,7 +3,6 @@ import shutil
 import pickle
 from runpy import run_path
 from datetime import datetime
-# import numpy as np
 
 from yaml import load
 try:
@@ -33,9 +32,13 @@ def load_app_config(app_dir, node_name):
     ext = '.yaml'
     file_path = os.path.join(app_dir, f"{node_name}{ext}")
     if os.path.exists(file_path):
-        return load_yaml(file_path=file_path)
+        config = load_yaml(file_path=file_path)
     else:
+        config = None
+    if config is None:
         return {}
+    else:
+        return config
 
 
 def get_network_config_path(app_dir):
@@ -145,6 +148,20 @@ def _add_hln_to_log_line(subroutines, log_line):
     return log_line
 
 
+def get_post_function_path(app_dir):
+    return os.path.join(app_dir, 'post_function.py')
+
+
+def load_post_function(post_function_file):
+    if not os.path.exists(post_function_file):
+        return None
+    return run_path(post_function_file)['main']
+
+
+def get_output_path(timed_log_dir):
+    return os.path.join(timed_log_dir, 'output.yaml')
+
+
 def simulate_apps(
     app_dir=None,
     track_lines=True,
@@ -152,6 +169,8 @@ def simulate_apps(
     network_config_file=None,
     log_dir=None,
     log_level="WARNING",
+    post_function_file=None,
+    output_file=None,
 ):
 
     set_log_level(log_level)
@@ -175,6 +194,10 @@ def simulate_apps(
     else:
         log_dir = os.path.expanduser(log_dir)
     timed_log_dir = get_timed_log_dir(log_dir=log_dir)
+    if post_function_file is None:
+        post_function_file = get_post_function_path(app_dir)
+    if output_file is None:
+        output_file = get_output_path(timed_log_dir)
 
     # Load app functions and configs to run
     applications = {}
@@ -187,19 +210,15 @@ def simulate_apps(
 
     network_config = load_network_config(network_config_file)
 
-    # NOTE a post function can be used to for example extract quantum state after the subroutine if needed
-    # def post_function(backend):
-    #     state = backend._nodes["Bob"].qmemory._get_qubits(0)[0].qstate.dm
-    #     logger.info(f"state = {state}")
-    #     expected = np.array([[0.5, 0.5], [0.5, 0.5]])
-    #     logger.info(f"expected = {expected}")
-    #     assert np.all(np.isclose(expected, state))
+    # Load post function if exists
+    post_function = load_post_function(post_function_file)
 
     run_applications(
         applications=applications,
         network_config=network_config,
         instr_log_dir=timed_log_dir,
-        # post_function=post_function,
+        post_function=post_function,
+        output_file=output_file,
     )
 
     process_log(log_dir=timed_log_dir)

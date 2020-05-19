@@ -1,4 +1,9 @@
 from multiprocessing.pool import ThreadPool
+from yaml import dump
+try:
+    from yaml import CDumper as Dumper
+except ImportError:
+    from yaml import Dumper
 
 from netqasm.sdk.shared_memory import reset_memories
 from netqasm.logging import get_netqasm_logger
@@ -14,7 +19,13 @@ def reset():
     reset_network()
 
 
-def run_applications(applications, post_function=None, instr_log_dir=None, network_config=None):
+def run_applications(
+    applications,
+    post_function=None,
+    instr_log_dir=None,
+    network_config=None,
+    output_file=None,
+):
     """Executes functions containing application scripts,
 
     Parameters
@@ -29,15 +40,18 @@ def run_applications(applications, post_function=None, instr_log_dir=None, netwo
     """
     reset()
     node_names = list(applications.keys())
-    apps = list(applications.values())
+    apps = [applications[node_name] for node_name in node_names]
 
     def run_backend():
         logger.debug(f"Starting netsquid backend thread with nodes {node_names}")
         backend = Backend(node_names, instr_log_dir=instr_log_dir, network_config=network_config)
         backend.start()
         if post_function is not None:
-            post_function(backend)
+            output = post_function(backend)
+        else:
+            output = None
         logger.debug("End backend thread")
+        return output
 
     with ThreadPool(len(node_names) + 1) as executor:
         # Start the backend thread
@@ -54,7 +68,21 @@ def run_applications(applications, post_function=None, instr_log_dir=None, netwo
             app_futures.append(future)
 
         # Join the application threads and the backend
-        for future in as_completed([backend_future] + app_futures):
-            future.get()
+        names = ['backend'] + [f'app_{node_name}' for node_name in node_names]
+        output = {}
+        for future, name in as_completed([backend_future] + app_futures, names=names):
+            output[name] = future.get()
+            # if name == 'backend' and output is not None:
+        if output_file is not None:
+            save_output(output=output, output_file=output_file)
 
     reset()
+
+
+def save_output(output, output_file):
+    dump_yaml(data=output, file_path=output_file)
+
+
+def dump_yaml(data, file_path):
+    with open(file_path, 'w') as f:
+        dump(data, f, Dumper=Dumper)

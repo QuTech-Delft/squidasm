@@ -179,7 +179,7 @@ class NetSquidExecutioner(Executioner, Entity):
         if response.type == ReturnType.ERR:
             self._handle_epr_err_response(response)
         else:
-            self._logger.debug("Handling EPR OK ({response.type}) response from network stack")
+            self._logger.debug(f"Handling EPR OK ({response.type}) response from network stack")
             info = self._extract_epr_info(response=response)
             if info is not None:
                 epr_cmd_data, pair_index, is_creator, request_key = info
@@ -249,7 +249,7 @@ class NetSquidExecutioner(Executioner, Entity):
                 self._epr_recv_requests[request_key].pop(0)
 
     def _store_ent_info(self, epr_cmd_data, response, pair_index):
-        self._logger.debug("Storing entanglement information for pair {pair_index}")
+        self._logger.debug(f"Storing entanglement information for pair {pair_index}")
         # Store the entanglement information
         ent_info = [entry.value if isinstance(entry, Enum) else entry for entry in response]
         ent_info_array_address = epr_cmd_data.ent_info_array_address
@@ -302,8 +302,11 @@ class NetSquidExecutioner(Executioner, Entity):
     def _get_positions(self, subroutine_id, addresses):
         return [self._get_position(subroutine_id=subroutine_id, address=address) for address in addresses]
 
-    def _get_position(self, subroutine_id, address):
-        app_id = self._get_app_id(subroutine_id=subroutine_id)
+    def _get_position(self, subroutine_id=None, address=0, app_id=None):
+        if app_id is None:
+            if subroutine_id is None:
+                raise ValueError("subroutine_id and app_id cannot both be None")
+            app_id = self._get_app_id(subroutine_id=subroutine_id)
         return self._get_position_in_unit_module(app_id=app_id, address=address)
 
     def _get_unused_physical_qubit(self):
