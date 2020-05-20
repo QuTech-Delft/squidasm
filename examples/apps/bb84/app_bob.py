@@ -1,8 +1,10 @@
 import json
 
+from qlink_interface import EPRType
+
 from netqasm.logging import get_netqasm_logger
 from netqasm.sdk import ThreadSocket as Socket
-from netqasm.sdk import EPRSocket, EPRType
+from netqasm.sdk import EPRSocket
 from squidasm.sdk import NetSquidConnection
 
 logger = get_netqasm_logger()
@@ -73,7 +75,7 @@ def main(track_lines=True, log_subroutines_dir=None, num_bits=100):
     num_test_bits = num_bits // 4
 
     # Socket for classical communication
-    socket = Socket("bob", "alice")
+    socket = Socket("bob", "alice", comm_log_dir=log_subroutines_dir)
     # Socket for EPR generation
     epr_socket = EPRSocket("alice")
 

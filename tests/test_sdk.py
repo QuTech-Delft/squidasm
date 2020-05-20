@@ -3,7 +3,9 @@ import logging
 from collections import defaultdict
 import numpy as np
 
-from netqasm.sdk import Qubit, ThreadSocket, EPRSocket, EPRType
+from qlink_interface import EPRType
+
+from netqasm.sdk import Qubit, ThreadSocket, EPRSocket
 from netqasm.logging import set_log_level, get_netqasm_logger
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
