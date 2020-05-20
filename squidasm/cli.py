@@ -45,11 +45,26 @@ def version():
               help="Explicitly choose the log directory, "
                    "default is `app-folder/log`."
               )
+@click.option("--post-function-file", type=str, default=None,
+              help="Explicitly choose the file defining the post function."
+              )
+@click.option("--results-file", type=str, default=None,
+              help="Explicitly choose the file where the results of a post function should be stored."
+              )
 @click.option("--log-level", type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]), default="WARNING",
               help="What log-level to use (DEBUG, INFO, WARNING, ERROR, CRITICAL)."
                    "Note, this affects logging to stderr, not logging instructions to file."
               )
-def simulate(app_dir, track_lines, network_config_file, app_config_dir, log_dir, log_level):
+def simulate(
+    app_dir,
+    track_lines,
+    network_config_file,
+    app_config_dir,
+    log_dir,
+    log_level,
+    post_function_file,
+    results_file,
+):
     """
     Executes a given NetQASM file using a specified executioner.
     """
@@ -60,6 +75,8 @@ def simulate(app_dir, track_lines, network_config_file, app_config_dir, log_dir,
         app_config_dir=app_config_dir,
         log_dir=log_dir,
         log_level=log_level,
+        post_function_file=post_function_file,
+        results_file=results_file,
     )
 
 

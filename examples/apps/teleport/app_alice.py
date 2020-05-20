@@ -1,27 +1,31 @@
-from netqasm.sdk import Qubit
-from squidasm.sdk import NetSquidConnection, NetSquidSocket
+from netqasm.sdk import Qubit, EPRSocket
+from netqasm.sdk import ThreadSocket as Socket
+from netqasm.sdk.toolbox import set_qubit_state
+from squidasm.sdk import NetSquidConnection
 
 
 def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
 
     # Create a socket to send classical information
-    socket = NetSquidSocket("alice", "bob")
+    socket = Socket("alice", "bob", comm_log_dir=log_subroutines_dir)
+
+    # Create a EPR socket for entanglement generation
+    epr_socket = EPRSocket("bob")
 
     # Initialize the connection to the backend
     alice = NetSquidConnection(
         name="alice",
         track_lines=track_lines,
         log_subroutines_dir=log_subroutines_dir,
-        epr_to="bob",
+        epr_sockets=[epr_socket]
     )
     with alice:
         # Create a qubit to teleport
         q = Qubit(alice)
-        # q = set_qubit_state(q, phi, theta)
-        q.H()
+        set_qubit_state(q, phi, theta)
 
         # Create EPR pairs
-        epr = alice.createEPR("bob")[0]
+        epr = epr_socket.create()[0]
 
         # Teleport
         q.cnot(epr)
@@ -29,12 +33,12 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
         m1 = q.measure()
         m2 = epr.measure()
 
-        # To check states for debugging
-        alice._release_qubits_on_exit = False
-
     # Send the correction information
-    msg = str((int(m1), int(m2)))
+    m1, m2 = int(m1), int(m2)
+    msg = str((m1, m2))
     socket.send(msg)
+
+    return {'m1': m1, 'm2': m2}
 
 
 if __name__ == "__main__":

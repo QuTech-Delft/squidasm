@@ -4,6 +4,7 @@ import numpy as np
 from netqasm.logging import set_log_level, get_netqasm_logger
 from netqasm.parsing import parse_register
 from netqasm.sdk.shared_memory import get_shared_memory
+from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.network_stack import CREATE_FIELDS, OK_FIELDS
 from squidasm.run import run_applications
 from squidasm.communicator import SimpleCommunicator
@@ -152,20 +153,22 @@ wait_all @entinfo![0:{OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
+        epr_socket = EPRSocket("Bob")
         communicator = SimpleCommunicator(
             "Alice",
             subroutine=subroutine_alice,
-            epr_to="Bob",
+            epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
     def run_bob():
         logger.debug("Starting Bob thread")
+        epr_socket = EPRSocket("Alice")
         communicator = SimpleCommunicator(
             "Bob",
             subroutine=subroutine_0_bob,
-            epr_from="Alice",
+            epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
         logger.debug("End Bob thread")
@@ -255,20 +258,22 @@ wait_all @entinfo![0:{OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
+        epr_socket = EPRSocket("Bob")
         communicator = SimpleCommunicator(
             "Alice",
             subroutine=subroutine_alice,
-            epr_to="Bob",
+            epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
     def run_bob():
         logger.debug("Starting Bob thread")
+        epr_socket = EPRSocket("Alice")
         communicator = SimpleCommunicator(
             "Bob",
             subroutine=subroutine_0_bob,
-            epr_from="Alice",
+            epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
         logger.debug("End Bob thread")
@@ -365,20 +370,22 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
+        epr_socket = EPRSocket("Bob")
         communicator = SimpleCommunicator(
             "Alice",
             subroutine=subroutine_alice,
-            epr_to="Bob",
+            epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
     def run_bob():
         logger.debug("Starting Bob thread")
+        epr_socket = EPRSocket("Alice")
         communicator = SimpleCommunicator(
             "Bob",
             subroutine=subroutine_0_bob,
-            epr_from="Alice",
+            epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
         logger.debug("End Bob thread")
@@ -481,20 +488,22 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
     def run_alice():
         logger.debug("Starting Alice thread")
+        epr_socket = EPRSocket("Bob")
         communicator = SimpleCommunicator(
             "Alice",
             subroutine=subroutine_alice,
-            epr_to="Bob",
+            epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
     def run_bob():
         logger.debug("Starting Bob thread")
+        epr_socket = EPRSocket("Alice")
         communicator = SimpleCommunicator(
             "Bob",
             subroutine=subroutine_0_bob,
-            epr_from="Alice",
+            epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
         logger.debug("End Bob thread")
