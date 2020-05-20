@@ -4,28 +4,15 @@ import pickle
 from runpy import run_path
 from datetime import datetime
 
-from yaml import load
-try:
-    from yaml import CLoader as Loader
-except ImportError:
-    from yaml import Loader
-
 from netqasm.logging import (
     set_log_level,
-    _LOG_FIELD_DELIM,
-    _LOG_HDR_DELIM,
-    _InstrLogHeaders,
     get_netqasm_logger,
 )
+from netqasm.yaml_util import load_yaml, dump_yaml
+from netqasm.output import InstrField
 from .run import run_applications
 
 logger = get_netqasm_logger()
-
-
-def load_yaml(file_path):
-    with open(file_path, 'r') as f:
-        data = load(f, Loader=Loader)
-    return data
 
 
 def load_app_config(app_dir, node_name):
@@ -98,54 +85,41 @@ def process_log(log_dir):
 
 
 def _add_hln_to_logs(log_dir):
-    log_ext = '.log'
+    file_end = '_instrs.yaml'
     for entry in os.listdir(log_dir):
-        if entry.endswith(log_ext):
-            node_name = entry[:-len(log_ext)]
-            log_file_path = os.path.join(log_dir, entry)
+        if entry.endswith(file_end):
+            node_name = entry[:-len(file_end)]
+            output_file_path = os.path.join(log_dir, entry)
             subroutines_file_path = os.path.join(log_dir, f"subroutines_{node_name}.pkl")
-            _add_hln_to_log(log_file_path=log_file_path, subroutines_file_path=subroutines_file_path)
+            _add_hln_to_log(
+                output_file_path=output_file_path,
+                subroutines_file_path=subroutines_file_path,
+            )
 
 
-def _add_hln_to_log(log_file_path, subroutines_file_path):
+def _add_hln_to_log(output_file_path, subroutines_file_path):
     if not os.path.exists(subroutines_file_path):
         return
 
     # Read subroutines and log file
     with open(subroutines_file_path, 'rb') as f:
         subroutines = pickle.load(f)
-    with open(log_file_path, 'r') as f:
-        log_lines = f.readlines()
+    data = load_yaml(output_file_path)
 
-    # Update log lines
-    for i, log_line in enumerate(log_lines):
-        log_lines[i] = _add_hln_to_log_line(subroutines, log_line)
+    # Update entries
+    for entry in data:
+        _add_hln_to_log_entry(subroutines, entry)
 
     # Write updated log file
-    with open(log_file_path, 'w') as f:
-        f.writelines(log_lines)
+    dump_yaml(data, output_file_path)
 
 
-def _add_hln_to_log_line(subroutines, log_line):
-    fields = log_line.split(_LOG_FIELD_DELIM)
-    prc = None
-    sid = None
-    for field in fields:
-        if _LOG_HDR_DELIM in field:
-            hdr, value = field.split(_LOG_HDR_DELIM)
-            if hdr == _InstrLogHeaders.PRC.value:
-                prc = int(value)
-            if hdr == _InstrLogHeaders.SID.value:
-                sid = int(value)
-    if prc is None:
-        raise RuntimeError("Couldn't find PRC field in log file")
-    if sid is None:
-        raise RuntimeError("Couldn't find SID field in log file")
+def _add_hln_to_log_entry(subroutines, entry):
+    prc = entry[InstrField.PRC.value]
+    sid = entry[InstrField.SID.value]
     subroutine = subroutines[sid]
     hln = subroutine.commands[prc].lineno
-    fields.insert(-2, f"{_InstrLogHeaders.HLN.value}{_LOG_HDR_DELIM}{hln}")
-    log_line = _LOG_FIELD_DELIM.join(fields)
-    return log_line
+    entry[InstrField.HLN.value] = hln
 
 
 def get_post_function_path(app_dir):
@@ -158,8 +132,8 @@ def load_post_function(post_function_file):
     return run_path(post_function_file)['main']
 
 
-def get_output_path(timed_log_dir):
-    return os.path.join(timed_log_dir, 'output.yaml')
+def get_results_path(timed_log_dir):
+    return os.path.join(timed_log_dir, 'results.yaml')
 
 
 def simulate_apps(
@@ -170,7 +144,7 @@ def simulate_apps(
     log_dir=None,
     log_level="WARNING",
     post_function_file=None,
-    output_file=None,
+    results_file=None,
 ):
 
     set_log_level(log_level)
@@ -196,8 +170,8 @@ def simulate_apps(
     timed_log_dir = get_timed_log_dir(log_dir=log_dir)
     if post_function_file is None:
         post_function_file = get_post_function_path(app_dir)
-    if output_file is None:
-        output_file = get_output_path(timed_log_dir)
+    if results_file is None:
+        results_file = get_results_path(timed_log_dir)
 
     # Load app functions and configs to run
     applications = {}
@@ -218,7 +192,7 @@ def simulate_apps(
         network_config=network_config,
         instr_log_dir=timed_log_dir,
         post_function=post_function,
-        output_file=output_file,
+        results_file=results_file,
     )
 
     process_log(log_dir=timed_log_dir)

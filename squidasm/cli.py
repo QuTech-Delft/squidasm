@@ -48,8 +48,8 @@ def version():
 @click.option("--post-function-file", type=str, default=None,
               help="Explicitly choose the file defining the post function."
               )
-@click.option("--output-file", type=str, default=None,
-              help="Explicitly choose the file where the output of a post function should be stored."
+@click.option("--results-file", type=str, default=None,
+              help="Explicitly choose the file where the results of a post function should be stored."
               )
 @click.option("--log-level", type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]), default="WARNING",
               help="What log-level to use (DEBUG, INFO, WARNING, ERROR, CRITICAL)."
@@ -63,7 +63,7 @@ def simulate(
     log_dir,
     log_level,
     post_function_file,
-    output_file,
+    results_file,
 ):
     """
     Executes a given NetQASM file using a specified executioner.
@@ -76,7 +76,7 @@ def simulate(
         log_dir=log_dir,
         log_level=log_level,
         post_function_file=post_function_file,
-        output_file=output_file,
+        results_file=results_file,
     )
 
 
