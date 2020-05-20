@@ -1,12 +1,8 @@
 from multiprocessing.pool import ThreadPool
-from yaml import dump
-try:
-    from yaml import CDumper as Dumper
-except ImportError:
-    from yaml import Dumper
 
 from netqasm.sdk.shared_memory import reset_memories
 from netqasm.logging import get_netqasm_logger
+from netqasm.yaml_util import dump_yaml
 from squidasm.backend import Backend
 from squidasm.thread_util import as_completed
 from squidasm.network_stack import reset_network
@@ -24,7 +20,7 @@ def run_applications(
     post_function=None,
     instr_log_dir=None,
     network_config=None,
-    output_file=None,
+    results_file=None,
 ):
     """Executes functions containing application scripts,
 
@@ -47,11 +43,11 @@ def run_applications(
         backend = Backend(node_names, instr_log_dir=instr_log_dir, network_config=network_config)
         backend.start()
         if post_function is not None:
-            output = post_function(backend)
+            result = post_function(backend)
         else:
-            output = None
+            result = None
         logger.debug("End backend thread")
-        return output
+        return result
 
     with ThreadPool(len(node_names) + 1) as executor:
         # Start the backend thread
@@ -69,20 +65,14 @@ def run_applications(
 
         # Join the application threads and the backend
         names = ['backend'] + [f'app_{node_name}' for node_name in node_names]
-        output = {}
+        results = {}
         for future, name in as_completed([backend_future] + app_futures, names=names):
-            output[name] = future.get()
-            # if name == 'backend' and output is not None:
-        if output_file is not None:
-            save_output(output=output, output_file=output_file)
+            results[name] = future.get()
+        if results_file is not None:
+            save_results(results=results, results_file=results_file)
 
     reset()
 
 
-def save_output(output, output_file):
-    dump_yaml(data=output, file_path=output_file)
-
-
-def dump_yaml(data, file_path):
-    with open(file_path, 'w') as f:
-        dump(data, f, Dumper=Dumper)
+def save_results(results, results_file):
+    dump_yaml(data=results, file_path=results_file)
