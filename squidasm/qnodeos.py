@@ -17,7 +17,7 @@ class SubroutineHandler(NodeProtocol):
         super().__init__(node=node)
         self._executioner = NetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
 
-        self._message_queue = get_queue(self.node.name)
+        self._message_queue = get_queue(self.node.name, create_new=True)
 
         self._message_handlers = self._get_message_handlers()
 

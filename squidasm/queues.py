@@ -5,12 +5,15 @@ from netqasm.messages import Signal
 _QUEUES = {}
 
 
-def get_queue(node_name, key=None):
+def get_queue(node_name, key=None, create_new=False):
     absolute_key = (node_name, key)
     queue = _QUEUES.get(absolute_key)
     if queue is None:
-        queue = Queue()
-        _QUEUES[absolute_key] = queue
+        if create_new:
+            queue = Queue()
+            _QUEUES[absolute_key] = queue
+        else:
+            raise RuntimeError(f"Trying to get queue with name {node_name}, but it doesn't exist.")
     return queue
 
 
