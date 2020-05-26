@@ -1,38 +1,47 @@
+import pytest
 from functools import partial
 
 from netqasm.sdk import EPRSocket
+from netqasm.sdk import ThreadSocket as Socket
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
 from netqasm.sdk.toolbox import create_ghz
 
 
-def _gen_create_ghz(num_nodes):
+def _gen_create_ghz(num_nodes, do_corrections=False):
 
     outcomes = {}
 
     def run_node(node, down_node=None, up_node=None):
         # Setup EPR sockets, depending on the role of the node
         epr_sockets = []
+        down_epr_socket = None
+        down_socket = None
+        up_epr_socket = None
+        up_socket = None
         if down_node is not None:
             down_epr_socket = EPRSocket(down_node)
             epr_sockets.append(down_epr_socket)
-        else:
-            down_epr_socket = None
+            if do_corrections:
+                down_socket = Socket(node, down_node)
         if up_node is not None:
             up_epr_socket = EPRSocket(up_node)
             epr_sockets.append(up_epr_socket)
-        else:
-            up_epr_socket = None
+            if do_corrections:
+                up_socket = Socket(node, up_node)
 
         with NetSquidConnection(node, epr_sockets=epr_sockets):
             # Create a GHZ state with the other nodes
             q, corr = create_ghz(
                 down_epr_socket=down_epr_socket,
                 up_epr_socket=up_epr_socket,
+                down_socket=down_socket,
+                up_socket=up_socket,
+                do_corrections=do_corrections,
             )
             m = q.measure()
 
-        outcomes[node] = (m, corr)
+        outcomes[node] = (int(m), int(corr))
 
     # Setup the applications
     applications = {}
@@ -56,27 +65,32 @@ def _gen_create_ghz(num_nodes):
     # Run the applications
     run_applications(applications)
 
-    corrected_outcomes = []
-    # Check the outcomes
-    correction = 0
-    for i in range(num_nodes):
-        node = f'node{i}'
-        m, corr = outcomes[node]
-        corrected_outcome = (m + correction) % 2
-        corrected_outcomes.append(corrected_outcome)
+    if do_corrections:
+        corrected_outcomes = [m for (m, _) in outcomes.values()]
+    else:
+        corrected_outcomes = []
+        # Check the outcomes
+        correction = 0
+        for i in range(num_nodes):
+            node = f'node{i}'
+            m, corr = outcomes[node]
+            corrected_outcome = (m + correction) % 2
+            corrected_outcomes.append(corrected_outcome)
 
-        if 0 < i < num_nodes - 1:
-            correction = (correction + corr) % 2
+            if 0 < i < num_nodes - 1:
+                correction = (correction + corr) % 2
+
+    print(corrected_outcomes)
 
     assert len(set(corrected_outcomes)) == 1
 
 
-def test_create_ghz():
+@pytest.mark.parametrize('do_corrections', [True, False])
+@pytest.mark.parametrize('num_nodes', range(2, 6))
+def test_create_ghz(do_corrections, num_nodes):
     num = 10
-    max_num_node = 5
-    for num_nodes in range(2, max_num_node + 1):
-        for _ in range(num):
-            _gen_create_ghz(num_nodes)
+    for _ in range(num):
+        _gen_create_ghz(num_nodes, do_corrections)
 
 
 if __name__ == "__main__":
