@@ -1,0 +1,27 @@
+gates:
+    - instruction: INSTR_INIT
+      duration: 1
+    - instruction: INSTR_X
+      duration: 2
+    - instruction: INSTR_Y
+      duration: 2
+    - instruction: INSTR_Z
+      duration: 2
+    - instruction: INSTR_H
+      duration: 3
+    - instruction: INSTR_K
+      duration: 3
+    - instruction: INSTR_S
+      duration: 3
+    - instruction: INSTR_T
+      duration: 4
+    - instruction: INSTR_ROT_X
+      duration: 4
+    - instruction: INSTR_ROT_Y
+      duration: 4
+    - instruction: INSTR_ROT_Z
+      duration: 4
+    - instruction: INSTR_CNOT
+      duration: 5
+    - instruction: INSTR_CZ
+      duration: 5

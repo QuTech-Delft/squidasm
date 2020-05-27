@@ -1,20 +1,11 @@
 from netqasm.sdk import EPRSocket, Qubit, ThreadSocket
-from netqasm.sdk.toolbox import set_pauli_state
+from netqasm.sdk.toolbox import set_qubit_state
 from squidasm.sdk import NetSquidConnection
 
 from netqasm.logging import get_netqasm_logger
 
-ALLOWED_CONTROL_VALUES = ["0", "1", "+", "-", "i", "-i"]
-
-
-def main(track_lines=True, log_subroutines_dir=None, control=None):
+def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
     _logger = get_netqasm_logger()
-
-    if control is None:
-        _logger.info("Control qubit value not specified. Using default value: |1>")
-        control = "1"
-    elif control not in ALLOWED_CONTROL_VALUES:
-        raise ValueError(f"Not a valid control value")
 
     # socket for creating an EPR pair with Bob
     bob_epr = EPRSocket("bob")
@@ -37,7 +28,7 @@ def main(track_lines=True, log_subroutines_dir=None, control=None):
 
         # initialize control qubit of the distributed CNOT
         ctrl_qubit = Qubit(alice)
-        set_pauli_state(ctrl_qubit, control)
+        set_qubit_state(ctrl_qubit, phi, theta)
 
         # perform a local CNOT with `epr` and measure `epr`
         ctrl_qubit.cnot(epr)

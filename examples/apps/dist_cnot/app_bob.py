@@ -1,19 +1,13 @@
 from netqasm.logging import get_netqasm_logger
 from netqasm.sdk import EPRSocket, ThreadSocket, Qubit
-from netqasm.sdk.toolbox import set_pauli_state
+from netqasm.sdk.toolbox import set_qubit_state
 from squidasm.sdk import NetSquidConnection
 
 ALLOWED_TARGET_VALUES = ["0", "1", "+", "-", "i", "-i"]
 
 
-def main(track_lines=True, log_subroutines_dir=None, target=None):
+def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
     _logger = get_netqasm_logger()
-
-    if target is None:
-        _logger.info("Target qubit value not specified. Using default value: |0>")
-        target = "0"
-    elif target not in ALLOWED_TARGET_VALUES:
-        raise ValueError(f"Not a valid target value")
 
     # socket for creating an EPR pair with Alice
     alice_epr = EPRSocket("alice")
@@ -36,7 +30,7 @@ def main(track_lines=True, log_subroutines_dir=None, target=None):
 
         # initialize target qubit of the distributed CNOT
         target_qubit = Qubit(bob)
-        set_pauli_state(target_qubit, target)
+        set_qubit_state(target_qubit, phi, theta)
 
         # let back-end execute the quantum operations above
         bob.flush()
