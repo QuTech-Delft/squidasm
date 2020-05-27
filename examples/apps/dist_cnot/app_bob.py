@@ -20,8 +20,7 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
 
     with bob:
         # create one EPR pair with Alice
-        epr_list = alice_epr.recv(1)
-        epr = epr_list[0]
+        epr = alice_epr.recv(1)[0]
 
         # initialize target qubit of the distributed CNOT
         target_qubit = Qubit(bob)
@@ -37,14 +36,12 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
         if m == "1":
             epr.X()
 
-        # At this point, `epr` is entangled with the control qubit on Alice's side.
+        # At this point, `epr` is correlated with the control qubit on Alice's side.
+        # (If Alice's control was in a superposition, `epr` is now entangled with it.)
         # Use `epr` as the control of a local CNOT on the target qubit.
         epr.cnot(target_qubit)
 
-        # let back-end execute the above quantum operations
-        bob.flush()
-
-        # undo the entanglement between `epr` and the control qubit on Alice's side
+        # undo any potential entanglement between `epr` and Alice's control qubit
         epr.H()
         epr_meas = epr.measure()
         bob.flush()

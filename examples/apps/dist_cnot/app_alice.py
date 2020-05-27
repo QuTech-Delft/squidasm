@@ -35,11 +35,10 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
         # let back-end execute the quantum operations above
         alice.flush()
 
-        # send the outcome to Bob such that he can entangle his EPR half
-        # with Alice's original control qubit
+        # send the outcome to Bob
         class_socket.send(str(epr_meas))
 
-        # wait for Bob's measurement outcome to undo the entanglement
+        # wait for Bob's measurement outcome to undo potential entanglement
         # between his EPR half and the original control qubit
         bob_meas = class_socket.recv()
         if bob_meas == "1":
