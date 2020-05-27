@@ -23,8 +23,7 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
 
     with alice:
         # create one EPR pair with Alice
-        epr_list = bob_epr.create(1)
-        epr = epr_list[0]
+        epr = bob_epr.create(1)[0]
 
         # initialize control qubit of the distributed CNOT
         ctrl_qubit = Qubit(alice)
@@ -43,6 +42,10 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
 
         # wait for Bob's measurement outcome to undo the entanglement
         # between his EPR half and the original control qubit
-        meas = class_socket.recv()
-        if meas == "1":
+        bob_meas = class_socket.recv()
+        if bob_meas == "1":
             ctrl_qubit.Z()
+
+    return {
+        'epr_meas': int(epr_meas)
+    }

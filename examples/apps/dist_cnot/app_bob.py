@@ -43,12 +43,9 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
             _logger.debug("applying X")
             epr.X()
 
-        # at this point, `epr` is entangled with the control qubit on Alice's side
-        # use `epr` as the control of a local CNOT on the target qubit
+        # At this point, `epr` is entangled with the control qubit on Alice's side.
+        # Use `epr` as the control of a local CNOT on the target qubit.
         epr.cnot(target_qubit)
-
-        # measure the target qubit
-        outcome = target_qubit.measure()
 
         # let back-end execute the above quantum operations
         bob.flush()
@@ -61,4 +58,8 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
         # Alice will do a controlled-Z based on the outcome to undo the entanglement
         class_socket.send(str(epr_meas))
 
-    _logger.info(f"target after CNOT: {outcome}")
+    return {
+        'epr_meas': int(epr_meas)
+    }
+
+    
