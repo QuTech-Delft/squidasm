@@ -2,6 +2,7 @@ from netqasm.logging import get_netqasm_logger
 from netqasm.sdk import EPRSocket
 from netqasm.sdk import ThreadSocket as Socket
 from squidasm.sdk import NetSquidConnection
+from squidasm.sim_util import get_qubit_state
 
 logger = get_netqasm_logger()
 
@@ -33,6 +34,11 @@ def main(track_lines=True, log_subroutines_dir=None):
             epr.X()
         if m1 == 1:
             epr.Z()
+
+        # Get the qubit state
+        # NOTE only possible in simulation, not part of actual application
+        dm = get_qubit_state(epr)
+        return {"qubit_state": dm.tolist()}
 
 
 if __name__ == "__main__":
