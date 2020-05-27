@@ -11,7 +11,7 @@ Corrections measured by alice (sent to bob) and qubit state (4x4 matrix) at bob 
 * `app_alice`:
   * `m1` (int)
   * `m2` (int)
-* `app_bob`: null
-* `backend`:
+* `app_bob`:
   * `state`: (List[List[complex]])
     example: `[[0.5, -0.5j], [0.5j, 0.5]]`
+* `backend`: null

@@ -1,8 +1,10 @@
 from netqasm.logging import get_netqasm_logger
+from netqasm.sdk.toolbox import set_qubit_state
+from netqasm.sdk import Qubit
 from squidasm.sdk import NetSquidConnection
+from squidasm.sim_util import get_qubit_state
 
-from .sub_protocols import classical_anonymous_transmission
-from .setup import setup_sockets
+from .sub_protocols import quantum_anonymous_tranmission, setup_sockets
 from .conf import nodes
 
 logger = get_netqasm_logger()
@@ -10,10 +12,12 @@ logger = get_netqasm_logger()
 
 def anonymous_transmission(
     node_name,
-    sender=False,
-    value=None,
     log_subroutines_dir=None,
     track_lines=True,
+    sender=False,
+    receiver=False,
+    phi=None,
+    theta=None,
 ):
 
     # Setup sockets, epr_sockets and a broadcast_channel needed for the protocol
@@ -31,12 +35,23 @@ def anonymous_transmission(
         epr_sockets=sockets.epr_sockets,
     )
     with conn:
-        msg = classical_anonymous_transmission(
+        if sender:
+            # Prepare the qubit to teleport
+            qubit = Qubit(conn)
+            set_qubit_state(qubit=qubit, phi=phi, theta=theta)
+        else:
+            qubit = None
+        q = quantum_anonymous_tranmission(
             conn=conn,
             sockets=sockets,
             num_nodes=len(nodes),
             sender=sender,
-            value=value,
+            receiver=receiver,
+            qubit=qubit,
         )
-    logger.info(f'{node_name}: msg = {msg}')
-    return {'msg': msg}
+        if receiver:
+            dm = get_qubit_state(q)
+            output = {"qubit_state": dm.tolist()}
+        else:
+            output = None
+    return output
