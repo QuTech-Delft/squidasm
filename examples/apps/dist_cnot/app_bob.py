@@ -1,14 +1,9 @@
-from netqasm.logging import get_netqasm_logger
 from netqasm.sdk import EPRSocket, ThreadSocket, Qubit
 from netqasm.sdk.toolbox import set_qubit_state
 from squidasm.sdk import NetSquidConnection
 
-ALLOWED_TARGET_VALUES = ["0", "1", "+", "-", "i", "-i"]
-
 
 def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
-    _logger = get_netqasm_logger()
-
     # socket for creating an EPR pair with Alice
     alice_epr = EPRSocket("alice")
 
@@ -23,7 +18,6 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
         epr_sockets=[alice_epr]
     )
     bob._clear_app_on_exit = False
-    bob._release_qubits_on_exit = False
 
     with bob:
         # create one EPR pair with Alice
@@ -42,7 +36,6 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
 
         # if outcome = 1, apply an X gate on the local EPR half
         if m == "1":
-            _logger.debug("applying X")
             epr.X()
 
         # At this point, `epr` is entangled with the control qubit on Alice's side.
@@ -63,5 +56,3 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
     return {
         'epr_meas': int(epr_meas)
     }
-
-    

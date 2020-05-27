@@ -2,11 +2,8 @@ from netqasm.sdk import EPRSocket, Qubit, ThreadSocket
 from netqasm.sdk.toolbox import set_qubit_state
 from squidasm.sdk import NetSquidConnection
 
-from netqasm.logging import get_netqasm_logger
 
 def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
-    _logger = get_netqasm_logger()
-
     # socket for creating an EPR pair with Bob
     bob_epr = EPRSocket("bob")
 
@@ -21,7 +18,6 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
         epr_sockets=[bob_epr]
     )
     alice._clear_app_on_exit = False
-    alice._release_qubits_on_exit = False
 
     with alice:
         # create one EPR pair with Alice

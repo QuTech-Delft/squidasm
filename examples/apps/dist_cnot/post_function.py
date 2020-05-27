@@ -1,19 +1,21 @@
-import netsquid as ns
 from netqasm.logging import get_netqasm_logger
 
 logger = get_netqasm_logger()
 
 
 def main(backend):
+    # Get the combined state of the qubits after the distributed CNOT.
+
     app_id = 0
-
     alice_exec = backend.executioners["alice"]
+
+    # Get Alice's control qubit.
     control_phys_pos = alice_exec._get_position(app_id=app_id, address=1)
-    control_state = backend.qmemories["alice"]._get_qubits(control_phys_pos)[0].qstate
-    logger.info(f"control = \n{control_state.dm}")
 
-    bob_exec = backend.executioners["bob"]
-    target_phys_pos = bob_exec._get_position(app_id=app_id, address=1)
-    target_state = backend.qmemories["bob"]._get_qubits(target_phys_pos)[0].qstate
-    logger.info(f"target = \n{target_state.dm}")
+    # The `qstate` contains the combined state of control and target.
+    combined_state = backend.qmemories["alice"]._get_qubits(control_phys_pos)[0].qstate
+    logger.info(f"resulting state = \n{combined_state.ket}")
 
+    return {
+        'final_state': combined_state.ket.tolist()
+    }

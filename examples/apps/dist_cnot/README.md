@@ -14,8 +14,9 @@ Bob: specification of the target qubit
   * `theta` (float)
 
 ## Output
-Corrections measured by alice (sent to bob) and qubit state (4x4 matrix) at bob after telepotation
-* `app_alice`:
+Measurement results of Alice and Bob's EPR qubits, sent to each other.
   * `epr_meas` (int): Result of Alice's measurement of her EPR qubit
 * `app_bob`: 
   * `epr_meas` (int): Result of Bob's measurement of his EPR qubit
+* `backend`:
+  * `final_state` (List[complex]): ket representation of the combined control-target state after the distributed CNOT
