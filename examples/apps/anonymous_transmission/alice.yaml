@@ -1,2 +1,4 @@
 sender: True
-value: True
+receiver: False
+phi: 0.
+theta: 1.57
