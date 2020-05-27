@@ -21,7 +21,6 @@ def main(track_lines=True, log_subroutines_dir=None):
         log_subroutines_dir=log_subroutines_dir,
         epr_sockets=[epr_socket]
     )
-    bob._clear_app_on_exit = False
     with bob:
         epr = epr_socket.recv()[0]
         bob.flush()
@@ -34,9 +33,6 @@ def main(track_lines=True, log_subroutines_dir=None):
             epr.X()
         if m1 == 1:
             epr.Z()
-
-        # To check states for debugging
-        bob._release_qubits_on_exit = False
 
 
 if __name__ == "__main__":

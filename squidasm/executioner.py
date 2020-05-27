@@ -23,6 +23,7 @@ from netsquid.components.instructions import (
     INSTR_CZ,
 )
 import netsquid as ns
+from netsquid.qubits import qubitapi as qapi
 from netsquid_magic.sleeper import Sleeper
 
 from netqasm.executioner import Executioner
@@ -152,3 +153,9 @@ class NetSquidExecutioner(Executioner, Entity):
             handler=self._handle_pending_epr_responses_handler,
             expression=self._sleeper.sleep(),
         )
+
+    def _get_qubit_state(self, app_id, virtual_address):
+        phys_pos = self._get_position(app_id=app_id, address=virtual_address)
+        qubit = self.qdevice._get_qubits(phys_pos)[0]
+        state = qapi.reduced_dm(qubit)
+        return state
