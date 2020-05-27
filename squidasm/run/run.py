@@ -3,6 +3,7 @@ from multiprocessing.pool import ThreadPool
 from netqasm.sdk.shared_memory import reset_memories
 from netqasm.logging import get_netqasm_logger
 from netqasm.yaml_util import dump_yaml
+from netqasm.output import save_all_struct_loggers
 from squidasm.backend import Backend
 from squidasm.thread_util import as_completed
 from squidasm.network_stack import reset_network
@@ -11,6 +12,7 @@ logger = get_netqasm_logger()
 
 
 def reset():
+    save_all_struct_loggers()
     reset_memories()
     reset_network()
 
