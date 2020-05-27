@@ -15,8 +15,9 @@ Bob: specification of the target qubit
 
 ## Output
 Measurement results of Alice and Bob's EPR qubits, sent to each other.
+* `app_alice`: 
   * `epr_meas` (int): Result of Alice's measurement of her EPR qubit
+  * `final_state` (List[List[complex]]): density matrix of the combined control-target state after the distributed CNOT
 * `app_bob`: 
   * `epr_meas` (int): Result of Bob's measurement of his EPR qubit
 * `backend`:
-  * `final_state` (List[complex]): ket representation of the combined control-target state after the distributed CNOT

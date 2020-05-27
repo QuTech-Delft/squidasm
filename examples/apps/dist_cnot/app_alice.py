@@ -2,6 +2,8 @@ from netqasm.sdk import EPRSocket, Qubit, ThreadSocket
 from netqasm.sdk.toolbox import set_qubit_state
 from squidasm.sdk import NetSquidConnection
 
+from squidasm.sim_util import get_qubit_state
+
 
 def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
     # socket for creating an EPR pair with Bob
@@ -17,7 +19,6 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
         log_subroutines_dir=log_subroutines_dir,
         epr_sockets=[bob_epr]
     )
-    alice._clear_app_on_exit = False
 
     with alice:
         # create one EPR pair with Alice
@@ -44,6 +45,10 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
         if bob_meas == "1":
             ctrl_qubit.Z()
 
-    return {
-        'epr_meas': int(epr_meas)
-    }
+        # get the combined state of Alice's control and Bob's target
+        dm = get_qubit_state(ctrl_qubit, reduced_dm=False)
+
+        return {
+            'epr_meas': int(epr_meas),
+            'final_state': dm.tolist(),
+        }
