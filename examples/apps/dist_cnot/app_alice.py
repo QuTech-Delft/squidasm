@@ -20,6 +20,8 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
         log_subroutines_dir=log_subroutines_dir,
         epr_sockets=[bob_epr]
     )
+    alice._clear_app_on_exit = False
+    alice._release_qubits_on_exit = False
 
     with alice:
         # create one EPR pair with Alice
