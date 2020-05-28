@@ -119,7 +119,6 @@ def _add_hln_to_log_entry(subroutines, entry):
     prc = entry[InstrField.PRC.value]
     sid = entry[InstrField.SID.value]
     subroutine = subroutines[sid]
-    hln = subroutine.commands[prc].lineno
     hostline = subroutine.commands[prc].lineno
     entry[InstrField.HLN.value] = hostline.lineno
     entry[InstrField.HFL.value] = hostline.filename

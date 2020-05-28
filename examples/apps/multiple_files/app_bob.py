@@ -1,8 +1,5 @@
-import os
-
-from netqasm.sdk import Qubit, EPRSocket
+from netqasm.sdk import Qubit
 from netqasm.sdk import ThreadSocket as Socket
-from netqasm.sdk.toolbox import set_qubit_state
 from squidasm.sdk import NetSquidConnection
 from netqasm.logging import get_netqasm_logger
 

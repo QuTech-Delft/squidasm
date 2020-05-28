@@ -24,7 +24,6 @@ def main(track_lines=True, log_subroutines_dir=None, app_dir=None):
         q1.measure()
         q2 = Qubit(alice)
         custom_measure(q2)
-        
 
     socket.send("hello from main()")
     custom_send(socket)
