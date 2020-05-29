@@ -9,6 +9,7 @@ from netqasm.logging import get_netqasm_logger
 from netqasm.messages import MessageType
 from squidasm.executioner import NetSquidExecutioner
 from squidasm.queues import get_queue, Signal
+from squidasm.ns_util import ThreadPool
 
 
 class SubroutineHandler(NodeProtocol):
@@ -21,9 +22,18 @@ class SubroutineHandler(NodeProtocol):
 
         self._message_handlers = self._get_message_handlers()
 
+        # Keep track of active apps
+        self._active_app_ids = set()
+
+        self._thread_pool = ThreadPool()
+
         self._sleeper = Sleeper()
 
         self._logger = get_netqasm_logger(f"{self.__class__.__name__}({self.node.name})")
+
+    @property
+    def has_active_apps(self):
+        return len(self._active_app_ids) > 0
 
     @property
     def network_stack(self):
@@ -49,16 +59,46 @@ class SubroutineHandler(NodeProtocol):
         self._executioner.network_stack = network_stack
 
     def run(self):
+        self._thread_pool.add_generator(self._handle_messages())
+        self._thread_pool.add_generator(self._keep_alive())
+        yield from self._thread_pool.event_exprs()
+        # while self.is_running:
+        #     yield from self._handle_next_message()
+        #     self._task_done()
+
+
+    def _keep_alive(self):
+        # If there is still an active app, keep netsquid alive
+        # while self.has_active_apps:
+        # while True:
+        while self.is_running or self.has_active_apps:
+            print(f'running: {self.is_running}')
+            print(f'active apps: {self.has_active_apps}')
+            print('KEEPING ALIVE')
+            yield self._sleeper.sleep()
+
+    def _handle_messages(self):
         while self.is_running:
+            print('HERE')
             yield from self._handle_next_message()
-            self._task_done()
+
+    # def _load_next_message(self):
+    #     self._logger.debug(f"Fetching item in the queue")
+    #     item = yield from self._fetch_next_item()
+    #     self._pending_messages.append(item)
 
     def _handle_next_message(self):
         self._logger.debug(f"Fetching item in the queue")
         item = yield from self._fetch_next_item()
+        print(f"{self._executioner._name}: ADDING HANDLING OF MESSAGE {item.type}")
+        self._thread_pool.add_generator(self._handle_message(item=item))
+
+    def _handle_message(self, item):
         output = self._message_handlers[item.type](item.msg)
         if isinstance(output, GeneratorType):
             yield from output
+        print(f'{self._executioner._name}: FINISHED HANDLING: {item.type}, {self._message_queue.qsize()} left')
+        self._task_done()
 
     def _fetch_next_item(self):
         while True:
@@ -66,7 +106,11 @@ class SubroutineHandler(NodeProtocol):
                 item = self._message_queue.get(block=False)
             except Empty:
                 # Wait a little until checking again
-                yield self._sleeper.sleep()
+                try:
+                    yield self._sleeper.sleep()
+                except RuntimeError as err:
+                    breakpoint()
+                    # raise err
 
             else:
                 return item
@@ -86,6 +130,7 @@ class SubroutineHandler(NodeProtocol):
 
     def _handle_init_new_app(self, msg):
         app_id = msg.app_id
+        self._add_app(app_id=app_id)
         max_qubits = msg.max_qubits
         self._logger.debug(f"Allocating a new "
                            f"unit module of size {max_qubits} for application with app ID {app_id}.\n")
@@ -94,8 +139,17 @@ class SubroutineHandler(NodeProtocol):
             max_qubits=max_qubits,
         )
 
+    def _add_app(self, app_id):
+        print(f'ADDING APP {app_id}')
+        self._active_app_ids.add(app_id)
+
+    def _remove_app(self, app_id):
+        print(f'REMOVING APP {app_id}')
+        self._active_app_ids.remove(app_id)
+
     def _handle_stop_app(self, msg):
         app_id = msg.app_id
+        self._remove_app(app_id=app_id)
         self._logger.debug(f"Stopping application with app ID {app_id}")
         self._executioner.stop_application(app_id=app_id)
 
@@ -103,6 +157,7 @@ class SubroutineHandler(NodeProtocol):
         self._logger.debug(f"SubroutineHandler at node {self.node} handles the signal {signal}")
         if signal == Signal.STOP:
             self._logger.debug(f"SubroutineHandler at node {self.node} stops")
+            print(f"{self._executioner._name} STOOOOOOOOOOOOOOOOOOP")
             self.stop()
         else:
             raise ValueError(f"Unkown signal {signal}")
