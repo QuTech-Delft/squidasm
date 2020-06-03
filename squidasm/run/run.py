@@ -23,6 +23,7 @@ def run_applications(
     instr_log_dir=None,
     network_config=None,
     results_file=None,
+    return_results=False
 ):
     """Executes functions containing application scripts,
 
@@ -74,6 +75,8 @@ def run_applications(
             save_results(results=results, results_file=results_file)
 
     reset()
+    if return_results:
+        return results
 
 
 def save_results(results, results_file):
