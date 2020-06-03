@@ -14,7 +14,7 @@ def _get_default_strategy():
     ]
 
 
-def main(track_lines=True, log_subroutines_dir=None, col=0, strategy=None):
+def main(track_lines=True, app_dir=None, log_subroutines_dir=None, col=0, strategy=None):
 
     # Get the strategy
     if strategy is None:
@@ -29,6 +29,7 @@ def main(track_lines=True, log_subroutines_dir=None, col=0, strategy=None):
     bob = NetSquidConnection(
         "bob",
         track_lines=track_lines,
+        app_dir=app_dir,
         log_subroutines_dir=log_subroutines_dir,
         epr_sockets=[epr_socket],
     )

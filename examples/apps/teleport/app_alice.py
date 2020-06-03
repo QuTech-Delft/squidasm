@@ -4,10 +4,10 @@ from netqasm.sdk.toolbox import set_qubit_state
 from squidasm.sdk import NetSquidConnection
 
 
-def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
+def main(track_lines=True, app_dir=None, log_subroutines_dir=None, phi=0., theta=0.):
 
     # Create a socket to send classical information
-    socket = Socket("alice", "bob", comm_log_dir=log_subroutines_dir)
+    socket = Socket("alice", "bob", comm_log_dir=log_subroutines_dir, track_lines=True, app_dir=app_dir)
 
     # Create a EPR socket for entanglement generation
     epr_socket = EPRSocket("bob")
@@ -16,6 +16,7 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
     alice = NetSquidConnection(
         name="alice",
         track_lines=track_lines,
+        app_dir=app_dir,
         log_subroutines_dir=log_subroutines_dir,
         epr_sockets=[epr_socket]
     )
