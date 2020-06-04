@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import pickle
 from runpy import run_path
@@ -118,8 +119,9 @@ def _add_hln_to_log_entry(subroutines, entry):
     prc = entry[InstrField.PRC.value]
     sid = entry[InstrField.SID.value]
     subroutine = subroutines[sid]
-    hln = subroutine.commands[prc].lineno
-    entry[InstrField.HLN.value] = hln
+    hostline = subroutine.commands[prc].lineno
+    entry[InstrField.HLN.value] = hostline.lineno
+    entry[InstrField.HFL.value] = hostline.filename
 
 
 def get_post_function_path(app_dir):
@@ -154,6 +156,9 @@ def simulate_apps(
         app_dir = os.path.abspath('.')
     else:
         app_dir = os.path.expanduser(app_dir)
+
+    sys.path.append(app_dir)
+
     app_files = load_app_files(app_dir)
     if app_config_dir is None:
         app_config_dir = app_dir
@@ -180,6 +185,7 @@ def simulate_apps(
         app_config = load_app_config(app_config_dir, node_name)
         app_config['track_lines'] = track_lines
         app_config['log_subroutines_dir'] = timed_log_dir
+        app_config['app_dir'] = app_dir
         applications[node_name] = app_main, app_config
 
     network_config = load_network_config(network_config_file)
