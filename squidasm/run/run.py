@@ -1,5 +1,7 @@
 from multiprocessing.pool import ThreadPool
 
+import netsquid as ns
+
 from netqasm.sdk.shared_memory import reset_memories
 from netqasm.logging import get_netqasm_logger
 from netqasm.yaml_util import dump_yaml
@@ -23,6 +25,7 @@ def run_applications(
     instr_log_dir=None,
     network_config=None,
     results_file=None,
+    q_formalism=ns.QFormalism.KET,
 ):
     """Executes functions containing application scripts,
 
@@ -42,6 +45,7 @@ def run_applications(
 
     def run_backend():
         logger.debug(f"Starting netsquid backend thread with nodes {node_names}")
+        ns.set_qstate_formalism(q_formalism)
         backend = Backend(node_names, instr_log_dir=instr_log_dir, network_config=network_config)
         backend.start()
         if post_function is not None:

@@ -26,8 +26,9 @@ import netsquid as ns
 from netsquid.qubits import qubitapi as qapi
 from netsquid_magic.sleeper import Sleeper
 
-from netqasm.executioner import Executioner
+from netqasm.executioner import Executioner, QubitState
 from netqasm.instructions import Instruction
+from squidasm.ns_util import is_qubit_entangled
 
 
 PendingEPRResponse = namedtuple("PendingEPRResponse", [
@@ -158,4 +159,5 @@ class NetSquidExecutioner(Executioner, Entity):
         phys_pos = self._get_position(app_id=app_id, address=virtual_address)
         qubit = self.qdevice._get_qubits(phys_pos)[0]
         state = qapi.reduced_dm(qubit)
-        return state
+        is_entangled = is_qubit_entangled(qubit=qubit)
+        return QubitState(state=state, is_entangled=is_entangled)
