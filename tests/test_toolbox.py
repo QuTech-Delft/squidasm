@@ -91,7 +91,3 @@ def test_create_ghz(do_corrections, num_nodes):
     num = 10
     for _ in range(num):
         _gen_create_ghz(num_nodes, do_corrections)
-
-
-if __name__ == "__main__":
-    test_create_ghz()
