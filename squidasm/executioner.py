@@ -117,11 +117,8 @@ class NetSquidExecutioner(Executioner, Entity):
 
     def _execute_qdevice_instruction(self, ns_instr, qubit_mapping, **kwargs):
         if self.qdevice.busy:
-            print(f'{ns.sim_time()}: busy, next instruction will finish at {self.qdevice.sequence_end_time}')
-            breakpoint()
             yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
         self.qdevice.execute_instruction(ns_instr, qubit_mapping=qubit_mapping, **kwargs)
-        print(f'{ns.sim_time()}: added instruction, will finish at {self.qdevice.sequence_end_time}')
         yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
 
     @classmethod
@@ -135,16 +132,11 @@ class NetSquidExecutioner(Executioner, Entity):
         position = self._get_position(subroutine_id=subroutine_id, address=q_address)
         self._logger.debug(f"Measuring qubit {position}")
         if self.qdevice.busy:
-            breakpoint()
-            print(f'{ns.sim_time()}: busy, next instruction will finish at {self.qdevice.sequence_end_time}')
             yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
         outcome = self.qdevice.measure(position)[0][0]
         return outcome
 
     def _do_wait(self):
-        # if ns.sim_time() > 30:
-        #     breakpoint()
-        print(f'{ns.sim_time()}: schedule wait event in 1 ns')
         self._schedule_after(1, self._wait_event)
         yield EventExpression(source=self, event_type=self._wait_event)
 

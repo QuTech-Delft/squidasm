@@ -3,14 +3,14 @@ from netsquid.components import QuantumProcessor, PhysicalInstruction
 from netsquid.components import instructions as ns_instructions
 
 
-def get_node(name, node_id=None, num_qubits=5, network_config=None):
-    qdevice = get_qdevice(name=f"{name}_QPD", num_qubits=num_qubits, network_config=network_config)
+def get_node(name, node_id=None, network_config=None):
+    qdevice = get_qdevice(name=f"{name}_QPD", network_config=network_config)
     node = Node(name, ID=node_id, qmemory=qdevice)
 
     return node
 
 
-def get_nodes(names, node_ids=None, num_qubits=5, network_config=None):
+def get_nodes(names, node_ids=None, network_config=None):
     if node_ids is None:
         node_ids = list(range(len(names)))
     assert len(names) == len(node_ids), "Wrong number of node IDs"
@@ -19,15 +19,23 @@ def get_nodes(names, node_ids=None, num_qubits=5, network_config=None):
         nodes[name] = get_node(
             name=name,
             node_id=node_id,
-            num_qubits=num_qubits,
             network_config=network_config,
         )
 
     return nodes
 
 
-def get_qdevice(name="QPD", num_qubits=5, network_config=None):
+def get_qdevice(name="QPD", network_config=None):
     if network_config is None:
+        network_config = {}
+
+    # TODO this is temporary, config file will change
+    num_qubits = network_config.get('num_qubits')
+    if num_qubits is None:
+        num_qubits = 5
+
+    gates = network_config.get('gates')
+    if gates is None:
         phys_instructions = [
             # TODO durations (currently arbitary)
             PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),
@@ -45,15 +53,10 @@ def get_qdevice(name="QPD", num_qubits=5, network_config=None):
             PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5),
         ]
     else:
-        # TODO this is temporary, config file will change
-        gates = network_config.get('gates')
-        if gates is None:
-            phys_instructions = None
-        else:
-            phys_instructions = []
-            for gate in gates:
-                instruction = getattr(ns_instructions, gate['instruction'])
-                duration = gate['duration']
-                phys_instructions.append(PhysicalInstruction(instruction=instruction, duration=duration))
+        phys_instructions = []
+        for gate in gates:
+            instruction = getattr(ns_instructions, gate['instruction'])
+            duration = gate['duration']
+            phys_instructions.append(PhysicalInstruction(instruction=instruction, duration=duration))
 
     return QuantumProcessor(name=name, num_positions=num_qubits, phys_instructions=phys_instructions)

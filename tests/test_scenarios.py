@@ -14,25 +14,22 @@ def test_bi_directional_teleport():
         # Create entanglement
         epr = epr_socket.create()[0]
 
-        print(f'conn {conn.name} 1')
-
         # Teleport operations
         q.cnot(epr)
         q.H()
-        m1 = q.measure(inplace=True)
-        m2 = epr.measure(inplace=True)
+        # m1 = q.measure(inplace=True)
+        # m2 = epr.measure(inplace=True)
+        m1 = q.measure()
+        m2 = epr.measure()
 
         # Callback function for flush
         def teleport_callback():
-            print(f'conn {conn.name} 3')
             # Send corrections
             msg = str((int(m1), int(m2)))
             socket.send(msg)
-            print(f'conn {conn.name} 4')
 
         # Flush to get outcomes
         conn.flush(block=False, callback=teleport_callback)
-        print(f'conn {conn.name} 2')
 
     def receive(conn, epr_socket, socket):
         # Create entanglement
@@ -48,10 +45,10 @@ def test_bi_directional_teleport():
             if m1 == 1:
                 epr.Z()
 
+            conn.flush(block=True)
+
         # Flush to execute
-        print(f'conn {conn.name} recv block')
         conn.flush(block=True, callback=receive_callback)
-        print(f'conn {conn.name} recv block FIN')
 
         return epr
 
@@ -62,18 +59,22 @@ def test_bi_directional_teleport():
         # EPR socket for entanglement generation
         epr_socket = EPRSocket("bob")
         with NetSquidConnection("alice", epr_sockets=[epr_socket]) as alice:
-            q1 = Qubit(alice)
+            # NOTE We need to set this virtual address to 1 at this point since the created EPR pairs will
+            # get 0 (first unused since measure(inplace=False)) and we shouldn't compete with the
+            # position used by the EPR pairs
+            q1 = Qubit(alice, virtual_address=1)
 
             # Teleport
-            print('alice 1')
             teleport(q1, alice, epr_socket, socket)
-            print('alice 2')
 
             # Receive
             q2 = receive(alice, epr_socket, socket)
-            print('alice 3')
 
             m = q2.measure()
+
+            alice.flush()
+
+            alice.block()
 
             logger.info(f'alice: {m}')
 
@@ -84,24 +85,27 @@ def test_bi_directional_teleport():
         # EPR socket for entanglement generation
         epr_socket = EPRSocket("alice")
         with NetSquidConnection("bob", epr_sockets=[epr_socket]) as bob:
-            q1 = Qubit(bob)
+            q1 = Qubit(bob, virtual_address=1)
 
             # Teleport
-            print('bob 1')
             teleport(q1, bob, epr_socket, socket)
-            print('bob 2')
 
             # Receive
             q2 = receive(bob, epr_socket, socket)
-            print('bob 3')
 
             m = q2.measure()
+
+            bob.flush()
+
+            bob.block()
 
             logger.info(f'bob: {m}')
 
     run_applications({
         "alice": run_alice,
         "bob": run_bob,
+    }, network_config={
+        'num_qubits': 2,
     })
 
 
@@ -141,7 +145,7 @@ import faulthandler, signal
 faulthandler.register(signal.SIGUSR1)
 
 if __name__ == "__main__":
-    set_log_level('DEBUG')
+    set_log_level('WARNING')
     # set_log_level('INFO')
     # set_log_level('WARNING')
     test_bi_directional_teleport()

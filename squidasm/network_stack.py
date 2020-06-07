@@ -157,20 +157,12 @@ class NetworkStack(BaseNetworkStack):
     def _wait_for_remote_node(self, local_address, remote_address, timeout=1):
         t_start = timer()
         while True:
-            # if self._node.name == "bob":
-            #     breakpoint()
             if self._signaling_protocol.has_circuit(local_address=local_address, remote_address=remote_address):
-                print(f'{self._node.name}: GOT CIRCUIT {local_address}')
                 break
             # Wait a little until checking again
-            print('HAS NO CIRCUIT')
-            # yield self._sleeper.sleep()
-            e = self._sleeper.sleep()
-            print(f'wait remote with e {e.atomic_id}. {e.atomic_type}, {e.atomic_source}')
-            yield e
+            yield self._sleeper.sleep()
             now = timer()
             if (now - t_start) > timeout:
-                breakpoint()
                 raise TimeoutError("Remote node did not initialize the correct rules")
 
 
