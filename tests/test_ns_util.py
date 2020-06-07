@@ -23,7 +23,7 @@ def test_is_qubit_entangled_stab():
 
 @pytest.mark.parametrize('qubit', [
     None,
-    np.array(),
+    np.array([]),
 ])
 def test_is_qubit_entangled_type_error(qubit):
     ns.set_qstate_formalism(ns.QFormalism.STAB)
