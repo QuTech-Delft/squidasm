@@ -71,17 +71,13 @@ def run_blind_rotation():
         ns.qubits.operate(ref, ns.Z)
     ns.qubits.operate(ref, ns.qubits.create_rotation_op(theta[num_iter], (0, 0, 1)))
 
-    return fidelity_ok(ref.qstate, np.array(output_state))
+    assert fidelity_ok(ref.qstate, np.array(output_state))
 
 
 def test_blind_rotation():
     num = 3
-    ok_count = 0
     for _ in range(num):
-        if run_blind_rotation():
-            ok_count += 1
-
-    assert ok_count == num
+        run_blind_rotation()
 
 
 def run_blind_grover():
@@ -117,18 +113,15 @@ def run_blind_grover():
 
     m0 = results['app_alice']['result0']
     m1 = results['app_alice']['result1']
-
-    return b0 == m0 and b1 == m1
+    
+    assert b0 == m0
+    assert b1 == m1
 
 
 def test_blind_grover():
     num = 3
-    ok_count = 0
     for _ in range(num):
-        if run_blind_grover():
-            ok_count += 1
-
-    assert ok_count == num
+        run_blind_grover()
 
 
 if __name__ == '__main__':
