@@ -44,7 +44,7 @@ def run_blind_rotation():
         "bob": (blind_rotation_bob, bob_app_config)
     }
 
-    results = run_applications(applications, return_results=True)
+    results = run_applications(applications)
 
     output_state = results['app_bob']['output_state']
     s = results['app_alice']['s']
@@ -109,7 +109,7 @@ def run_blind_grover():
         "bob": (blind_grover_bob, bob_app_config)
     }
 
-    results = run_applications(applications, return_results=True)
+    results = run_applications(applications)
 
     m0 = results['app_alice']['result0']
     m1 = results['app_alice']['result1']

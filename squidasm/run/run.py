@@ -25,7 +25,6 @@ def run_applications(
     instr_log_dir=None,
     network_config=None,
     results_file=None,
-    return_results=False,
     q_formalism=ns.QFormalism.KET,
 ):
     """Executes functions containing application scripts,
@@ -79,8 +78,7 @@ def run_applications(
             save_results(results=results, results_file=results_file)
 
     reset()
-    if return_results:
-        return results
+    return results
 
 
 def save_results(results, results_file):
