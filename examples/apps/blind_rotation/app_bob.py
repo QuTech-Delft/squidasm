@@ -3,34 +3,9 @@ from netqasm.sdk import EPRSocket
 from netqasm.sdk import ThreadSocket as Socket
 from squidasm.sdk import NetSquidConnection
 from squidasm.sim_util import get_qubit_state
+from examples.lib.bqc import measXY, recv_teleported_state, recv_meas_cmd, send_meas_outcome
 
 logger = get_netqasm_logger()
-
-
-def measXY(q, angle):
-    """Measure qubit `q` in the XY-plane rotated by `angle`.
-    Note: we use the convention that we rotate by +`angle` (not -`angle`).
-    """
-    q.rot_Z(angle=angle)
-    q.H()
-    return q.measure()
-
-
-def recv_teleported_state(epr_socket):
-    """Let Alice teleport a state to Bob.
-    She will do a suitable measurement on her side.
-    """
-    return epr_socket.recv()[0]
-
-
-def recv_meas_cmd(socket):
-    """Receive the angle to measure the next qubit in."""
-    return float(socket.recv())
-
-
-def send_meas_outcome(socket, outcome):
-    """Send the outcome (0 or 1) of the latest measurement to Alice."""
-    socket.send(str(outcome))
 
 
 def main(track_lines=True, log_subroutines_dir=None, app_dir=None, num_iter=3):

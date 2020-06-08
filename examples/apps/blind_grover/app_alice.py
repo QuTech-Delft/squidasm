@@ -4,41 +4,9 @@ from netqasm.logging import get_netqasm_logger
 from netqasm.sdk import EPRSocket
 from netqasm.sdk import ThreadSocket as Socket
 from squidasm.sdk import NetSquidConnection
+from examples.lib.bqc import teleport_state, send_meas_cmd, recv_meas_outcome
 
 logger = get_netqasm_logger()
-
-
-def measXY(q, angle):
-    """Measure qubit `q` in the XY-plane rotated by `angle`.
-    Note: we use the convention that we rotate by +`angle` (not -`angle`).
-    """
-    q.rot_Z(angle=angle)
-    q.H()
-    return q.measure()
-
-
-def teleport_state(epr_socket, theta):
-    """Teleport a state Rz(theta)|+> to Bob.
-    The resulting state on Bob's side is actually
-    Rz(theta + m*pi) |+>, for Alice's measurement outcome `m`.
-    """
-    epr = epr_socket.create()[0]
-    m = measXY(epr, theta)
-    return m
-
-
-def send_meas_cmd(socket, phi):
-    """Tell Bob to measure the next qubit in angle `phi`.
-    This effectively applies the operation H Rz(phi) on the logical input.
-    """
-    socket.send(str(phi))
-
-
-def recv_meas_outcome(socket):
-    """Receive the measurement outcome (0 or 1) of Bob's
-    last measurement.
-    """
-    return int(socket.recv())
 
 
 def get_phi_for_oracle(b0, b1):
