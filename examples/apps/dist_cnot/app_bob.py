@@ -3,17 +3,18 @@ from netqasm.sdk.toolbox import set_qubit_state
 from squidasm.sdk import NetSquidConnection
 
 
-def main(track_lines=True, log_subroutines_dir=None, phi=0.0, theta=0.0):
+def main(track_lines=True, app_dir=None, log_subroutines_dir=None, phi=0.0, theta=0.0):
     # socket for creating an EPR pair with Alice
     alice_epr = EPRSocket("alice")
 
     # socket for communicating classical messages with Alice
-    class_socket = ThreadSocket("bob", "alice", comm_log_dir=log_subroutines_dir)
+    class_socket = ThreadSocket("bob", "alice", comm_log_dir=log_subroutines_dir, app_dir=app_dir)
 
     # connect to the back-end
     bob = NetSquidConnection(
         "bob",
         track_lines=track_lines,
+        app_dir=app_dir,
         log_subroutines_dir=log_subroutines_dir,
         epr_sockets=[alice_epr]
     )
