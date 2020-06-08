@@ -14,12 +14,13 @@ def main(
         track_lines=True,
         log_subroutines_dir=None,
         app_dir=None,
+        lib_dirs=[],
         num_iter=3,
         theta=None,
         phi=None,
         r=None):
 
-    socket = Socket("alice", "bob", comm_log_dir=log_subroutines_dir, track_lines=track_lines, app_dir=app_dir)
+    socket = Socket("alice", "bob", comm_log_dir=log_subroutines_dir, track_lines=track_lines, app_dir=app_dir, lib_dirs=lib_dirs)
     epr_socket = EPRSocket("bob")
 
     alice = NetSquidConnection(
@@ -27,6 +28,7 @@ def main(
         track_lines=track_lines,
         log_subroutines_dir=log_subroutines_dir,
         app_dir=app_dir,
+        lib_dirs=lib_dirs,
         epr_sockets=[epr_socket],
     )
 

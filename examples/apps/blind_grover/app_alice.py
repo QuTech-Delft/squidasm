@@ -22,6 +22,7 @@ def main(
         track_lines=True,
         log_subroutines_dir=None,
         app_dir=None,
+        lib_dirs=[],
         b0=0,
         b1=0,
         r1=0,

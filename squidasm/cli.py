@@ -32,6 +32,9 @@ def version():
               help="Path to app directory. "
                    "Defaults to CWD."
               )
+@click.option("--lib-dirs", type=str, default=None, multiple=True,
+              help="Path to additional library directory."
+              )
 @click.option("--track-lines/--no-track-lines", default=True)
 @click.option("--network-config-file", type=str, default=None,
               help="Explicitly choose the network config file, "
@@ -57,6 +60,7 @@ def version():
               )
 def simulate(
     app_dir,
+    lib_dirs,
     track_lines,
     network_config_file,
     app_config_dir,
@@ -70,6 +74,7 @@ def simulate(
     """
     simulate_apps(
         app_dir=app_dir,
+        lib_dirs=lib_dirs,
         track_lines=track_lines,
         network_config_file=network_config_file,
         app_config_dir=app_config_dir,
