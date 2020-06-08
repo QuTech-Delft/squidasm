@@ -27,7 +27,6 @@ def run_blind_rotation():
     r = [random.randint(0, 1) for _ in range(num_iter)]
 
     alice_app_config = {
-        'track_lines': False,
         'num_iter': num_iter,
         'theta': theta,
         'phi': phi,
@@ -35,7 +34,6 @@ def run_blind_rotation():
     }
 
     bob_app_config = {
-        'track_lines': False,
         'num_iter': num_iter
     }
 
@@ -91,7 +89,6 @@ def run_blind_grover():
     theta2 = random.uniform(0, 2 * np.pi)
 
     alice_app_config = {
-        'track_lines': False,
         'b0': b0,
         'b1': b1,
         'r1': r1,
@@ -100,9 +97,7 @@ def run_blind_grover():
         'theta2': theta2
     }
 
-    bob_app_config = {
-        'track_lines': False
-    }
+    bob_app_config = {}
 
     applications = {
         "alice": (blind_grover_alice, alice_app_config),
@@ -113,7 +108,7 @@ def run_blind_grover():
 
     m0 = results['app_alice']['result0']
     m1 = results['app_alice']['result1']
-    
+
     assert b0 == m0
     assert b1 == m1
 

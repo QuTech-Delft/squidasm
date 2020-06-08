@@ -5,11 +5,11 @@ from netqasm.output import get_new_app_logger
 from squidasm.sdk import NetSquidConnection
 
 
-def main(track_lines=True, app_dir=None, log_subroutines_dir=None, phi=0., theta=0.):
-    app_logger = get_new_app_logger(node_name="alice", log_dir=log_subroutines_dir, app_dir=app_dir)
+def main(log_config=None, phi=0., theta=0.):
+    app_logger = get_new_app_logger(node_name="alice", log_config=log_config)
 
     # Create a socket to send classical information
-    socket = Socket("alice", "bob", comm_log_dir=log_subroutines_dir, track_lines=True, app_dir=app_dir)
+    socket = Socket("alice", "bob", log_config=log_config)
 
     # Create a EPR socket for entanglement generation
     epr_socket = EPRSocket("bob")
@@ -17,9 +17,7 @@ def main(track_lines=True, app_dir=None, log_subroutines_dir=None, phi=0., theta
     # Initialize the connection to the backend
     alice = NetSquidConnection(
         name="alice",
-        track_lines=track_lines,
-        app_dir=app_dir,
-        log_subroutines_dir=log_subroutines_dir,
+        log_config=log_config,
         epr_sockets=[epr_socket]
     )
     with alice:

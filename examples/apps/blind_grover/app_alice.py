@@ -19,10 +19,7 @@ def get_phi_for_oracle(b0, b1):
 
 
 def main(
-        track_lines=True,
-        log_subroutines_dir=None,
-        app_dir=None,
-        lib_dirs=[],
+        log_config=None,
         b0=0,
         b1=0,
         r1=0,
@@ -30,14 +27,12 @@ def main(
         theta1=0.0,
         theta2=0.0):
 
-    socket = Socket("alice", "bob", comm_log_dir=log_subroutines_dir, track_lines=track_lines, app_dir=app_dir)
+    socket = Socket("alice", "bob", log_config=log_config)
     epr_socket = EPRSocket("bob")
 
     alice = NetSquidConnection(
         name="alice",
-        track_lines=track_lines,
-        log_subroutines_dir=log_subroutines_dir,
-        app_dir=app_dir,
+        log_config=log_config,
         epr_sockets=[epr_socket],
     )
 

@@ -10,10 +10,7 @@ class NetSquidConnection(NetQASMConnection):
         name,
         app_id=None,
         max_qubits=5,
-        track_lines=False,
-        app_dir=None,
-        lib_dirs=[],
-        log_subroutines_dir=None,
+        log_config=None,
         epr_sockets=None,
         compiler=None,
     ):
@@ -22,10 +19,7 @@ class NetSquidConnection(NetQASMConnection):
             name=name,
             app_id=app_id,
             max_qubits=max_qubits,
-            track_lines=track_lines,
-            app_dir=app_dir,
-            lib_dirs=lib_dirs,
-            log_subroutines_dir=log_subroutines_dir,
+            log_config=log_config,
             epr_sockets=epr_sockets,
             compiler=compiler,
         )

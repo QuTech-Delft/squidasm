@@ -5,19 +5,17 @@ from squidasm.sdk import NetSquidConnection
 from squidasm.sim_util import get_qubit_state
 
 
-def main(track_lines=True, log_subroutines_dir=None, app_dir=None, phi=0.0, theta=0.0):
+def main(log_config=None, phi=0.0, theta=0.0):
     # socket for creating an EPR pair with Bob
     bob_epr = EPRSocket("bob")
 
     # socket for communicating classical messages with Bob
-    class_socket = ThreadSocket("alice", "bob", comm_log_dir=log_subroutines_dir, app_dir=app_dir)
+    class_socket = ThreadSocket("alice", "bob", log_config=log_config)
 
     # connect to the back-end
     alice = NetSquidConnection(
         name="alice",
-        track_lines=track_lines,
-        app_dir=app_dir,
-        log_subroutines_dir=log_subroutines_dir,
+        log_config=log_config,
         epr_sockets=[bob_epr]
     )
 

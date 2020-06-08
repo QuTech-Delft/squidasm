@@ -8,18 +8,15 @@ from examples.lib.bqc import measXY, recv_teleported_state, recv_meas_cmd, send_
 logger = get_netqasm_logger()
 
 
-def main(track_lines=True, log_subroutines_dir=None, app_dir=None, lib_dirs=[], num_iter=3):
-    socket = Socket("bob", "alice", comm_log_dir=log_subroutines_dir, track_lines=track_lines, app_dir=app_dir, lib_dirs=lib_dirs)
+def main(log_config=None, num_iter=3):
+    socket = Socket("bob", "alice", log_config=log_config)
     epr_socket = EPRSocket("alice")
 
     num_qubits = num_iter + 1
 
     bob = NetSquidConnection(
         "bob",
-        track_lines=track_lines,
-        log_subroutines_dir=log_subroutines_dir,
-        app_dir=app_dir,
-        lib_dirs=lib_dirs,
+        log_config=log_config,
         epr_sockets=[epr_socket],
         max_qubits=num_qubits
     )
