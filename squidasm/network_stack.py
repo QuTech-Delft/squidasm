@@ -11,6 +11,7 @@ from netsquid_magic.link_layer import (
 )
 from netsquid_magic.sleeper import Sleeper
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
+from netsquid_magic.magic_distributor import SingleClickMagicDistributor
 
 from netqasm.network_stack import BaseNetworkStack, Address
 
@@ -189,7 +190,8 @@ def setup_link_layer_services(nodes, reaction_handlers, network_config=None):
 
 def setup_magic_link_layer_protocol(node_pair, network_config=None):
     # TODO use network config for setting up magic distributor
-    magic_distributor = PerfectStateMagicDistributor(node_pair, state_delay=1)
+    # magic_distributor = PerfectStateMagicDistributor(node_pair, state_delay=1)
+    magic_distributor = SingleClickMagicDistributor(nodes=node_pair, state_delay=1)
     translation_unit = SingleClickTranslationUnit()
     magic_protocol = MagicLinkLayerProtocol(
         nodes=node_pair,

@@ -13,6 +13,14 @@ from netqasm.yaml_util import load_yaml, dump_yaml
 from netqasm.output import InstrField
 from .run import run_applications
 
+from netsquid.components import QuantumProcessor, PhysicalInstruction, Instruction
+from netsquid.components.models.qerrormodels import QuantumErrorModel
+from netsquid_netconf.builder import ComponentBuilder
+from netsquid_netconf.netconf import netconf_generator, Loader, _nested_dict_set
+from netsquid.components import instructions as ns_instructions
+
+from squidasm.network_setup import DemoQDevice
+
 logger = get_netqasm_logger()
 
 
@@ -37,7 +45,10 @@ def get_network_config_path(app_dir):
 
 def load_network_config(network_config_file):
     if os.path.exists(network_config_file):
-        return load_yaml(file_path=network_config_file)
+        ComponentBuilder.add_type("quantum_processor", QuantumProcessor)
+        ComponentBuilder.add_type("demo_qdevice", DemoQDevice)
+        generator = netconf_generator(network_config_file)
+        return next(generator)
     else:
         return None
 
