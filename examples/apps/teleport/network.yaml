@@ -9,26 +9,34 @@ default_qdevice: &default_qdevice
   properties:
     num_qubits: 3
     gate_fidelity: 1
-    T1: 3.5
-    T2: 1.46
+    T1: 0
+    T2: 0
 
 node: &node
   type: node
 
 components:
-  alice:
+  alice: &alice
     type: node
     components:
       qdevice:
         << : *default_qdevice
 
-  bob:
-    << : *node
+  bob: &bob
+    type: node
     components:
       qdevice:
         type: demo_qdevice
         properties:
           num_qubits: 3
           gate_fidelity: 1
-          T1: 0.4
-          T2: 0.3
+          T1: 0
+          T2: 0
+
+  conn_alice_bob:
+    type: depolarize_connection
+    properties:
+      end_points:
+        - alice
+        - bob
+      fidelity: 1

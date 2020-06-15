@@ -56,23 +56,23 @@ def get_nodes(names, node_ids=None, num_qubits=5, network_config=None):
             if name in names:
                 nodes[name] = value
             
-    print(f"nodes: {nodes}")
+    # print(f"nodes: {nodes}")
 
     node = nodes['alice']
-    print(f"alice: qmem: {node.qmemory}")
-    print(f"alice: qmem.num_positions: {node.qmemory.num_positions}")
+    # print(f"alice: qmem: {node.qmemory}")
+    # print(f"alice: qmem.num_positions: {node.qmemory.num_positions}")
     # print(f"qmem.phys_instructions: {node.qmemory.get_physical_instructions()}")
     phys_instrs = node.qmemory.get_physical_instructions()
-    for instr in phys_instrs:
-        print(f"alice: qmem.q_noise_model: {instr.q_noise_model}")
+    # for instr in phys_instrs:
+    #     print(f"alice: qmem.q_noise_model: {instr.q_noise_model}")
 
     node = nodes['bob']
-    print(f"bob: qmem: {node.qmemory}")
-    print(f"bob: qmem.num_positions: {node.qmemory.num_positions}")
+    # print(f"bob: qmem: {node.qmemory}")
+    # print(f"bob: qmem.num_positions: {node.qmemory.num_positions}")
     # print(f"qmem.phys_instructions: {node.qmemory.get_physical_instructions()}")
     phys_instrs = node.qmemory.get_physical_instructions()
-    for instr in phys_instrs:
-        print(f"bob: qmem.q_noise_model: {instr.q_noise_model}")
+    # for instr in phys_instrs:
+    #     print(f"bob: qmem.q_noise_model: {instr.q_noise_model}")
 
     # for name, node_id in zip(names, node_ids):
     #     nodes[name] = get_node(

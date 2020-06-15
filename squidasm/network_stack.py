@@ -9,9 +9,14 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocol,
     SingleClickTranslationUnit,
 )
+import numpy as np
+import netsquid as ns
 from netsquid_magic.sleeper import Sleeper
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
-from netsquid_magic.magic_distributor import SingleClickMagicDistributor
+from netsquid_magic.magic_distributor import MagicDistributor
+from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
+from netsquid.nodes import Node, Connection
+from squidasm.network_config import NoisyMagicConnection
 
 from netqasm.network_stack import BaseNetworkStack, Address
 
@@ -166,15 +171,37 @@ class NetworkStack(BaseNetworkStack):
             if (now - t_start) > timeout:
                 raise TimeoutError("Remote node did not initialize the correct rules")
 
+def get_connections_from_config(network_config):
+    components = network_config['components']
+    connections = []
+    for name, comp in components.items():
+        if isinstance(comp, NoisyMagicConnection):
+            connections.append(comp)
+    return connections
 
 def setup_link_layer_services(nodes, reaction_handlers, network_config=None):
     node_names = list(nodes.keys())
     link_layer_services = defaultdict(dict)
+
+    connections = get_connections_from_config(network_config)
+
     for i, node_name1 in enumerate(node_names):
         for j in range(i + 1, len(node_names)):
             node_name2 = node_names[j]
             node_pair = [nodes[node_name1], nodes[node_name2]]
-            magic_protocol = setup_magic_link_layer_protocol(node_pair=node_pair, network_config=network_config)
+            magic_connection = None
+
+            for conn in connections:
+                if conn.nodeA == node_name1 and conn.nodeB == node_name2:
+                    magic_connection = conn
+            
+            if magic_connection is None:
+                magic_connection = NoisyMagicConnection("DefaultConnection", node_pair)
+
+            print(f"Noisy connection for pair ({node_name1}, {node_name2}) has type {magic_connection}")
+
+            magic_protocol = setup_magic_link_layer_protocol(node_pair, magic_connection)
+
             for node, remote_node in [node_pair, reversed(node_pair)]:
                 reaction_handler = reaction_handlers[node.name]
                 link_layer_service = LinkLayerService(
@@ -188,14 +215,11 @@ def setup_link_layer_services(nodes, reaction_handlers, network_config=None):
     return link_layer_services
 
 
-def setup_magic_link_layer_protocol(node_pair, network_config=None):
-    # TODO use network config for setting up magic distributor
-    # magic_distributor = PerfectStateMagicDistributor(node_pair, state_delay=1)
-    magic_distributor = SingleClickMagicDistributor(nodes=node_pair, state_delay=1)
+def setup_magic_link_layer_protocol(node_pair, magic_connection: NoisyMagicConnection):
     translation_unit = SingleClickTranslationUnit()
     magic_protocol = MagicLinkLayerProtocol(
         nodes=node_pair,
-        magic_distributor=magic_distributor,
+        magic_distributor=magic_connection.get_distributor(),
         translation_unit=translation_unit,
     )
 
