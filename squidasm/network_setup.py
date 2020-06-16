@@ -23,8 +23,8 @@ class BackendNetwork(Network):
             self.init_default(node_names)
 
     def init_default(self, node_names):
-        for node_name in node_names:
-            node = Node(name=node_name, qmemory=QDevice())
+        for i, node_name in enumerate(node_names):
+            node = Node(name=node_name, ID=i, qmemory=QDevice())
             self.add_node(node)
 
         for node_name1 in self.nodes:

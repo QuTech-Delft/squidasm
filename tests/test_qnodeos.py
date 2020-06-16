@@ -1,11 +1,12 @@
 import logging
 import netsquid as ns
+from netsquid.nodes import Node
 
 from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
 from netqasm.sdk.shared_memory import reset_memories
 from netqasm.messages import Message, MessageType, InitNewAppMessage
-from squidasm.network_setup import get_node
+from squidasm.network_setup import QDevice
 from squidasm.qnodeos import SubroutineHandler
 from squidasm.queues import get_queue, Signal
 
@@ -13,7 +14,7 @@ from squidasm.queues import get_queue, Signal
 def test():
     set_log_level(logging.DEBUG)
     reset_memories()
-    alice = get_node(name="Alice", num_qubits=5)
+    alice = Node(name="Alice", qmemory=QDevice())
     subroutine_handler = SubroutineHandler(alice)
 
     # Put subroutine in queue

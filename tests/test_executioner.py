@@ -2,11 +2,12 @@ import logging
 import numpy as np
 import netsquid as ns
 from netsquid.protocols import NodeProtocol
+from netsquid.nodes import Node
 
 from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
 from squidasm.executioner import NetSquidExecutioner
-from squidasm.network_setup import get_node
+from squidasm.network_setup import QDevice
 
 
 def test_executioner():
@@ -30,7 +31,7 @@ ret_reg m!
 """
     subroutine = parse_text_subroutine(subroutine)
     app_id = 0
-    node = get_node("Alice")
+    node = Node("Alice", qmemory=QDevice())
     executioner = NetSquidExecutioner(node=node)
     # Consume the generator
     executioner.init_new_application(app_id=app_id, max_qubits=1)
@@ -39,7 +40,8 @@ ret_reg m!
         def run(self):
             yield from executioner.execute_subroutine(subroutine=subroutine)
 
-    prot = ExecuteProtocol(node=get_node("node"))
+    node = Node("node", qmemory=QDevice())
+    prot = ExecuteProtocol(node)
     prot.start()
     ns.sim_run()
 
