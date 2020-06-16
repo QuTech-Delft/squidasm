@@ -17,7 +17,7 @@ components:
         type: qdevice
         properties:
           num_qubits: 3
-          gate_fidelity: 1
+          gate_fidelity: 0.97
           T1: 0
           T2: 0
 
@@ -26,5 +26,5 @@ components:
     properties:
       node_name1: "alice"
       node_name2: "bob"
-      # noise_type: "NoNoise"
-      # fidelity: 1
+      noise_type: "Depolarise"
+      fidelity: 0.9
