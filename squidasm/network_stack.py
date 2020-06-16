@@ -16,7 +16,8 @@ from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 from netsquid_magic.magic_distributor import MagicDistributor
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
 from netsquid.nodes import Node, Connection
-from squidasm.network_config import NoisyMagicConnection
+# from squidasm.network_config import NoisyMagicConnection
+from squidasm.network_setup import BackendNetwork
 
 from netqasm.network_stack import BaseNetworkStack, Address
 
@@ -171,65 +172,36 @@ class NetworkStack(BaseNetworkStack):
             if (now - t_start) > timeout:
                 raise TimeoutError("Remote node did not initialize the correct rules")
 
-def get_connections_from_config(network_config):
-    components = network_config['components']
-    connections = []
-    for name, comp in components.items():
-        if isinstance(comp, NoisyMagicConnection):
-            connections.append(comp)
-    return connections
-
-def setup_link_layer_services(nodes, reaction_handlers, network_config=None):
-    node_names = list(nodes.keys())
+def setup_link_layer_services(network: BackendNetwork, reaction_handlers):
     link_layer_services = defaultdict(dict)
 
-    connections = get_connections_from_config(network_config)
+    for link in network.links:  # type(link) = MagicDistributor
+        node_pair = link.nodes[0]
 
-    for i, node_name1 in enumerate(node_names):
-        for j in range(i + 1, len(node_names)):
-            node_name2 = node_names[j]
-            node_pair = [nodes[node_name1], nodes[node_name2]]
-            magic_connection = None
+        magic_protocol = MagicLinkLayerProtocol(
+            nodes=node_pair,
+            magic_distributor=link,
+            translation_unit=SingleClickTranslationUnit()
+        )
 
-            for conn in connections:
-                if conn.nodeA == node_name1 and conn.nodeB == node_name2:
-                    magic_connection = conn
-            
-            if magic_connection is None:
-                magic_connection = NoisyMagicConnection("DefaultConnection", node_pair)
+        for node, remote_node in [node_pair, reversed(node_pair)]:
+            reaction_handler = reaction_handlers[node.name]
+            link_layer_service = LinkLayerService(
+                node=node,
+                magic=True,
+                magic_protocol=magic_protocol,
+                reaction_handler=reaction_handler,
+            )
+            link_layer_services[node.name][remote_node.ID] = link_layer_service
 
-            print(f"Noisy connection for pair ({node_name1}, {node_name2}) has type {magic_connection}")
-
-            magic_protocol = setup_magic_link_layer_protocol(node_pair, magic_connection)
-
-            for node, remote_node in [node_pair, reversed(node_pair)]:
-                reaction_handler = reaction_handlers[node.name]
-                link_layer_service = LinkLayerService(
-                    node=node,
-                    magic=True,
-                    magic_protocol=magic_protocol,
-                    reaction_handler=reaction_handler,
-                )
-                link_layer_services[node.name][remote_node.ID] = link_layer_service
 
     return link_layer_services
 
 
-def setup_magic_link_layer_protocol(node_pair, magic_connection: NoisyMagicConnection):
-    translation_unit = SingleClickTranslationUnit()
-    magic_protocol = MagicLinkLayerProtocol(
-        nodes=node_pair,
-        magic_distributor=magic_connection.get_distributor(),
-        translation_unit=translation_unit,
-    )
-
-    return magic_protocol
-
-
-def setup_network_stacks(nodes, reaction_handlers, network_config=None):
-    link_layer_services = setup_link_layer_services(nodes, reaction_handlers, network_config=network_config)
+def setup_network_stacks(network: BackendNetwork, reaction_handlers):
+    link_layer_services = setup_link_layer_services(network, reaction_handlers)
     network_stacks = {}
-    for node_name, node in nodes.items():
+    for node_name, node in network.nodes.items():
         network_stack = NetworkStack(node=node, link_layer_services=link_layer_services[node_name])
         network_stacks[node_name] = network_stack
 

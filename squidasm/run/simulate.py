@@ -19,8 +19,8 @@ from netsquid_netconf.builder import ComponentBuilder
 from netsquid_netconf.netconf import netconf_generator, Loader, _nested_dict_set
 from netsquid.components import instructions as ns_instructions
 
-from squidasm.network_setup import DemoQDevice
-from squidasm.network_config import NoisyMagicConnection, DepolariseMagicConnection, BitflipMagicConnection
+from squidasm.network_setup import QDevice, NodeLink
+# from squidasm.network_config import NoisyMagicConnection, DepolariseMagicConnection, BitflipMagicConnection
 
 logger = get_netqasm_logger()
 
@@ -46,10 +46,8 @@ def get_network_config_path(app_dir):
 
 def load_network_config(network_config_file):
     if os.path.exists(network_config_file):
-        ComponentBuilder.add_type("quantum_processor", QuantumProcessor)
-        ComponentBuilder.add_type("demo_qdevice", DemoQDevice)
-        ComponentBuilder.add_type("depolarize_connection", DepolariseMagicConnection)
-        ComponentBuilder.add_type("bitflip_connection", BitflipMagicConnection)
+        ComponentBuilder.add_type("qdevice", QDevice)
+        ComponentBuilder.add_type("link", NodeLink)
         generator = netconf_generator(network_config_file)
         return next(generator)
     else:

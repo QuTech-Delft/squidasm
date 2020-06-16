@@ -1,32 +1,20 @@
-qproc: &qproc
-  type: quantum_processor
-  properties:
-    num_positions: 2
-    phys_instructions: null
-
-default_qdevice: &default_qdevice
-  type: demo_qdevice
-  properties:
-    num_qubits: 3
-    gate_fidelity: 1
-    T1: 0
-    T2: 0
-
-node: &node
-  type: node
-
 components:
-  alice: &alice
+  alice:
     type: node
     components:
       qdevice:
-        << : *default_qdevice
+        type: qdevice
+        properties:
+          num_qubits: 3
+          gate_fidelity: 1
+          T1: 0
+          T2: 0
 
-  bob: &bob
+  bob:
     type: node
     components:
       qdevice:
-        type: demo_qdevice
+        type: qdevice
         properties:
           num_qubits: 3
           gate_fidelity: 1
@@ -34,9 +22,9 @@ components:
           T2: 0
 
   conn_alice_bob:
-    type: depolarize_connection
+    type: link
     properties:
-      end_points:
-        - alice
-        - bob
-      fidelity: 1
+      node_name1: "alice"
+      node_name2: "bob"
+      # noise_type: "NoNoise"
+      # fidelity: 1

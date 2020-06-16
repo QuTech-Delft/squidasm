@@ -1,41 +1,39 @@
 from enum import Enum, auto
+from dataclasses import dataclass
 
 import numpy as np
 import netsquid as ns
 from netsquid_magic.magic_distributor import MagicDistributor
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
-from netsquid.nodes import Node, Connection
+from netsquid.nodes import Node, Connection, Network
+from netsquid.components import Component
 
 
-class NoisyMagicConnection(Connection):
-    def __init__(self, name, end_points, distributor=None, fidelity=1):
+class NoiseType(Enum):
+    NoNoise = auto()
+    Depolarise = auto()
+    BitFlip = auto()
+
+    @staticmethod
+    def from_str(name: str):
+        if name == "NoNoise":
+            return NoiseType.NoNoise
+        elif name == "Depolarise":
+            return NoiseType.Depolarise
+        elif name == "BitFlip":
+            return NoiseType.BitFlip
+        else:
+            raise TypeError(f"Noise type {name} not valid")
+
+
+class NodeLink(Component):
+    def __init__(self, name, node_name1: str, node_name2: str, noise_type: str = "NoNoise", fidelity: float = 1):
         super().__init__(name)
-        self.nodeA = end_points[0]
-        self.nodeB = end_points[1]
+        self.node_name1: str = node_name1
+        self.node_name2: str = node_name2
+        self.noise_type = NoiseType.from_str(noise_type)
         self.fidelity = fidelity
-        self.distributor = distributor
-        if self.distributor is None:
-            self.distributor = PerfectStateMagicDistributor(nodes=end_points)
-
-    def get_distributor(self):
-        return self.distributor
-
-
-class DepolariseMagicConnection(NoisyMagicConnection):
-    def __init__(self, name, end_points, fidelity=1):
-        print(f"end_points: {end_points}")
-        print(f"end_points type: {type(end_points)}")
-        noise = 1 - fidelity
-        distributor = DepolariseMagicDistributor(nodes=end_points, noise=noise)
-        super().__init__(name, end_points, distributor=distributor, fidelity=fidelity)
-
-
-class BitflipMagicConnection(NoisyMagicConnection):
-    def __init__(self, name, end_points, fidelity=1):
-        flip_prob = 1 - fidelity
-        distributor = BitflipMagicDistributor(nodes=end_points, flip_prob=flip_prob)
-        super().__init__(name, end_points, distributor=distributor, fidelity=fidelity)
 
 
 class DepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
