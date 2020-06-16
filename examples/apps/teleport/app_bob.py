@@ -24,28 +24,22 @@ def main(track_lines=True, log_subroutines_dir=None, app_dir=None):
         epr_sockets=[epr_socket]
     )
     with bob:
-        outcomes = []
-        for _ in range(10):
-            epr = epr_socket.recv()[0]
-            m = epr.measure()
-            bob.flush()
-            outcomes.append(int(m))
+        epr = epr_socket.recv()[0]
+        bob.flush()
 
         # Get the corrections
-        # msg = socket.recv()
-        # logger.info(f"bob got corrections: {msg}")
-        # m1, m2 = eval(msg)
-        # if m2 == 1:
-        #     epr.X()
-        # if m1 == 1:
-        #     epr.Z()
+        msg = socket.recv()
+        logger.info(f"bob got corrections: {msg}")
+        m1, m2 = eval(msg)
+        if m2 == 1:
+            epr.X()
+        if m1 == 1:
+            epr.Z()
 
         # Get the qubit state
         # NOTE only possible in simulation, not part of actual application
-        # dm = get_qubit_state(epr)
-        # return {"qubit_state": dm.tolist()}
-
-    logger.warning(f"bob   outcomes: {outcomes}")
+        dm = get_qubit_state(epr)
+        return {"qubit_state": dm.tolist()}
 
 
 if __name__ == "__main__":

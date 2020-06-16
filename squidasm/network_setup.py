@@ -4,14 +4,10 @@ from netsquid.nodes import Node
 from netsquid.components import QuantumProcessor, PhysicalInstruction
 from netsquid.components import instructions as ns_instructions
 
-from netsquid_netconf.builder import ComponentBuilder
-from netsquid_netconf.netconf import netconf_generator, Loader, _nested_dict_set
-from netsquid.components import QuantumProcessor, PhysicalInstruction, Instruction
 from netsquid.components.models.qerrormodels import T1T2NoiseModel
-from netsquid.nodes import Node, Connection, Network
+from netsquid.nodes import Network
 from netsquid_magic.magic_distributor import MagicDistributor
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
-from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
 
 from squidasm.network_config import NodeLink, NoiseType, DepolariseMagicDistributor, BitflipMagicDistributor
 
@@ -30,7 +26,7 @@ class BackendNetwork(Network):
         for node_name in node_names:
             node = Node(name=node_name, qmemory=QDevice())
             self.add_node(node)
-            
+
         for node_name1 in self.nodes:
             for node_name2 in self.nodes:
                 if node_name1 == node_name2:
@@ -49,7 +45,6 @@ class BackendNetwork(Network):
             elif isinstance(comp, NodeLink):
                 link = self.get_link_distributor(comp)
                 self.links.append(link)
-
 
     def get_link_distributor(self, link: NodeLink):
         node1 = self.get_node(link.node_name1)
@@ -92,4 +87,8 @@ class QDevice(QuantumProcessor):
         phys_instrs = default_phys_instructions
         for instr in phys_instrs:
             instr.q_noise_model = T1T2NoiseModel(T1, T2)
-        super().__init__(name=name, num_positions=num_qubits, phys_instructions=phys_instrs, memory_noise_models=T1T2NoiseModel(T1, T2))
+        super().__init__(
+            name=name,
+            num_positions=num_qubits,
+            phys_instructions=phys_instrs,
+            memory_noise_models=T1T2NoiseModel(T1, T2))

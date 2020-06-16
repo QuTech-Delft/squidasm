@@ -13,14 +13,10 @@ from netqasm.yaml_util import load_yaml, dump_yaml
 from netqasm.output import InstrField
 from .run import run_applications
 
-from netsquid.components import QuantumProcessor, PhysicalInstruction, Instruction
-from netsquid.components.models.qerrormodels import QuantumErrorModel
 from netsquid_netconf.builder import ComponentBuilder
-from netsquid_netconf.netconf import netconf_generator, Loader, _nested_dict_set
-from netsquid.components import instructions as ns_instructions
+from netsquid_netconf.netconf import netconf_generator
 
 from squidasm.network_setup import QDevice, NodeLink
-# from squidasm.network_config import NoisyMagicConnection, DepolariseMagicConnection, BitflipMagicConnection
 
 logger = get_netqasm_logger()
 

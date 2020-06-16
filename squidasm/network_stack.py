@@ -9,14 +9,7 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocol,
     SingleClickTranslationUnit,
 )
-import numpy as np
-import netsquid as ns
 from netsquid_magic.sleeper import Sleeper
-from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
-from netsquid_magic.magic_distributor import MagicDistributor
-from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
-from netsquid.nodes import Node, Connection
-# from squidasm.network_config import NoisyMagicConnection
 from squidasm.network_setup import BackendNetwork
 
 from netqasm.network_stack import BaseNetworkStack, Address
@@ -172,6 +165,7 @@ class NetworkStack(BaseNetworkStack):
             if (now - t_start) > timeout:
                 raise TimeoutError("Remote node did not initialize the correct rules")
 
+
 def setup_link_layer_services(network: BackendNetwork, reaction_handlers):
     link_layer_services = defaultdict(dict)
 
@@ -193,7 +187,6 @@ def setup_link_layer_services(network: BackendNetwork, reaction_handlers):
                 reaction_handler=reaction_handler,
             )
             link_layer_services[node.name][remote_node.ID] = link_layer_service
-
 
     return link_layer_services
 

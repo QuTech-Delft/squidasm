@@ -1,12 +1,9 @@
 from enum import Enum, auto
-from dataclasses import dataclass
 
 import numpy as np
 import netsquid as ns
 from netsquid_magic.magic_distributor import MagicDistributor
-from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
-from netsquid.nodes import Node, Connection, Network
 from netsquid.components import Component
 
 
