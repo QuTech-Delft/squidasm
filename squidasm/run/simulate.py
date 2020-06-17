@@ -5,6 +5,8 @@ import pickle
 from runpy import run_path
 from datetime import datetime
 
+import netsquid as ns
+
 from netqasm.logging import (
     set_log_level,
     get_netqasm_logger,
@@ -155,6 +157,7 @@ def simulate_apps(
     log_level="WARNING",
     post_function_file=None,
     results_file=None,
+    formalism="KET",
 ):
 
     set_log_level(log_level)
@@ -201,12 +204,20 @@ def simulate_apps(
     # Load post function if exists
     post_function = load_post_function(post_function_file)
 
+    if formalism == "KET":
+        q_formalism = ns.QFormalism.KET
+    elif formalism == "DM":
+        q_formalism = ns.QFormalism.DM
+    else:
+        raise TypeError(f"Unknown formalism {formalism}")
+
     run_applications(
         applications=applications,
         network_config=network_config,
         instr_log_dir=timed_log_dir,
         post_function=post_function,
         results_file=results_file,
+        q_formalism=q_formalism
     )
 
     process_log(log_dir=timed_log_dir)
