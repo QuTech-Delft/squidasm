@@ -2,7 +2,7 @@ import netsquid as ns
 
 from squidasm.network_setup import BackendNetwork
 from squidasm.qnodeos import SubroutineHandler
-from squidasm.network_stack import setup_network_stacks
+from squidasm.network_stack import create_network_stacks
 
 
 _CURRENT_BACKEND = [None]
@@ -63,7 +63,7 @@ class Backend:
         reaction_handlers = {node_name: self._subroutine_handlers[node_name].get_epr_reaction_handler()
                              for node_name in self._nodes}
 
-        network_stacks = setup_network_stacks(
+        network_stacks = create_network_stacks(
             network=network,
             reaction_handlers=reaction_handlers,
         )

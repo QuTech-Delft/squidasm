@@ -1,28 +1,37 @@
 from typing import List
 
-from netsquid.nodes import Node
 from netsquid.components import QuantumProcessor, PhysicalInstruction
 from netsquid.components import instructions as ns_instructions
-
 from netsquid.components.models.qerrormodels import T1T2NoiseModel
-from netsquid.nodes import Network
-from netsquid_magic.magic_distributor import MagicDistributor
-from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
+from netsquid.nodes import Network, Node
+from netsquid_magic.magic_distributor import MagicDistributor, PerfectStateMagicDistributor
 
-from squidasm.network_config import NodeLink, NoiseType, DepolariseMagicDistributor, BitflipMagicDistributor
+from squidasm.network_config import NodeLinkConfig, NoiseType, DepolariseMagicDistributor, BitflipMagicDistributor
 
 
 class BackendNetwork(Network):
+    """
+    Represents the collection of nodes and links in the simulated network.
+    Apart from the `Nodes`s, it maintains a list of `MagicDistributor`s called "links",
+    which represent a entanglement-creating connection between 2 nodes.
+    """
+
     def __init__(self, node_names, network_config=None):
+        """
+        BackendNetwork constructor.
+        `network_config` should be a config object generated from `network.yaml`.
+        If None, a default network is constructed based on the names in `node_names`,
+        where each pair of nodes is connected with a perfect EPR distributor.
+        """
         super().__init__(name="BackendNetwork")
         self.links: List[MagicDistributor] = []
 
         if network_config is not None:
-            self.init_from_config(network_config)
+            self._init_from_config(network_config)
         else:
-            self.init_default(node_names)
+            self._init_default(node_names)
 
-    def init_default(self, node_names):
+    def _init_default(self, node_names):
         for i, node_name in enumerate(node_names):
             node = Node(name=node_name, ID=i, qmemory=QDevice())
             self.add_node(node)
@@ -31,22 +40,26 @@ class BackendNetwork(Network):
             for node_name2 in self.nodes:
                 if node_name1 == node_name2:
                     continue
-                node_link = NodeLink(name="", node_name1=node_name1, node_name2=node_name2)
-                link = self.get_link_distributor(node_link)
+                link_config = NodeLinkConfig(name="", node_name1=node_name1, node_name2=node_name2)
+                link = self.get_link_distributor(link_config)
                 self.links.append(link)
 
         pass
 
-    def init_from_config(self, network_config):
+    def _init_from_config(self, network_config):
         components = network_config["components"]
         for comp in components.values():
             if isinstance(comp, Node):
                 self.add_node(comp)
-            elif isinstance(comp, NodeLink):
+            elif isinstance(comp, NodeLinkConfig):
                 link = self.get_link_distributor(comp)
                 self.links.append(link)
 
-    def get_link_distributor(self, link: NodeLink):
+    def get_link_distributor(self, link: NodeLinkConfig) -> MagicDistributor:
+        """
+        Create a MagicDistributor for a pair of nodes,
+        based on configuration in a `NodeLinkConfig` object.
+        """
         node1 = self.get_node(link.node_name1)
         node2 = self.get_node(link.node_name2)
 
@@ -62,33 +75,38 @@ class BackendNetwork(Network):
             raise TypeError(f"Noise type {link.noise_type} not valid")
 
 
-default_phys_instructions = [
-    PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),
-    PhysicalInstruction(ns_instructions.INSTR_X, duration=2),
-    PhysicalInstruction(ns_instructions.INSTR_Y, duration=2),
-    PhysicalInstruction(ns_instructions.INSTR_Z, duration=2),
-    PhysicalInstruction(ns_instructions.INSTR_H, duration=3),
-    PhysicalInstruction(ns_instructions.INSTR_K, duration=3),
-    PhysicalInstruction(ns_instructions.INSTR_S, duration=3),
-    PhysicalInstruction(ns_instructions.INSTR_T, duration=4),
-    PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=4),
-    PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=4),
-    PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=4),
-    PhysicalInstruction(ns_instructions.INSTR_CNOT, duration=5),
-    PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5),
-]
-
-
 class QDevice(QuantumProcessor):
+    """
+    A wrapper around a NetSquid `QuantumProcessor`, allowing specification
+    of gate fidelity (applying to all gates), and T1 and T2 values (applying to all qubits).
+    """
     def __init__(self, name="QDevice", num_qubits=5, gate_fidelity=1, T1=0, T2=0):
         self.gate_fidelity = gate_fidelity
         self.T1 = T1
         self.T2 = T2
-        phys_instrs = default_phys_instructions
+        phys_instrs = QDevice._default_phys_instructions
         for instr in phys_instrs:
             instr.q_noise_model = T1T2NoiseModel(T1, T2)
+
         super().__init__(
             name=name,
             num_positions=num_qubits,
             phys_instructions=phys_instrs,
             memory_noise_models=T1T2NoiseModel(T1, T2))
+
+    # durations are arbitrary
+    _default_phys_instructions = [
+        PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),
+        PhysicalInstruction(ns_instructions.INSTR_X, duration=2),
+        PhysicalInstruction(ns_instructions.INSTR_Y, duration=2),
+        PhysicalInstruction(ns_instructions.INSTR_Z, duration=2),
+        PhysicalInstruction(ns_instructions.INSTR_H, duration=3),
+        PhysicalInstruction(ns_instructions.INSTR_K, duration=3),
+        PhysicalInstruction(ns_instructions.INSTR_S, duration=3),
+        PhysicalInstruction(ns_instructions.INSTR_T, duration=4),
+        PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=4),
+        PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=4),
+        PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=4),
+        PhysicalInstruction(ns_instructions.INSTR_CNOT, duration=5),
+        PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5),
+    ]

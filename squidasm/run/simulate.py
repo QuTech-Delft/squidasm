@@ -18,7 +18,7 @@ from .run import run_applications
 from netsquid_netconf.builder import ComponentBuilder
 from netsquid_netconf.netconf import netconf_generator
 
-from squidasm.network_setup import QDevice, NodeLink
+from squidasm.network_setup import QDevice, NodeLinkConfig
 
 logger = get_netqasm_logger()
 
@@ -45,7 +45,7 @@ def get_network_config_path(app_dir):
 def load_network_config(network_config_file):
     if os.path.exists(network_config_file):
         ComponentBuilder.add_type("qdevice", QDevice)
-        ComponentBuilder.add_type("link", NodeLink)
+        ComponentBuilder.add_type("link", NodeLinkConfig)
         generator = netconf_generator(network_config_file)
         return next(generator)
     else:

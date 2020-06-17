@@ -24,16 +24,42 @@ class NoiseType(Enum):
             raise TypeError(f"Noise type {name} not valid")
 
 
-class NodeLink(Component):
-    def __init__(self, name, node_name1: str, node_name2: str, noise_type: str = "NoNoise", fidelity: float = 1):
+class NodeLinkConfig(Component):
+    """
+    Describes a connection between two nodes that can generate entanglement
+    with each other.
+
+    `NodeLinkConfig`s are used to create a `MagicDistributor` from, in the
+    context of a network that can map node names to actual Node objects.
+
+    Parameters
+    ----------
+    `noise_type`: either a `NoiseType` variant, or a string. A string is
+        automatically converted into the corresponding variant.
+        The string representation is convenient for writing it in a
+        `network.yaml` file.
+    `fidelity`: float
+        Fidelity of the link. What this means exactly depends on the noise type.
+
+    """
+    def __init__(self, name, node_name1: str, node_name2: str, noise_type=NoiseType.NoNoise, fidelity=1):
         super().__init__(name)
         self.node_name1: str = node_name1
         self.node_name2: str = node_name2
-        self.noise_type = NoiseType.from_str(noise_type)
+
+        if isinstance(noise_type, str):
+            self.noise_type = NoiseType.from_str(noise_type)
+        else:
+            self.noise_type = noise_type
         self.fidelity = fidelity
 
 
 class DepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
+    """
+    A factory for samplers that produce either an EPR pair, or the maximally
+    mixed state over the two 2 nodes (I/4). The latter is samples with
+    probablity `noise`.
+    """
     def __init__(self):
         super().__init__(func_delivery=self._delivery_func,
                          func_success_probability=self._get_success_probability)
@@ -60,6 +86,10 @@ class DepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
 
 
 class DepolariseMagicDistributor(MagicDistributor):
+    """
+    Distributes (noisy) EPR pairs to 2 connected nodes, using samplers created
+    by a `DepolariseStateSamplerFactory`.
+    """
     def __init__(self, nodes, noise, **kwargs):
         self.noise = noise
         super().__init__(delivery_sampler_factory=DepolariseStateSamplerFactory(), nodes=nodes, **kwargs)
@@ -69,6 +99,11 @@ class DepolariseMagicDistributor(MagicDistributor):
 
 
 class BitflipStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
+    """
+    A factory for samplers that produce either a perfect EPR pair,
+    or an EPR pair where an X gate is applied to one of the qubits ("bit flip").
+    The bit flip happens with probability `flip_prob`.
+    """
     def __init__(self):
         super().__init__(func_delivery=self._delivery_bit_flip,
                          func_success_probability=self._get_success_probability)
@@ -83,6 +118,10 @@ class BitflipStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
 
 
 class BitflipMagicDistributor(MagicDistributor):
+    """
+    Distributes (noisy) EPR pairs to 2 connected nodes, using samplers created
+    by a `BitflipSamplerFactory`.
+    """
     def __init__(self, nodes, flip_prob, **kwargs):
         self.flip_prob = flip_prob
         super().__init__(delivery_sampler_factory=BitflipStateSamplerFactory(), nodes=nodes, **kwargs)

@@ -10,9 +10,9 @@ from netsquid_magic.link_layer import (
     SingleClickTranslationUnit,
 )
 from netsquid_magic.sleeper import Sleeper
-from squidasm.network_setup import BackendNetwork
 
 from netqasm.network_stack import BaseNetworkStack, Address
+from squidasm.network_setup import BackendNetwork
 
 
 # NOTE This is a hack for now to have something that the signaling protocol would do
@@ -166,7 +166,13 @@ class NetworkStack(BaseNetworkStack):
                 raise TimeoutError("Remote node did not initialize the correct rules")
 
 
-def setup_link_layer_services(network: BackendNetwork, reaction_handlers):
+def create_link_layer_services(network: BackendNetwork, reaction_handlers):
+    """
+    Create a dictionary mapping (node name, remote node ID) to a LinkLayerService object.
+    A service is created for each 'link' that is in the `network` object.
+
+    Returns the dictionary of service objects.
+    """
     link_layer_services = defaultdict(dict)
 
     for link in network.links:  # type(link) = MagicDistributor
@@ -191,8 +197,21 @@ def setup_link_layer_services(network: BackendNetwork, reaction_handlers):
     return link_layer_services
 
 
-def setup_network_stacks(network: BackendNetwork, reaction_handlers):
-    link_layer_services = setup_link_layer_services(network, reaction_handlers)
+def create_network_stacks(network: BackendNetwork, reaction_handlers):
+    """
+    Create a NetworkStack object for each node in the `network`.
+
+    Parameters
+    ----------
+    `reaction_handlers`: dict
+        Keys are the names of the nodes.
+        Values are the reaction handler used in the node's link layer service.
+
+    Returns
+    -------
+    A dictionary mapping node names to newly created NetworkStack objects.
+    """
+    link_layer_services = create_link_layer_services(network, reaction_handlers)
     network_stacks = {}
     for node_name, node in network.nodes.items():
         network_stack = NetworkStack(node=node, link_layer_services=link_layer_services[node_name])
