@@ -464,7 +464,7 @@ def test_teleport_without_corrections():
 
 def test_teleport():
     def run_alice():
-        socket = ThreadSocket("Alice", "Bob", track_lines=False)
+        socket = ThreadSocket("Alice", "Bob")
         epr_socket = EPRSocket("Bob")
         with NetSquidConnection("Alice", epr_sockets=[epr_socket]) as alice:
             # Create a qubit
@@ -487,7 +487,7 @@ def test_teleport():
         socket.send(msg)
 
     def run_bob():
-        socket = ThreadSocket("Bob", "Alice", track_lines=False)
+        socket = ThreadSocket("Bob", "Alice")
         epr_socket = EPRSocket("Alice")
         with NetSquidConnection("Bob", epr_sockets=[epr_socket]) as bob:
             epr = epr_socket.recv()[0]
