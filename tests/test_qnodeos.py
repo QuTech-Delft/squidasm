@@ -7,13 +7,14 @@ from netqasm.sdk.shared_memory import reset_memories
 from netqasm.messages import Message, MessageType, InitNewAppMessage
 from squidasm.network_setup import get_node
 from squidasm.qnodeos import SubroutineHandler
-from squidasm.queues import get_queue, Signal
+from squidasm.queues import get_queue
 
 
 def test():
+    ns.sim_reset()
     set_log_level(logging.DEBUG)
     reset_memories()
-    alice = get_node(name="Alice", num_qubits=5)
+    alice = get_node(name="Alice")
     subroutine_handler = SubroutineHandler(alice)
 
     # Put subroutine in queue
@@ -47,14 +48,12 @@ ret_reg m!
     # Put the subroutine
     subroutine = parse_text_subroutine(subroutine)
     queue.put(Message(type=MessageType.SUBROUTINE, msg=bytes(subroutine)))
-    # Make sure to signal to stop after
-    queue.put(Message(type=MessageType.SIGNAL, msg=Signal.STOP))
 
     # Starting subroutine
     subroutine_handler.start()
 
     # Starting netsquid
-    ns.sim_run()
+    ns.sim_run(1000)
 
     shared_memory = subroutine_handler._executioner._shared_memories[app_id]
     m = shared_memory.get_register(parse_register("M0"))

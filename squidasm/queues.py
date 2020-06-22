@@ -17,6 +17,7 @@ def get_queue(node_name, key=None, create_new=False, wait_for=5.0):
             _QUEUES[absolute_key] = queue
         else:
             queue = wait_for_queue_creation(absolute_key, wait_for)
+    return queue
 
 
 class TaskQueue:
