@@ -17,8 +17,6 @@ def test_bi_directional_teleport():
         # Teleport operations
         q.cnot(epr)
         q.H()
-        # m1 = q.measure(inplace=True)
-        # m2 = epr.measure(inplace=True)
         m1 = q.measure()
         m2 = epr.measure()
 
@@ -141,12 +139,7 @@ wait_all @0[0:1]
     })
 
 
-import faulthandler, signal
-faulthandler.register(signal.SIGUSR1)
-
 if __name__ == "__main__":
     set_log_level('WARNING')
-    # set_log_level('INFO')
-    # set_log_level('WARNING')
     test_bi_directional_teleport()
-    # test_parallel_execution()
+    test_parallel_execution()
