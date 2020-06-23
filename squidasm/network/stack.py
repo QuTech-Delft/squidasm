@@ -12,7 +12,7 @@ from netsquid_magic.link_layer import (
 from netsquid_magic.sleeper import Sleeper
 
 from netqasm.network_stack import BaseNetworkStack, Address
-from squidasm.network_setup import BackendNetwork
+from .setup import BackendNetwork
 
 
 # NOTE This is a hack for now to have something that the signaling protocol would do

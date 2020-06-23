@@ -7,7 +7,7 @@ from netsquid.nodes import Node
 from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
 from squidasm.executioner import NetSquidExecutioner
-from squidasm.network_setup import QDevice
+from squidasm.network import QDevice
 
 
 def test_executioner():

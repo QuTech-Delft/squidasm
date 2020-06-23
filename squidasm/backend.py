@@ -1,8 +1,7 @@
 import netsquid as ns
 
-from squidasm.network_setup import BackendNetwork
+from squidasm.network import BackendNetwork, create_network_stacks
 from squidasm.qnodeos import SubroutineHandler
-from squidasm.network_stack import create_network_stacks
 
 
 _CURRENT_BACKEND = [None]

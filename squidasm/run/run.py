@@ -8,7 +8,7 @@ from netqasm.yaml_util import dump_yaml
 from netqasm.output import save_all_struct_loggers
 from squidasm.backend import Backend
 from squidasm.thread_util import as_completed
-from squidasm.network_stack import reset_network
+from squidasm.network import reset_network
 
 logger = get_netqasm_logger()
 

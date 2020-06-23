@@ -6,7 +6,7 @@ from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
 from netqasm.sdk.shared_memory import reset_memories
 from netqasm.messages import Message, MessageType, InitNewAppMessage
-from squidasm.network_setup import QDevice
+from squidasm.network import QDevice
 from squidasm.qnodeos import SubroutineHandler
 from squidasm.queues import get_queue, Signal
 

@@ -19,7 +19,7 @@ from netqasm.sdk.config import default_log_config
 from netsquid_netconf.builder import ComponentBuilder
 from netsquid_netconf.netconf import netconf_generator
 
-from squidasm.network_setup import QDevice, NodeLinkConfig
+from squidasm.network import QDevice, NodeLinkConfig
 
 logger = get_netqasm_logger()
 

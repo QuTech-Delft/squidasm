@@ -6,7 +6,7 @@ from netsquid.components.models.qerrormodels import T1T2NoiseModel
 from netsquid.nodes import Network, Node
 from netsquid_magic.magic_distributor import MagicDistributor, PerfectStateMagicDistributor
 
-from squidasm.network_config import NodeLinkConfig, NoiseType, DepolariseMagicDistributor, BitflipMagicDistributor
+from .config import NodeLinkConfig, NoiseType, DepolariseMagicDistributor, BitflipMagicDistributor
 
 
 class BackendNetwork(Network):
