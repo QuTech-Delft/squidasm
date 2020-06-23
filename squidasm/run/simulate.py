@@ -14,6 +14,7 @@ from netqasm.logging import (
 from netqasm.yaml_util import load_yaml, dump_yaml
 from netqasm.output import InstrField
 from .run import run_applications
+from netqasm.sdk.config import default_log_config
 
 from netsquid_netconf.builder import ComponentBuilder
 from netsquid_netconf.netconf import netconf_generator
@@ -150,6 +151,7 @@ def get_results_path(timed_log_dir):
 
 def simulate_apps(
     app_dir=None,
+    lib_dirs=[],
     track_lines=True,
     app_config_dir=None,
     network_config_file=None,
@@ -167,6 +169,9 @@ def simulate_apps(
         app_dir = os.path.abspath('.')
     else:
         app_dir = os.path.expanduser(app_dir)
+
+    for lib_dir in lib_dirs:
+        sys.path.append(lib_dir)
 
     sys.path.append(app_dir)
 
@@ -189,14 +194,19 @@ def simulate_apps(
     if results_file is None:
         results_file = get_results_path(timed_log_dir)
 
+    log_config = default_log_config()
+    log_config.track_lines = track_lines
+    log_config.log_subroutines_dir = timed_log_dir
+    log_config.comm_log_dir = timed_log_dir
+    log_config.app_dir = app_dir
+    log_config.lib_dirs = lib_dirs
+
     # Load app functions and configs to run
     applications = {}
     for node_name, app_file in app_files.items():
         app_main = run_path(os.path.join(app_dir, app_file))['main']
         app_config = load_app_config(app_config_dir, node_name)
-        app_config['track_lines'] = track_lines
-        app_config['log_subroutines_dir'] = timed_log_dir
-        app_config['app_dir'] = app_dir
+        app_config["log_config"] = log_config
         applications[node_name] = app_main, app_config
 
     network_config = load_network_config(network_config_file)

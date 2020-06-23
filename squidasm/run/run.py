@@ -78,6 +78,7 @@ def run_applications(
             save_results(results=results, results_file=results_file)
 
     reset()
+    return results
 
 
 def save_results(results, results_file):
