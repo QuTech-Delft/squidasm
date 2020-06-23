@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Enum
 
 import numpy as np
 import netsquid as ns
@@ -8,20 +8,9 @@ from netsquid.components import Component
 
 
 class NoiseType(Enum):
-    NoNoise = auto()
-    Depolarise = auto()
-    BitFlip = auto()
-
-    @staticmethod
-    def from_str(name: str):
-        if name == "NoNoise":
-            return NoiseType.NoNoise
-        elif name == "Depolarise":
-            return NoiseType.Depolarise
-        elif name == "BitFlip":
-            return NoiseType.BitFlip
-        else:
-            raise TypeError(f"Noise type {name} not valid")
+    NoNoise = "NoNoise"
+    Depolarise = "Depolarise"
+    BitFlip = "Bitflip"
 
 
 class NodeLinkConfig(Component):
@@ -46,11 +35,7 @@ class NodeLinkConfig(Component):
         super().__init__(name)
         self.node_name1: str = node_name1
         self.node_name2: str = node_name2
-
-        if isinstance(noise_type, str):
-            self.noise_type = NoiseType.from_str(noise_type)
-        else:
-            self.noise_type = noise_type
+        self.noise_type = NoiseType(noise_type)
         self.fidelity = fidelity
 
 
