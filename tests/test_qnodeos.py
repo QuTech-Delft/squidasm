@@ -3,17 +3,17 @@ import netsquid as ns
 
 from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
-from netqasm.sdk.shared_memory import reset_memories
 from netqasm.messages import Message, MessageType, InitNewAppMessage
 from squidasm.network_setup import get_node
 from squidasm.qnodeos import SubroutineHandler
 from squidasm.queues import get_queue
+from squidasm.run import reset
 
 
 def test():
     ns.sim_reset()
     set_log_level(logging.DEBUG)
-    reset_memories()
+    reset()
     alice = get_node(name="Alice")
     subroutine_handler = SubroutineHandler(alice)
 
@@ -58,3 +58,4 @@ ret_reg m!
     shared_memory = subroutine_handler._executioner._shared_memories[app_id]
     m = shared_memory.get_register(parse_register("M0"))
     assert m in set([0, 1])
+    reset()

@@ -9,14 +9,18 @@ from netqasm.output import save_all_struct_loggers
 from squidasm.backend import Backend
 from squidasm.thread_util import as_completed
 from squidasm.network_stack import reset_network
+from squidasm.queues import reset_queues
 
 logger = get_netqasm_logger()
 
 
-def reset():
-    save_all_struct_loggers()
+def reset(save_loggers=False):
+    if save_loggers:
+        save_all_struct_loggers()
+    ns.sim_reset()
     reset_memories()
     reset_network()
+    reset_queues()
 
 
 def run_applications(
@@ -77,7 +81,7 @@ def run_applications(
         if results_file is not None:
             save_results(results=results, results_file=results_file)
 
-    reset()
+    reset(save_loggers=True)
 
 
 def save_results(results, results_file):

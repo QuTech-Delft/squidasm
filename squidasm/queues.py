@@ -20,6 +20,11 @@ def get_queue(node_name, key=None, create_new=False, wait_for=5.0):
     return queue
 
 
+def reset_queues():
+    while len(_QUEUES) > 0:
+        _QUEUES.popitem()
+
+
 class TaskQueue:
     """Subclass Queue which allow to wait for a specific task to be done and not only all"""
     def __init__(self):
