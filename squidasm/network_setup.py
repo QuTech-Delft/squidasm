@@ -80,21 +80,8 @@ class QDevice(QuantumProcessor):
     A wrapper around a NetSquid `QuantumProcessor`, allowing specification
     of gate fidelity (applying to all gates), and T1 and T2 values (applying to all qubits).
     """
-    def __init__(self, name="QDevice", num_qubits=5, gate_fidelity=1, T1=0, T2=0):
-        self.gate_fidelity = gate_fidelity
-        self.T1 = T1
-        self.T2 = T2
-        phys_instrs = QDevice._default_phys_instructions
-        for instr in phys_instrs:
-            instr.q_noise_model = T1T2NoiseModel(T1, T2)
 
-        super().__init__(
-            name=name,
-            num_positions=num_qubits,
-            phys_instructions=phys_instrs,
-            memory_noise_models=T1T2NoiseModel(T1, T2))
-
-    # durations are arbitrary
+    # Default instructions. Durations are arbitrary
     _default_phys_instructions = [
         PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),
         PhysicalInstruction(ns_instructions.INSTR_X, duration=2),
@@ -110,3 +97,17 @@ class QDevice(QuantumProcessor):
         PhysicalInstruction(ns_instructions.INSTR_CNOT, duration=5),
         PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5),
     ]
+
+    def __init__(self, name="QDevice", num_qubits=5, gate_fidelity=1, T1=0, T2=0):
+        self.gate_fidelity = gate_fidelity
+        self.T1 = T1
+        self.T2 = T2
+        phys_instrs = QDevice._default_phys_instructions
+        for instr in phys_instrs:
+            instr.q_noise_model = T1T2NoiseModel(T1, T2)
+
+        super().__init__(
+            name=name,
+            num_positions=num_qubits,
+            phys_instructions=phys_instrs,
+            memory_noise_models=T1T2NoiseModel(T1, T2))
