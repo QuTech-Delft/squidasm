@@ -2,8 +2,7 @@ from src.protocol import anonymous_transmission
 
 
 def main(
-    track_lines=True,
-    log_subroutines_dir=None,
+    log_config=None,
     sender=False,
     receiver=False,
     phi=0.,
@@ -12,8 +11,7 @@ def main(
 
     return anonymous_transmission(
         node_name='alice',
-        log_subroutines_dir=log_subroutines_dir,
-        track_lines=track_lines,
+        log_config=log_config,
         sender=sender,
         receiver=receiver,
         phi=phi,
