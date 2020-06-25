@@ -1,3 +1,5 @@
+import logging
+from importlib import reload
 from multiprocessing.pool import ThreadPool
 
 import netsquid as ns
@@ -24,6 +26,9 @@ def reset(save_loggers=False):
     reset_queues()
     reset_socket_hub()
     reset_struct_loggers()
+    # Reset logging
+    logging.shutdown()
+    reload(logging)
 
 
 def run_applications(

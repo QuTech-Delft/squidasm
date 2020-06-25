@@ -11,9 +11,7 @@ from squidasm.run import reset
 
 
 def test():
-    ns.sim_reset()
     set_log_level(logging.DEBUG)
-    reset()
     alice = get_node(name="Alice")
     subroutine_handler = SubroutineHandler(alice)
 
