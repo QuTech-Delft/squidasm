@@ -159,6 +159,7 @@ def simulate_apps(
     else:
         app_dir = os.path.expanduser(app_dir)
 
+    # Add lib_dirs and app_dir to path so scripts can be loaded
     for lib_dir in lib_dirs:
         sys.path.append(lib_dir)
 

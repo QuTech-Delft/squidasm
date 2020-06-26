@@ -1,3 +1,5 @@
+import logging
+from importlib import reload
 from multiprocessing.pool import ThreadPool
 
 import netsquid as ns
@@ -5,18 +7,28 @@ import netsquid as ns
 from netqasm.sdk.shared_memory import reset_memories
 from netqasm.logging import get_netqasm_logger
 from netqasm.yaml_util import dump_yaml
-from netqasm.output import save_all_struct_loggers
+from netqasm.output import save_all_struct_loggers, reset_struct_loggers
+from netqasm.sdk.classical_communication import reset_socket_hub
 from squidasm.backend import Backend
 from squidasm.thread_util import as_completed
 from squidasm.network_stack import reset_network
+from squidasm.queues import reset_queues
 
 logger = get_netqasm_logger()
 
 
-def reset():
-    save_all_struct_loggers()
+def reset(save_loggers=False):
+    if save_loggers:
+        save_all_struct_loggers()
+    ns.sim_reset()
     reset_memories()
     reset_network()
+    reset_queues()
+    reset_socket_hub()
+    reset_struct_loggers()
+    # Reset logging
+    logging.shutdown()
+    reload(logging)
 
 
 def run_applications(
@@ -77,7 +89,7 @@ def run_applications(
         if results_file is not None:
             save_results(results=results, results_file=results_file)
 
-    reset()
+    reset(save_loggers=True)
     return results
 
 
