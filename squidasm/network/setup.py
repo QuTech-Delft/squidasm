@@ -68,7 +68,7 @@ class BackendNetwork(Network):
         elif link.noise_type == NoiseType.Depolarise:
             noise = 1 - link.fidelity
             return DepolariseMagicDistributor(nodes=[node1, node2], noise=noise)
-        elif link.noise_type == NoiseType.BitFlip:
+        elif link.noise_type == NoiseType.Bitflip:
             flip_prob = 1 - link.fidelity
             return BitflipMagicDistributor(nodes=[node1, node2], flip_prob=flip_prob)
         else:

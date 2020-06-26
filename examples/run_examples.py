@@ -16,6 +16,7 @@ def main():
     path_to_here = os.path.dirname(os.path.abspath(__file__))
 
     for root, folders, files in os.walk(path_to_here):
+        print(f"root: {root}, folders: {folders}")
         for filename in files:
             if filename.startswith("example") and filename.endswith(".py"):
                 filepath = os.path.join(root, filename)

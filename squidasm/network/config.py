@@ -10,7 +10,7 @@ from netsquid.components import Component
 class NoiseType(Enum):
     NoNoise = "NoNoise"
     Depolarise = "Depolarise"
-    BitFlip = "Bitflip"
+    Bitflip = "Bitflip"
 
 
 class NodeLinkConfig(Component):

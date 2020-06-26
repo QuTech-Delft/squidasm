@@ -6,15 +6,13 @@ from netqasm.logging import get_netqasm_logger
 logger = get_netqasm_logger()
 
 
-def main(track_lines=True, app_dir=None, log_subroutines_dir=None, phi=0., theta=0.):
+def main(log_config):
     epr_socket_alice = EPRSocket("alice")
     epr_socket_bob = EPRSocket("bob")
 
     alice = NetSquidConnection(
         name="charlie",
-        track_lines=track_lines,
-        app_dir=app_dir,
-        log_subroutines_dir=log_subroutines_dir,
+        log_config=log_config,
         epr_sockets=[epr_socket_alice, epr_socket_bob]
     )
     with alice:

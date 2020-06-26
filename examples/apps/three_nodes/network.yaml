@@ -53,5 +53,5 @@ components:
     properties:
       node_name1: "charlie"
       node_name2: "alice"
-      noise_type: "BitFlip"
+      noise_type: "Bitflip"
       fidelity: 0.74
