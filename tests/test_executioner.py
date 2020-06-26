@@ -8,6 +8,7 @@ from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
 from squidasm.executioner import NetSquidExecutioner
 from squidasm.network import QDevice
+from squidasm.run import reset
 
 
 def test_executioner():
@@ -52,3 +53,4 @@ ret_reg m!
     dm = qubit.qstate.dm
     expected_dm = np.array([[1, 0], [0, 0]])
     assert np.all(np.isclose(dm, expected_dm))
+    reset()

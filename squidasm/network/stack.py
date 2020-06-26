@@ -97,7 +97,7 @@ class NetworkStack(BaseNetworkStack):
             raise ValueError(f"The node with ID {remote_node_id} is not known to the network")
         return link_layer_service.put(request)
 
-    def setup_epr_socket(self, epr_socket_id, remote_node_id, remote_epr_socket_id, timeout=1):
+    def setup_epr_socket(self, epr_socket_id, remote_node_id, remote_epr_socket_id, timeout=5):
         """Asks the network stack to setup circuits to be used"""
         local_address = Address(
             node_id=self._node.ID,

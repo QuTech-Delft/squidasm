@@ -13,11 +13,49 @@ def get_queue(node_name, key=None, create_new=False, wait_for=5.0):
     queue = _QUEUES.get(absolute_key)
     if queue is None:
         if create_new:
-            queue = Queue()
+            queue = TaskQueue()
             _QUEUES[absolute_key] = queue
         else:
             queue = wait_for_queue_creation(absolute_key, wait_for)
     return queue
+
+
+def reset_queues():
+    while len(_QUEUES) > 0:
+        _QUEUES.popitem()
+
+
+class TaskQueue:
+    """Subclass Queue which allow to wait for a specific task to be done and not only all"""
+    def __init__(self):
+        self._queue = Queue()
+        self._fin_tasks = set()
+
+    def qsize(self):
+        return self._queue.qsize()
+
+    def empty(self):
+        return self._queue.empty()
+
+    def full(self):
+        return self._queue.full()
+
+    def get(self, block=True, timeout=None):
+        return self._queue.get(block=block, timeout=timeout)
+
+    def put(self, item, block=True, timeout=None):
+        return self._queue.put(item=item, block=block, timeout=timeout)
+
+    def task_done(self, item):
+        self._fin_tasks.add(item)
+        return self._queue.task_done()
+
+    def join_task(self, item):
+        while item not in self._fin_tasks:
+            pass
+
+    def join(self):
+        return self._queue.join()
 
 
 def wait_for_queue_creation(absolute_key, timeout=5.0):

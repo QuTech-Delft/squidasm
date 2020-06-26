@@ -48,7 +48,7 @@ def get_node_name(node_id):
 
 
 class Backend:
-    def __init__(self, node_names, node_ids=None, num_qubits=5, instr_log_dir=None, network_config=None):
+    def __init__(self, node_names, node_ids=None, instr_log_dir=None, network_config=None):
         """Sets up the qmemories, nodes, connections and subroutine-handlers
         used to process NetQASM instructions.
 
