@@ -4,9 +4,14 @@ from netsquid.components import QuantumProcessor, PhysicalInstruction
 from netsquid.components import instructions as ns_instructions
 from netsquid.components.models.qerrormodels import T1T2NoiseModel
 from netsquid.nodes import Network, Node
-from netsquid_magic.magic_distributor import MagicDistributor, PerfectStateMagicDistributor
+from netsquid_magic.magic_distributor import (
+    MagicDistributor,
+    PerfectStateMagicDistributor,
+    DepolariseMagicDistributor,
+    BitflipMagicDistributor
+)
 
-from .config import NodeLinkConfig, NoiseType, DepolariseMagicDistributor, BitflipMagicDistributor
+from .config import NodeLinkConfig, NoiseType
 
 
 class BackendNetwork(Network):
@@ -67,7 +72,7 @@ class BackendNetwork(Network):
             return PerfectStateMagicDistributor(nodes=[node1, node2])
         elif link.noise_type == NoiseType.Depolarise:
             noise = 1 - link.fidelity
-            return DepolariseMagicDistributor(nodes=[node1, node2], noise=noise)
+            return DepolariseMagicDistributor(nodes=[node1, node2], prob_max_mixed=noise)
         elif link.noise_type == NoiseType.Bitflip:
             flip_prob = 1 - link.fidelity
             return BitflipMagicDistributor(nodes=[node1, node2], flip_prob=flip_prob)
