@@ -13,6 +13,9 @@ from netsquid_magic.magic_distributor import (
 
 from .config import NodeLinkConfig, NoiseType
 
+from netqasm.logging import get_netqasm_logger
+logger = get_netqasm_logger()
+
 
 class BackendNetwork(Network):
     """
@@ -55,6 +58,10 @@ class BackendNetwork(Network):
         components = network_config["components"]
         for comp in components.values():
             if isinstance(comp, Node):
+                # TODO: Make this nicer
+                # For now it's a quick fix to work with netsquid 0.9.8 (addition of ComponentHierarchyError)
+                super_comp = comp.supercomponent
+                super_comp.rem_subcomponent(comp.name)
                 self.add_node(comp)
             elif isinstance(comp, NodeLinkConfig):
                 link = self.get_link_distributor(comp)
