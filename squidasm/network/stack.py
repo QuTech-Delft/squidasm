@@ -10,9 +10,9 @@ from netsquid_magic.link_layer import (
     SingleClickTranslationUnit,
 )
 from netsquid_magic.sleeper import Sleeper
-from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 
 from netqasm.network_stack import BaseNetworkStack, Address
+from .setup import BackendNetwork
 
 
 # NOTE This is a hack for now to have something that the signaling protocol would do
@@ -166,44 +166,54 @@ class NetworkStack(BaseNetworkStack):
                 raise TimeoutError("Remote node did not initialize the correct rules")
 
 
-def setup_link_layer_services(nodes, reaction_handlers, network_config=None):
-    node_names = list(nodes.keys())
+def create_link_layer_services(network: BackendNetwork, reaction_handlers):
+    """
+    Create a dictionary mapping (node name, remote node ID) to a LinkLayerService object.
+    A service is created for each 'link' that is in the `network` object.
+
+    Returns the dictionary of service objects.
+    """
     link_layer_services = defaultdict(dict)
-    for i, node_name1 in enumerate(node_names):
-        for j in range(i + 1, len(node_names)):
-            node_name2 = node_names[j]
-            node_pair = [nodes[node_name1], nodes[node_name2]]
-            magic_protocol = setup_magic_link_layer_protocol(node_pair=node_pair, network_config=network_config)
-            for node, remote_node in [node_pair, reversed(node_pair)]:
-                reaction_handler = reaction_handlers[node.name]
-                link_layer_service = LinkLayerService(
-                    node=node,
-                    magic=True,
-                    magic_protocol=magic_protocol,
-                    reaction_handler=reaction_handler,
-                )
-                link_layer_services[node.name][remote_node.ID] = link_layer_service
+
+    for link in network.links:  # type(link) = MagicDistributor
+        node_pair = link.nodes[0]
+
+        magic_protocol = MagicLinkLayerProtocol(
+            nodes=node_pair,
+            magic_distributor=link,
+            translation_unit=SingleClickTranslationUnit()
+        )
+
+        for node, remote_node in [node_pair, reversed(node_pair)]:
+            reaction_handler = reaction_handlers[node.name]
+            link_layer_service = LinkLayerService(
+                node=node,
+                magic=True,
+                magic_protocol=magic_protocol,
+                reaction_handler=reaction_handler,
+            )
+            link_layer_services[node.name][remote_node.ID] = link_layer_service
 
     return link_layer_services
 
 
-def setup_magic_link_layer_protocol(node_pair, network_config=None):
-    # TODO use network config for setting up magic distributor
-    magic_distributor = PerfectStateMagicDistributor(node_pair, state_delay=1)
-    translation_unit = SingleClickTranslationUnit()
-    magic_protocol = MagicLinkLayerProtocol(
-        nodes=node_pair,
-        magic_distributor=magic_distributor,
-        translation_unit=translation_unit,
-    )
+def create_network_stacks(network: BackendNetwork, reaction_handlers):
+    """
+    Create a NetworkStack object for each node in the `network`.
 
-    return magic_protocol
+    Parameters
+    ----------
+    `reaction_handlers`: dict
+        Keys are the names of the nodes.
+        Values are the reaction handler used in the node's link layer service.
 
-
-def setup_network_stacks(nodes, reaction_handlers, network_config=None):
-    link_layer_services = setup_link_layer_services(nodes, reaction_handlers, network_config=network_config)
+    Returns
+    -------
+    A dictionary mapping node names to newly created NetworkStack objects.
+    """
+    link_layer_services = create_link_layer_services(network, reaction_handlers)
     network_stacks = {}
-    for node_name, node in nodes.items():
+    for node_name, node in network.nodes.items():
         network_stack = NetworkStack(node=node, link_layer_services=link_layer_services[node_name])
         network_stacks[node_name] = network_stack
 

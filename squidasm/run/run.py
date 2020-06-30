@@ -11,7 +11,7 @@ from netqasm.output import save_all_struct_loggers, reset_struct_loggers
 from netqasm.sdk.classical_communication import reset_socket_hub
 from squidasm.backend import Backend
 from squidasm.thread_util import as_completed
-from squidasm.network_stack import reset_network
+from squidasm.network import reset_network
 from squidasm.queues import reset_queues
 
 logger = get_netqasm_logger()
@@ -51,7 +51,6 @@ def run_applications(
         after the execution. This can be used for debugging, e.g. getting the
         quantum states after execution etc.
     """
-    reset()
     node_names = list(applications.keys())
     apps = [applications[node_name] for node_name in node_names]
 

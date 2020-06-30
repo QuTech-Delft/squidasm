@@ -5,6 +5,8 @@ import pickle
 from runpy import run_path
 from datetime import datetime
 
+import netsquid as ns
+
 from netqasm.logging import (
     set_log_level,
     get_netqasm_logger,
@@ -13,6 +15,11 @@ from netqasm.yaml_util import load_yaml, dump_yaml
 from netqasm.output import InstrField
 from .run import run_applications
 from netqasm.sdk.config import default_log_config
+
+from netsquid_netconf.builder import ComponentBuilder
+from netsquid_netconf.netconf import netconf_generator
+
+from squidasm.network import QDevice, NodeLinkConfig
 
 logger = get_netqasm_logger()
 
@@ -38,7 +45,10 @@ def get_network_config_path(app_dir):
 
 def load_network_config(network_config_file):
     if os.path.exists(network_config_file):
-        return load_yaml(file_path=network_config_file)
+        ComponentBuilder.add_type("qdevice", QDevice)
+        ComponentBuilder.add_type("link", NodeLinkConfig)
+        generator = netconf_generator(network_config_file)
+        return next(generator)
     else:
         return None
 
@@ -149,6 +159,7 @@ def simulate_apps(
     log_level="WARNING",
     post_function_file=None,
     results_file=None,
+    formalism="KET",
 ):
 
     set_log_level(log_level)
@@ -204,12 +215,20 @@ def simulate_apps(
     # Load post function if exists
     post_function = load_post_function(post_function_file)
 
+    if formalism == "KET":
+        q_formalism = ns.QFormalism.KET
+    elif formalism == "DM":
+        q_formalism = ns.QFormalism.DM
+    else:
+        raise TypeError(f"Unknown formalism {formalism}")
+
     run_applications(
         applications=applications,
         network_config=network_config,
         instr_log_dir=timed_log_dir,
         post_function=post_function,
         results_file=results_file,
+        q_formalism=q_formalism
     )
 
     process_log(log_dir=timed_log_dir)

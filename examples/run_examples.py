@@ -1,6 +1,7 @@
 import os
 import runpy
 import inspect
+import subprocess
 import logging
 from netqasm.logging import set_log_level
 
@@ -14,17 +15,35 @@ def _has_first_argument(function, argument):
 def main():
     set_log_level(logging.WARNING)
     path_to_here = os.path.dirname(os.path.abspath(__file__))
+    apps_path = os.path.join(path_to_here, "apps")
+    apps = os.listdir(apps_path)
 
-    for root, folders, files in os.walk(path_to_here):
+    for app in apps:
+        print(f"Running example app {app}")
+        result = subprocess.run(
+            ["squidasm", "simulate", "--app-dir", f"examples/apps/{app}"],
+            stdout=subprocess.DEVNULL,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"Example {app} failed!")
+
+    for root, _folders, files in os.walk(path_to_here):
         for filename in files:
             if filename.startswith("example") and filename.endswith(".py"):
                 filepath = os.path.join(root, filename)
                 members = runpy.run_path(filepath)
                 if "main" in members:
-                    main = members["main"]
-                    main()
+                    print(f"Running example {filepath}")
+                    result = subprocess.run(
+                        ["python3", filepath],
+                        stdout=subprocess.DEVNULL,
+                    )
+                    if result.returncode != 0:
+                        raise RuntimeError(f"Example {filepath} failed!")
                 else:
-                    print(f"The example {filename} does not have a main function")
+                    print(f"The example {filepath} does not have a main function")
+
+    print(f"All examples work!")
 
 
 if __name__ == "__main__":
