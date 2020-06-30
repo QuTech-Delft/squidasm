@@ -1,7 +1,15 @@
 import os
+import runpy
+import inspect
 import subprocess
 import logging
 from netqasm.logging import set_log_level
+
+
+def _has_first_argument(function, argument):
+    """Checks if a function takes a named argument as the first argument"""
+    argnames = inspect.getfullargspec(function).args
+    return argnames[0] == "no_output"
 
 
 def main():
@@ -11,12 +19,29 @@ def main():
     apps = os.listdir(apps_path)
 
     for app in apps:
-        print(f"Running example {app}")
+        print(f"Running example app {app}")
         result = subprocess.run(
             ["squidasm", "simulate", "--app-dir", f"examples/apps/{app}"],
+            stdout=subprocess.DEVNULL,
         )
         if result.returncode != 0:
             raise RuntimeError(f"Example {app} failed!")
+
+    for root, _folders, files in os.walk(path_to_here):
+        for filename in files:
+            if filename.startswith("example") and filename.endswith(".py"):
+                filepath = os.path.join(root, filename)
+                members = runpy.run_path(filepath)
+                if "main" in members:
+                    print(f"Running example {filepath}")
+                    result = subprocess.run(
+                        ["python3", filepath],
+                        stdout=subprocess.DEVNULL,
+                    )
+                    if result.returncode != 0:
+                        raise RuntimeError(f"Example {filepath} failed!")
+                else:
+                    print(f"The example {filepath} does not have a main function")
 
     print(f"All examples work!")
 
