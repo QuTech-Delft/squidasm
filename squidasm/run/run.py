@@ -51,7 +51,6 @@ def run_applications(
         after the execution. This can be used for debugging, e.g. getting the
         quantum states after execution etc.
     """
-    reset()
     node_names = list(applications.keys())
     apps = [applications[node_name] for node_name in node_names]
 
