@@ -102,9 +102,8 @@ def test_bi_directional_teleport():
     run_applications({
         "alice": run_alice,
         "bob": run_bob,
-    }, network_config={
-        'num_qubits': 2,
-    })
+    }, network_config=None
+    )
 
 
 def test_parallel_execution():
