@@ -1,6 +1,18 @@
 CHANGELOG
 =========
 
+2020-07-09 (0.0.3)
+------------------
+- Improvements in message queue handling.
+- Debug function to be able to extract state in SDK.
+- Network config file.
+- Using `netqasm` 0.0.4.
+- Added applications
+  - Distributed CNOT.
+  - Blind quantum computing.
+  - Anonymous transfer.
+  - CHSH using repeater.
+
 2020-05-20 (0.0.2)
 ------------------
 - Now using netqasm 0.0.4
