@@ -1,3 +1,5 @@
+from threading import Thread
+
 from netqasm.sdk import NetQASMConnection
 from squidasm.queues import get_queue
 from squidasm.backend import get_node_id, get_node_name
@@ -10,8 +12,7 @@ class NetSquidConnection(NetQASMConnection):
         name,
         app_id=None,
         max_qubits=5,
-        track_lines=False,
-        log_subroutines_dir=None,
+        log_config=None,
         epr_sockets=None,
         compiler=None,
     ):
@@ -20,21 +21,33 @@ class NetSquidConnection(NetQASMConnection):
             name=name,
             app_id=app_id,
             max_qubits=max_qubits,
-            track_lines=track_lines,
-            log_subroutines_dir=log_subroutines_dir,
+            log_config=log_config,
             epr_sockets=epr_sockets,
             compiler=compiler,
         )
 
-    def _commit_message(self, msg, block=False):
+    def _commit_message(self, msg, block=True, callback=None):
         """Commit a message to the backend/qnodeos"""
         self._message_queue.put(msg)
         if block:
-            self.block()
+            self._execute_callback(item=msg, callback=callback)
+        else:
+            # Execute callback in a new thread after the subroutine is finished
+            thread = Thread(target=self._execute_callback, args=(msg, callback,))
+            thread.daemon = True
+            thread.start()
 
-    def block(self):
+    def _execute_callback(self, item, callback=None):
+        self.block(item=item)
+        if callback is not None:
+            callback()
+
+    def block(self, item=None):
         """Block until flushed subroutines finish"""
-        self._message_queue.join()
+        if item is None:
+            self._message_queue.join()
+        else:
+            self._message_queue.join_task(item=item)
 
     def _get_node_id(self, node_name):
         """Returns the node id for the node with the given name"""

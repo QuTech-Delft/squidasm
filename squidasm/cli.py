@@ -32,6 +32,9 @@ def version():
               help="Path to app directory. "
                    "Defaults to CWD."
               )
+@click.option("--lib-dirs", type=str, default=None, multiple=True,
+              help="Path to additional library directory."
+              )
 @click.option("--track-lines/--no-track-lines", default=True)
 @click.option("--network-config-file", type=str, default=None,
               help="Explicitly choose the network config file, "
@@ -51,12 +54,16 @@ def version():
 @click.option("--results-file", type=str, default=None,
               help="Explicitly choose the file where the results of a post function should be stored."
               )
+@click.option("--formalism", type=click.Choice(["KET", "DM"]), default="KET",
+              help="Choose which quantum state formalism is used by NetSquid. Default is KET."
+              )
 @click.option("--log-level", type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]), default="WARNING",
               help="What log-level to use (DEBUG, INFO, WARNING, ERROR, CRITICAL)."
                    "Note, this affects logging to stderr, not logging instructions to file."
               )
 def simulate(
     app_dir,
+    lib_dirs,
     track_lines,
     network_config_file,
     app_config_dir,
@@ -64,12 +71,14 @@ def simulate(
     log_level,
     post_function_file,
     results_file,
+    formalism,
 ):
     """
     Executes a given NetQASM file using a specified executioner.
     """
     simulate_apps(
         app_dir=app_dir,
+        lib_dirs=lib_dirs,
         track_lines=track_lines,
         network_config_file=network_config_file,
         app_config_dir=app_config_dir,
@@ -77,6 +86,7 @@ def simulate(
         log_level=log_level,
         post_function_file=post_function_file,
         results_file=results_file,
+        formalism=formalism
     )
 
 

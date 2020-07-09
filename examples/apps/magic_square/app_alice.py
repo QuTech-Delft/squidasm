@@ -16,7 +16,7 @@ def _get_default_strategy():
     ]
 
 
-def main(track_lines=True, log_subroutines_dir=None, row=0, strategy=None):
+def main(log_config=None, row=0, strategy=None):
 
     if strategy is None:
         strategy = _get_default_strategy()
@@ -29,8 +29,7 @@ def main(track_lines=True, log_subroutines_dir=None, row=0, strategy=None):
     # Initialize the connection
     alice = NetSquidConnection(
         "alice",
-        track_lines=track_lines,
-        log_subroutines_dir=log_subroutines_dir,
+        log_config=log_config,
         epr_sockets=[epr_socket],
     )
     with alice:

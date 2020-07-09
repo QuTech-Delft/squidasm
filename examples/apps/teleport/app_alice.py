@@ -1,13 +1,15 @@
 from netqasm.sdk import Qubit, EPRSocket
 from netqasm.sdk import ThreadSocket as Socket
 from netqasm.sdk.toolbox import set_qubit_state
+from netqasm.output import get_new_app_logger
 from squidasm.sdk import NetSquidConnection
 
 
-def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
+def main(log_config=None, phi=0., theta=0.):
+    app_logger = get_new_app_logger(node_name="alice", log_config=log_config)
 
     # Create a socket to send classical information
-    socket = Socket("alice", "bob", comm_log_dir=log_subroutines_dir)
+    socket = Socket("alice", "bob", log_config=log_config)
 
     # Create a EPR socket for entanglement generation
     epr_socket = EPRSocket("bob")
@@ -15,8 +17,7 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
     # Initialize the connection to the backend
     alice = NetSquidConnection(
         name="alice",
-        track_lines=track_lines,
-        log_subroutines_dir=log_subroutines_dir,
+        log_config=log_config,
         epr_sockets=[epr_socket]
     )
     with alice:
@@ -35,6 +36,10 @@ def main(track_lines=True, log_subroutines_dir=None, phi=0., theta=0.):
 
     # Send the correction information
     m1, m2 = int(m1), int(m2)
+
+    app_logger.log(f"m1 = {m1}")
+    app_logger.log(f"m2 = {m2}")
+
     msg = str((m1, m2))
     socket.send(msg)
 

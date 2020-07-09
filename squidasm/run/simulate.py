@@ -1,8 +1,11 @@
 import os
+import sys
 import shutil
 import pickle
 from runpy import run_path
 from datetime import datetime
+
+import netsquid as ns
 
 from netqasm.logging import (
     set_log_level,
@@ -11,6 +14,12 @@ from netqasm.logging import (
 from netqasm.yaml_util import load_yaml, dump_yaml
 from netqasm.output import InstrField
 from .run import run_applications
+from netqasm.sdk.config import default_log_config
+
+from netsquid_netconf.builder import ComponentBuilder
+from netsquid_netconf.netconf import netconf_generator
+
+from squidasm.network import QDevice, NodeLinkConfig
 
 logger = get_netqasm_logger()
 
@@ -36,7 +45,10 @@ def get_network_config_path(app_dir):
 
 def load_network_config(network_config_file):
     if os.path.exists(network_config_file):
-        return load_yaml(file_path=network_config_file)
+        ComponentBuilder.add_type("qdevice", QDevice)
+        ComponentBuilder.add_type("link", NodeLinkConfig)
+        generator = netconf_generator(network_config_file)
+        return next(generator)
     else:
         return None
 
@@ -118,8 +130,9 @@ def _add_hln_to_log_entry(subroutines, entry):
     prc = entry[InstrField.PRC.value]
     sid = entry[InstrField.SID.value]
     subroutine = subroutines[sid]
-    hln = subroutine.commands[prc].lineno
-    entry[InstrField.HLN.value] = hln
+    hostline = subroutine.commands[prc].lineno
+    entry[InstrField.HLN.value] = hostline.lineno
+    entry[InstrField.HFL.value] = hostline.filename
 
 
 def get_post_function_path(app_dir):
@@ -138,6 +151,7 @@ def get_results_path(timed_log_dir):
 
 def simulate_apps(
     app_dir=None,
+    lib_dirs=[],
     track_lines=True,
     app_config_dir=None,
     network_config_file=None,
@@ -145,6 +159,7 @@ def simulate_apps(
     log_level="WARNING",
     post_function_file=None,
     results_file=None,
+    formalism="KET",
 ):
 
     set_log_level(log_level)
@@ -154,6 +169,13 @@ def simulate_apps(
         app_dir = os.path.abspath('.')
     else:
         app_dir = os.path.expanduser(app_dir)
+
+    # Add lib_dirs and app_dir to path so scripts can be loaded
+    for lib_dir in lib_dirs:
+        sys.path.append(lib_dir)
+
+    sys.path.append(app_dir)
+
     app_files = load_app_files(app_dir)
     if app_config_dir is None:
         app_config_dir = app_dir
@@ -173,13 +195,19 @@ def simulate_apps(
     if results_file is None:
         results_file = get_results_path(timed_log_dir)
 
+    log_config = default_log_config()
+    log_config.track_lines = track_lines
+    log_config.log_subroutines_dir = timed_log_dir
+    log_config.comm_log_dir = timed_log_dir
+    log_config.app_dir = app_dir
+    log_config.lib_dirs = lib_dirs
+
     # Load app functions and configs to run
     applications = {}
     for node_name, app_file in app_files.items():
         app_main = run_path(os.path.join(app_dir, app_file))['main']
         app_config = load_app_config(app_config_dir, node_name)
-        app_config['track_lines'] = track_lines
-        app_config['log_subroutines_dir'] = timed_log_dir
+        app_config["log_config"] = log_config
         applications[node_name] = app_main, app_config
 
     network_config = load_network_config(network_config_file)
@@ -187,12 +215,20 @@ def simulate_apps(
     # Load post function if exists
     post_function = load_post_function(post_function_file)
 
+    if formalism == "KET":
+        q_formalism = ns.QFormalism.KET
+    elif formalism == "DM":
+        q_formalism = ns.QFormalism.DM
+    else:
+        raise TypeError(f"Unknown formalism {formalism}")
+
     run_applications(
         applications=applications,
         network_config=network_config,
         instr_log_dir=timed_log_dir,
         post_function=post_function,
         results_file=results_file,
+        q_formalism=q_formalism
     )
 
     process_log(log_dir=timed_log_dir)

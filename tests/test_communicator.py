@@ -35,13 +35,13 @@ ret_reg m!
 
     def run_alice():
         logger.debug("Starting Alice thread")
-        communicator = SimpleCommunicator("Alice", subroutine=subroutine)
+        communicator = SimpleCommunicator("Alice", subroutines=[subroutine])
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
     def run_bob():
         logger.debug("Starting Bob thread")
-        communicator = SimpleCommunicator("Bob", subroutine=subroutine)
+        communicator = SimpleCommunicator("Bob", subroutines=[subroutine])
         communicator.run(num_times=1)
         logger.debug("End Bob thread")
 
@@ -90,7 +90,7 @@ ret_arr ms!
 
     def run_alice():
         logger.debug("Starting Alice thread")
-        communicator = SimpleCommunicator("Alice", subroutine=subroutine)
+        communicator = SimpleCommunicator("Alice", subroutines=[subroutine])
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 
@@ -156,7 +156,7 @@ wait_all @entinfo![0:{OK_FIELDS}]
         epr_socket = EPRSocket("Bob")
         communicator = SimpleCommunicator(
             "Alice",
-            subroutine=subroutine_alice,
+            subroutines=[subroutine_alice],
             epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
@@ -167,7 +167,7 @@ wait_all @entinfo![0:{OK_FIELDS}]
         epr_socket = EPRSocket("Alice")
         communicator = SimpleCommunicator(
             "Bob",
-            subroutine=subroutine_0_bob,
+            subroutines=[subroutine_0_bob],
             epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
@@ -261,7 +261,7 @@ wait_all @entinfo![0:{OK_FIELDS}]
         epr_socket = EPRSocket("Bob")
         communicator = SimpleCommunicator(
             "Alice",
-            subroutine=subroutine_alice,
+            subroutines=[subroutine_alice],
             epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
@@ -272,7 +272,7 @@ wait_all @entinfo![0:{OK_FIELDS}]
         epr_socket = EPRSocket("Alice")
         communicator = SimpleCommunicator(
             "Bob",
-            subroutine=subroutine_0_bob,
+            subroutines=[subroutine_0_bob],
             epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
@@ -373,7 +373,7 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
         epr_socket = EPRSocket("Bob")
         communicator = SimpleCommunicator(
             "Alice",
-            subroutine=subroutine_alice,
+            subroutines=[subroutine_alice],
             epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
@@ -384,7 +384,7 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
         epr_socket = EPRSocket("Alice")
         communicator = SimpleCommunicator(
             "Bob",
-            subroutine=subroutine_0_bob,
+            subroutines=[subroutine_0_bob],
             epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
@@ -491,7 +491,7 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
         epr_socket = EPRSocket("Bob")
         communicator = SimpleCommunicator(
             "Alice",
-            subroutine=subroutine_alice,
+            subroutines=[subroutine_alice],
             epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)
@@ -502,7 +502,7 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
         epr_socket = EPRSocket("Alice")
         communicator = SimpleCommunicator(
             "Bob",
-            subroutine=subroutine_0_bob,
+            subroutines=[subroutine_0_bob],
             epr_sockets=[epr_socket],
         )
         communicator.run(num_times=1)

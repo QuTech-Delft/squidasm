@@ -27,7 +27,7 @@ def main():
 
     def run_alice():
         logger.debug("Starting Alice thread")
-        communicator = SimpleCommunicator("Alice", subroutine=subroutine)
+        communicator = SimpleCommunicator("Alice", subroutines=[subroutine])
         communicator.run(num_times=1)
         logger.debug("End Alice thread")
 

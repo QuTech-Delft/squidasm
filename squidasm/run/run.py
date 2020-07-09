@@ -1,18 +1,34 @@
+import logging
+from importlib import reload
 from multiprocessing.pool import ThreadPool
+
+import netsquid as ns
 
 from netqasm.sdk.shared_memory import reset_memories
 from netqasm.logging import get_netqasm_logger
 from netqasm.yaml_util import dump_yaml
+from netqasm.output import save_all_struct_loggers, reset_struct_loggers
+from netqasm.sdk.classical_communication import reset_socket_hub
 from squidasm.backend import Backend
 from squidasm.thread_util import as_completed
-from squidasm.network_stack import reset_network
+from squidasm.network import reset_network
+from squidasm.queues import reset_queues
 
 logger = get_netqasm_logger()
 
 
-def reset():
+def reset(save_loggers=False):
+    if save_loggers:
+        save_all_struct_loggers()
+    ns.sim_reset()
     reset_memories()
     reset_network()
+    reset_queues()
+    reset_socket_hub()
+    reset_struct_loggers()
+    # Reset logging
+    logging.shutdown()
+    reload(logging)
 
 
 def run_applications(
@@ -21,6 +37,7 @@ def run_applications(
     instr_log_dir=None,
     network_config=None,
     results_file=None,
+    q_formalism=ns.QFormalism.KET,
 ):
     """Executes functions containing application scripts,
 
@@ -34,12 +51,12 @@ def run_applications(
         after the execution. This can be used for debugging, e.g. getting the
         quantum states after execution etc.
     """
-    reset()
     node_names = list(applications.keys())
     apps = [applications[node_name] for node_name in node_names]
 
     def run_backend():
         logger.debug(f"Starting netsquid backend thread with nodes {node_names}")
+        ns.set_qstate_formalism(q_formalism)
         backend = Backend(node_names, instr_log_dir=instr_log_dir, network_config=network_config)
         backend.start()
         if post_function is not None:
@@ -71,7 +88,8 @@ def run_applications(
         if results_file is not None:
             save_results(results=results, results_file=results_file)
 
-    reset()
+    reset(save_loggers=True)
+    return results
 
 
 def save_results(results, results_file):

@@ -1,27 +1,30 @@
-gates:
-    - instruction: INSTR_INIT
-      duration: 1
-    - instruction: INSTR_X
-      duration: 2
-    - instruction: INSTR_Y
-      duration: 2
-    - instruction: INSTR_Z
-      duration: 2
-    - instruction: INSTR_H
-      duration: 3
-    - instruction: INSTR_K
-      duration: 3
-    - instruction: INSTR_S
-      duration: 3
-    - instruction: INSTR_T
-      duration: 4
-    - instruction: INSTR_ROT_X
-      duration: 4
-    - instruction: INSTR_ROT_Y
-      duration: 4
-    - instruction: INSTR_ROT_Z
-      duration: 4
-    - instruction: INSTR_CNOT
-      duration: 5
-    - instruction: INSTR_CZ
-      duration: 5
+components:
+  alice:
+    type: node
+    components:
+      qdevice:
+        type: qdevice
+        properties:
+          num_qubits: 3
+          gate_fidelity: 1
+          T1: 0
+          T2: 0
+
+  bob:
+    type: node
+    components:
+      qdevice:
+        type: qdevice
+        properties:
+          num_qubits: 3
+          gate_fidelity: 0.97
+          T1: 0
+          T2: 0
+
+  conn_alice_bob:
+    type: link
+    properties:
+      node_name1: "alice"
+      node_name2: "bob"
+      noise_type: "Depolarise"
+      fidelity: 0.9

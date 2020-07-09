@@ -82,18 +82,17 @@ def extract_key(x, r):
     return (sum([xj*rj for xj, rj in zip(x, r)]) % 2)
 
 
-def main(track_lines=True, log_subroutines_dir=None, num_bits=100):
+def main(log_config=None, num_bits=100):
     num_test_bits = num_bits // 4
 
     # Socket for classical communication
-    socket = Socket("alice", "bob", comm_log_dir=log_subroutines_dir)
+    socket = Socket("alice", "bob", log_config=log_config)
     # Socket for EPR generation
     epr_socket = EPRSocket("bob")
 
     alice = NetSquidConnection(
         "alice",
-        track_lines=track_lines,
-        log_subroutines_dir=log_subroutines_dir,
+        log_config=log_config,
         epr_sockets=[epr_socket],
     )
     with alice:

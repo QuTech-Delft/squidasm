@@ -1,8 +1,7 @@
 import netsquid as ns
 
-from squidasm.network_setup import get_nodes
+from squidasm.network import BackendNetwork, create_network_stacks
 from squidasm.qnodeos import SubroutineHandler
-from squidasm.network_stack import setup_network_stacks
 
 
 _CURRENT_BACKEND = [None]
@@ -49,25 +48,23 @@ def get_node_name(node_id):
 
 
 class Backend:
-    def __init__(self, node_names, node_ids=None, num_qubits=5, instr_log_dir=None, network_config=None):
+    def __init__(self, node_names, node_ids=None, instr_log_dir=None, network_config=None):
         """Sets up the qmemories, nodes, connections and subroutine-handlers
         used to process NetQASM instructions.
 
         The Backend should be started by calling `start`, which also starts pydynaa.
         """
-        self._nodes = get_nodes(
-            node_names,
-            node_ids=node_ids,
-            num_qubits=num_qubits,
-            network_config=network_config,
-        )
+        network = BackendNetwork(node_names, network_config)
+        self._nodes = network.nodes
+
         self._subroutine_handlers = self._get_subroutine_handlers(self._nodes, instr_log_dir=instr_log_dir)
+
         reaction_handlers = {node_name: self._subroutine_handlers[node_name].get_epr_reaction_handler()
                              for node_name in self._nodes}
-        network_stacks = setup_network_stacks(
-            nodes=self._nodes,
+
+        network_stacks = create_network_stacks(
+            network=network,
             reaction_handlers=reaction_handlers,
-            network_config=network_config,
         )
         for node_name in self._nodes.keys():
             network_stack = network_stacks[node_name]

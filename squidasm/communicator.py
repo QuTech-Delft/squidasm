@@ -6,8 +6,10 @@ from squidasm.backend import get_node_id, get_node_name
 
 
 class SimpleCommunicator:
-    def __init__(self, node_name, subroutine, app_id=0, max_qubits=5, epr_sockets=None):
-        self._subroutine = parse_text_subroutine(subroutine)
+    def __init__(self, node_name, subroutines, app_id=0, max_qubits=5, epr_sockets=None):
+        if isinstance(subroutines, str):
+            subroutines = [subroutines]
+        self._subroutines = [parse_text_subroutine(subroutine) for subroutine in subroutines]
         self._node_name = node_name
         self._message_queue = get_queue(node_name)
         self._init_new_app(app_id=app_id, max_qubits=max_qubits)
@@ -67,13 +69,16 @@ class SimpleCommunicator:
 
     def run(self, num_times=1):
         for _ in range(num_times):
-            self._submit_subroutine()
+            for subroutine in self._subroutines:
+                self._submit_subroutine(subroutine=subroutine)
+        # Wait for everything to finish before stopping
+        self.block()
         self._signal_stop()
 
-    def _submit_subroutine(self):
+    def _submit_subroutine(self, subroutine):
         self._logger.debug(f"SimpleCommunicator for node {self._node_name} puts the next subroutine:\n"
-                           f"{self._subroutine}")
-        self._commit_message(msg=Message(type=MessageType.SUBROUTINE, msg=bytes(self._subroutine)))
+                           f"{subroutine}")
+        self._commit_message(msg=Message(type=MessageType.SUBROUTINE, msg=bytes(subroutine)))
 
     def _signal_stop(self):
         self._commit_message(msg=Message(type=MessageType.SIGNAL, msg=Signal.STOP), block=True)
