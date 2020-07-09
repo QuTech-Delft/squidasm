@@ -43,7 +43,7 @@ def main():
                 else:
                     print(f"The example {filepath} does not have a main function")
 
-    print(f"All examples work!")
+    print("All examples work!")
 
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ class NetSquidExecutioner(Executioner, Entity):
         self._node = node
         qdevice = node.qmemory
         if qdevice is None:
-            raise ValueError(f"The node needs to have a qdevice")
+            raise ValueError("The node needs to have a qdevice")
         self._qdevice = qdevice
 
         self._wait_event = EventType("WAIT", "event for waiting without blocking")
