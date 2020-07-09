@@ -14,7 +14,7 @@ from netqasm.logging import (
 from netqasm.yaml_util import load_yaml, dump_yaml
 from netqasm.output import InstrField
 from .run import run_applications
-from netqasm.sdk.config import default_log_config
+from netqasm.sdk.config import LogConfig
 
 from netsquid_netconf.builder import ComponentBuilder
 from netsquid_netconf.netconf import netconf_generator
@@ -151,7 +151,7 @@ def get_results_path(timed_log_dir):
 
 def simulate_apps(
     app_dir=None,
-    lib_dirs=[],
+    lib_dirs=None,
     track_lines=True,
     app_config_dir=None,
     network_config_file=None,
@@ -170,6 +170,8 @@ def simulate_apps(
     else:
         app_dir = os.path.expanduser(app_dir)
 
+    if lib_dirs is None:
+        lib_dirs = []
     # Add lib_dirs and app_dir to path so scripts can be loaded
     for lib_dir in lib_dirs:
         sys.path.append(lib_dir)
@@ -195,7 +197,7 @@ def simulate_apps(
     if results_file is None:
         results_file = get_results_path(timed_log_dir)
 
-    log_config = default_log_config()
+    log_config = LogConfig()
     log_config.track_lines = track_lines
     log_config.log_subroutines_dir = timed_log_dir
     log_config.comm_log_dir = timed_log_dir

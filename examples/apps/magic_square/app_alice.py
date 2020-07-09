@@ -61,7 +61,7 @@ def main(log_config=None, row=0, strategy=None):
 
     to_print = "\n\n"
     to_print += "==========================\n"
-    to_print += f"App alice: row is:\n"
+    to_print += "App alice: row is:\n"
     for _ in range(row):
         to_print += "(___)\n"
     to_print += f"({m0}{m1}{m2})\n"

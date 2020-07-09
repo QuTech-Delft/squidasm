@@ -13,7 +13,7 @@ logger = get_netqasm_logger()
 
 
 def test():
-    subroutine = f"""
+    subroutine = """
 # NETQASM 0.0
 # APPID 0
 # DEFINE op h

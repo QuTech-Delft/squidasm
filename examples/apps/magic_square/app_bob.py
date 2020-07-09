@@ -56,7 +56,7 @@ def main(log_config=None, col=0, strategy=None):
 
     to_print = "\n\n"
     to_print += "==========================\n"
-    to_print += f"App bob: column is:\n"
+    to_print += "App bob: column is:\n"
     to_print += "(" + "_"*col + str(m0) + "_"*(2-col) + ")\n"
     to_print += "(" + "_"*col + str(m1) + "_"*(2-col) + ")\n"
     to_print += "(" + "_"*col + str(m2) + "_"*(2-col) + ")\n"

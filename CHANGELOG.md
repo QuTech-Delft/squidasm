@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+2020-07-09 (0.0.4)
+------------------
+- Allow lib-dirs to be None.
+- Use `netqasm` 0.0.6
+
 2020-07-09 (0.0.3)
 ------------------
 - Improvements in message queue handling.
