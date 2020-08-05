@@ -21,14 +21,17 @@ from netsquid.components.instructions import (
     INSTR_ROT_Z,
     INSTR_CNOT,
     INSTR_CZ,
+    INSTR_CROT_X,
 )
 import netsquid as ns
 from netsquid.qubits import qubitapi as qapi
 from netsquid_magic.sleeper import Sleeper
 
 from netqasm.executioner import Executioner, QubitState
-from netqasm.instructions import Instruction
 from squidasm.ns_util import is_qubit_entangled
+
+from netqasm.instructions import vanilla, nv, core
+from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
 
 
 PendingEPRResponse = namedtuple("PendingEPRResponse", [
@@ -37,32 +40,46 @@ PendingEPRResponse = namedtuple("PendingEPRResponse", [
     "pair_index",
 ])
 
+NV_NS_INSTR_MAPPING = {
+    core.InitInstruction: INSTR_INIT,
+    nv.RotXInstruction: INSTR_ROT_X,
+    nv.RotYInstruction: INSTR_ROT_Y,
+    nv.RotZInstruction: INSTR_ROT_Z,
+    nv.CSqrtXInstruction: INSTR_CROT_X
+}
+
+VANILLA_NS_INSTR_MAPPING = {
+    core.InitInstruction: INSTR_INIT,
+    vanilla.GateXInstruction: INSTR_X,
+    vanilla.GateYInstruction: INSTR_Y,
+    vanilla.GateZInstruction: INSTR_Z,
+    vanilla.GateHInstruction: INSTR_H,
+    vanilla.GateKInstruction: INSTR_K,
+    vanilla.GateSInstruction: INSTR_S,
+    vanilla.GateTInstruction: INSTR_T,
+    vanilla.RotXInstruction: INSTR_ROT_X,
+    vanilla.RotYInstruction: INSTR_ROT_Y,
+    vanilla.RotZInstruction: INSTR_ROT_Z,
+    vanilla.CnotInstruction: INSTR_CNOT,
+    vanilla.CphaseInstruction: INSTR_CZ,
+}
+
 
 class NetSquidExecutioner(Executioner, Entity):
-
-    NS_INSTR_MAPPING = {
-        Instruction.INIT: INSTR_INIT,
-        Instruction.X: INSTR_X,
-        Instruction.Y: INSTR_Y,
-        Instruction.Z: INSTR_Z,
-        Instruction.H: INSTR_H,
-        Instruction.K: INSTR_K,
-        Instruction.S: INSTR_S,
-        Instruction.T: INSTR_T,
-        Instruction.ROT_X: INSTR_ROT_X,
-        Instruction.ROT_Y: INSTR_ROT_Y,
-        Instruction.ROT_Z: INSTR_ROT_Z,
-        Instruction.CNOT: INSTR_CNOT,
-        Instruction.CPHASE: INSTR_CZ,
-    }
-
-    def __init__(self, node, name=None, network_stack=None, instr_log_dir=None):
+    def __init__(self, node, name=None, network_stack=None, instr_log_dir=None, flavour=None):
         """Executes a NetQASM using a NetSquid quantum processor to execute quantum instructions"""
         if not isinstance(node, Node):
             raise TypeError(f"node should be a Node, not {type(node)}")
         if name is None:
             name = node.name
         super().__init__(name=name, instr_log_dir=instr_log_dir)
+
+        if flavour is None or isinstance(flavour, VanillaFlavour):
+            self.instr_mapping = VANILLA_NS_INSTR_MAPPING
+        elif isinstance(flavour, NVFlavour):
+            self.instr_mapping = NV_NS_INSTR_MAPPING
+        else:
+            raise ValueError(f"Flavour {flavour} is not supported.")
 
         self._node = node
         qdevice = node.qmemory
@@ -110,10 +127,19 @@ class NetSquidExecutioner(Executioner, Entity):
         positions = self._get_positions(subroutine_id=subroutine_id, addresses=[address1, address2])
         ns_instr = self._get_netsquid_instruction(instr=instr)
         self._logger.debug(f"Doing instr {instr} on qubits {positions}")
-        yield from self._execute_qdevice_instruction(
-            ns_instr=ns_instr,
-            qubit_mapping=positions,
-        )
+
+        # TODO: improve this
+        if ns_instr == INSTR_CROT_X:
+            yield from self._execute_qdevice_instruction(
+                ns_instr=ns_instr,
+                qubit_mapping=positions,
+                angle=90
+            )
+        else:
+            yield from self._execute_qdevice_instruction(
+                ns_instr=ns_instr,
+                qubit_mapping=positions,
+            )
 
     def _execute_qdevice_instruction(self, ns_instr, qubit_mapping, **kwargs):
         if self.qdevice.busy:
@@ -121,11 +147,11 @@ class NetSquidExecutioner(Executioner, Entity):
         self.qdevice.execute_instruction(ns_instr, qubit_mapping=qubit_mapping, **kwargs)
         yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
 
-    @classmethod
-    def _get_netsquid_instruction(cls, instr):
-        ns_instr = cls.NS_INSTR_MAPPING.get(instr)
+    def _get_netsquid_instruction(self, instr):
+        ns_instr = self.instr_mapping.get(instr.__class__)
         if ns_instr is None:
-            raise RuntimeError("Don't know how to map the instruction {instr} to a netquid instruction")
+            raise RuntimeError(
+                f"Don't know how to map the instruction {instr} (type {type(instr)}) to a netquid instruction")
         return ns_instr
 
     def _do_meas(self, subroutine_id, q_address):

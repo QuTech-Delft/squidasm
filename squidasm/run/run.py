@@ -38,6 +38,7 @@ def run_applications(
     network_config=None,
     results_file=None,
     q_formalism=ns.QFormalism.KET,
+    flavour=None,
 ):
     """Executes functions containing application scripts,
 
@@ -57,7 +58,7 @@ def run_applications(
     def run_backend():
         logger.debug(f"Starting netsquid backend thread with nodes {node_names}")
         ns.set_qstate_formalism(q_formalism)
-        backend = Backend(node_names, instr_log_dir=instr_log_dir, network_config=network_config)
+        backend = Backend(node_names, instr_log_dir=instr_log_dir, network_config=network_config, flavour=flavour)
         backend.start()
         if post_function is not None:
             result = post_function(backend)

@@ -6,7 +6,7 @@ from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
 from netsquid_magic.sleeper import Sleeper
 
-from netqasm.parsing import parse_binary_subroutine
+from netqasm.parsing import deserialize
 from netqasm.logging import get_netqasm_logger
 from netqasm.messages import MessageType
 from squidasm.executioner import NetSquidExecutioner
@@ -75,10 +75,12 @@ class Task:
 
 
 class SubroutineHandler(NodeProtocol):
-    def __init__(self, node, instr_log_dir=None):
+    def __init__(self, node, instr_log_dir=None, flavour=None):
         """An extremely simplified version of QNodeOS for handling NetQASM subroutines"""
         super().__init__(node=node)
-        self._executioner = NetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
+
+        self.flavour = flavour
+        self._executioner = NetSquidExecutioner(node=node, instr_log_dir=instr_log_dir, flavour=flavour)
 
         self._message_queue = get_queue(self.node.name, create_new=True)
 
@@ -220,7 +222,7 @@ class SubroutineHandler(NodeProtocol):
         return item
 
     def _handle_subroutine(self, subroutine):
-        subroutine = parse_binary_subroutine(subroutine)
+        subroutine = deserialize(subroutine, flavour=self.flavour)
         self._logger.debug(f"Executing next subroutine "
                            f"from app ID {subroutine.app_id}")
         yield from self._execute_subroutine(subroutine=subroutine)

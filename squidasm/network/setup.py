@@ -108,6 +108,8 @@ class QDevice(QuantumProcessor):
         PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=4),
         PhysicalInstruction(ns_instructions.INSTR_CNOT, duration=5),
         PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5),
+        # TODO: move to separate NV QDevice class
+        PhysicalInstruction(ns_instructions.INSTR_CROT_X, duration=5),
     ]
 
     def __init__(self, name="QDevice", num_qubits=5, gate_fidelity=1, T1=0, T2=0):
