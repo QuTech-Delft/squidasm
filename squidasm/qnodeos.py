@@ -9,7 +9,10 @@ from netsquid_magic.sleeper import Sleeper
 from netqasm.parsing import deserialize
 from netqasm.logging import get_netqasm_logger
 from netqasm.messages import MessageType
-from squidasm.executioner import NetSquidExecutioner
+from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
+
+from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
+from squidasm.executioner.nv import NVNetSquidExecutioner
 from squidasm.queues import get_queue, Signal
 
 
@@ -80,7 +83,13 @@ class SubroutineHandler(NodeProtocol):
         super().__init__(node=node)
 
         self.flavour = flavour
-        self._executioner = NetSquidExecutioner(node=node, instr_log_dir=instr_log_dir, flavour=flavour)
+
+        if flavour is None or isinstance(flavour, VanillaFlavour):
+            self._executioner = VanillaNetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
+        elif isinstance(flavour, NVFlavour):
+            self._executioner = NVNetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
+        else:
+            raise ValueError(f"Flavour {flavour} is not supported.")
 
         self._message_queue = get_queue(self.node.name, create_new=True)
 

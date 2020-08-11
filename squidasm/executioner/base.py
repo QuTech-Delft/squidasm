@@ -7,31 +7,12 @@ from pydynaa import (
     EventHandler,
 )
 from netsquid.nodes.node import Node
-from netsquid.components.instructions import (
-    INSTR_INIT,
-    INSTR_X,
-    INSTR_Y,
-    INSTR_Z,
-    INSTR_H,
-    INSTR_K,
-    INSTR_S,
-    INSTR_T,
-    INSTR_ROT_X,
-    INSTR_ROT_Y,
-    INSTR_ROT_Z,
-    INSTR_CNOT,
-    INSTR_CZ,
-    INSTR_CROT_X,
-)
 import netsquid as ns
 from netsquid.qubits import qubitapi as qapi
 from netsquid_magic.sleeper import Sleeper
 
 from netqasm.executioner import Executioner, QubitState
 from squidasm.ns_util import is_qubit_entangled
-
-from netqasm.instructions import vanilla, nv, core
-from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
 
 
 PendingEPRResponse = namedtuple("PendingEPRResponse", [
@@ -40,33 +21,9 @@ PendingEPRResponse = namedtuple("PendingEPRResponse", [
     "pair_index",
 ])
 
-NV_NS_INSTR_MAPPING = {
-    core.InitInstruction: INSTR_INIT,
-    nv.RotXInstruction: INSTR_ROT_X,
-    nv.RotYInstruction: INSTR_ROT_Y,
-    nv.RotZInstruction: INSTR_ROT_Z,
-    nv.CSqrtXInstruction: INSTR_CROT_X
-}
-
-VANILLA_NS_INSTR_MAPPING = {
-    core.InitInstruction: INSTR_INIT,
-    vanilla.GateXInstruction: INSTR_X,
-    vanilla.GateYInstruction: INSTR_Y,
-    vanilla.GateZInstruction: INSTR_Z,
-    vanilla.GateHInstruction: INSTR_H,
-    vanilla.GateKInstruction: INSTR_K,
-    vanilla.GateSInstruction: INSTR_S,
-    vanilla.GateTInstruction: INSTR_T,
-    vanilla.RotXInstruction: INSTR_ROT_X,
-    vanilla.RotYInstruction: INSTR_ROT_Y,
-    vanilla.RotZInstruction: INSTR_ROT_Z,
-    vanilla.CnotInstruction: INSTR_CNOT,
-    vanilla.CphaseInstruction: INSTR_CZ,
-}
-
 
 class NetSquidExecutioner(Executioner, Entity):
-    def __init__(self, node, name=None, network_stack=None, instr_log_dir=None, flavour=None):
+    def __init__(self, node, name=None, network_stack=None, instr_log_dir=None, instr_mapping=None):
         """Executes a NetQASM using a NetSquid quantum processor to execute quantum instructions"""
         if not isinstance(node, Node):
             raise TypeError(f"node should be a Node, not {type(node)}")
@@ -74,12 +31,9 @@ class NetSquidExecutioner(Executioner, Entity):
             name = node.name
         super().__init__(name=name, instr_log_dir=instr_log_dir)
 
-        if flavour is None or isinstance(flavour, VanillaFlavour):
-            self.instr_mapping = VANILLA_NS_INSTR_MAPPING
-        elif isinstance(flavour, NVFlavour):
-            self.instr_mapping = NV_NS_INSTR_MAPPING
-        else:
-            raise ValueError(f"Flavour {flavour} is not supported.")
+        if instr_mapping is None:
+            raise ValueError("A NetSquidExecutioner needs to have an instruction mapping")
+        self._instr_mapping = instr_mapping
 
         self._node = node
         qdevice = node.qmemory
@@ -128,18 +82,10 @@ class NetSquidExecutioner(Executioner, Entity):
         ns_instr = self._get_netsquid_instruction(instr=instr)
         self._logger.debug(f"Doing instr {instr} on qubits {positions}")
 
-        # TODO: improve this
-        if ns_instr == INSTR_CROT_X:
-            yield from self._execute_qdevice_instruction(
-                ns_instr=ns_instr,
-                qubit_mapping=positions,
-                angle=90
-            )
-        else:
-            yield from self._execute_qdevice_instruction(
-                ns_instr=ns_instr,
-                qubit_mapping=positions,
-            )
+        yield from self._execute_qdevice_instruction(
+            ns_instr=ns_instr,
+            qubit_mapping=positions,
+        )
 
     def _execute_qdevice_instruction(self, ns_instr, qubit_mapping, **kwargs):
         if self.qdevice.busy:
@@ -148,7 +94,7 @@ class NetSquidExecutioner(Executioner, Entity):
         yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
 
     def _get_netsquid_instruction(self, instr):
-        ns_instr = self.instr_mapping.get(instr.__class__)
+        ns_instr = self._instr_mapping.get(instr.__class__)
         if ns_instr is None:
             raise RuntimeError(
                 f"Don't know how to map the instruction {instr} (type {type(instr)}) to a netquid instruction")
