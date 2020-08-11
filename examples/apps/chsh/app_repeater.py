@@ -16,7 +16,7 @@ def main(log_config=None):
     )
 
     with repeater:
-        # Aait for entanglement with Alice
+        # Wait for entanglement with Alice
         epr_alice = epr_socket_alice.recv()[0]
 
         # Create entanglement with Bob

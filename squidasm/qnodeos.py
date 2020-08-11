@@ -139,14 +139,14 @@ class SubroutineHandler(NodeProtocol):
     def run(self):
         while self.is_running:
             # Check if there is a new message
-            self._logger.info('Checking for next message')
+            self._logger.debug('Checking for next message')
             msg = self._next_message()
             if msg is not None:
                 self._handle_message(msg=msg)
             ev = self._get_next_task_event()
             if ev is None:
                 # No tasks so wait a bit before checking next msg
-                self._logger.info('No more events so wait for next message')
+                self._logger.debug('No more events so wait for next message')
                 yield self._sleeper.sleep()
             else:
                 yield ev
@@ -159,10 +159,10 @@ class SubroutineHandler(NodeProtocol):
             # If generator then add to this to the current task
             # Distinguish subroutines from others to prioritize others
             if msg.type == MessageType.SUBROUTINE:
-                self._logger.info('Adding to subroutine tasks')
+                self._logger.debug('Adding to subroutine tasks')
                 self._subroutine_tasks.append(Task(gen=output, msg=msg))
             else:
-                self._logger.info('Adding to other tasks')
+                self._logger.debug('Adding to other tasks')
                 self._other_tasks.append(Task(gen=output, msg=msg))
         else:
             # No generator so directly finished
@@ -172,17 +172,17 @@ class SubroutineHandler(NodeProtocol):
         # Execute other tasks (non subroutine first and in order)
         task = self._get_next_other_task()
         if task is not None:
-            self._logger.info('Executing other task')
+            self._logger.debug('Executing other task')
             try:
                 return task.pop_next_event()
             except IndexError:
                 return None
         # Only subroutine handlers left
         # Execute in order unless a subroutine is waiting
-        self._logger.info('Executing subroutine task')
+        self._logger.debug('Executing subroutine task')
         task = self._get_next_subroutine_task()
         if task is None:
-            self._logger.info('No more subroutine tasks')
+            self._logger.debug('No more subroutine tasks')
             return None
         else:
             try:
