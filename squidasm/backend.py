@@ -48,7 +48,7 @@ def get_node_name(node_id):
 
 
 class Backend:
-    def __init__(self, node_names, node_ids=None, instr_log_dir=None, network_config=None):
+    def __init__(self, node_names, node_ids=None, instr_log_dir=None, network_config=None, flavour=None):
         """Sets up the qmemories, nodes, connections and subroutine-handlers
         used to process NetQASM instructions.
 
@@ -57,7 +57,11 @@ class Backend:
         network = BackendNetwork(node_names, network_config)
         self._nodes = network.nodes
 
-        self._subroutine_handlers = self._get_subroutine_handlers(self._nodes, instr_log_dir=instr_log_dir)
+        self._subroutine_handlers = self._get_subroutine_handlers(
+            self._nodes,
+            instr_log_dir=instr_log_dir,
+            flavour=flavour
+        )
 
         reaction_handlers = {node_name: self._subroutine_handlers[node_name].get_epr_reaction_handler()
                              for node_name in self._nodes}
@@ -91,10 +95,10 @@ class Backend:
         }
 
     @staticmethod
-    def _get_subroutine_handlers(nodes, instr_log_dir):
+    def _get_subroutine_handlers(nodes, instr_log_dir, flavour):
         subroutine_handlers = {}
         for node in nodes.values():
-            subroutine_handler = SubroutineHandler(node, instr_log_dir=instr_log_dir)
+            subroutine_handler = SubroutineHandler(node, instr_log_dir=instr_log_dir, flavour=flavour)
             subroutine_handlers[node.name] = subroutine_handler
         return subroutine_handlers
 
