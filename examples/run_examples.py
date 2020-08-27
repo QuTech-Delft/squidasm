@@ -19,9 +19,10 @@ def main():
     apps = os.listdir(apps_path)
 
     for app in apps:
-        print(f"Running example app {app}")
+        app_path = os.path.join(apps_path, app)
+        print(f"Running example app {app_path}")
         result = subprocess.run(
-            ["squidasm", "simulate", "--app-dir", f"examples/apps/{app}"],
+            ["squidasm", "simulate", "--app-dir", app_path],
             stdout=subprocess.DEVNULL,
         )
         if result.returncode != 0:
