@@ -57,6 +57,9 @@ def version():
 @click.option("--formalism", type=click.Choice(["KET", "DM"]), default="KET",
               help="Choose which quantum state formalism is used by NetSquid. Default is KET."
               )
+@click.option("--flavour", type=click.Choice(["vanilla", "nv"]), default="vanilla",
+              help="Choose the NetQASM flavour that is used. Default is vanilla."
+              )
 @click.option("--log-level", type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]), default="WARNING",
               help="What log-level to use (DEBUG, INFO, WARNING, ERROR, CRITICAL)."
                    "Note, this affects logging to stderr, not logging instructions to file."
@@ -72,6 +75,7 @@ def simulate(
     post_function_file,
     results_file,
     formalism,
+    flavour
 ):
     """
     Executes a given NetQASM file using a specified executioner.
@@ -86,7 +90,8 @@ def simulate(
         log_level=log_level,
         post_function_file=post_function_file,
         results_file=results_file,
-        formalism=formalism
+        formalism=formalism,
+        flavour=flavour
     )
 
 

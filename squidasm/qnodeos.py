@@ -6,10 +6,13 @@ from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
 from netsquid_magic.sleeper import Sleeper
 
-from netqasm.parsing import parse_binary_subroutine
+from netqasm.parsing import deserialize
 from netqasm.logging import get_netqasm_logger
 from netqasm.messages import MessageType
-from squidasm.executioner import NetSquidExecutioner
+from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
+
+from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
+from squidasm.executioner.nv import NVNetSquidExecutioner
 from squidasm.queues import get_queue, Signal
 
 
@@ -75,10 +78,18 @@ class Task:
 
 
 class SubroutineHandler(NodeProtocol):
-    def __init__(self, node, instr_log_dir=None):
+    def __init__(self, node, instr_log_dir=None, flavour=None):
         """An extremely simplified version of QNodeOS for handling NetQASM subroutines"""
         super().__init__(node=node)
-        self._executioner = NetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
+
+        self.flavour = flavour
+
+        if flavour is None or isinstance(flavour, VanillaFlavour):
+            self._executioner = VanillaNetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
+        elif isinstance(flavour, NVFlavour):
+            self._executioner = NVNetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
+        else:
+            raise ValueError(f"Flavour {flavour} is not supported.")
 
         self._message_queue = get_queue(self.node.name, create_new=True)
 
@@ -128,14 +139,14 @@ class SubroutineHandler(NodeProtocol):
     def run(self):
         while self.is_running:
             # Check if there is a new message
-            self._logger.info('Checking for next message')
+            self._logger.debug('Checking for next message')
             msg = self._next_message()
             if msg is not None:
                 self._handle_message(msg=msg)
             ev = self._get_next_task_event()
             if ev is None:
                 # No tasks so wait a bit before checking next msg
-                self._logger.info('No more events so wait for next message')
+                self._logger.debug('No more events so wait for next message')
                 yield self._sleeper.sleep()
             else:
                 yield ev
@@ -148,10 +159,10 @@ class SubroutineHandler(NodeProtocol):
             # If generator then add to this to the current task
             # Distinguish subroutines from others to prioritize others
             if msg.type == MessageType.SUBROUTINE:
-                self._logger.info('Adding to subroutine tasks')
+                self._logger.debug('Adding to subroutine tasks')
                 self._subroutine_tasks.append(Task(gen=output, msg=msg))
             else:
-                self._logger.info('Adding to other tasks')
+                self._logger.debug('Adding to other tasks')
                 self._other_tasks.append(Task(gen=output, msg=msg))
         else:
             # No generator so directly finished
@@ -161,17 +172,17 @@ class SubroutineHandler(NodeProtocol):
         # Execute other tasks (non subroutine first and in order)
         task = self._get_next_other_task()
         if task is not None:
-            self._logger.info('Executing other task')
+            self._logger.debug('Executing other task')
             try:
                 return task.pop_next_event()
             except IndexError:
                 return None
         # Only subroutine handlers left
         # Execute in order unless a subroutine is waiting
-        self._logger.info('Executing subroutine task')
+        self._logger.debug('Executing subroutine task')
         task = self._get_next_subroutine_task()
         if task is None:
-            self._logger.info('No more subroutine tasks')
+            self._logger.debug('No more subroutine tasks')
             return None
         else:
             try:
@@ -220,7 +231,7 @@ class SubroutineHandler(NodeProtocol):
         return item
 
     def _handle_subroutine(self, subroutine):
-        subroutine = parse_binary_subroutine(subroutine)
+        subroutine = deserialize(subroutine, flavour=self.flavour)
         self._logger.debug(f"Executing next subroutine "
                            f"from app ID {subroutine.app_id}")
         yield from self._execute_subroutine(subroutine=subroutine)

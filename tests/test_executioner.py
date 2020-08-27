@@ -6,7 +6,7 @@ from netsquid.nodes import Node
 
 from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
-from squidasm.executioner import NetSquidExecutioner
+from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
 from squidasm.network import QDevice
 from squidasm.run import reset
 
@@ -33,7 +33,7 @@ ret_reg m!
     subroutine = parse_text_subroutine(subroutine)
     app_id = 0
     node = Node("Alice", qmemory=QDevice())
-    executioner = NetSquidExecutioner(node=node)
+    executioner = VanillaNetSquidExecutioner(node=node)
     # Consume the generator
     executioner.init_new_application(app_id=app_id, max_qubits=1)
 

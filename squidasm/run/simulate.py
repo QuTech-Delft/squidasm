@@ -15,6 +15,7 @@ from netqasm.yaml_util import load_yaml, dump_yaml
 from netqasm.output import InstrField
 from .run import run_applications
 from netqasm.sdk.config import LogConfig
+from netqasm.instructions.flavour import NVFlavour, VanillaFlavour
 
 from netsquid_netconf.builder import ComponentBuilder
 from netsquid_netconf.netconf import netconf_generator
@@ -160,6 +161,7 @@ def simulate_apps(
     post_function_file=None,
     results_file=None,
     formalism="KET",
+    flavour=None
 ):
 
     set_log_level(log_level)
@@ -224,13 +226,24 @@ def simulate_apps(
     else:
         raise TypeError(f"Unknown formalism {formalism}")
 
+    if flavour is None:
+        flavour = "vanilla"
+
+    if flavour == "nv":
+        flavour = NVFlavour()
+    elif flavour == "vanilla":
+        flavour = VanillaFlavour()
+    else:
+        raise TypeError(f"Unsupported flavour: {flavour}")
+
     run_applications(
         applications=applications,
         network_config=network_config,
         instr_log_dir=timed_log_dir,
         post_function=post_function,
         results_file=results_file,
-        q_formalism=q_formalism
+        q_formalism=q_formalism,
+        flavour=flavour
     )
 
     process_log(log_dir=timed_log_dir)

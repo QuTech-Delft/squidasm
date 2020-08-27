@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+Upcoming
+--------
+
+2020-08-27 (0.0.5)
+------------------
+- Support `flavour` specification.
+- Use `netqasm` 0.0.7
+
 2020-07-09 (0.0.4)
 ------------------
 - Allow lib-dirs to be None.

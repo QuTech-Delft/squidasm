@@ -35,6 +35,7 @@ def main(log_config=None, y=0):
     with bob:
         # Wait for entanglement with Alice through repeater
         epr = epr_socket.recv()[0]
+        bob.flush()
 
         # Receive teleportation corrections
         msg = socket.recv()
