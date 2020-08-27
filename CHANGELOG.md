@@ -4,6 +4,10 @@ CHANGELOG
 Upcoming
 --------
 
+2020-08-27 (0.0.6)
+------------------
+- Fix bug in `examples/run_examples.py`
+
 2020-08-27 (0.0.5)
 ------------------
 - Support `flavour` specification.
