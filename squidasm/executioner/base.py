@@ -8,12 +8,10 @@ from pydynaa import (
 )
 from netsquid.nodes.node import Node
 import netsquid as ns
-from netsquid.qubits import qubitapi as qapi
 from netsquid_magic.sleeper import Sleeper
 
-from netqasm.executioner import Executioner, QubitState
-from squidasm.ns_util import is_qubit_entangled
-
+from netqasm.executioner import Executioner, NotAllocatedError
+from squidasm.output import InstrLogger
 
 PendingEPRResponse = namedtuple("PendingEPRResponse", [
     "response",
@@ -23,6 +21,9 @@ PendingEPRResponse = namedtuple("PendingEPRResponse", [
 
 
 class NetSquidExecutioner(Executioner, Entity):
+
+    instr_logger_class = InstrLogger
+
     def __init__(self, node, name=None, network_stack=None, instr_log_dir=None, instr_mapping=None):
         """Executes a NetQASM using a NetSquid quantum processor to execute quantum instructions"""
         if not isinstance(node, Node):
@@ -142,9 +143,10 @@ class NetSquidExecutioner(Executioner, Entity):
             expression=self._sleeper.sleep(),
         )
 
-    def _get_qubit_state(self, app_id, virtual_address):
-        phys_pos = self._get_position(app_id=app_id, address=virtual_address)
+    def _get_qubit(self, app_id, virtual_address):
+        try:
+            phys_pos = self._get_position(app_id=app_id, address=virtual_address)
+        except NotAllocatedError:
+            return None
         qubit = self.qdevice._get_qubits(phys_pos)[0]
-        state = qapi.reduced_dm(qubit)
-        is_entangled = is_qubit_entangled(qubit=qubit)
-        return QubitState(state=state, is_entangled=is_entangled)
+        return qubit

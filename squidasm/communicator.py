@@ -2,7 +2,7 @@ from netqasm.parsing import parse_text_subroutine
 from netqasm.logging import get_netqasm_logger
 from netqasm.messages import Message, InitNewAppMessage, MessageType, OpenEPRSocketMessage
 from squidasm.queues import get_queue, Signal
-from squidasm.backend import get_node_id, get_node_name
+from squidasm.backend.glob import get_node_id, get_node_name
 
 
 class SimpleCommunicator:
