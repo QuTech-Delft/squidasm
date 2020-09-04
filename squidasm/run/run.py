@@ -9,7 +9,7 @@ from netqasm.logging import get_netqasm_logger
 from netqasm.yaml_util import dump_yaml
 from netqasm.output import save_all_struct_loggers, reset_struct_loggers
 from netqasm.sdk.classical_communication import reset_socket_hub
-from squidasm.backend import Backend
+from squidasm.backend.backend import Backend
 from squidasm.thread_util import as_completed
 from squidasm.network import reset_network
 from squidasm.queues import reset_queues

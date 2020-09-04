@@ -2,49 +2,7 @@ import netsquid as ns
 
 from squidasm.network import BackendNetwork, create_network_stacks
 from squidasm.qnodeos import SubroutineHandler
-
-
-_CURRENT_BACKEND = [None]
-
-
-def get_running_backend(block=True):
-    while True:
-        backend = _CURRENT_BACKEND[0]
-        if backend is not None:
-            return backend
-        if not block:
-            return None
-
-
-def get_current_nodes(block=True):
-    backend = get_running_backend(block=block)
-    return backend.nodes
-
-
-def get_current_node_names(block=True):
-    backend = get_running_backend(block=block)
-    return backend.nodes.keys()
-
-
-def get_current_node_ids(block=True):
-    backend = get_running_backend(block=block)
-    return {node_name: node.ID for node_name, node in backend.nodes.items()}
-
-
-def get_node_id(name):
-    current_node_ids = get_current_node_ids()
-    node_id = current_node_ids.get(name)
-    if node_id is None:
-        raise ValueError(f"Unknown node with name {name}")
-    return node_id
-
-
-def get_node_name(node_id):
-    current_node_ids = get_current_node_ids()
-    for node_name, tmp_node_id in current_node_ids.items():
-        if tmp_node_id == node_id:
-            return node_name
-    raise ValueError(f"Unknown node with id {node_id}")
+from squidasm.backend.glob import put_current_backend, pop_current_backend
 
 
 class Backend:
@@ -106,22 +64,11 @@ class Backend:
 
     def start(self):
         """Starts the backend"""
-        _put_current_backend(self)
+        put_current_backend(self)
         self._start_subroutine_handlers()
         ns.sim_run()
-        _pop_current_backend()
+        pop_current_backend()
 
     def _start_subroutine_handlers(self):
         for subroutine_handler in self._subroutine_handlers.values():
             subroutine_handler.start()
-
-
-def _put_current_backend(backend):
-    if _CURRENT_BACKEND[0] is not None:
-        raise RuntimeError("Already a backend running")
-    else:
-        _CURRENT_BACKEND[0] = backend
-
-
-def _pop_current_backend():
-    _CURRENT_BACKEND[0] = None
