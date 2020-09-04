@@ -15,7 +15,7 @@ from netsquid_magic.magic_distributor import (
 from .config import NodeLinkConfig, NoiseType
 
 from netqasm.logging import get_netqasm_logger
-from netqasm.output import GlobalLogger
+from netqasm.output import NetworkLogger
 logger = get_netqasm_logger()
 
 
@@ -37,8 +37,8 @@ class BackendNetwork(Network):
         self.links: List[MagicDistributor] = []
 
         if global_log_dir is not None:
-            logger_path = os.path.join(global_log_dir, "global_log.yaml")
-            self._global_logger = GlobalLogger(logger_path)
+            logger_path = os.path.join(global_log_dir, "network_log.yaml")
+            self._global_logger = NetworkLogger(logger_path)
         else:
             self._global_logger = None
 

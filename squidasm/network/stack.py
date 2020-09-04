@@ -17,6 +17,7 @@ from netqasm.network_stack import BaseNetworkStack, Address
 from .setup import BackendNetwork
 
 from netqasm.output import EntanglementStage
+from squidasm.output import InstrLogger
 
 
 # NOTE This is a hack for now to have something that the signaling protocol would do
@@ -174,7 +175,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
     """
     Same as a MagicLinkLayerProtocol, but contains information about a path in the network.
     This path is not actually used by the magic protocol.
-    Furthermore, it logs requests and deliveries to the GlobalLogger of the network.
+    Furthermore, it logs requests and deliveries to the NetworkLogger of the network.
     """
     def __init__(self, nodes, magic_distributor, translation_unit, path: List[str], network):
         super().__init__(
@@ -186,12 +187,14 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
     def _handle_create_request(self, node_id, request):
         node0 = self.nodes[0].name
         node1 = self.nodes[1].name
+        qubit_groups = InstrLogger._get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
             ent_stage=EntanglementStage.START,
             nodes=[node0, node1],
             qids=[None, None],
+            qubit_groups=qubit_groups,
             path=[node for node in self.path],
             msg=f"start entanglement creation between {node0} and {node1}",
         )
@@ -209,11 +212,14 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         node0_pos, node1_pos = memory_positions.values()
         qubit0 = node0_pos[0]
         qubit1 = node1_pos[0]
+        qubit_groups = InstrLogger._get_qubit_groups()
+
         self.network.global_log(
             sim_time=ns.sim_time(),
             ent_stage=EntanglementStage.FINISH,
             nodes=[node0, node1],
             qids=[qubit0, qubit1],
+            qubit_groups=qubit_groups,
             path=[node for node in self.path],
             msg=f"entanglement created between {node0} and {node1}",
         )
