@@ -54,7 +54,9 @@ class Backend:
 
         The Backend should be started by calling `start`, which also starts pydynaa.
         """
-        network = BackendNetwork(node_names, network_config)
+
+        # global log file in same directory as instr logs
+        network = BackendNetwork(node_names, global_log_dir=instr_log_dir, network_config=network_config)
         self._nodes = network.nodes
 
         self._subroutine_handlers = self._get_subroutine_handlers(

@@ -1,4 +1,5 @@
-from typing import List
+import os
+from typing import List, Dict
 
 from netsquid.components import QuantumProcessor, PhysicalInstruction
 from netsquid.components import instructions as ns_instructions
@@ -14,6 +15,7 @@ from netsquid_magic.magic_distributor import (
 from .config import NodeLinkConfig, NoiseType
 
 from netqasm.logging import get_netqasm_logger
+from netqasm.output import GlobalLogger
 logger = get_netqasm_logger()
 
 
@@ -24,7 +26,7 @@ class BackendNetwork(Network):
     which represent a entanglement-creating connection between 2 nodes.
     """
 
-    def __init__(self, node_names, network_config=None):
+    def __init__(self, node_names, global_log_dir=None, network_config=None):
         """
         BackendNetwork constructor.
         `network_config` should be a config object generated from `network.yaml`.
@@ -34,10 +36,23 @@ class BackendNetwork(Network):
         super().__init__(name="BackendNetwork")
         self.links: List[MagicDistributor] = []
 
+        if global_log_dir is not None:
+            logger_path = os.path.join(global_log_dir, "global_log.yaml")
+            self._global_logger = GlobalLogger(logger_path)
+        else:
+            self._global_logger = None
+
+        # paths for creating entanglement between nodes
+        self.paths: Dict[str, Dict[str, List[str]]] = {}
+
         if network_config is not None:
             self._init_from_config(network_config)
         else:
             self._init_default(node_names)
+
+    def global_log(self, *args, **kwargs):
+        if self._global_logger is not None:
+            self._global_logger.log(*args, **kwargs)
 
     def _init_default(self, node_names):
         for i, node_name in enumerate(node_names):
@@ -51,6 +66,9 @@ class BackendNetwork(Network):
                 link_config = NodeLinkConfig(name="", node_name1=node_name1, node_name2=node_name2)
                 link = self.get_link_distributor(link_config)
                 self.links.append(link)
+
+                # path is same as link
+                self.paths[(node_name1, node_name2)] = [node_name1, node_name2]
 
         pass
 
@@ -67,6 +85,15 @@ class BackendNetwork(Network):
                 link = self.get_link_distributor(comp)
                 self.links.append(link)
 
+        for node_name1 in self.nodes:
+            for node_name2 in self.nodes:
+                if node_name1 == node_name2:
+                    continue
+
+                # For now: path is same as link
+                # TODO: get path from network config file, or compute it based on simple routing protocol
+                self.paths[(node_name1, node_name2)] = [node_name1, node_name2]
+
     def get_link_distributor(self, link: NodeLinkConfig) -> MagicDistributor:
         """
         Create a MagicDistributor for a pair of nodes,
@@ -76,13 +103,13 @@ class BackendNetwork(Network):
         node2 = self.get_node(link.node_name2)
 
         if link.noise_type == NoiseType.NoNoise:
-            return PerfectStateMagicDistributor(nodes=[node1, node2])
+            return PerfectStateMagicDistributor(nodes=[node1, node2], state_delay=1e-5)
         elif link.noise_type == NoiseType.Depolarise:
             noise = 1 - link.fidelity
-            return DepolariseMagicDistributor(nodes=[node1, node2], prob_max_mixed=noise)
+            return DepolariseMagicDistributor(nodes=[node1, node2], prob_max_mixed=noise, state_delay=1e-5)
         elif link.noise_type == NoiseType.Bitflip:
             flip_prob = 1 - link.fidelity
-            return BitflipMagicDistributor(nodes=[node1, node2], flip_prob=flip_prob)
+            return BitflipMagicDistributor(nodes=[node1, node2], flip_prob=flip_prob, state_delay=1e-5)
         else:
             raise TypeError(f"Noise type {link.noise_type} not valid")
 
