@@ -193,9 +193,9 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             sim_time=ns.sim_time(),
             ent_stage=EntanglementStage.START,
             nodes=[node0, node1],
-            qids=[None, None],
+            qubit_ids=[None, None],
+            qubit_states=[None, None],
             qubit_groups=qubit_groups,
-            path=[node for node in self.path],
             msg=f"start entanglement creation between {node0} and {node1}",
         )
 
@@ -218,9 +218,9 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             sim_time=ns.sim_time(),
             ent_stage=EntanglementStage.FINISH,
             nodes=[node0, node1],
-            qids=[qubit0, qubit1],
+            qubit_ids=[qubit0, qubit1],
+            qubit_states=[None, None],
             qubit_groups=qubit_groups,
-            path=[node for node in self.path],
             msg=f"entanglement created between {node0} and {node1}",
         )
 

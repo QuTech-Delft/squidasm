@@ -43,6 +43,11 @@ def main(log_config=None, phi=0.0, theta=0.0):
         if bob_meas == "1":
             ctrl_qubit.Z()
 
+        alice.flush()
+
+        # ack the outcome
+        class_socket.send("ACK")
+
         # get the combined state of Alice's control and Bob's target
         dm = get_qubit_state(ctrl_qubit, reduced_dm=False)
 

@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from netsquid.components import QuantumProcessor, PhysicalInstruction
 from netsquid.components import instructions as ns_instructions
@@ -94,7 +94,7 @@ class BackendNetwork(Network):
                 # TODO: get path from network config file, or compute it based on simple routing protocol
                 self.paths[(node_name1, node_name2)] = [node_name1, node_name2]
 
-    def get_link_distributor(self, link: NodeLinkConfig) -> MagicDistributor:
+    def get_link_distributor(self, link: NodeLinkConfig, state_delay: Optional[float] = 1.) -> MagicDistributor:
         """
         Create a MagicDistributor for a pair of nodes,
         based on configuration in a `NodeLinkConfig` object.
@@ -103,13 +103,13 @@ class BackendNetwork(Network):
         node2 = self.get_node(link.node_name2)
 
         if link.noise_type == NoiseType.NoNoise:
-            return PerfectStateMagicDistributor(nodes=[node1, node2], state_delay=1e-5)
+            return PerfectStateMagicDistributor(nodes=[node1, node2], state_delay=state_delay)
         elif link.noise_type == NoiseType.Depolarise:
             noise = 1 - link.fidelity
-            return DepolariseMagicDistributor(nodes=[node1, node2], prob_max_mixed=noise, state_delay=1e-5)
+            return DepolariseMagicDistributor(nodes=[node1, node2], prob_max_mixed=noise, state_delay=state_delay)
         elif link.noise_type == NoiseType.Bitflip:
             flip_prob = 1 - link.fidelity
-            return BitflipMagicDistributor(nodes=[node1, node2], flip_prob=flip_prob, state_delay=1e-5)
+            return BitflipMagicDistributor(nodes=[node1, node2], flip_prob=flip_prob, state_delay=state_delay)
         else:
             raise TypeError(f"Noise type {link.noise_type} not valid")
 

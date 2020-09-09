@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Set
 
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits.qubit import Qubit
@@ -15,7 +15,7 @@ class InstrLogger(NQInstrLogger):
 
     # Absulute IDs of all qubits in the simulation
     # List of (node_name, subroutine_id, qubit_id)
-    _qubits: List[Tuple[str, int, int]] = []
+    _qubits: Set[Tuple[str, int, int]] = set()
 
     @classmethod
     def _get_qubit_groups(cls) -> QubitGroups:
@@ -50,14 +50,14 @@ class InstrLogger(NQInstrLogger):
             instructions.core.RecvEPRInstruction,
         ]
         remove_qubit_instrs = [
-            instructions.core.MeasInstruction,
+            instructions.core.QFreeInstruction,
         ]
         node_name = self._get_node_name()
         app_id = self._get_app_id(subroutine_id=subroutine_id)
         if any(isinstance(instr, cmd_cls) for cmd_cls in add_qubit_instrs):
             for qubit_id in qubit_ids:
                 abs_id = node_name, app_id, qubit_id
-                self.__class__._qubits.append(abs_id)
+                self.__class__._qubits.add(abs_id)
         elif any(isinstance(instr, cmd_cls) for cmd_cls in remove_qubit_instrs):
             for qubit_id in qubit_ids:
                 abs_id = node_name, app_id, qubit_id

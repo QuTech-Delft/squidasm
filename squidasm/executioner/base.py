@@ -6,6 +6,7 @@ from pydynaa import (
     Entity,
     EventHandler,
 )
+from netsquid.components.qmemory import MemPositionBusyError
 from netsquid.nodes.node import Node
 import netsquid as ns
 from netsquid_magic.sleeper import Sleeper
@@ -148,5 +149,10 @@ class NetSquidExecutioner(Executioner, Entity):
             phys_pos = self._get_position(app_id=app_id, address=virtual_address)
         except NotAllocatedError:
             return None
-        qubit = self.qdevice._get_qubits(phys_pos)[0]
+        try:
+            qubit = self.qdevice._get_qubits(phys_pos)[0]
+        except MemPositionBusyError:
+            with self.qdevice._access_busy_memory([phys_pos]):
+                self._logger.info("NOTE Accessing qubit from busy memory")
+                qubit = self.qdevice._get_qubits(phys_pos, skip_noise=True)[0]
         return qubit

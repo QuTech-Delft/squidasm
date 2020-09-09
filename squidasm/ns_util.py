@@ -74,8 +74,6 @@ def partial_transpose(mat: ndarray, dim: int = 2, size_b: Optional[int] = None) 
     for j, k in product(range(N), repeat=2):
         # Transpose each submatrix
         submats[j][k] = mat[M*j:M*(j+1), N*k:N*(k+1)].transpose()
-    tmp = np.block(submats)
-    print(linalg.eigvals(tmp))
     return np.block(submats)
 
 
