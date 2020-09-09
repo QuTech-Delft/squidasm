@@ -1,7 +1,9 @@
 # from time import sleep
 from collections import defaultdict
 from timeit import default_timer as timer
+from typing import List
 
+import netsquid as ns
 from qlink_interface import LinkLayerRecv
 
 from netsquid_magic.link_layer import (
@@ -13,6 +15,9 @@ from netsquid_magic.sleeper import Sleeper
 
 from netqasm.network_stack import BaseNetworkStack, Address
 from .setup import BackendNetwork
+
+from netqasm.output import EntanglementStage
+from squidasm.output import InstrLogger
 
 
 # NOTE This is a hack for now to have something that the signaling protocol would do
@@ -166,6 +171,60 @@ class NetworkStack(BaseNetworkStack):
                 raise TimeoutError("Remote node did not initialize the correct rules")
 
 
+class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
+    """
+    Same as a MagicLinkLayerProtocol, but contains information about a path in the network.
+    This path is not actually used by the magic protocol.
+    Furthermore, it logs requests and deliveries to the NetworkLogger of the network.
+    """
+    def __init__(self, nodes, magic_distributor, translation_unit, path: List[str], network):
+        super().__init__(
+            nodes=nodes, magic_distributor=magic_distributor, translation_unit=translation_unit)
+
+        self.path = path
+        self.network = network
+
+    def _handle_create_request(self, node_id, request):
+        node0 = self.nodes[0].name
+        node1 = self.nodes[1].name
+        qubit_groups = InstrLogger._get_qubit_groups()
+
+        self.network.global_log(
+            sim_time=ns.sim_time(),
+            ent_stage=EntanglementStage.START,
+            nodes=[node0, node1],
+            qubit_ids=[None, None],
+            qubit_states=[None, None],
+            qubit_groups=qubit_groups,
+            msg=f"start entanglement creation between {node0} and {node1}",
+        )
+
+        return super()._handle_create_request(node_id=node_id, request=request)
+
+    def _handle_delivery(self, event):
+        delivery = self._magic_distributor.peek_delivery(event)
+        memory_positions = delivery.memory_positions
+
+        super()._handle_delivery(event)
+
+        node0 = self.nodes[0].name
+        node1 = self.nodes[1].name
+        node0_pos, node1_pos = memory_positions.values()
+        qubit0 = node0_pos[0]
+        qubit1 = node1_pos[0]
+        qubit_groups = InstrLogger._get_qubit_groups()
+
+        self.network.global_log(
+            sim_time=ns.sim_time(),
+            ent_stage=EntanglementStage.FINISH,
+            nodes=[node0, node1],
+            qubit_ids=[qubit0, qubit1],
+            qubit_states=[None, None],
+            qubit_groups=qubit_groups,
+            msg=f"entanglement created between {node0} and {node1}",
+        )
+
+
 def create_link_layer_services(network: BackendNetwork, reaction_handlers):
     """
     Create a dictionary mapping (node name, remote node ID) to a LinkLayerService object.
@@ -177,11 +236,14 @@ def create_link_layer_services(network: BackendNetwork, reaction_handlers):
 
     for link in network.links:  # type(link) = MagicDistributor
         node_pair = link.nodes[0]
+        path = network.paths[(node_pair[0].name, node_pair[1].name)]
 
-        magic_protocol = MagicLinkLayerProtocol(
+        magic_protocol = MagicNetworkLayerProtocol(
             nodes=node_pair,
             magic_distributor=link,
-            translation_unit=SingleClickTranslationUnit()
+            translation_unit=SingleClickTranslationUnit(),
+            path=path,
+            network=network,
         )
 
         for node, remote_node in [node_pair, reversed(node_pair)]:

@@ -32,6 +32,8 @@ def main(log_config=None, col=0, strategy=None):
         epr_sockets=[epr_socket],
     )
     with bob:
+        # Don't clear app on exit (for logging)
+        bob._clear_app_on_exit = False
 
         # Create EPR pairs
         q1 = epr_socket.recv()[0]

@@ -1,5 +1,3 @@
-from time import sleep
-
 from netqasm.sdk.toolbox.measurements import parity_meas
 from netqasm.logging import get_netqasm_logger
 from netqasm.sdk import EPRSocket
@@ -33,9 +31,8 @@ def main(log_config=None, row=0, strategy=None):
         epr_sockets=[epr_socket],
     )
     with alice:
-
-        # Wait a little for recv rules to be installed
-        sleep(0.1)
+        # Don't clear app on exit (for logging)
+        alice._clear_app_on_exit = False
 
         # Create EPR pairs
         q1 = epr_socket.create()[0]
