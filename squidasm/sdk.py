@@ -2,7 +2,7 @@ from threading import Thread
 
 from netqasm.sdk import NetQASMConnection
 from squidasm.queues import get_queue
-from squidasm.backend import get_node_id, get_node_name
+from squidasm.backend.glob import get_node_id, get_node_name
 
 
 class NetSquidConnection(NetQASMConnection):

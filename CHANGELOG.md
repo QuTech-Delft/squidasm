@@ -4,6 +4,11 @@ CHANGELOG
 Upcoming
 --------
 
+2020-09-09 (0.0.7)
+------------------
+- Instrs-logging now include qubit IDs and qubit states for all qubits involved in the operation.
+- Instrs-logging now include what to specify what qubits have at some point interacted in the simulaton.
+
 2020-08-27 (0.0.6)
 ------------------
 - Fix bug in `examples/run_examples.py`

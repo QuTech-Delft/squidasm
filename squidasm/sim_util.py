@@ -1,6 +1,6 @@
 from netsquid.qubits import qubitapi as qapi
 
-from squidasm.backend import get_running_backend
+from squidasm.backend.glob import get_running_backend
 
 
 def get_qubit_state(qubit, reduced_dm=True):

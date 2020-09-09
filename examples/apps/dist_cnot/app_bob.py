@@ -48,6 +48,9 @@ def main(log_config=None, phi=0.0, theta=0.0):
         # Alice will do a controlled-Z based on the outcome to undo the entanglement
         class_socket.send(str(epr_meas))
 
+        # Wait for an ack before exiting
+        assert class_socket.recv() == "ACK"
+
     return {
         'epr_meas': int(epr_meas)
     }
