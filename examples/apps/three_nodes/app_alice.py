@@ -7,8 +7,16 @@ logger = get_netqasm_logger()
 
 
 def main(app_config=None):
-    epr_socket_bob = EPRSocket("bob")
-    epr_socket_charlie = EPRSocket("charlie")
+    epr_socket_bob = EPRSocket(
+        remote_node_name="bob",
+        epr_socket_id=0,
+        remote_epr_socket_id=0
+    )
+    epr_socket_charlie = EPRSocket(
+        remote_node_name="charlie",
+        epr_socket_id=1,
+        remote_epr_socket_id=0
+    )
 
     alice = NetSquidConnection(
         app_name=app_config.app_name,
@@ -19,6 +27,8 @@ def main(app_config=None):
     with alice:
         epr_bob = epr_socket_bob.create()[0]
         m_bob = epr_bob.measure()
+
+        alice.flush()
 
         epr_charlie = epr_socket_charlie.create()[0]
         m_charlie = epr_charlie.measure()
