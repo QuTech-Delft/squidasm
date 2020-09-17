@@ -141,7 +141,7 @@ class NetworkStack(BaseNetworkStack):
         )
 
     # NOTE this is used for now since we communicate directly to the link layer
-    def _get_purpose_id(self, remote_node_id, epr_socket_id):
+    def get_purpose_id(self, remote_node_id, epr_socket_id):
         return self._signaling_protocol._get_purpose_id(
             node_id=self._node.ID,
             remote_node_id=remote_node_id,

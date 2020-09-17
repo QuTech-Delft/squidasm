@@ -73,11 +73,7 @@ class NetSquidExecutioner(Executioner, Entity):
         position = self._get_position(subroutine_id=subroutine_id, address=address)
         ns_instr = self._get_netsquid_instruction(instr=instr)
         self._logger.debug(f"Doing instr {instr} with angle {angle} on qubit {position}")
-        yield from self._execute_qdevice_instruction(
-            ns_instr=ns_instr,
-            qubit_mapping=[position],
-            angle=angle,
-        )
+        yield from self._execute_qdevice_instruction(ns_instr=ns_instr, qubit_mapping=[position], angle=angle)
 
     def _do_controlled_qubit_rotation(self, instr, subroutine_id, address1, address2, angle):
         positions = self._get_positions(subroutine_id=subroutine_id, addresses=[address1, address2])
@@ -110,7 +106,8 @@ class NetSquidExecutioner(Executioner, Entity):
         ns_instr = self._instr_mapping.get(instr.__class__)
         if ns_instr is None:
             raise RuntimeError(
-                f"Don't know how to map the instruction {instr} (type {type(instr)}) to a netquid instruction")
+                f"Don't know how to map the instruction {instr} (type {type(instr)}) to a netquid instruction"
+            )
         return ns_instr
 
     def _do_meas(self, subroutine_id, q_address):
@@ -124,16 +121,6 @@ class NetSquidExecutioner(Executioner, Entity):
     def _do_wait(self):
         self._schedule_after(1, self._wait_event)
         yield EventExpression(source=self, event_type=self._wait_event)
-
-    def _get_positions(self, subroutine_id, addresses):
-        return [self._get_position(subroutine_id=subroutine_id, address=address) for address in addresses]
-
-    def _get_position(self, subroutine_id=None, address=0, app_id=None):
-        if app_id is None:
-            if subroutine_id is None:
-                raise ValueError("subroutine_id and app_id cannot both be None")
-            app_id = self._get_app_id(subroutine_id=subroutine_id)
-        return self._get_position_in_unit_module(app_id=app_id, address=address)
 
     def _get_unused_physical_qubit(self):
         # Assuming that the topology of the unit module is a complete graph
