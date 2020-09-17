@@ -8,13 +8,14 @@ from shared.myfuncs import custom_send, custom_measure
 logger = get_netqasm_logger()
 
 
-def main(log_config=None):
-    socket = Socket("alice", "bob", log_config=log_config)
+def main(app_config=None):
+    socket = Socket("alice", "bob", log_config=app_config.log_config)
 
     # Initialize the connection to the backend
     alice = NetSquidConnection(
-        name="alice",
-        log_config=log_config
+        app_name=app_config.app_name,
+		node_name=app_config.node_name,
+        log_config=app_config.log_config
     )
 
     with alice:

@@ -14,7 +14,7 @@ def _get_default_strategy():
     ]
 
 
-def main(log_config=None, row=0, strategy=None):
+def main(app_config=None, row=0, strategy=None):
 
     if strategy is None:
         strategy = _get_default_strategy()
@@ -26,8 +26,9 @@ def main(log_config=None, row=0, strategy=None):
 
     # Initialize the connection
     alice = NetSquidConnection(
-        "alice",
-        log_config=log_config,
+        app_name=app_config.app_name,
+		node_name=app_config.node_name,
+        log_config=app_config.log_config,
         epr_sockets=[epr_socket],
     )
     with alice:

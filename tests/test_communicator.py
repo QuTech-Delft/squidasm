@@ -7,6 +7,7 @@ from netqasm.sdk.shared_memory import get_shared_memory
 from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.network_stack import CREATE_FIELDS, OK_FIELDS
 from squidasm.run import run_applications
+from squidasm.application_interface import default_app_config
 from squidasm.communicator import SimpleCommunicator
 
 logger = get_netqasm_logger()
@@ -52,10 +53,10 @@ ret_reg m!
             logger.info(f"m = {outcome}")
             assert outcome in set([0, 1])
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob)
+    ], post_function=post_function)
 
 
 def test_meas_many():

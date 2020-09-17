@@ -11,3 +11,13 @@ class AppConfig:
     main_func: Callable
     log_config: LogConfig
     inputs: Dict[str, Any]
+
+
+def default_app_config(app_name: str, main_func: Callable) -> AppConfig:
+    AppConfig(
+        app_name=app_name,
+        node_name=app_name,
+        main_func=main_func,
+        log_config=None,
+        inputs=None
+    )

@@ -1,7 +1,7 @@
 import logging
 from importlib import reload
 from multiprocessing.pool import ThreadPool
-from typing import List
+from typing import List, Optional
 
 import netsquid as ns
 
@@ -35,7 +35,7 @@ def reset(save_loggers=False):
 
 
 def run_applications(
-    app_cfgs: List[AppConfig],
+    app_cfgs: Optional[List[AppConfig]],
     post_function=None,
     instr_log_dir=None,
     network_config=None,

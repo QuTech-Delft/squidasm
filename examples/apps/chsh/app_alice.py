@@ -16,7 +16,10 @@ def main(app_config=None, x=0):
     if not (x == 0 or x == 1):
         raise ValueError(f"x should be 0 or 1, not {x}")
 
-    app_logger = get_new_app_logger(node_name="alice", log_config=app_config.log_config)
+    app_logger = get_new_app_logger(
+        node_name=app_config.app_name,
+		log_config=app_config.log_config
+    )
     app_logger.log(f"Alice received input bit x = {x}")
 
     epr_socket = EPRSocket("repeater")
