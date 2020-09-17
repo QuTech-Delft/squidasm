@@ -64,7 +64,7 @@ class NetSquidNetwork(Network):
             self._global_logger.log(*args, **kwargs)
 
     def _build_network(self):
-        for node_cfg in self._network_config.nodes:
+        for i, node_cfg in enumerate(self._network_config.nodes):
             mem_fidelities = [T1T2NoiseModel(q.t1, q.t2) for q in node_cfg.qubits]
             qdevice = QDevice(  # TODO: use NVQDevice when application can be compiled to valid NV instructions
                 name=f"{node_cfg.name}_QDevice",
@@ -74,6 +74,7 @@ class NetSquidNetwork(Network):
             )
             node = Node(
                 name=node_cfg.name,
+                ID=i,
                 qmemory=qdevice
             )
             self.add_node(node)
