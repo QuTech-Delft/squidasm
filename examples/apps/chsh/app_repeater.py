@@ -3,15 +3,16 @@ from netqasm.sdk import ThreadSocket as Socket
 from squidasm.sdk import NetSquidConnection
 
 
-def main(log_config=None):
+def main(app_config=None):
     epr_socket_alice = EPRSocket("alice")
 
-    socket_bob = Socket("repeater", "bob", log_config=log_config)
+    socket_bob = Socket("repeater", "bob", log_config=app_config.log_config)
     epr_socket_bob = EPRSocket("bob")
 
     repeater = NetSquidConnection(
-        name="repeater",
-        log_config=log_config,
+        app_name=app_config.app_name,
+        node_name=app_config.node_name,
+        log_config=app_config.log_config,
         epr_sockets=[epr_socket_alice, epr_socket_bob]
     )
 

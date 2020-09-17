@@ -16,19 +16,20 @@ def measure_basis_1(bob, q):
     return q.measure()
 
 
-def main(log_config=None, y=0):
+def main(app_config=None, y=0):
     if not (y == 0 or y == 1):
         raise ValueError(f"y should be 0 or 1, not {y}")
 
-    app_logger = get_new_app_logger(node_name="bob", log_config=log_config)
+    app_logger = get_new_app_logger(node_name="bob", log_config=app_config.log_config)
     app_logger.log(f"Bob received input bit y = {y}")
 
-    socket = Socket("bob", "repeater", log_config=log_config)
+    socket = Socket("bob", "repeater", log_config=app_config.log_config)
     epr_socket = EPRSocket("repeater")
 
     bob = NetSquidConnection(
-        "bob",
-        log_config=log_config,
+        app_name=app_config.app_name,
+        node_name=app_config.node_name,
+        log_config=app_config.log_config,
         epr_sockets=[epr_socket]
     )
 
