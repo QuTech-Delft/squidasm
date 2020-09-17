@@ -4,6 +4,7 @@ import netsquid as ns
 
 from netqasm.logging import get_netqasm_logger
 from squidasm.run import run_applications
+from squidasm.application_interface import AppConfig
 
 from examples.apps.blind_rotation.app_alice import main as blind_rotation_alice
 from examples.apps.blind_rotation.app_bob import main as blind_rotation_bob
@@ -26,21 +27,33 @@ def run_blind_rotation():
     theta = [random.uniform(0, 2 * np.pi) for _ in range(num_qubits)]
     r = [random.randint(0, 1) for _ in range(num_iter)]
 
-    alice_app_config = {
+    alice_app_inputs = {
         'num_iter': num_iter,
         'theta': theta,
         'phi': phi,
         'r': r
     }
 
-    bob_app_config = {
+    bob_app_inputs = {
         'num_iter': num_iter
     }
 
-    applications = {
-        "alice": (blind_rotation_alice, alice_app_config),
-        "bob": (blind_rotation_bob, bob_app_config)
-    }
+    applications = [
+        AppConfig(
+            app_name="alice",
+            node_name="alice",
+            main_func=blind_rotation_alice,
+            log_config=None,
+            inputs = alice_app_inputs
+        ),
+        AppConfig(
+            app_name="bob",
+            node_name="bob",
+            main_func=blind_rotation_bob,
+            log_config=None,
+            inputs = bob_app_inputs
+        ),
+    ]
 
     results = run_applications(applications)
 
@@ -88,7 +101,7 @@ def run_blind_grover():
     theta1 = random.uniform(0, 2 * np.pi)
     theta2 = random.uniform(0, 2 * np.pi)
 
-    alice_app_config = {
+    alice_app_inputs = {
         'b0': b0,
         'b1': b1,
         'r1': r1,
@@ -97,12 +110,24 @@ def run_blind_grover():
         'theta2': theta2
     }
 
-    bob_app_config = {}
+    bob_app_inputs = {}
 
-    applications = {
-        "alice": (blind_grover_alice, alice_app_config),
-        "bob": (blind_grover_bob, bob_app_config)
-    }
+    applications = [
+        AppConfig(
+            app_name="alice",
+            node_name="alice",
+            main_func=blind_grover_alice,
+            log_config=None,
+            inputs = alice_app_inputs
+        ),
+        AppConfig(
+            app_name="bob",
+            node_name="bob",
+            main_func=blind_grover_bob,
+            log_config=None,
+            inputs = bob_app_inputs
+        ),
+    ]
 
     results = run_applications(applications)
 

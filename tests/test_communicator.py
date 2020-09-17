@@ -56,7 +56,7 @@ ret_reg m!
     run_applications([
         default_app_config("Alice", run_alice),
         default_app_config("Bob", run_bob)
-    ], post_function=post_function)
+    ], use_app_config=False, post_function=post_function)
 
 
 def test_meas_many():
@@ -105,9 +105,9 @@ ret_arr ms!
         logger.info(avg)
         assert 0.4 <= avg <= 0.6
 
-    run_applications({
-        "Alice": run_alice,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False, post_function=post_function)
 
 
 def test_teleport():
@@ -189,10 +189,10 @@ wait_all @entinfo![0:{OK_FIELDS}]
         logger.info(f"state = {state}")
         assert np.all(np.isclose(expected_states[m1, m2], state))
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False, post_function=post_function)
 
 
 def test_set_create_args():
@@ -300,10 +300,10 @@ wait_all @entinfo![0:{OK_FIELDS}]
 
         assert np.all(np.isclose(expected_state, alice_state.dm))
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False, post_function=post_function)
 
 
 def test_multiple_pairs():
@@ -413,10 +413,10 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
             assert np.all(np.isclose(expected_state, alice_state.dm))
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False, post_function=post_function)
 
 
 def test_make_ghz():
@@ -540,10 +540,10 @@ wait_all @entinfo![0:{2 * OK_FIELDS}]
 
         assert np.all(np.isclose(expected_state, states[0].dm))
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False, post_function=post_function)
 
 
 if __name__ == '__main__':

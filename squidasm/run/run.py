@@ -35,13 +35,14 @@ def reset(save_loggers=False):
 
 
 def run_applications(
-    app_cfgs: Optional[List[AppConfig]],
+    app_cfgs: List[AppConfig],
     post_function=None,
     instr_log_dir=None,
     network_config=None,
     results_file=None,
     q_formalism=ns.QFormalism.KET,
     flavour=None,
+    use_app_config=True,  # whether to give app_config as argument to app's main()
 ):
     """Executes functions containing application scripts,
 
@@ -84,7 +85,8 @@ def run_applications(
         app_futures = []
         for app_cfg in app_cfgs:
             inputs = app_cfg.inputs
-            inputs['app_config'] = app_cfg
+            if use_app_config:
+                inputs['app_config'] = app_cfg
             future = executor.apply_async(app_cfg.main_func, kwds=inputs)
             app_futures.append(future)
 

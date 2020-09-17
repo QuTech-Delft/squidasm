@@ -4,6 +4,7 @@ from netqasm.logging import set_log_level, get_netqasm_logger
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
 from squidasm.communicator import SimpleCommunicator
+from squidasm.application_interface import default_app_config
 
 logger = get_netqasm_logger()
 
@@ -99,11 +100,10 @@ def test_bi_directional_teleport():
 
             logger.info(f'bob: {m}')
 
-    run_applications({
-        "alice": run_alice,
-        "bob": run_bob,
-    }, network_config=None
-    )
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False)
 
 
 def test_parallel_execution():
@@ -133,12 +133,12 @@ wait_all @0[0:1]
         ])
         communicator.run()
 
-    run_applications({
-        "alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 if __name__ == "__main__":
-    set_log_level('WARNING')
+    set_log_level('DEBUG')
     test_bi_directional_teleport()
     test_parallel_execution()

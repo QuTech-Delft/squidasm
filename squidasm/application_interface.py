@@ -14,10 +14,10 @@ class AppConfig:
 
 
 def default_app_config(app_name: str, main_func: Callable) -> AppConfig:
-    AppConfig(
+    return AppConfig(
         app_name=app_name,
         node_name=app_name,
         main_func=main_func,
         log_config=None,
-        inputs=None
+        inputs={}
     )

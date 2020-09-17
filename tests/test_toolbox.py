@@ -5,6 +5,7 @@ from netqasm.sdk import EPRSocket
 from netqasm.sdk import ThreadSocket as Socket
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
+from squidasm.application_interface import AppConfig
 from netqasm.sdk.toolbox import create_ghz
 
 
@@ -44,7 +45,7 @@ def _gen_create_ghz(num_nodes, do_corrections=False):
         outcomes[node] = (int(m), int(corr))
 
     # Setup the applications
-    applications = {}
+    applications = []
     for i in range(num_nodes):
         node = f'node{i}'
         if i == 0:
@@ -55,15 +56,20 @@ def _gen_create_ghz(num_nodes, do_corrections=False):
             up_node = None
         else:
             up_node = f'node{i + 1}'
-        applications[node] = partial(
-            run_node,
-            node=node,
-            down_node=down_node,
-            up_node=up_node,
-        )
+        applications += [AppConfig(
+            app_name=node,
+            node_name=node,
+            main_func=run_node,
+            log_config=None,
+            inputs={
+                'node': node,
+                'down_node': down_node,
+                'up_node': up_node,
+            }
+        )]
 
     # Run the applications
-    run_applications(applications)
+    run_applications(applications, use_app_config=False)
 
     if do_corrections:
         corrected_outcomes = [m for (m, _) in outcomes.values()]
