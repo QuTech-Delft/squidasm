@@ -101,8 +101,8 @@ def test_bi_directional_teleport():
             logger.info(f'bob: {m}')
 
     run_applications([
-        default_app_config("Alice", run_alice),
-        default_app_config("Bob", run_bob),
+        default_app_config("alice", run_alice),
+        default_app_config("bob", run_bob),
     ], use_app_config=False)
 
 
@@ -134,7 +134,7 @@ wait_all @0[0:1]
         communicator.run()
 
     run_applications([
-        default_app_config("Alice", run_alice),
+        default_app_config("alice", run_alice),
     ], use_app_config=False)
 
 
