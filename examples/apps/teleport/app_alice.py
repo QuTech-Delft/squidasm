@@ -8,7 +8,7 @@ from squidasm.sdk import NetSquidConnection
 def main(app_config, phi=0., theta=0.):
     app_logger = get_new_app_logger(
         node_name=app_config.app_name,
-		log_config=app_config.log_config
+        log_config=app_config.log_config
     )
 
     # Create a socket to send classical information

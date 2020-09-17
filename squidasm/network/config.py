@@ -41,6 +41,8 @@ class NetworkConfig:
 _DEFAULT_NUM_QUBITS = 5
 
 
+# Create a config for a fully connected network where the nodes
+# have the same names as the apps.
 def default_network_config(app_names: List[str]) -> NetworkConfig:
     nodes = []
     links = []
@@ -68,7 +70,7 @@ def default_network_config(app_names: List[str]) -> NetworkConfig:
     return NetworkConfig(nodes, links)
 
 
-# build a NetworkConfig object from a dict that is created by reading a yaml file
+# Build a NetworkConfig object from a dict that is created by reading a yaml file.
 def parse_network_config(cfg) -> NetworkConfig:
     try:
         node_cfgs = cfg['nodes']

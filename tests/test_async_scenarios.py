@@ -4,7 +4,7 @@ from netqasm.logging import set_log_level, get_netqasm_logger
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
 from squidasm.communicator import SimpleCommunicator
-from squidasm.application_interface import default_app_config
+from squidasm.run.app_config import default_app_config
 
 logger = get_netqasm_logger()
 
@@ -139,6 +139,6 @@ wait_all @0[0:1]
 
 
 if __name__ == "__main__":
-    set_log_level('DEBUG')
+    set_log_level('WARNING')
     test_bi_directional_teleport()
     test_parallel_execution()

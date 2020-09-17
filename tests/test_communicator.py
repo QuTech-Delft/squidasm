@@ -7,7 +7,7 @@ from netqasm.sdk.shared_memory import get_shared_memory
 from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.network_stack import CREATE_FIELDS, OK_FIELDS
 from squidasm.run import run_applications
-from squidasm.application_interface import default_app_config
+from squidasm.run.app_config import default_app_config
 from squidasm.communicator import SimpleCommunicator
 
 logger = get_netqasm_logger()

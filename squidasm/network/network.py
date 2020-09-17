@@ -35,8 +35,9 @@ logger = get_netqasm_logger()
 class NetSquidNetwork(Network):
     """
     Represents the collection of nodes and links in the simulated network.
-    Apart from the `Nodes`s, it maintains a list of `MagicDistributor`s called "links",
-    which represent a entanglement-creating connection between 2 nodes.
+
+    The constructor creates Nodes based on the given NetworkConfig,
+    and creates link layer services for each pair of connected nodes.
     """
 
     def __init__(self, network_config: NetworkConfig, global_log_dir=None):
@@ -65,9 +66,8 @@ class NetSquidNetwork(Network):
     def _build_network(self):
         for node_cfg in self._network_config.nodes:
             mem_fidelities = [T1T2NoiseModel(q.t1, q.t2) for q in node_cfg.qubits]
-            # qdevice = NVQDevice(
-            qdevice = QDevice(
-                name=f"{node_cfg.name}_NVQDevice",
+            qdevice = QDevice(  # TODO: use NVQDevice when application can be compiled to valid NV instructions
+                name=f"{node_cfg.name}_QDevice",
                 num_qubits=len(node_cfg.qubits),
                 gate_fidelity=node_cfg.gate_fidelity,
                 mem_fidelities=mem_fidelities,
@@ -80,10 +80,8 @@ class NetSquidNetwork(Network):
 
     def _create_link_layer_services(self):
         """
-        Create a dictionary mapping (node name, remote node ID) to a LinkLayerService object.
-        A service is created for each 'link' that is in the `network` object.
-
-        Returns the dictionary of service objects.
+        Create a MagicNetworkLayerProtocol for each link in the network,
+        and create link layer services for each of the endpoints for each link.
         """
 
         for node_name in self.nodes:
@@ -115,7 +113,7 @@ class NetSquidNetwork(Network):
     def _create_link_distributor(self, link: Link, state_delay: Optional[float] = 1.) -> MagicDistributor:
         """
         Create a MagicDistributor for a pair of nodes,
-        based on configuration in a `LinkConfig` object.
+        based on configuration in a `Link` object.
         """
         node1 = self.get_node(link.node_name1)
         node2 = self.get_node(link.node_name2)
@@ -220,7 +218,7 @@ class QDevice(QuantumProcessor):
         if phys_instrs is None:
             phys_instrs = QDevice._default_phys_instructions
         for instr in phys_instrs:
-            instr.q_noise_model = T1T2NoiseModel(0, 0)  # TODO
+            instr.q_noise_model = T1T2NoiseModel(0, 0)  # TODO: use gate_fidelity
 
         super().__init__(
             name=name,
@@ -234,7 +232,7 @@ class NVQDevice(QDevice):
     """
     A QDevice with NV hardware.
     """
-    def __init__(self, name="QDevice", num_qubits=5, gate_fidelity=1, mem_fidelities=None):
+    def __init__(self, name="NVQDevice", num_qubits=5, gate_fidelity=1, mem_fidelities=None):
         phys_instrs = [
             PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),
             PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=2),

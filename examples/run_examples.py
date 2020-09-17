@@ -30,7 +30,7 @@ def main():
 
     for root, _folders, files in os.walk(path_to_here):
         for filename in files:
-            if (filename.startswith("example") 
+            if (filename.startswith("example")
                     and filename.endswith(".py")
                     and "app_" in filename):
                 filepath = os.path.join(root, filename)

@@ -28,7 +28,7 @@ def main(app_config=None, col=0, strategy=None):
     # Initialize the connection
     bob = NetSquidConnection(
         app_name=app_config.app_name,
-		node_name=app_config.node_name,
+        node_name=app_config.node_name,
         log_config=app_config.log_config,
         epr_sockets=[epr_socket],
     )

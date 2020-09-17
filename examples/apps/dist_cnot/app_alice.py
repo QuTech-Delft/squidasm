@@ -15,7 +15,7 @@ def main(app_config=None, phi=0.0, theta=0.0):
     # connect to the back-end
     alice = NetSquidConnection(
         app_name=app_config.app_name,
-		node_name=app_config.node_name,
+        node_name=app_config.node_name,
         log_config=app_config.log_config,
         epr_sockets=[bob_epr]
     )

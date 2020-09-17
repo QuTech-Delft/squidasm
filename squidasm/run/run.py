@@ -1,7 +1,7 @@
 import logging
 from importlib import reload
 from multiprocessing.pool import ThreadPool
-from typing import List, Optional
+from typing import List
 
 import netsquid as ns
 
@@ -15,7 +15,7 @@ from squidasm.thread_util import as_completed
 from squidasm.network import reset_network
 from squidasm.queues import reset_queues
 
-from squidasm.application_interface import AppConfig
+from squidasm.run.app_config import AppConfig
 
 logger = get_netqasm_logger()
 
@@ -48,16 +48,11 @@ def run_applications(
 
     Parameters
     ----------
-    # applications : dict
-        # Keys should be names of nodes
-        # Values should be the functions
     post_function : None or function
         A function to be applied to the backend (:class:`~.backend.Backend`)
         after the execution. This can be used for debugging, e.g. getting the
         quantum states after execution etc.
     """
-    # node_names = list(applications.keys())
-    # apps = [applications[node_name] for node_name in node_names]
     app_names = [app_cfg.app_name for app_cfg in app_cfgs]
 
     def run_backend():

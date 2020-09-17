@@ -18,7 +18,7 @@ def main(app_config=None, x=0):
 
     app_logger = get_new_app_logger(
         node_name=app_config.app_name,
-		log_config=app_config.log_config
+        log_config=app_config.log_config
     )
     app_logger.log(f"Alice received input bit x = {x}")
 

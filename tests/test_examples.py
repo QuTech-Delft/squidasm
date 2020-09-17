@@ -4,7 +4,7 @@ import netsquid as ns
 
 from netqasm.logging import get_netqasm_logger
 from squidasm.run import run_applications
-from squidasm.application_interface import AppConfig
+from squidasm.run.app_config import AppConfig
 
 from examples.apps.blind_rotation.app_alice import main as blind_rotation_alice
 from examples.apps.blind_rotation.app_bob import main as blind_rotation_bob
@@ -44,14 +44,14 @@ def run_blind_rotation():
             node_name="alice",
             main_func=blind_rotation_alice,
             log_config=None,
-            inputs = alice_app_inputs
+            inputs=alice_app_inputs
         ),
         AppConfig(
             app_name="bob",
             node_name="bob",
             main_func=blind_rotation_bob,
             log_config=None,
-            inputs = bob_app_inputs
+            inputs=bob_app_inputs
         ),
     ]
 
@@ -118,14 +118,14 @@ def run_blind_grover():
             node_name="alice",
             main_func=blind_grover_alice,
             log_config=None,
-            inputs = alice_app_inputs
+            inputs=alice_app_inputs
         ),
         AppConfig(
             app_name="bob",
             node_name="bob",
             main_func=blind_grover_bob,
             log_config=None,
-            inputs = bob_app_inputs
+            inputs=bob_app_inputs
         ),
     ]
 

@@ -14,7 +14,7 @@ def main(app_config=None):
     # Initialize the connection to the backend
     alice = NetSquidConnection(
         app_name=app_config.app_name,
-		node_name=app_config.node_name,
+        node_name=app_config.node_name,
         log_config=app_config.log_config
     )
 

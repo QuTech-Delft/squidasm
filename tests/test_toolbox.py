@@ -1,11 +1,11 @@
 import pytest
-from functools import partial
+# from functools import partial
 
 from netqasm.sdk import EPRSocket
 from netqasm.sdk import ThreadSocket as Socket
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
-from squidasm.application_interface import AppConfig
+from squidasm.run.app_config import AppConfig
 from netqasm.sdk.toolbox import create_ghz
 
 

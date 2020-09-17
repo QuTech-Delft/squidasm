@@ -18,7 +18,7 @@ from .run import run_applications
 from netqasm.sdk.config import LogConfig
 from netqasm.instructions.flavour import NVFlavour, VanillaFlavour
 
-from squidasm.application_interface import AppConfig
+from squidasm.run.app_config import AppConfig
 
 logger = get_netqasm_logger()
 
