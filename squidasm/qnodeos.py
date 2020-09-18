@@ -9,7 +9,7 @@ from netsquid_magic.sleeper import Sleeper
 from netqasm.parsing import deserialize
 from netqasm.logging import get_netqasm_logger
 from netqasm.messages import MessageType
-from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
+from netqasm.instructions.flavour import VanillaFlavour, NVFlavour, Flavour
 
 from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
 from squidasm.executioner.nv import NVNetSquidExecutioner
@@ -78,7 +78,7 @@ class Task:
 
 
 class SubroutineHandler(NodeProtocol):
-    def __init__(self, node, instr_log_dir=None, flavour=None):
+    def __init__(self, node, instr_log_dir=None, flavour: Flavour = None):
         """An extremely simplified version of QNodeOS for handling NetQASM subroutines"""
         super().__init__(node=node)
 

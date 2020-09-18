@@ -79,6 +79,17 @@ class NetSquidExecutioner(Executioner, Entity):
             angle=angle,
         )
 
+    def _do_controlled_qubit_rotation(self, instr, subroutine_id, address1, address2, angle):
+        positions = self._get_positions(subroutine_id=subroutine_id, addresses=[address1, address2])
+        ns_instr = self._get_netsquid_instruction(instr=instr)
+        self._logger.debug(f"Doing instr {instr} on qubits {positions}")
+
+        yield from self._execute_qdevice_instruction(
+            ns_instr=ns_instr,
+            qubit_mapping=positions,
+            angle=angle
+        )
+
     def _do_two_qubit_instr(self, instr, subroutine_id, address1, address2):
         positions = self._get_positions(subroutine_id=subroutine_id, addresses=[address1, address2])
         ns_instr = self._get_netsquid_instruction(instr=instr)

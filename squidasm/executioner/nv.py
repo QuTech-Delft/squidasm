@@ -3,6 +3,8 @@ from netsquid.components.instructions import (
     INSTR_ROT_X,
     INSTR_ROT_Y,
     INSTR_ROT_Z,
+    INSTR_CXDIR,
+    INSTR_CYDIR
 )
 
 import netsquid.qubits.operators as ops
@@ -15,12 +17,14 @@ from netqasm.instructions import nv, core
 CSQX = ops.Rx90.ctrl
 INSTR_CSQX = IGate("csqx_gate", CSQX)
 
+
 NV_NS_INSTR_MAPPING = {
     core.InitInstruction: INSTR_INIT,
     nv.RotXInstruction: INSTR_ROT_X,
     nv.RotYInstruction: INSTR_ROT_Y,
     nv.RotZInstruction: INSTR_ROT_Z,
-    nv.CSqrtXInstruction: INSTR_CSQX
+    nv.ControlledRotXInstruction: INSTR_CXDIR,
+    nv.ControlledRotYInstruction: INSTR_CYDIR,
 }
 
 

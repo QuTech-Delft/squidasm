@@ -7,9 +7,11 @@ from squidasm.qnodeos import SubroutineHandler
 from squidasm.backend.glob import put_current_backend, pop_current_backend
 
 from squidasm.network.network import NetSquidNetwork
-from squidasm.network.config import default_network_config, parse_network_config
+from squidasm.network.config import default_network_config, parse_network_config, QuantumHardware
 from squidasm.network.stack import NetworkStack
 from squidasm.run.app_config import AppConfig
+
+from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
 
 
 class Backend:
@@ -18,7 +20,7 @@ class Backend:
         app_cfgs: List[AppConfig],
         instr_log_dir=None,
         network_config=None,
-        flavour=None
+        flavour=None,
     ):
         """
         Sets up the network (containing nodes, qmemories and link layer services),
@@ -57,6 +59,12 @@ class Backend:
                     f"App {app.app_name} is supposed to run on node {app.node_name}"
                     f" but {app.node_name} does not exist in the network."
                 )
+
+            node_hardware = network.node_hardware_types[node.name]
+            if node_hardware == QuantumHardware.NV:
+                flavour = NVFlavour()
+            else:
+                flavour = VanillaFlavour()
 
             subroutine_handler = SubroutineHandler(
                 node=node,
