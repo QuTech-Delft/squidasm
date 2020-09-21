@@ -1,6 +1,11 @@
 from netqasm.parsing import parse_text_subroutine
 from netqasm.logging import get_netqasm_logger
-from netqasm.messages import Message, InitNewAppMessage, MessageType, OpenEPRSocketMessage
+from netqasm.messages import (
+    InitNewAppMessage,
+    OpenEPRSocketMessage,
+    SubroutineMessage,
+    SignalMessage
+)
 from squidasm.queues import get_queue, Signal
 from squidasm.backend.glob import get_node_id, get_node_name
 
@@ -17,9 +22,9 @@ class SimpleCommunicator:
 
         self._logger = get_netqasm_logger(f"{self.__class__.__name__}({self._node_name})")
 
-    def _commit_message(self, msg, block=False):
+    def _commit_serialized_message(self, raw_msg, block=False):
         """Commit a message to the backend/qnodeos"""
-        self._message_queue.put(msg)
+        self._message_queue.put(raw_msg)
         if block:
             self.block()
 
@@ -29,13 +34,11 @@ class SimpleCommunicator:
 
     def _init_new_app(self, app_id, max_qubits):
         """Informs the backend of the new application and how many qubits it will maximally use"""
-        self._commit_message(msg=Message(
-            type=MessageType.INIT_NEW_APP,
-            msg=InitNewAppMessage(
-                app_id=app_id,
-                max_qubits=max_qubits,
-            ),
-        ))
+        msg = InitNewAppMessage(
+            app_id=app_id,
+            max_qubits=max_qubits,
+        )
+        self._commit_serialized_message(raw_msg=bytes(msg))
 
     def _setup_epr_sockets(self, epr_sockets):
         if epr_sockets is None:
@@ -50,14 +53,12 @@ class SimpleCommunicator:
 
     def _setup_epr_socket(self, epr_socket_id, remote_node_id, remote_epr_socket_id):
         """Sets up a new epr socket"""
-        self._commit_message(msg=Message(
-            type=MessageType.OPEN_EPR_SOCKET,
-            msg=OpenEPRSocketMessage(
-                epr_socket_id=epr_socket_id,
-                remote_node_id=remote_node_id,
-                remote_epr_socket_id=remote_epr_socket_id,
-            ),
-        ))
+        msg = OpenEPRSocketMessage(
+            epr_socket_id=epr_socket_id,
+            remote_node_id=remote_node_id,
+            remote_epr_socket_id=remote_epr_socket_id,
+        )
+        self._commit_serialized_message(raw_msg=bytes(msg))
 
     def _get_node_id(self, node_name):
         """Returns the node id for the node with the given name"""
@@ -78,7 +79,9 @@ class SimpleCommunicator:
     def _submit_subroutine(self, subroutine):
         self._logger.debug(f"SimpleCommunicator for node {self._node_name} puts the next subroutine:\n"
                            f"{subroutine}")
-        self._commit_message(msg=Message(type=MessageType.SUBROUTINE, msg=bytes(subroutine)))
+        msg = SubroutineMessage(subroutine=subroutine)
+        self._commit_serialized_message(raw_msg=bytes(msg))
 
     def _signal_stop(self):
-        self._commit_message(msg=Message(type=MessageType.SIGNAL, msg=Signal.STOP), block=True)
+        msg = SignalMessage(signal=Signal.STOP)
+        self._commit_serialized_message(raw_msg=bytes(msg), block=True)
