@@ -6,14 +6,14 @@ from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
 from netsquid_magic.sleeper import Sleeper
 
-from netqasm.parsing import deserialize
 from netqasm.logging import get_netqasm_logger
-from netqasm.messages import MessageType
+from netqasm.messages import MessageType, SubroutineMessage, Signal
+from netqasm.messages import deserialize as deserialize_message
 from netqasm.instructions.flavour import VanillaFlavour, NVFlavour, Flavour
 
 from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
 from squidasm.executioner.nv import NVNetSquidExecutioner
-from squidasm.queues import get_queue, Signal
+from squidasm.queues import get_queue
 
 
 # TODO how to know which are wait events?
@@ -35,12 +35,17 @@ def is_waiting_event(event):
 class Task:
     """Keeps track of a task qnodeos has and if it's finished or waiting.
     """
-    def __init__(self, gen, msg):
+    def __init__(self, gen, raw_msg, msg):
         self._gen = gen
+        self._raw_msg = raw_msg
         self._msg = msg
         self._next_event = None
         self._is_finished = False
         self._is_waiting = False
+
+    @property
+    def raw_msg(self):
+        return self._raw_msg
 
     @property
     def msg(self):
@@ -142,7 +147,7 @@ class SubroutineHandler(NodeProtocol):
             self._logger.debug('Checking for next message')
             msg = self._next_message()
             if msg is not None:
-                self._handle_message(msg=msg)
+                self._handle_message(raw_msg=msg)
             ev = self._get_next_task_event()
             if ev is None:
                 # No tasks so wait a bit before checking next msg
@@ -151,22 +156,24 @@ class SubroutineHandler(NodeProtocol):
             else:
                 yield ev
 
-    def _handle_message(self, msg):
+    def _handle_message(self, raw_msg):
         # Generator
+        msg = deserialize_message(raw_msg, flavour=self.flavour)
+        msg_type = MessageType(msg.type)
         self._logger.info(f'Handle message {msg}')
-        output = self._message_handlers[msg.type](msg.msg)
+        output = self._message_handlers[msg_type](msg)
         if isinstance(output, GeneratorType):
             # If generator then add to this to the current task
             # Distinguish subroutines from others to prioritize others
-            if msg.type == MessageType.SUBROUTINE:
+            if msg_type == MessageType.SUBROUTINE:
                 self._logger.debug('Adding to subroutine tasks')
-                self._subroutine_tasks.append(Task(gen=output, msg=msg))
+                self._subroutine_tasks.append(Task(gen=output, raw_msg=raw_msg, msg=msg))
             else:
                 self._logger.debug('Adding to other tasks')
-                self._other_tasks.append(Task(gen=output, msg=msg))
+                self._other_tasks.append(Task(gen=output, raw_msg=raw_msg, msg=msg))
         else:
             # No generator so directly finished
-            self._mark_message_finished(msg=msg)
+            self._mark_message_finished(raw_msg=raw_msg, msg=msg)
 
     def _get_next_task_event(self):
         # Execute other tasks (non subroutine first and in order)
@@ -190,10 +197,11 @@ class SubroutineHandler(NodeProtocol):
             except IndexError:
                 return None
 
-    def _mark_message_finished(self, msg):
+    def _mark_message_finished(self, raw_msg, msg):
+        # `msg` is here just for prettier log
         self._logger.debug(f"Marking message {msg} as done")
-        self._finished_messages.append(msg)
-        self._task_done(item=msg)
+        self._finished_messages.append(raw_msg)
+        self._task_done(item=raw_msg)
 
     def _get_next_other_task(self):
         if len(self._other_tasks) == 0:
@@ -201,7 +209,7 @@ class SubroutineHandler(NodeProtocol):
         task = self._other_tasks[0]
         if task.is_finished:
             self._other_tasks.pop(0)
-            self._mark_message_finished(msg=task.msg)
+            self._mark_message_finished(raw_msg=task.raw_msg, msg=task.msg)
             return self._get_next_other_task()
         return task
 
@@ -211,7 +219,7 @@ class SubroutineHandler(NodeProtocol):
         for i, task in enumerate(self._subroutine_tasks):
             if task.is_finished:
                 to_remove.append(i)
-                self._mark_message_finished(msg=task.msg)
+                self._mark_message_finished(raw_msg=task.raw_msg, msg=task.msg)
         for i in reversed(to_remove):
             self._subroutine_tasks.pop(i)
         if len(self._subroutine_tasks) == 0:
@@ -230,8 +238,8 @@ class SubroutineHandler(NodeProtocol):
             item = None
         return item
 
-    def _handle_subroutine(self, subroutine):
-        subroutine = deserialize(subroutine, flavour=self.flavour)
+    def _handle_subroutine(self, subroutine_msg: SubroutineMessage):
+        subroutine = subroutine_msg.subroutine
         self._logger.debug(f"Executing next subroutine "
                            f"from app ID {subroutine.app_id}")
         yield from self._execute_subroutine(subroutine=subroutine)
@@ -267,7 +275,7 @@ class SubroutineHandler(NodeProtocol):
 
     def _handle_signal(self, signal):
         self._logger.debug(f"SubroutineHandler at node {self.node} handles the signal {signal}")
-        if signal == Signal.STOP:
+        if Signal(signal.signal) == Signal.STOP:
             self._logger.debug(f"SubroutineHandler at node {self.node} stops")
             self.stop()
         else:

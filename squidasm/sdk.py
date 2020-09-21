@@ -33,14 +33,14 @@ class NetSquidConnection(NetQASMConnection):
             compiler=compiler,
         )
 
-    def _commit_message(self, msg, block=True, callback=None):
+    def _commit_serialized_message(self, raw_msg, block=True, callback=None):
         """Commit a message to the backend/qnodeos"""
-        self._message_queue.put(msg)
+        self._message_queue.put(raw_msg)
         if block:
-            self._execute_callback(item=msg, callback=callback)
+            self._execute_callback(item=raw_msg, callback=callback)
         else:
             # Execute callback in a new thread after the subroutine is finished
-            thread = Thread(target=self._execute_callback, args=(msg, callback,))
+            thread = Thread(target=self._execute_callback, args=(raw_msg, callback,))
             thread.daemon = True
             thread.start()
 

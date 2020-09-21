@@ -4,7 +4,7 @@ from netsquid.nodes import Node
 
 from netqasm.logging import set_log_level
 from netqasm.parsing import parse_text_subroutine, parse_register
-from netqasm.messages import Message, MessageType, InitNewAppMessage
+from netqasm.messages import InitNewAppMessage, SubroutineMessage
 from squidasm.network import QDevice
 from squidasm.qnodeos import SubroutineHandler
 from squidasm.queues import get_queue
@@ -37,16 +37,15 @@ ret_reg m!
 """
     # Initialize the new application
     app_id = 0
-    queue.put(Message(
-        type=MessageType.INIT_NEW_APP,
-        msg=InitNewAppMessage(
+    queue.put(
+        bytes(InitNewAppMessage(
             app_id=app_id,
             max_qubits=1,
-        ),
-    ))
+        )),
+    )
     # Put the subroutine
     subroutine = parse_text_subroutine(subroutine)
-    queue.put(Message(type=MessageType.SUBROUTINE, msg=bytes(subroutine)))
+    queue.put(bytes(SubroutineMessage(subroutine=subroutine)))
 
     # Starting subroutine
     subroutine_handler.start()
