@@ -31,8 +31,8 @@ def get_qubit_state(qubit, reduced_dm=True):
     qmemory = backend.qmemories[node_name]
 
     # Get the physical position of the qubit
-    virtual_address = qubit._qID
-    app_id = qubit._conn._appID
+    virtual_address = qubit.qubit_id
+    app_id = qubit._conn.app_id
     phys_pos = executioner._get_position(address=virtual_address, app_id=app_id)
 
     # Get the netsquid qubit
