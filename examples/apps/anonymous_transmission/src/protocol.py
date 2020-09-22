@@ -27,9 +27,12 @@ def anonymous_transmission(
     )
 
     # Initialize the connection to the backend
+    node_name = app_config.node_name
+    if node_name is None:
+        node_name = app_config.app_name
+
     conn = NetSquidConnection(
-        app_name=app_config.app_name,
-        node_name=app_config.node_name,
+        node_name=node_name,
         log_config=app_config.log_config,
         epr_sockets=sockets.epr_sockets,
     )
