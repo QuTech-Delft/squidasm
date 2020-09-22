@@ -17,6 +17,7 @@ from netqasm.output import InstrField
 from .run import run_applications
 from netqasm.sdk.config import LogConfig
 from netqasm.instructions.flavour import NVFlavour, VanillaFlavour
+from netqasm.settings import Formalism, Flavour
 
 from squidasm.run.app_config import AppConfig
 
@@ -169,7 +170,7 @@ def simulate_apps(
     log_level="WARNING",
     post_function_file=None,
     results_file=None,
-    formalism="KET",
+    formalism=Formalism.KET,
     flavour=None
 ):
 
@@ -252,19 +253,19 @@ def simulate_apps(
     # Load post function if exists
     post_function = load_post_function(post_function_file)
 
-    if formalism == "KET":
+    if formalism == Formalism.KET:
         q_formalism = ns.QFormalism.KET
-    elif formalism == "DM":
+    elif formalism == Formalism.DM:
         q_formalism = ns.QFormalism.DM
     else:
         raise TypeError(f"Unknown formalism {formalism}")
 
     if flavour is None:
-        flavour = "vanilla"
+        flavour = Flavour.VANILLA
 
-    if flavour == "nv":
+    if flavour == Flavour.NV:
         flavour = NVFlavour()
-    elif flavour == "vanilla":
+    elif flavour == Flavour.VANILLA:
         flavour = VanillaFlavour()
     else:
         raise TypeError(f"Unsupported flavour: {flavour}")
