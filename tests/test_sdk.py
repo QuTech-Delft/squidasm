@@ -369,7 +369,7 @@ def test_nested_loop():
             def outer_body(alice):
                 def inner_body(alice):
                     q = Qubit(alice)
-                    q.release()
+                    q.free()
                     j.add(1)
                 i.add(1)
 
