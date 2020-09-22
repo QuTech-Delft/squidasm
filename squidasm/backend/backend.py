@@ -52,10 +52,10 @@ class Backend:
             try:
                 node = network.get_node(app.node_name)
                 self._app_node_map[app.app_name] = node
-            except Exception:
-                raise ValueError(
+            except KeyError as e:
+                raise KeyError(
                     f"App {app.app_name} is supposed to run on node {app.node_name}"
-                    f" but {app.node_name} does not exist in the network."
+                    f" but {app.node_name} does not exist in the network. (Error: {e})"
                 )
 
             subroutine_handler = SubroutineHandler(
