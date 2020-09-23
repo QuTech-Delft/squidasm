@@ -63,8 +63,10 @@ class Backend:
             node_hardware = network.node_hardware_types[node.name]
             if node_hardware == QuantumHardware.NV:
                 flavour = NVFlavour()
-            else:
+            elif node_hardware == QuantumHardware.Generic:
                 flavour = VanillaFlavour()
+            else:
+                raise ValueError(f"Quantum hardware {node_hardware} not supported.")
 
             subroutine_handler = SubroutineHandler(
                 node=node,
