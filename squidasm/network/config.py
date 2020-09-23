@@ -3,6 +3,12 @@ from dataclasses import dataclass
 from typing import List
 
 
+class QuantumHardware(Enum):
+    Generic = "Generic"
+    NV = "NV"
+    TrappedIon = "TrappedIon"
+
+
 class NoiseType(Enum):
     NoNoise = "NoNoise"
     Depolarise = "Depolarise"
@@ -19,6 +25,7 @@ class Qubit:
 @dataclass
 class Node:
     name: str
+    hardware: QuantumHardware
     qubits: List[Qubit]
     gate_fidelity: float = 1.0
 
@@ -50,6 +57,7 @@ def default_network_config(app_names: List[str]) -> NetworkConfig:
         qubits = [Qubit(id=i, t1=0, t2=0) for i in range(_DEFAULT_NUM_QUBITS)]
         node = Node(
             name=name,
+            hardware=QuantumHardware.Generic,
             qubits=qubits,
             gate_fidelity=1
         )
@@ -87,9 +95,14 @@ def parse_network_config(cfg) -> NetworkConfig:
                     t2=qubit_cfg['t2'],
                 )
                 qubits += [qubit]
+            if 'hardware' in node_cfg:
+                hardware = node_cfg['hardware']
+            else:
+                hardware = QuantumHardware.Generic
 
             node = Node(
                 name=node_cfg['name'],
+                hardware=hardware,
                 qubits=qubits,
                 gate_fidelity=node_cfg['gate_fidelity']
             )

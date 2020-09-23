@@ -4,7 +4,7 @@ from typing import List, Dict, Optional
 import netsquid as ns
 from netsquid.components import QuantumProcessor, PhysicalInstruction
 from netsquid.components import instructions as ns_instructions
-from netsquid.components.models.qerrormodels import T1T2NoiseModel
+from netsquid.components.models.qerrormodels import T1T2NoiseModel, DepolarNoiseModel
 from netsquid.nodes import Network, Node
 
 from netsquid_magic.link_layer import (
@@ -20,7 +20,7 @@ from netsquid_magic.magic_distributor import (
     BitflipMagicDistributor
 )
 
-from squidasm.network.config import NetworkConfig, NoiseType
+from squidasm.network.config import NetworkConfig, NoiseType, QuantumHardware
 from squidasm.network.config import Link
 
 from netqasm.output import EntanglementStage
@@ -48,12 +48,17 @@ class NetSquidNetwork(Network):
             self._global_logger = None
 
         self._network_config = network_config
+        self._node_hardware_types: Dict[str, QuantumHardware] = {}
 
         # create NetSquid `Node`s and add them to this `Network`
         self._build_network()
 
         self._link_layer_services: Dict[str, Dict[int, LinkLayerService]] = dict()
         self._create_link_layer_services()
+
+    @property
+    def node_hardware_types(self):
+        return self._node_hardware_types
 
     @property
     def link_layer_services(self):
@@ -65,13 +70,31 @@ class NetSquidNetwork(Network):
 
     def _build_network(self):
         for i, node_cfg in enumerate(self._network_config.nodes):
+            try:
+                hardware = QuantumHardware(node_cfg.hardware)
+            except Exception:
+                logger.warn("Hardware type not valid. Using a generic one.")
+                hardware = QuantumHardware.Generic
+            self._node_hardware_types[node_cfg.name] = hardware
+
             mem_fidelities = [T1T2NoiseModel(q.t1, q.t2) for q in node_cfg.qubits]
-            qdevice = QDevice(  # TODO: use NVQDevice when application can be compiled to valid NV instructions
-                name=f"{node_cfg.name}_QDevice",
-                num_qubits=len(node_cfg.qubits),
-                gate_fidelity=node_cfg.gate_fidelity,
-                mem_fidelities=mem_fidelities,
-            )
+
+            if hardware == QuantumHardware.NV:
+                qdevice = NVQDevice(
+                    name=f"{node_cfg.name}_NVQDevice",
+                    num_qubits=len(node_cfg.qubits),
+                    gate_fidelity=node_cfg.gate_fidelity,
+                    mem_fidelities=mem_fidelities,
+                )
+            elif hardware == QuantumHardware.TrappedIon:
+                raise ValueError("TrappedIon hardware not supported.")
+            else:  # use generic hardware (vanilla flavour)
+                qdevice = QDevice(
+                    name=f"{node_cfg.name}_QDevice",
+                    num_qubits=len(node_cfg.qubits),
+                    gate_fidelity=node_cfg.gate_fidelity,
+                    mem_fidelities=mem_fidelities,
+                )
             node = Node(
                 name=node_cfg.name,
                 ID=i,
@@ -219,7 +242,7 @@ class QDevice(QuantumProcessor):
         if phys_instrs is None:
             phys_instrs = QDevice._default_phys_instructions
         for instr in phys_instrs:
-            instr.q_noise_model = T1T2NoiseModel(0, 0)  # TODO: use gate_fidelity
+            instr.q_noise_model = DepolarNoiseModel(depolar_rate=(1-gate_fidelity))
 
         super().__init__(
             name=name,
@@ -239,8 +262,8 @@ class NVQDevice(QDevice):
             PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=2),
             PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=2),
             PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=2),
-            PhysicalInstruction(ns_instructions.INSTR_CROT_X, duration=5),
-            PhysicalInstruction(ns_instructions.INSTR_CROT_Y, duration=5),
+            PhysicalInstruction(ns_instructions.INSTR_CXDIR, duration=5),
+            PhysicalInstruction(ns_instructions.INSTR_CYDIR, duration=5),
         ]
 
         super().__init__(

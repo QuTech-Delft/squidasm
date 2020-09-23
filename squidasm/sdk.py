@@ -1,8 +1,12 @@
 from threading import Thread
 
 from netqasm.sdk import NetQASMConnection
+from netqasm.subroutine import PreSubroutine, Subroutine
+from netqasm.parsing.text import assemble_subroutine
+from netqasm.instructions.flavour import NVFlavour
+from netqasm.compiling import NVSubroutineCompiler
 from squidasm.queues import get_queue
-from squidasm.backend.glob import get_node_id_for_app, get_node_name
+from squidasm.backend.glob import get_node_id_for_app, get_node_name, get_running_backend
 
 
 class NetSquidConnection(NetQASMConnection):
@@ -56,3 +60,21 @@ class NetSquidConnection(NetQASMConnection):
     def _get_node_name(self, node_id):
         """Returns the node name for the node with the given ID"""
         return get_node_name(node_id=node_id)
+
+    def _pre_process_subroutine(self, pre_subroutine: PreSubroutine) -> Subroutine:
+        """Parses and assembles the subroutine.
+        """
+        subroutine: Subroutine = assemble_subroutine(pre_subroutine)
+        if self._compiler is not None:
+            subroutine = self._compiler(subroutine=subroutine).compile()
+        else:
+            backend = get_running_backend()
+            subroutine_handler = backend.subroutine_handlers[self.name]
+            flavour = subroutine_handler.flavour
+            if isinstance(flavour, NVFlavour):
+                self._logger.info("Compiling subroutine to NV flavour")
+                subroutine = NVSubroutineCompiler(subroutine=subroutine).compile()
+
+        if self._track_lines:
+            self._log_subroutine(subroutine=subroutine)
+        return subroutine

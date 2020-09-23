@@ -31,10 +31,15 @@ def main(app_config):
         epr_alice = epr_socket_alice.recv()[0]
         m_alice = epr_alice.measure()
 
-        charlie.flush()
+        # Flush but don't wait since we don't know which EPR we get first
+        charlie.flush(block=False)
 
         epr_bob = epr_socket_bob.recv()[0]
         m_bob = epr_bob.measure()
+
+        # Flush second subroutine and wait for first
+        charlie.flush()
+        charlie.block()
 
     logger.info(f"charlie:  m_alice:  {m_alice}")
     logger.info(f"charlie:  m_bob:    {m_bob}")
