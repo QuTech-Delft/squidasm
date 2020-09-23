@@ -1,6 +1,7 @@
 import logging
 from importlib import reload
 from multiprocessing.pool import ThreadPool
+from typing import List
 
 import netsquid as ns
 
@@ -13,6 +14,8 @@ from squidasm.backend.backend import Backend
 from squidasm.thread_util import as_completed
 from squidasm.network import reset_network
 from squidasm.queues import reset_queues
+
+from squidasm.run.app_config import AppConfig
 
 logger = get_netqasm_logger()
 
@@ -32,33 +35,35 @@ def reset(save_loggers=False):
 
 
 def run_applications(
-    applications,
+    app_cfgs: List[AppConfig],
     post_function=None,
     instr_log_dir=None,
     network_config=None,
     results_file=None,
     q_formalism=ns.QFormalism.KET,
     flavour=None,
+    use_app_config=True,  # whether to give app_config as argument to app's main()
 ):
     """Executes functions containing application scripts,
 
     Parameters
     ----------
-    applications : dict
-        Keys should be names of nodes
-        Values should be the functions
     post_function : None or function
         A function to be applied to the backend (:class:`~.backend.Backend`)
         after the execution. This can be used for debugging, e.g. getting the
         quantum states after execution etc.
     """
-    node_names = list(applications.keys())
-    apps = [applications[node_name] for node_name in node_names]
+    app_names = [app_cfg.app_name for app_cfg in app_cfgs]
 
     def run_backend():
-        logger.debug(f"Starting netsquid backend thread with nodes {node_names}")
+        logger.debug(f"Starting netsquid backend thread with apps {app_names}")
         ns.set_qstate_formalism(q_formalism)
-        backend = Backend(node_names, instr_log_dir=instr_log_dir, network_config=network_config, flavour=flavour)
+        backend = Backend(
+            app_cfgs=app_cfgs,
+            instr_log_dir=instr_log_dir,
+            network_config=network_config,
+            flavour=flavour
+        )
         backend.start()
         if post_function is not None:
             result = post_function(backend)
@@ -67,22 +72,21 @@ def run_applications(
         logger.debug("End backend thread")
         return result
 
-    with ThreadPool(len(node_names) + 1) as executor:
+    with ThreadPool(len(app_cfgs) + 1) as executor:
         # Start the backend thread
         backend_future = executor.apply_async(run_backend)
 
         # Start the application threads
         app_futures = []
-        for app in apps:
-            if isinstance(app, tuple):
-                app_func, kwargs = app
-                future = executor.apply_async(app_func, kwds=kwargs)
-            else:
-                future = executor.apply_async(app)
+        for app_cfg in app_cfgs:
+            inputs = app_cfg.inputs
+            if use_app_config:
+                inputs['app_config'] = app_cfg
+            future = executor.apply_async(app_cfg.main_func, kwds=inputs)
             app_futures.append(future)
 
         # Join the application threads and the backend
-        names = ['backend'] + [f'app_{node_name}' for node_name in node_names]
+        names = ['backend'] + [f'app_{app_name}' for app_name in app_names]
         results = {}
         for future, name in as_completed([backend_future] + app_futures, names=names):
             results[name] = future.get()

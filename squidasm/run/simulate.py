@@ -4,6 +4,7 @@ import shutil
 import pickle
 from runpy import run_path
 from datetime import datetime
+from typing import List
 
 import netsquid as ns
 
@@ -17,17 +18,14 @@ from .run import run_applications
 from netqasm.sdk.config import LogConfig
 from netqasm.instructions.flavour import NVFlavour, VanillaFlavour
 
-from netsquid_netconf.builder import ComponentBuilder
-from netsquid_netconf.netconf import netconf_generator
-
-from squidasm.network import QDevice, NodeLinkConfig
+from squidasm.run.app_config import AppConfig
 
 logger = get_netqasm_logger()
 
 
-def load_app_config(app_dir, node_name):
+def load_app_config_file(app_dir, app_name):
     ext = '.yaml'
-    file_path = os.path.join(app_dir, f"{node_name}{ext}")
+    file_path = os.path.join(app_dir, f"{app_name}{ext}")
     if os.path.exists(file_path):
         config = load_yaml(file_path=file_path)
     else:
@@ -46,10 +44,20 @@ def get_network_config_path(app_dir):
 
 def load_network_config(network_config_file):
     if os.path.exists(network_config_file):
-        ComponentBuilder.add_type("qdevice", QDevice)
-        ComponentBuilder.add_type("link", NodeLinkConfig)
-        generator = netconf_generator(network_config_file)
-        return next(generator)
+        return load_yaml(network_config_file)
+    else:
+        return None
+
+
+def get_roles_config_path(app_dir):
+    ext = '.yaml'
+    file_path = os.path.join(app_dir, f'roles{ext}')
+    return file_path
+
+
+def load_roles_config(roles_config_file):
+    if os.path.exists(roles_config_file):
+        return load_yaml(roles_config_file)
     else:
         return None
 
@@ -60,8 +68,8 @@ def load_app_files(app_dir):
     app_files = {}
     for entry in os.listdir(app_dir):
         if entry.startswith(app_tag) and entry.endswith('.py'):
-            node_name = entry[len(app_tag):-len(ext)]
-            app_files[node_name] = entry
+            app_name = entry[len(app_tag):-len(ext)]
+            app_files[app_name] = entry
     if len(app_files) == 0:
         raise ValueError(f"directory {app_dir} does not seem to be a application directory (no app_xxx.py files)")
     return app_files
@@ -156,6 +164,7 @@ def simulate_apps(
     track_lines=True,
     app_config_dir=None,
     network_config_file=None,
+    roles_config_file=None,
     log_dir=None,
     log_level="WARNING",
     post_function_file=None,
@@ -185,15 +194,24 @@ def simulate_apps(
         app_config_dir = app_dir
     else:
         app_config_dir = os.path.expanduser(app_config_dir)
+
     if network_config_file is None:
         network_config_file = get_network_config_path(app_dir)
     else:
         network_config_file = os.path.expanduser(network_config_file)
+
+    if roles_config_file is None:
+        roles_config_file = get_roles_config_path(app_dir)
+    else:
+        roles_config_file = os.path.expanduser(roles_config_file)
+
     if log_dir is None:
         log_dir = get_log_dir(app_dir=app_dir)
     else:
         log_dir = os.path.expanduser(log_dir)
+
     timed_log_dir = get_timed_log_dir(log_dir=log_dir)
+
     if post_function_file is None:
         post_function_file = get_post_function_path(app_dir)
     if results_file is None:
@@ -206,13 +224,28 @@ def simulate_apps(
     log_config.app_dir = app_dir
     log_config.lib_dirs = lib_dirs
 
+    roles_cfg = load_roles_config(roles_config_file)
+
     # Load app functions and configs to run
-    applications = {}
-    for node_name, app_file in app_files.items():
-        app_main = run_path(os.path.join(app_dir, app_file))['main']
-        app_config = load_app_config(app_config_dir, node_name)
-        app_config["log_config"] = log_config
-        applications[node_name] = app_main, app_config
+    app_cfgs: List[AppConfig] = []
+    for app_name, app_file in app_files.items():
+        main_func = run_path(os.path.join(app_dir, app_file))['main']
+        inputs = load_app_config_file(app_config_dir, app_name)
+
+        if roles_cfg is not None:
+            node_name = roles_cfg.get(app_name)
+        else:
+            node_name = app_name
+
+        app_config = AppConfig(
+            app_name=app_name,
+            node_name=node_name,
+            main_func=main_func,
+            log_config=log_config,
+            inputs=inputs
+        )
+
+        app_cfgs += [app_config]
 
     network_config = load_network_config(network_config_file)
 
@@ -237,7 +270,7 @@ def simulate_apps(
         raise TypeError(f"Unsupported flavour: {flavour}")
 
     run_applications(
-        applications=applications,
+        app_cfgs=app_cfgs,
         network_config=network_config,
         instr_log_dir=timed_log_dir,
         post_function=post_function,

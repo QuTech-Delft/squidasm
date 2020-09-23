@@ -25,6 +25,19 @@ def get_current_node_ids(block=True):
     return {node_name: node.ID for node_name, node in backend.nodes.items()}
 
 
+def get_current_app_node_mapping(block=True):
+    backend = get_running_backend(block=block)
+    return backend.app_node_map
+
+
+def get_node_id_for_app(app_name):
+    app_node_map = get_current_app_node_mapping()
+    node = app_node_map.get(app_name)
+    if node is None:
+        raise ValueError(f"No app with name {app_name} mapped to a node")
+    return node.ID
+
+
 def get_node_id(name):
     current_node_ids = get_current_node_ids()
     node_id = current_node_ids.get(name)

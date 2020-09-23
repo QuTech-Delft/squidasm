@@ -9,6 +9,7 @@ from netqasm.sdk import Qubit, ThreadSocket, EPRSocket
 from netqasm.logging import set_log_level, get_netqasm_logger
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications
+from squidasm.run.app_config import default_app_config
 
 logger = get_netqasm_logger()
 
@@ -39,10 +40,10 @@ def test_two_nodes():
         assert len(bob.active_qubits) == 0
         logger.debug("End Bob thread")
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False)
 
 
 def test_measure():
@@ -61,9 +62,9 @@ def test_measure():
             logger.info(avg)
             assert 0.4 <= avg <= 0.6
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_rotations():
@@ -84,9 +85,9 @@ def test_rotations():
             logger.info(count)
             assert count == 0
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_measure_if_conn():
@@ -106,9 +107,9 @@ def test_measure_if_conn():
                 alice.flush()
                 assert zero == 0
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_measure_if_future():
@@ -126,9 +127,9 @@ def test_measure_if_future():
                 alice.flush()
                 assert zero == 0
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_new_array():
@@ -153,9 +154,9 @@ def test_new_array():
         logger.debug(f"init_values: {init_values}")
         assert outcomes == init_values
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_post_epr():
@@ -194,10 +195,10 @@ def test_post_epr():
 
         node_outcomes["Bob"] = list(outcomes)
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False)
 
     logger.info(node_outcomes)
     assert node_outcomes["Alice"] == node_outcomes["Bob"]
@@ -235,10 +236,10 @@ def test_post_epr_context():
 
         node_outcomes["Bob"] = list(outcomes)
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False)
 
     logger.info(node_outcomes)
     assert node_outcomes["Alice"] == node_outcomes["Bob"]
@@ -264,9 +265,9 @@ def test_measure_loop():
             logger.info(f"Average: {avg}")
             assert 0.4 <= avg <= 0.6
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_measure_loop_context():
@@ -294,9 +295,9 @@ def test_measure_loop_context():
             print(f'expected = {expected}')
             assert list(outcomes) == expected
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_foreach():
@@ -322,9 +323,9 @@ def test_foreach():
             print(f'outcomes = {list(outcomes)}')
             assert list(rand_nums) == list(outcomes)
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_enumerate():
@@ -348,9 +349,9 @@ def test_enumerate():
             print(f'outcomes = {list(outcomes)}')
             assert list(rand_nums) == list(outcomes)
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_nested_loop():
@@ -378,9 +379,9 @@ def test_nested_loop():
         assert i == outer_num
         assert j == outer_num * inner_num
 
-    run_applications({
-        "Alice": run_alice,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False)
 
 
 def test_create_epr():
@@ -409,10 +410,10 @@ def test_create_epr():
         logger.info(f"state = {alice_state.dm}")
         assert np.all(np.isclose(expected_state, alice_state.dm))
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False, post_function=post_function)
 
 
 def test_teleport_without_corrections():
@@ -456,10 +457,10 @@ def test_teleport_without_corrections():
         logger.info(f"expected = {expected}")
         assert np.all(np.isclose(expected, state))
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False, post_function=post_function)
 
 
 def test_teleport():
@@ -509,10 +510,10 @@ def test_teleport():
         logger.info(f"expected = {expected}")
         assert np.all(np.isclose(expected, state))
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False, post_function=post_function)
 
 
 def test_create_epr_m():
@@ -534,10 +535,10 @@ def test_create_epr_m():
             for ent_info in ent_infos:
                 outcomes['Bob'].append(ent_info.measurement_outcome)
 
-    run_applications({
-        "Alice": run_alice,
-        "Bob": run_bob,
-    })
+    run_applications([
+        default_app_config("Alice", run_alice),
+        default_app_config("Bob", run_bob),
+    ], use_app_config=False)
 
     print(outcomes)
     for i in range(num):

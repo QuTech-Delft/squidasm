@@ -4,6 +4,7 @@ import logging
 from netqasm.parsing import parse_register
 from netqasm.logging import set_log_level, get_netqasm_logger
 from squidasm.run import run_applications
+from squidasm.run.app_config import default_app_config
 from squidasm.communicator import SimpleCommunicator
 
 logger = get_netqasm_logger()
@@ -40,9 +41,9 @@ def main():
         assert zero_outcomes == 0
         assert one_outcomes == 300
 
-    run_applications({
-        "Alice": run_alice,
-    }, post_function=post_function)
+    run_applications([
+        default_app_config("Alice", run_alice),
+    ], use_app_config=False, post_function=post_function)
 
 
 if __name__ == '__main__':
