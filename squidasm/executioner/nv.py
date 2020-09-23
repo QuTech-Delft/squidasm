@@ -14,10 +14,6 @@ from squidasm.executioner.base import NetSquidExecutioner
 from netqasm.instructions import nv, core
 
 
-CSQX = ops.Rx90.ctrl
-INSTR_CSQX = IGate("csqx_gate", CSQX)
-
-
 NV_NS_INSTR_MAPPING = {
     core.InitInstruction: INSTR_INIT,
     nv.RotXInstruction: INSTR_ROT_X,
