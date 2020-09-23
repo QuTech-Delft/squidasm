@@ -15,19 +15,6 @@ def _has_first_argument(function, argument):
 def main():
     set_log_level(logging.WARNING)
     path_to_here = os.path.dirname(os.path.abspath(__file__))
-    apps_path = os.path.join(path_to_here, "apps")
-    apps = os.listdir(apps_path)
-
-    for app in apps:
-        app_path = os.path.join(apps_path, app)
-        print(f"Running example app {app_path}")
-        result = subprocess.run(
-            ["squidasm", "simulate", "--app-dir", app_path],
-            stdout=subprocess.DEVNULL,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(f"Example {app} failed!")
-
     for root, _folders, files in os.walk(path_to_here):
         for filename in files:
             if filename.startswith("example") and filename.endswith(".py"):
