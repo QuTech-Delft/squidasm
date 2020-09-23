@@ -13,8 +13,4 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=('tests', 'docs', 'examples')),
     install_requires=install_requires,
     python_requires='>=3.7',
-    entry_points='''
-        [console_scripts]
-        squidasm=squidasm.cli:cli
-    '''
 )
