@@ -127,7 +127,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
             self._logger.debug('Checking for next message')
             raw_msg = self._next_message()
             if raw_msg is not None:
-                msg = deserialize_message(raw_msg, flavour=self.flavour)
+                msg = deserialize_message(raw_msg)
                 self._handle_message(msg=msg)
             ev = self._get_next_task_event()
             if ev is None:
@@ -226,3 +226,6 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
             self.stop()
         else:
             raise ValueError(f"Unkown signal {signal}")
+
+    def stop(self):
+        NodeProtocol.stop(self)
