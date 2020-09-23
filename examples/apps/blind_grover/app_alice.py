@@ -19,7 +19,7 @@ def get_phi_for_oracle(b0, b1):
 
 
 def main(
-        log_config=None,
+        app_config=None,
         b0=0,
         b1=0,
         r1=0,
@@ -27,12 +27,16 @@ def main(
         theta1=0.0,
         theta2=0.0):
 
-    socket = Socket("alice", "bob", log_config=log_config)
+    socket = Socket("alice", "bob", log_config=app_config.log_config)
     epr_socket = EPRSocket("bob")
 
+    node_name = app_config.node_name
+    if node_name is None:
+        node_name = app_config.app_name
+
     alice = NetSquidConnection(
-        name="alice",
-        log_config=log_config,
+        node_name=node_name,
+        log_config=app_config.log_config,
         epr_sockets=[epr_socket],
     )
 

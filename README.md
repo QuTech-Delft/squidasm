@@ -1,4 +1,4 @@
-# SquidASM (0.0.8)
+# SquidASM (0.1.0)
 
 Welcome to SquidASM's README.
 

@@ -6,10 +6,10 @@ from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
 from netsquid_magic.sleeper import Sleeper
 
-from netqasm.logging import get_netqasm_logger
-from netqasm.messages import MessageType, SubroutineMessage, Signal
-from netqasm.messages import deserialize as deserialize_message
-from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
+from netqasm.messages import MessageType, Signal
+from netqasm.messages import deserialize_host_msg as deserialize_message
+from netqasm.instructions.flavour import VanillaFlavour, NVFlavour, Flavour
+from netqasm.qnodeos import BaseSubroutineHandler
 
 from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
 from squidasm.executioner.nv import NVNetSquidExecutioner
@@ -77,37 +77,34 @@ class Task:
         self._next_event = next_event
 
 
-class SubroutineHandler(NodeProtocol):
-    def __init__(self, node, instr_log_dir=None, flavour=None):
+class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
+    def __init__(self, node, instr_log_dir=None, flavour: Flavour = None):
         """An extremely simplified version of QNodeOS for handling NetQASM subroutines"""
-        super().__init__(node=node)
-
-        self.flavour = flavour
-
-        if flavour is None or isinstance(flavour, VanillaFlavour):
-            self._executioner = VanillaNetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
-        elif isinstance(flavour, NVFlavour):
-            self._executioner = NVNetSquidExecutioner(node=node, instr_log_dir=instr_log_dir)
-        else:
-            raise ValueError(f"Flavour {flavour} is not supported.")
+        BaseSubroutineHandler.__init__(
+            self,
+            name=node.name,
+            instr_log_dir=instr_log_dir,
+            flavour=flavour,
+            node=node,
+        )
+        NodeProtocol.__init__(self, node=node)
 
         self._message_queue = get_queue(self.node.name, create_new=True)
-
-        self._message_handlers = self._get_message_handlers()
-
-        # Keep track of active apps
-        self._active_app_ids = set()
 
         # Keep track of tasks to execute
         self._subroutine_tasks = []
         self._other_tasks = []
 
-        # Keep track of finished messages
-        self._finished_messages = []
-
         self._sleeper = Sleeper()
 
-        self._logger = get_netqasm_logger(f"{self.__class__.__name__}({self.node.name})")
+    @classmethod
+    def _get_executioner_class(cls, flavour=None):
+        if flavour is None or isinstance(flavour, VanillaFlavour):
+            return VanillaNetSquidExecutioner
+        elif isinstance(flavour, NVFlavour):
+            return NVNetSquidExecutioner
+        else:
+            raise ValueError(f"Flavour {flavour} is not supported.")
 
     @property
     def has_active_apps(self):
@@ -124,25 +121,13 @@ class SubroutineHandler(NodeProtocol):
     def get_epr_reaction_handler(self):
         return self._executioner._handle_epr_response
 
-    def _get_message_handlers(self):
-        return {
-            MessageType.SIGNAL: self._handle_signal,
-            MessageType.SUBROUTINE: self._handle_subroutine,
-            MessageType.INIT_NEW_APP: self._handle_init_new_app,
-            MessageType.STOP_APP: self._handle_stop_app,
-            MessageType.OPEN_EPR_SOCKET: self._handle_open_epr_socket,
-        }
-
-    def add_network_stack(self, network_stack):
-        self._executioner.network_stack = network_stack
-
     def run(self):
         while self.is_running:
             # Check if there is a new message
             self._logger.debug('Checking for next message')
             raw_msg = self._next_message()
             if raw_msg is not None:
-                msg = deserialize_message(raw_msg, flavour=self.flavour)
+                msg = deserialize_message(raw_msg)
                 self._handle_message(msg=msg)
             ev = self._get_next_task_event()
             if ev is None:
@@ -153,14 +138,12 @@ class SubroutineHandler(NodeProtocol):
                 yield ev
 
     def _handle_message(self, msg):
-        # Generator
-        msg_type = MessageType(msg.type)  # TODO: use MessageType variant using `TYPE`
         self._logger.info(f'Handle message {msg}')
-        output = self._message_handlers[msg_type](msg)
+        output = self._message_handlers[msg.TYPE](msg)
         if isinstance(output, GeneratorType):
             # If generator then add to this to the current task
             # Distinguish subroutines from others to prioritize others
-            if msg_type == MessageType.SUBROUTINE:
+            if msg.TYPE == MessageType.SUBROUTINE:
                 self._logger.debug('Adding to subroutine tasks')
                 self._subroutine_tasks.append(Task(gen=output, msg=msg))
             else:
@@ -233,40 +216,8 @@ class SubroutineHandler(NodeProtocol):
             item = None
         return item
 
-    def _handle_subroutine(self, subroutine_msg: SubroutineMessage):
-        subroutine = subroutine_msg.subroutine
-        self._logger.debug(f"Executing next subroutine "
-                           f"from app ID {subroutine.app_id}")
-        yield from self._execute_subroutine(subroutine=subroutine)
-
-    def _execute_subroutine(self, subroutine):
-        yield from self._executioner.execute_subroutine(subroutine=subroutine)
-
     def _task_done(self, item):
         self._message_queue.task_done(item=item)
-
-    def _handle_init_new_app(self, msg):
-        app_id = msg.app_id
-        self._add_app(app_id=app_id)
-        max_qubits = msg.max_qubits
-        self._logger.debug(f"Allocating a new "
-                           f"unit module of size {max_qubits} for application with app ID {app_id}.\n")
-        self._executioner.init_new_application(
-            app_id=app_id,
-            max_qubits=max_qubits,
-        )
-
-    def _add_app(self, app_id):
-        self._active_app_ids.add(app_id)
-
-    def _remove_app(self, app_id):
-        self._active_app_ids.remove(app_id)
-
-    def _handle_stop_app(self, msg):
-        app_id = msg.app_id
-        self._remove_app(app_id=app_id)
-        self._logger.debug(f"Stopping application with app ID {app_id}")
-        self._executioner.stop_application(app_id=app_id)
 
     def _handle_signal(self, signal):
         self._logger.debug(f"SubroutineHandler at node {self.node} handles the signal {signal}")
@@ -276,9 +227,5 @@ class SubroutineHandler(NodeProtocol):
         else:
             raise ValueError(f"Unkown signal {signal}")
 
-    def _handle_open_epr_socket(self, msg):
-        yield from self._executioner.setup_epr_socket(
-            epr_socket_id=msg.epr_socket_id,
-            remote_node_id=msg.remote_node_id,
-            remote_epr_socket_id=msg.remote_epr_socket_id,
-        )
+    def stop(self):
+        NodeProtocol.stop(self)

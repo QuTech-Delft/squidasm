@@ -14,7 +14,7 @@ def _get_default_strategy():
     ]
 
 
-def main(log_config=None, col=0, strategy=None):
+def main(app_config=None, col=0, strategy=None):
 
     # Get the strategy
     if strategy is None:
@@ -26,9 +26,13 @@ def main(log_config=None, col=0, strategy=None):
     epr_socket = EPRSocket("alice")
 
     # Initialize the connection
+    node_name = app_config.node_name
+    if node_name is None:
+        node_name = app_config.app_name
+
     bob = NetSquidConnection(
-        "bob",
-        log_config=log_config,
+        node_name=node_name,
+        log_config=app_config.log_config,
         epr_sockets=[epr_socket],
     )
     with bob:

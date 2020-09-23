@@ -12,7 +12,7 @@ logger = get_netqasm_logger()
 
 def anonymous_transmission(
     node_name,
-    log_config=None,
+    app_config=None,
     sender=False,
     receiver=False,
     phi=None,
@@ -23,13 +23,17 @@ def anonymous_transmission(
     sockets = setup_sockets(
         node_name=node_name,
         nodes=nodes,
-        log_config=log_config,
+        log_config=app_config.log_config,
     )
 
     # Initialize the connection to the backend
+    node_name = app_config.node_name
+    if node_name is None:
+        node_name = app_config.app_name
+
     conn = NetSquidConnection(
-        name=node_name,
-        log_config=log_config,
+        node_name=node_name,
+        log_config=app_config.log_config,
         epr_sockets=sockets.epr_sockets,
     )
     with conn:

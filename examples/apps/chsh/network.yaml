@@ -38,8 +38,3 @@ links:
     node_name2: "leiden"
     noise_type: Depolarise
     fidelity: 0.9
-  - name: ch3
-    node_name1: "leiden"
-    node_name2: "delft"
-    noise_type: Depolarise
-    fidelity: 0.9

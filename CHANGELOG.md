@@ -4,6 +4,12 @@ CHANGELOG
 Upcoming
 --------
 
+2020-09-23 (0.1.0)
+------------------
+- There is now a distinction between `app_name`s (roles) and `node_name`s (physical locations).
+- Proper NV gates.
+- Reflects changes in `netqasm` 0.0.12.
+
 2020-09-22 (0.0.8)
 ------------------
 - Reflects changes in `netqasm` 0.0.11.

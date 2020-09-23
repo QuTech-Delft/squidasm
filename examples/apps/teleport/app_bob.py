@@ -7,18 +7,22 @@ from squidasm.sim_util import get_qubit_state
 logger = get_netqasm_logger()
 
 
-def main(log_config=None):
+def main(app_config=None):
 
     # Create a socket to recv classical information
-    socket = Socket("bob", "alice", log_config=log_config)
+    socket = Socket("bob", "alice", log_config=app_config.log_config)
 
     # Create a EPR socket for entanglement generation
     epr_socket = EPRSocket("alice")
 
     # Initialize the connection
+    node_name = app_config.node_name
+    if node_name is None:
+        node_name = app_config.app_name
+
     bob = NetSquidConnection(
-        "bob",
-        log_config=log_config,
+        node_name=node_name,
+        log_config=app_config.log_config,
         epr_sockets=[epr_socket]
     )
     with bob:

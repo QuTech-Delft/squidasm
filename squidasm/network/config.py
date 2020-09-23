@@ -1,6 +1,12 @@
 from enum import Enum
+from dataclasses import dataclass
+from typing import List
 
-from netsquid.components import Component
+
+class QuantumHardware(Enum):
+    Generic = "Generic"
+    NV = "NV"
+    TrappedIon = "TrappedIon"
 
 
 class NoiseType(Enum):
@@ -9,27 +15,110 @@ class NoiseType(Enum):
     Bitflip = "Bitflip"
 
 
-class NodeLinkConfig(Component):
-    """
-    Describes a connection between two nodes that can generate entanglement
-    with each other.
+@dataclass
+class Qubit:
+    id: int
+    t1: float
+    t2: float
 
-    `NodeLinkConfig`s are used to create a `MagicDistributor` from, in the
-    context of a network that can map node names to actual Node objects.
 
-    Parameters
-    ----------
-    `noise_type`: either a `NoiseType` variant, or a string. A string is
-        automatically converted into the corresponding variant.
-        The string representation is convenient for writing it in a
-        `network.yaml` file.
-    `fidelity`: float
-        Fidelity of the link. What this means exactly depends on the noise type.
+@dataclass
+class Node:
+    name: str
+    hardware: QuantumHardware
+    qubits: List[Qubit]
+    gate_fidelity: float = 1.0
 
-    """
-    def __init__(self, name, node_name1: str, node_name2: str, noise_type=NoiseType.NoNoise, fidelity=1):
-        super().__init__(name)
-        self.node_name1: str = node_name1
-        self.node_name2: str = node_name2
-        self.noise_type = NoiseType(noise_type)
-        self.fidelity = fidelity
+
+@dataclass
+class Link:
+    name: str
+    node_name1: str
+    node_name2: str
+    noise_type: NoiseType
+    fidelity: float
+
+
+@dataclass
+class NetworkConfig:
+    nodes: List[Node]
+    links: List[Link]
+
+
+_DEFAULT_NUM_QUBITS = 5
+
+
+# Create a config for a fully connected network where the nodes
+# have the same names as the apps.
+def default_network_config(app_names: List[str]) -> NetworkConfig:
+    nodes = []
+    links = []
+    for name in app_names:
+        qubits = [Qubit(id=i, t1=0, t2=0) for i in range(_DEFAULT_NUM_QUBITS)]
+        node = Node(
+            name=name,
+            hardware=QuantumHardware.Generic,
+            qubits=qubits,
+            gate_fidelity=1
+        )
+        nodes += [node]
+
+        for other_name in app_names:
+            if other_name == name:
+                continue
+            link = Link(
+                name=f"link_{name}_{other_name}",
+                node_name1=name,
+                node_name2=other_name,
+                noise_type=NoiseType.NoNoise,
+                fidelity=1
+            )
+            links += [link]
+
+    return NetworkConfig(nodes, links)
+
+
+# Build a NetworkConfig object from a dict that is created by reading a yaml file.
+def parse_network_config(cfg) -> NetworkConfig:
+    try:
+        node_cfgs = cfg['nodes']
+        link_cfgs = cfg['links']
+
+        nodes = []
+        for node_cfg in node_cfgs:
+            qubit_cfgs = node_cfg['qubits']
+            qubits = []
+            for qubit_cfg in qubit_cfgs:
+                qubit = Qubit(
+                    id=qubit_cfg['id'],
+                    t1=qubit_cfg['t1'],
+                    t2=qubit_cfg['t2'],
+                )
+                qubits += [qubit]
+            if 'hardware' in node_cfg:
+                hardware = node_cfg['hardware']
+            else:
+                hardware = QuantumHardware.Generic
+
+            node = Node(
+                name=node_cfg['name'],
+                hardware=hardware,
+                qubits=qubits,
+                gate_fidelity=node_cfg['gate_fidelity']
+            )
+            nodes += [node]
+
+        links = []
+        for link_cfg in link_cfgs:
+            link = Link(
+                name=link_cfg['name'],
+                node_name1=link_cfg['node_name1'],
+                node_name2=link_cfg['node_name2'],
+                noise_type=link_cfg['noise_type'],
+                fidelity=link_cfg['fidelity']
+            )
+            links += [link]
+    except KeyError as e:
+        raise ValueError(f"Invalid network configuration: key not found: {e}")
+
+    return NetworkConfig(nodes, links)
