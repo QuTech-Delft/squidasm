@@ -7,9 +7,6 @@ from netsquid.components.instructions import (
     INSTR_CYDIR
 )
 
-import netsquid.qubits.operators as ops
-from netsquid.components.instructions import IGate
-
 from squidasm.executioner.base import NetSquidExecutioner
 from netqasm.instructions import nv, core
 
