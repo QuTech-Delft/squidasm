@@ -13,16 +13,13 @@ class NetSquidConnection(NetQASMConnection):
 
     def __init__(
         self,
-        app_name,
-        node_name=None,
+        node_name,
         app_id=None,
         max_qubits=5,
         log_config=None,
         epr_sockets=None,
         compiler=None,
     ):
-        if node_name is None:
-            node_name = app_name
         self._message_queue = get_queue(node_name)
         super().__init__(
             name=node_name,

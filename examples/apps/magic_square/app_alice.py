@@ -25,9 +25,12 @@ def main(app_config=None, row=0, strategy=None):
     epr_socket = EPRSocket("bob")
 
     # Initialize the connection
+    node_name = app_config.node_name
+    if node_name is None:
+        node_name = app_config.app_name
+
     alice = NetSquidConnection(
-        app_name=app_config.app_name,
-        node_name=app_config.node_name,
+        node_name=node_name,
         log_config=app_config.log_config,
         epr_sockets=[epr_socket],
     )

@@ -4,6 +4,10 @@ CHANGELOG
 Upcoming
 --------
 
+2020-09-22 (0.0.8)
+------------------
+- Reflects changes in `netqasm` 0.0.11.
+
 2020-09-09 (0.0.7)
 ------------------
 - Instrs-logging now include qubit IDs and qubit states for all qubits involved in the operation.
