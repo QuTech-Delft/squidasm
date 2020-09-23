@@ -8,7 +8,7 @@ from netsquid_magic.sleeper import Sleeper
 
 from netqasm.logging import get_netqasm_logger
 from netqasm.messages import MessageType, SubroutineMessage, Signal
-from netqasm.messages import deserialize as deserialize_message
+from netqasm.messages import deserialize_host_msg as deserialize_message
 from netqasm.instructions.flavour import VanillaFlavour, NVFlavour, Flavour
 
 from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
