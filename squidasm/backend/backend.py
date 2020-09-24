@@ -2,16 +2,15 @@ from typing import List, Dict
 
 import netsquid as ns
 from netsquid.nodes import Node
+from netqasm.sdk.app_config import AppConfig
+from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
 
 from squidasm.qnodeos import SubroutineHandler
 from squidasm.backend.glob import put_current_backend, pop_current_backend
-
 from squidasm.network.network import NetSquidNetwork
 from squidasm.network.config import default_network_config, parse_network_config, QuantumHardware
 from squidasm.network.stack import NetworkStack
-from squidasm.run.app_config import AppConfig
 
-from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
 
 
 class Backend:

@@ -14,12 +14,12 @@ from netqasm.logging import (
 )
 from netqasm.yaml_util import load_yaml, dump_yaml
 from netqasm.output import InstrField
-from .run import run_applications
 from netqasm.sdk.config import LogConfig
 from netqasm.instructions.flavour import NVFlavour, VanillaFlavour
 from netqasm.settings import Formalism, Flavour
+from netqasm.sdk.app_config import AppConfig
 
-from squidasm.run.app_config import AppConfig
+from .run import run_applications
 
 logger = get_netqasm_logger()
 
