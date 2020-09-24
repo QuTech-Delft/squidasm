@@ -2,7 +2,7 @@ from typing import List, Dict
 
 import netsquid as ns
 from netsquid.nodes import Node
-from netqasm.sdk.app_config import AppConfig
+from netqasm.run.app_config import AppConfig
 from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
 
 from squidasm.qnodeos import SubroutineHandler

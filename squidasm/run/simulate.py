@@ -17,7 +17,7 @@ from netqasm.output import InstrField
 from netqasm.sdk.config import LogConfig
 from netqasm.instructions.flavour import NVFlavour, VanillaFlavour
 from netqasm.settings import Formalism, Flavour
-from netqasm.sdk.app_config import AppConfig
+from netqasm.run.app_config import AppConfig
 
 from .run import run_applications
 
