@@ -12,7 +12,6 @@ from squidasm.network.config import default_network_config, parse_network_config
 from squidasm.network.stack import NetworkStack
 
 
-
 class Backend:
     def __init__(
         self,
