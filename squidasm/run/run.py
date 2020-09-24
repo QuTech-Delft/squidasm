@@ -11,6 +11,7 @@ from netqasm.yaml_util import dump_yaml
 from netqasm.output import save_all_struct_loggers, reset_struct_loggers
 from netqasm.sdk.classical_communication import reset_socket_hub
 from netqasm.run.app_config import AppConfig
+from netqasm.settings import Formalism
 
 from squidasm.backend.backend import Backend
 from squidasm.thread_util import as_completed
@@ -18,6 +19,12 @@ from squidasm.network import reset_network
 from squidasm.queues import reset_queues
 
 logger = get_netqasm_logger()
+
+_NS_FORMALISMS = {
+    Formalism.STAB: ns.QFormalism.STAB,
+    Formalism.KET: ns.QFormalism.KET,
+    Formalism.DM: ns.QFormalism.DM,
+}
 
 
 def reset(save_loggers=False):
@@ -40,7 +47,7 @@ def run_applications(
     instr_log_dir=None,
     network_config=None,
     results_file=None,
-    q_formalism=ns.QFormalism.KET,
+    formalism=Formalism.KET,
     flavour=None,
     use_app_config=True,  # whether to give app_config as argument to app's main()
 ):
@@ -57,7 +64,7 @@ def run_applications(
 
     def run_backend():
         logger.debug(f"Starting netsquid backend thread with apps {app_names}")
-        ns.set_qstate_formalism(q_formalism)
+        ns.set_qstate_formalism(_NS_FORMALISMS[formalism])
         backend = Backend(
             app_cfgs=app_cfgs,
             instr_log_dir=instr_log_dir,
