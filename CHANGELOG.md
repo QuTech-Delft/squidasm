@@ -4,6 +4,11 @@ CHANGELOG
 Upcoming
 --------
 
+2020-09-25 (0.2.0)
+------------------
+- CLI has now moved to `netqasm`.
+  See [changelog](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md) there for details.
+
 2020-09-23 (0.1.0)
 ------------------
 - There is now a distinction between `app_name`s (roles) and `node_name`s (physical locations).
