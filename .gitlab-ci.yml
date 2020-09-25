@@ -47,6 +47,8 @@ tests:
 
 sdk-tests:
     <<: *install
+    variables:
+        NETQASM_SIMULATOR: netsquid
     stage: tests
     script: make -C netqasm external-tests
     <<: *only_mr
@@ -59,6 +61,8 @@ examples:
 
 sdk-examples:
     <<: *install
+    variables:
+        NETQASM_SIMULATOR: netsquid
     stage: examples
     script: make -C netqasm external-examples
     <<: *only_mr
