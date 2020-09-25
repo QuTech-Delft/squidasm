@@ -1,15 +1,15 @@
 from threading import Thread
 
-from netqasm.sdk import NetQASMConnection
 from netqasm.subroutine import PreSubroutine, Subroutine
 from netqasm.parsing.text import assemble_subroutine
 from netqasm.instructions.flavour import NVFlavour
 from netqasm.compiling import NVSubroutineCompiler
+from netqasm.sdk.connection import BaseNetQASMConnection
 from squidasm.queues import get_queue
 from squidasm.backend.glob import get_node_id_for_app, get_node_name, get_running_backend
 
 
-class NetSquidConnection(NetQASMConnection):
+class NetSquidConnection(BaseNetQASMConnection):
 
     def __init__(
         self,
