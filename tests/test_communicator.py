@@ -6,8 +6,9 @@ from netqasm.parsing import parse_register
 from netqasm.sdk.shared_memory import get_shared_memory
 from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.network_stack import CREATE_FIELDS, OK_FIELDS
+from netqasm.run.app_config import default_app_config
+
 from squidasm.run import run_applications
-from squidasm.run.app_config import default_app_config
 from squidasm.communicator import SimpleCommunicator
 
 logger = get_netqasm_logger()

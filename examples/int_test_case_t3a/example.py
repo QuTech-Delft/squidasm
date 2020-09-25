@@ -3,8 +3,9 @@ import logging
 
 from netqasm.parsing import parse_register
 from netqasm.logging import set_log_level, get_netqasm_logger
+from netqasm.run.app_config import default_app_config
+
 from squidasm.run import run_applications
-from squidasm.run.app_config import default_app_config
 from squidasm.communicator import SimpleCommunicator
 
 logger = get_netqasm_logger()

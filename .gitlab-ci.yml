@@ -39,14 +39,26 @@ lint:
     script: make lint
     <<: *only_mr
 
-test:
+tests:
     <<: *install
     stage: tests
     script: make tests
+    <<: *only_mr
+
+sdk-tests:
+    <<: *install
+    stage: tests
+    script: make -C netqasm external-tests
     <<: *only_mr
 
 examples:
     <<: *install
     stage: examples
     script: make examples
+    <<: *only_mr
+
+sdk-examples:
+    <<: *install
+    stage: examples
+    script: make -C netqasm external-examples
     <<: *only_mr
