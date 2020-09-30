@@ -38,6 +38,14 @@ def get_node_id_for_app(app_name):
     return node.ID
 
 
+def get_node_name_for_app(app_name):
+    app_node_map = get_current_app_node_mapping()
+    node = app_node_map.get(app_name)
+    if node is None:
+        raise ValueError(f"No app with name {app_name} mapped to a node")
+    return node.name
+
+
 def get_node_id(name):
     current_node_ids = get_current_node_ids()
     node_id = current_node_ids.get(name)

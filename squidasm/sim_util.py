@@ -25,7 +25,7 @@ def get_qubit_state(qubit, reduced_dm=True):
     """
     # Get the executioner and qmemory from the backend
     backend = get_running_backend()
-    node_name = qubit._conn.name
+    node_name = qubit._conn.node_name
     assert node_name in backend.nodes, f"Unknown node {node_name}"
     executioner = backend.executioners[node_name]
     qmemory = backend.qmemories[node_name]
