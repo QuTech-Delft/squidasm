@@ -1,22 +1,16 @@
-from typing import List, Tuple, Set
+from typing import List
 
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits.qubit import Qubit
 
 from netqasm.output import InstrLogger as NQInstrLogger
 from netqasm.output import QubitGroups, QubitState
-from netqasm import instructions
 
 from squidasm.ns_util import is_state_entangled
 from squidasm.backend.glob import get_running_backend
 
 
 class InstrLogger(NQInstrLogger):
-
-    # Absulute IDs of all qubits in the simulation
-    # List of (node_name, subroutine_id, qubit_id)
-    _qubits: Set[Tuple[str, int, int]] = set()
-
     @classmethod
     def _get_qubit_groups(cls) -> QubitGroups:
         """Returns the current qubit groups in the simulation (qubits which have interacted
