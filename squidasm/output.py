@@ -51,6 +51,7 @@ class InstrLogger(NQInstrLogger):
         ]
         remove_qubit_instrs = [
             instructions.core.QFreeInstruction,
+            instructions.core.MeasInstruction
         ]
         node_name = self._get_node_name()
         app_id = self._get_app_id(subroutine_id=subroutine_id)
