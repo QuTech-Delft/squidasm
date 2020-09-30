@@ -8,6 +8,7 @@ from netqasm.messages import (
 )
 from squidasm.queues import get_queue, Signal
 from squidasm.backend.glob import get_node_id, get_node_name
+from squidasm.sdk import NetSquidNetworkInfo
 
 
 class SimpleCommunicator:
@@ -85,3 +86,8 @@ class SimpleCommunicator:
     def _signal_stop(self):
         msg = SignalMessage(signal=Signal.STOP)
         self._commit_serialized_message(raw_msg=bytes(msg), block=True)
+
+    @property
+    def network_info(self):
+        """To be compatible with BaseNetQASMConnection"""
+        return NetSquidNetworkInfo
