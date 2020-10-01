@@ -2,10 +2,12 @@ import os
 from typing import List, Dict, Optional
 
 import netsquid as ns
+from netsquid.qubits import qubitapi as qapi
 from netsquid.components import QuantumProcessor, PhysicalInstruction
 from netsquid.components import instructions as ns_instructions
 from netsquid.components.models.qerrormodels import T1T2NoiseModel, DepolarNoiseModel
 from netsquid.nodes import Network, Node
+from netsquid.components.qmemory import MemPositionBusyError
 
 from netsquid_magic.link_layer import (
     LinkLayerService,
@@ -121,7 +123,7 @@ class NetSquidNetwork(Network):
                 nodes=node_pair,
                 magic_distributor=magic_dist,
                 translation_unit=SingleClickTranslationUnit(),
-                path=None,
+                path=[link.name],
                 network=self,
             )
 
@@ -169,45 +171,88 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         self.path = path
         self.network = network
 
-    def _handle_create_request(self, node_id, request):
-        node0 = self.nodes[0].name
-        node1 = self.nodes[1].name
+    def _get_unused_memory_positions(self):
+        # NOTE override this method in order to be able to see what qubits are being used
+        # In the current version of the magic link layer protocol, if there are memory_positions
+        # then the generation of the pair will for sure start. However this could
+        # break in future versions (without being clear that this is a breaking change for us)
+        memory_positions = super()._get_unused_memory_positions()
+        if memory_positions is None:
+            return None
+
+        nodes, qubit_ids, qubit_states = self._get_log_data(
+            memory_positions=memory_positions,
+            get_qubit_states=False,
+        )
+
         qubit_groups = InstrLogger._get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
             ent_stage=EntanglementStage.START,
-            nodes=[node0, node1],
-            qubit_ids=[None, None],
-            qubit_states=[None, None],
+            nodes=nodes,
+            path=list(self.path),
+            qubit_ids=qubit_ids,
+            qubit_states=qubit_states,
             qubit_groups=qubit_groups,
-            msg=f"start entanglement creation between {node0} and {node1}",
+            msg=f"start entanglement creation between {nodes[0]} and {nodes[1]}",
         )
 
-        return super()._handle_create_request(node_id=node_id, request=request)
+        return memory_positions
 
     def _handle_delivery(self, event):
         delivery = self._magic_distributor.peek_delivery(event)
-        memory_positions = delivery.memory_positions
+        queue_item = self._requests_in_process[event]
+        request = queue_item.request
+        memory_positions = {node_id: mem_pos[0] for node_id, mem_pos in delivery.memory_positions.items()}
 
         super()._handle_delivery(event)
 
-        node0 = self.nodes[0].name
-        node1 = self.nodes[1].name
-        node0_pos, node1_pos = memory_positions.values()
-        qubit0 = node0_pos[0]
-        qubit1 = node1_pos[0]
+        nodes, qubit_ids, qubit_states = self._get_log_data(
+            memory_positions=memory_positions,
+            get_qubit_states=True,
+        )
+
         qubit_groups = InstrLogger._get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
             ent_stage=EntanglementStage.FINISH,
-            nodes=[node0, node1],
-            qubit_ids=[qubit0, qubit1],
-            qubit_states=[None, None],
+            nodes=nodes,
+            path=list(self.path),
+            qubit_ids=qubit_ids,
+            qubit_states=qubit_states,
             qubit_groups=qubit_groups,
-            msg=f"entanglement created between {node0} and {node1}",
+            msg=f"entanglement of type {request.type.value} created between {nodes[0]} and {nodes[1]}",
         )
+
+    def _get_log_data(self, memory_positions, get_qubit_states=False):
+        nodes = []
+        qubit_ids = []
+        qubit_states = []
+        for node in self.nodes:
+            nodes.append(node.name)
+            qubit_id = memory_positions[node.ID]
+            qubit_ids.append(qubit_id)
+            if get_qubit_states:
+                qubit_states.append(self._get_qubit_state(node, qubit_id))
+            else:
+                qubit_states.append(None)
+        return nodes, qubit_ids, qubit_states
+
+    @staticmethod
+    def _get_qubit_state(node, phys_pos):
+        try:
+            qubit = node.qmemory._get_qubits(phys_pos)[0]
+        except MemPositionBusyError:
+            with node.qmemory._access_busy_memory([phys_pos]):
+                logger.info("NOTE Accessing qubit from busy memory")
+                qubit = node.qmemory._get_qubits(phys_pos, skip_noise=True)[0]
+        if qubit is None:
+            qubit_state = None
+        else:
+            qubit_state = qapi.reduced_dm(qubit).tolist()
+        return qubit_state
 
 
 class QDevice(QuantumProcessor):
