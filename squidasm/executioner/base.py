@@ -127,6 +127,7 @@ class NetSquidExecutioner(Executioner, Entity):
         # is does not matter which unused physical qubit we choose for now
         for physical_address in range(self.qdevice.num_positions):
             if physical_address not in self._used_physical_qubit_addresses:
+                self._used_physical_qubit_addresses.add(physical_address)
                 return physical_address
         raise RuntimeError("No more qubits left in qdevice")
 
