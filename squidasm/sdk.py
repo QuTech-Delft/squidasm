@@ -1,15 +1,19 @@
 from threading import Thread
+from typing import Type
 
 from netqasm.subroutine import PreSubroutine, Subroutine
 from netqasm.parsing.text import assemble_subroutine
 from netqasm.instructions.flavour import NVFlavour
 from netqasm.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
+from netqasm.sdk.network import NetworkInfo
+
 from squidasm.queues import get_queue
 from squidasm.backend.glob import (
     get_node_id_for_app,
     get_node_name_for_app,
     get_node_name,
+    get_node_id,
     get_running_backend
 )
 
@@ -34,9 +38,11 @@ class NetSquidConnection(BaseNetQASMConnection):
             max_qubits=max_qubits,
             log_config=log_config,
             epr_sockets=epr_sockets,
-            network_info=NetSquidNetworkInfo,
             compiler=compiler,
         )
+
+    def _get_network_info(self) -> Type[NetworkInfo]:
+        return NetSquidNetworkInfo
 
     def _commit_serialized_message(self, raw_msg, block=True, callback=None):
         """Commit a message to the backend/qnodeos"""
@@ -80,11 +86,11 @@ class NetSquidConnection(BaseNetQASMConnection):
         return subroutine
 
 
-class NetSquidNetworkInfo:
+class NetSquidNetworkInfo(NetworkInfo):
     @classmethod
     def _get_node_id(cls, node_name):
         """Returns the node id for the node with the given name"""
-        return get_node_id_for_app(app_name=node_name)
+        return get_node_id(name=node_name)
 
     @classmethod
     def _get_node_name(cls, node_id):
