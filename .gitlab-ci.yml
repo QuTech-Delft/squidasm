@@ -52,7 +52,7 @@ sdk-tests:
     stage: tests
     script: 
         - cd netqasm
-        - pytest netqasm/tests/test_external/ -s --log-level=DEBUG
+        - pytest tests/test_external/ -s --log-level=DEBUG
     <<: *only_mr
 
 examples:
