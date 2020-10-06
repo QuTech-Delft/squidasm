@@ -50,6 +50,14 @@ sdk-tests:
     variables:
         NETQASM_SIMULATOR: netsquid
     stage: tests
+    script: make -C netqasm external-tests
+    <<: *only_mr
+
+sdk-tests-pytest:
+    <<: *install
+    variables:
+        NETQASM_SIMULATOR: netsquid
+    stage: tests
     script: 
         - cd netqasm
         - pytest tests/test_external/ -s --log-level=DEBUG
