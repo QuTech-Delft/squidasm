@@ -1,4 +1,4 @@
-image: adahlberg/nlblueprintci:20.04
+image: adahlberg/nlblueprintci:19.04
 
 .only_mr: &only_mr
     only:
