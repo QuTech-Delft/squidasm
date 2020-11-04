@@ -125,7 +125,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
     def run(self):
         while self.is_running:
             # Check if there is a new message
-            self._logger.debug('Checking for next message')
+            # self._logger.debug('Checking for next message')
             raw_msg = self._next_message()
             if raw_msg is not None:
                 msg = deserialize_message(raw_msg)
@@ -165,7 +165,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
                 return None
         # Only subroutine handlers left
         # Execute in order unless a subroutine is waiting
-        self._logger.debug('Executing subroutine task')
+        # self._logger.debug('Executing subroutine task')
         task = self._get_next_subroutine_task()
         if task is None:
             self._logger.debug('No more subroutine tasks')
@@ -207,7 +207,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
             if not task.is_waiting:
                 return task
         # All tasks are waiting so return first
-        self._logger.info('All subroutines are waiting')
+        # self._logger.info('All subroutines are waiting')
         return random.choice(self._subroutine_tasks)
 
     def _next_message(self):
