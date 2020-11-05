@@ -2,8 +2,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from netsquid.components.instructions import (
-    INSTR_X, INSTR_Y, INSTR_Z, INSTR_ROT_X,
-    INSTR_ROT_Y, INSTR_ROT_Z, INSTR_INIT,
+    INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z, INSTR_INIT,
     INSTR_CXDIR, INSTR_CYDIR, INSTR_MEASURE,
 )
 from netsquid.components.qprocessor import QuantumProcessor
@@ -44,6 +43,26 @@ class NVConfig:
     carbon_T1: int
     carbon_T2: int
 
+    # gate execution times
+    carbon_init: int
+    carbon_rot_x: int
+    carbon_rot_y: int
+    carbon_rot_z: int
+    electron_init: int
+    electron_rot_x: int
+    electron_rot_y: int
+    electron_rot_z: int
+    ec_controlled_dir_x: int
+    ec_controlled_dir_y: int
+    measure: int
+
+    # QNodeOS instruction processing time
+    instr_proc_time: int
+
+    # latency that mocks the time QNodeOS needs to wait for the host
+    # before the Host sends the next subroutine (e.g. because it does communication)
+    host_latency: int
+
 
 @dataclass
 class NVLinkConfig:
@@ -66,6 +85,19 @@ def parse_nv_config(cfg) -> NVConfig:
             electron_T2=cfg['electron_T2'],
             carbon_T1=cfg['carbon_T1'],
             carbon_T2=cfg['carbon_T2'],
+            carbon_init=cfg['carbon_init'],
+            carbon_rot_x=cfg['carbon_rot_x'],
+            carbon_rot_y=cfg['carbon_rot_y'],
+            carbon_rot_z=cfg['carbon_rot_z'],
+            electron_init=cfg['electron_init'],
+            electron_rot_x=cfg['electron_rot_x'],
+            electron_rot_y=cfg['electron_rot_y'],
+            electron_rot_z=cfg['electron_rot_z'],
+            ec_controlled_dir_x=cfg['ec_controlled_dir_x'],
+            ec_controlled_dir_y=cfg['ec_controlled_dir_y'],
+            measure=cfg['measure'],
+            instr_proc_time=cfg['instr_proc_time'],
+            host_latency=cfg['host_latency'],
         )
     except KeyError as e:
         raise ValueError(f"Invalid NV configuration: key not found: {e}")
@@ -113,16 +145,18 @@ def build_nv_qdevice(name, cfg: NVConfig):
                             topology=carbon_positions,
                             q_noise_model=carbon_init_noise,
                             apply_q_noise_after=True,
-                            duration=310e3))
+                            duration=cfg.carbon_init))
 
-    for instr in [INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z]:
+    for (instr, dur) in zip(
+            [INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z],
+            [cfg.carbon_rot_x, cfg.carbon_rot_y, cfg.carbon_rot_z]):
         phys_instructions.append(
             PhysicalInstruction(instr,
                                 parallel=False,
                                 topology=carbon_positions,
                                 q_noise_model=carbon_z_rot_noise,
                                 apply_q_noise_after=True,
-                                duration=500e3))
+                                duration=dur))
 
     phys_instructions.append(
         PhysicalInstruction(INSTR_INIT,
@@ -130,15 +164,17 @@ def build_nv_qdevice(name, cfg: NVConfig):
                             topology=[electron_position],
                             q_noise_model=electron_init_noise,
                             apply_q_noise_after=True,
-                            duration=2e3))
+                            duration=cfg.electron_init))
 
-    for instr in [INSTR_X, INSTR_Y, INSTR_Z, INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z]:
+    for (instr, dur) in zip(
+            [INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z],
+            [cfg.electron_rot_x, cfg.electron_rot_y, cfg.electron_rot_z]):
         phys_instructions.append(
             PhysicalInstruction(instr,
                                 parallel=False,
                                 topology=[electron_position],
                                 q_noise_model=electron_single_qubit_noise,
-                                duration=5))
+                                duration=dur))
 
     electron_carbon_topologies = \
         [(electron_position, carbon_pos) for carbon_pos in carbon_positions]
@@ -148,7 +184,7 @@ def build_nv_qdevice(name, cfg: NVConfig):
                             topology=electron_carbon_topologies,
                             q_noise_model=ec_noise,
                             apply_q_noise_after=True,
-                            duration=500e3))
+                            duration=cfg.ec_controlled_dir_x))
 
     phys_instructions.append(
         PhysicalInstruction(INSTR_CYDIR,
@@ -156,7 +192,7 @@ def build_nv_qdevice(name, cfg: NVConfig):
                             topology=electron_carbon_topologies,
                             q_noise_model=ec_noise,
                             apply_q_noise_after=True,
-                            duration=500e3))
+                            duration=cfg.ec_controlled_dir_y))
 
     M0 = Operator("M0", np.diag([np.sqrt(1 - cfg.prob_error_0), np.sqrt(cfg.prob_error_1)]))
     M1 = Operator("M1", np.diag([np.sqrt(cfg.prob_error_0), np.sqrt(1 - cfg.prob_error_1)]))
@@ -168,7 +204,7 @@ def build_nv_qdevice(name, cfg: NVConfig):
                                              parallel=False,
                                              topology=[electron_position],
                                              q_noise_model=None,
-                                             duration=3.7e3)
+                                             duration=cfg.measure)
 
     phys_instructions.append(phys_instr_measure)
 

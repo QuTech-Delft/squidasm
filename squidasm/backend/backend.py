@@ -85,10 +85,19 @@ class Backend:
             else:
                 raise ValueError(f"Quantum hardware {node_hardware} not supported.")
 
+            if nv_config_obj is not None:
+                instr_proc_time = nv_config_obj.instr_proc_time
+                host_latency = nv_config_obj.host_latency
+            else:
+                instr_proc_time = 0
+                host_latency = 0
+
             subroutine_handler = self.__class__._SUBROUTINE_HANDLER_CLASS(
                 node=node,
                 instr_log_dir=instr_log_dir,
-                flavour=flavour
+                flavour=flavour,
+                instr_proc_time=instr_proc_time,
+                host_latency=host_latency
             )
             subroutine_handler.network_stack = self.__class__._NETWORK_STACK_CLASS(
                 node=node,

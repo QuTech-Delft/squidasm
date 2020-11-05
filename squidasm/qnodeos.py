@@ -79,7 +79,8 @@ class Task:
 
 
 class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
-    def __init__(self, node, instr_log_dir=None, flavour: Flavour = None):
+    def __init__(self, node, instr_log_dir=None, flavour: Flavour = None,
+                 instr_proc_time: int = 0, host_latency: int = 0):
         """An extremely simplified version of QNodeOS for handling NetQASM subroutines"""
         BaseSubroutineHandler.__init__(
             self,
@@ -87,6 +88,8 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
             instr_log_dir=instr_log_dir,
             flavour=flavour,
             node=node,
+            instr_proc_time=instr_proc_time,
+            host_latency=host_latency
         )
         NodeProtocol.__init__(self, node=node)
 
