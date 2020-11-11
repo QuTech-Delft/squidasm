@@ -1,10 +1,10 @@
 from threading import Thread
 from typing import Type
 
-from netqasm.subroutine import PreSubroutine, Subroutine
-from netqasm.parsing.text import assemble_subroutine
-from netqasm.instructions.flavour import NVFlavour
-from netqasm.compiling import NVSubroutineCompiler
+from netqasm.lang.subroutine import PreSubroutine, Subroutine
+from netqasm.lang.parsing.text import assemble_subroutine
+from netqasm.lang.instr.flavour import NVFlavour
+from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.network import NetworkInfo
 

@@ -2,8 +2,8 @@ from typing import List, Dict
 
 import netsquid as ns
 from netsquid.nodes import Node
-from netqasm.run.app_config import AppConfig
-from netqasm.instructions.flavour import VanillaFlavour, NVFlavour
+from netqasm.runtime.app_config import AppConfig
+from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour
 
 from squidasm.qnodeos import SubroutineHandler
 from squidasm.backend.glob import put_current_backend, pop_current_backend
