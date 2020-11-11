@@ -25,11 +25,11 @@ from netsquid_magic.magic_distributor import (
 from squidasm.network.config import NetworkConfig, NoiseType, QuantumHardware
 from squidasm.network.config import Link
 
-from netqasm.output import EntanglementStage
+from netqasm.logging.output import EntanglementStage
 from squidasm.output import InstrLogger
 
-from netqasm.logging import get_netqasm_logger
-from netqasm.output import NetworkLogger
+from netqasm.logging.glob import get_netqasm_logger
+from netqasm.logging.output import NetworkLogger
 
 logger = get_netqasm_logger()
 
@@ -164,6 +164,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
     This path is not actually used by the magic protocol.
     Furthermore, it logs requests and deliveries to the NetworkLogger of the network.
     """
+
     def __init__(self, nodes, magic_distributor, translation_unit, path: List[str], network):
         super().__init__(
             nodes=nodes, magic_distributor=magic_distributor, translation_unit=translation_unit)
@@ -301,6 +302,7 @@ class NVQDevice(QDevice):
     """
     A QDevice with NV hardware.
     """
+
     def __init__(self, name="NVQDevice", num_qubits=5, gate_fidelity=1, mem_fidelities=None):
         phys_instrs = [
             PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),

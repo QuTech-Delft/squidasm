@@ -8,7 +8,7 @@ from netsquid.components.instructions import (
 )
 
 from squidasm.executioner.base import NetSquidExecutioner
-from netqasm.instructions import nv, core
+from netqasm.lang.instr import nv, core
 
 
 NV_NS_INSTR_MAPPING = {

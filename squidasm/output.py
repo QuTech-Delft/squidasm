@@ -3,8 +3,8 @@ from typing import List
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits.qubit import Qubit
 
-from netqasm.output import InstrLogger as NQInstrLogger
-from netqasm.output import QubitGroups, QubitState
+from netqasm.logging.output import InstrLogger as NQInstrLogger
+from netqasm.logging.output import QubitGroups, QubitState
 
 from squidasm.ns_util import is_state_entangled
 from squidasm.backend.glob import get_running_backend

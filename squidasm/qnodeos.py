@@ -6,10 +6,10 @@ from pydynaa import EventType, EventExpression
 from netsquid.protocols import NodeProtocol
 from netsquid_magic.sleeper import Sleeper
 
-from netqasm.messages import MessageType, Signal
-from netqasm.messages import deserialize_host_msg as deserialize_message
-from netqasm.instructions.flavour import VanillaFlavour, NVFlavour, Flavour
-from netqasm.qnodeos import BaseSubroutineHandler
+from netqasm.backend.messages import MessageType, Signal
+from netqasm.backend.messages import deserialize_host_msg as deserialize_message
+from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour, Flavour
+from netqasm.backend.qnodeos import BaseSubroutineHandler
 
 from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
 from squidasm.executioner.nv import NVNetSquidExecutioner
@@ -35,6 +35,7 @@ def is_waiting_event(event):
 class Task:
     """Keeps track of a task qnodeos has and if it's finished or waiting.
     """
+
     def __init__(self, gen, msg):
         self._gen = gen
         self._msg = msg

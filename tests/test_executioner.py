@@ -4,8 +4,8 @@ import netsquid as ns
 from netsquid.protocols import NodeProtocol
 from netsquid.nodes import Node
 
-from netqasm.logging import set_log_level
-from netqasm.parsing import parse_text_subroutine, parse_register
+from netqasm.logging.glob import set_log_level
+from netqasm.lang.parsing import parse_text_subroutine, parse_register
 from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
 from squidasm.network import QDevice
 from squidasm.run import reset
