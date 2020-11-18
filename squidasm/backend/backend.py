@@ -3,12 +3,12 @@ from typing import List, Dict
 import netsquid as ns
 from netsquid.nodes import Node
 from netqasm.runtime.app_config import AppConfig
+from netqasm.runtime.interface.config import default_network_config, parse_network_config, QuantumHardware
 from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour
 
 from squidasm.qnodeos import SubroutineHandler
 from squidasm.backend.glob import put_current_backend, pop_current_backend
 from squidasm.network.network import NetSquidNetwork
-from squidasm.network.config import default_network_config, parse_network_config, QuantumHardware
 from squidasm.network.stack import NetworkStack
 
 

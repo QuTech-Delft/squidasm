@@ -25,8 +25,8 @@ from netsquid_magic.magic_distributor import (
     BitflipMagicDistributor
 )
 
-from squidasm.network.config import NetworkConfig, NoiseType, QuantumHardware
-from squidasm.network.config import Link
+from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
+from netqasm.runtime.interface.config import Link
 
 from netqasm.logging.interface import EntanglementStage
 from squidasm.output import InstrLogger
