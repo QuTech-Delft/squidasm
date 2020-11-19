@@ -28,7 +28,7 @@ from netsquid_magic.magic_distributor import (
 from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
 from netqasm.runtime.interface.config import Link
 
-from netqasm.logging.interface import EntanglementStage
+from netqasm.runtime.interface.logging import EntanglementStage
 from squidasm.output import InstrLogger
 
 from netqasm.logging.glob import get_netqasm_logger
