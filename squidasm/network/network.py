@@ -232,7 +232,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         self.network.global_log(
             sim_time=ns.sim_time(),
-            ent_type=request.type.value,
+            ent_type=request.type,
             ent_stage=EntanglementStage.FINISH,
             meas_bases=meas_bases,
             meas_outcomes=meas_outcomes,
