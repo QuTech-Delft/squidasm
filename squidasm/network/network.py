@@ -312,6 +312,8 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             meas_bases = None
             meas_outcomes = None
 
+        memory_positions = {node_id: mem_pos[0] for node_id, mem_pos in memory_positions.items()}
+
         nodes, qubit_ids, qubit_states = self._get_log_data(
             memory_positions=memory_positions,
             get_qubit_states=True,
