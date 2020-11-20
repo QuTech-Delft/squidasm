@@ -1,12 +1,12 @@
 import logging
 import numpy as np
 
-from netqasm.logging import set_log_level, get_netqasm_logger
-from netqasm.parsing import parse_register
+from netqasm.logging.glob import set_log_level, get_netqasm_logger
+from netqasm.lang.parsing import parse_register
 from netqasm.sdk.shared_memory import get_shared_memory
 from netqasm.sdk.epr_socket import EPRSocket
-from netqasm.network_stack import CREATE_FIELDS, OK_FIELDS
-from netqasm.run.app_config import default_app_config
+from netqasm.backend.network_stack import CREATE_FIELDS, OK_FIELDS
+from netqasm.runtime.app_config import default_app_config
 
 from squidasm.run import run_applications
 from squidasm.communicator import SimpleCommunicator

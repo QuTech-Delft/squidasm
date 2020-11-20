@@ -1,7 +1,7 @@
 from netqasm.sdk import Qubit, EPRSocket
 from netqasm.sdk import ThreadSocket as Socket
-from netqasm.logging import set_log_level, get_netqasm_logger
-from netqasm.run.app_config import default_app_config
+from netqasm.logging.glob import set_log_level, get_netqasm_logger
+from netqasm.runtime.app_config import default_app_config
 
 from squidasm.sdk import NetSquidConnection
 from squidasm.run import run_applications

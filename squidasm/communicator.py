@@ -1,6 +1,6 @@
-from netqasm.parsing import parse_text_subroutine
-from netqasm.logging import get_netqasm_logger
-from netqasm.messages import (
+from netqasm.lang.parsing import parse_text_subroutine
+from netqasm.logging.glob import get_netqasm_logger
+from netqasm.backend.messages import (
     InitNewAppMessage,
     OpenEPRSocketMessage,
     SubroutineMessage,

@@ -15,7 +15,7 @@ from netsquid.components.instructions import (
 )
 
 from squidasm.executioner.base import NetSquidExecutioner
-from netqasm.instructions import vanilla, core
+from netqasm.lang.instr import vanilla, core
 
 
 VANILLA_NS_INSTR_MAPPING = {

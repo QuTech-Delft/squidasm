@@ -3,7 +3,7 @@ import runpy
 import inspect
 import subprocess
 import logging
-from netqasm.logging import set_log_level
+from netqasm.logging.glob import set_log_level
 
 
 def _has_first_argument(function, argument):

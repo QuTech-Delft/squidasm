@@ -2,7 +2,7 @@ from queue import Queue
 from time import sleep
 from timeit import default_timer as timer
 
-from netqasm.messages import Signal
+from netqasm.backend.messages import Signal
 
 _QUEUES = {}
 
@@ -27,6 +27,7 @@ def reset_queues():
 
 class TaskQueue:
     """Subclass Queue which allow to wait for a specific task to be done and not only all"""
+
     def __init__(self):
         self._queue = Queue()
         self._fin_tasks = set()
