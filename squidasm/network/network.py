@@ -2,6 +2,7 @@ import os
 from typing import List, Dict, Optional
 
 import netsquid as ns
+from netsquid.util import sim_time
 from netsquid.qubits import qubitapi as qapi
 from netsquid.components import QuantumProcessor, PhysicalInstruction
 from netsquid.components import instructions as ns_instructions
@@ -15,6 +16,8 @@ from netsquid_magic.link_layer import (
     SingleClickTranslationUnit,
 )
 
+from qlink_interface import RequestType, LinkLayerOKTypeK, LinkLayerOKTypeM
+
 from netsquid_magic.magic_distributor import (
     MagicDistributor,
     PerfectStateMagicDistributor,
@@ -22,10 +25,10 @@ from netsquid_magic.magic_distributor import (
     BitflipMagicDistributor
 )
 
-from squidasm.network.config import NetworkConfig, NoiseType, QuantumHardware
-from squidasm.network.config import Link
+from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
+from netqasm.runtime.interface.config import Link
 
-from netqasm.logging.output import EntanglementStage
+from netqasm.runtime.interface.logging import EntanglementStage
 from squidasm.output import InstrLogger
 
 from netqasm.logging.glob import get_netqasm_logger
@@ -190,7 +193,10 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         self.network.global_log(
             sim_time=ns.sim_time(),
+            ent_type=None,  # unknown at this point
             ent_stage=EntanglementStage.START,
+            meas_bases=None,
+            meas_outcomes=None,
             nodes=nodes,
             path=list(self.path),
             qubit_ids=qubit_ids,
@@ -200,32 +206,6 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         )
 
         return memory_positions
-
-    def _handle_delivery(self, event):
-        delivery = self._magic_distributor.peek_delivery(event)
-        queue_item = self._requests_in_process[event]
-        request = queue_item.request
-        memory_positions = {node_id: mem_pos[0] for node_id, mem_pos in delivery.memory_positions.items()}
-
-        super()._handle_delivery(event)
-
-        nodes, qubit_ids, qubit_states = self._get_log_data(
-            memory_positions=memory_positions,
-            get_qubit_states=True,
-        )
-
-        qubit_groups = InstrLogger._get_qubit_groups()
-
-        self.network.global_log(
-            sim_time=ns.sim_time(),
-            ent_stage=EntanglementStage.FINISH,
-            nodes=nodes,
-            path=list(self.path),
-            qubit_ids=qubit_ids,
-            qubit_states=qubit_states,
-            qubit_groups=qubit_groups,
-            msg=f"entanglement of type {request.type.value} created between {nodes[0]} and {nodes[1]}",
-        )
 
     def _get_log_data(self, memory_positions, get_qubit_states=False):
         nodes = []
@@ -254,6 +234,114 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         else:
             qubit_state = qapi.reduced_dm(qubit).tolist()
         return qubit_state
+
+    def _handle_delivery(self, event):
+        """
+        NOTE: This is a literal copy of the _handle_delivery method in the netsquid_magic package,
+        with one change: the `messages` dict is returned at the end, so that their contents can be logged.
+        """
+
+        logger.info("Handling delivery of entanglement")
+        queue_item = self._pop_from_requests_in_process(event)
+        request = queue_item.request
+        node_id = queue_item.node_id
+        create_id = queue_item.create_id
+        memory_positions = self._magic_distributor.peek_delivery(event).memory_positions
+
+        # Decrement remaining pairs
+        self._decrement_pairs_left(node_id=node_id, create_id=create_id)
+
+        # Get Bell state from outcome
+        midpoint_outcome = self._magic_distributor.get_label(event)
+        bell_state = self._get_bell_state(midpoint_outcome=midpoint_outcome)
+
+        # Create response messages and measure qubits if type M or R
+        sequence_number = self._get_next_sequence_number()
+        messages = {}
+        for node in self.nodes:
+            if node.ID != request.remote_node_id:
+                directionality_flag = 0
+            else:
+                directionality_flag = 1
+
+            # Get the ID of the other node
+            for remote_node in self.nodes:
+                if remote_node.ID != node.ID:
+                    remote_node_id = remote_node.ID
+                    break
+            else:
+                raise RuntimeError("Could not get the remote node ID")
+
+            memory_position = memory_positions[node.ID][0]
+            if request.type == RequestType.K:
+
+                msg = LinkLayerOKTypeK(
+                    create_id=create_id,
+                    logical_qubit_id=memory_position,
+                    directionality_flag=directionality_flag,
+                    sequence_number=sequence_number,
+                    purpose_id=request.purpose_id,
+                    remote_node_id=remote_node_id,
+                    goodness=request.minimum_fidelity,
+                    goodness_time=sim_time(),
+                    bell_state=bell_state,
+                )
+            elif request.type == RequestType.M:
+                measurement_outcome, measurement_basis = self._measure_qubit(node, request, memory_position)
+                msg = LinkLayerOKTypeM(
+                    create_id=create_id,
+                    measurement_outcome=measurement_outcome,
+                    measurement_basis=measurement_basis,
+                    directionality_flag=directionality_flag,
+                    sequence_number=sequence_number,
+                    purpose_id=request.purpose_id,
+                    remote_node_id=remote_node_id,
+                    goodness=request.minimum_fidelity,
+                    bell_state=bell_state,
+                )
+            else:
+                raise NotADirectoryError("Requests of type other than K or M is not yet supported")
+            messages[node.ID] = msg
+
+        # For Measure Directly requests, check the response messages
+        # to be able to log the bases and outcomes.
+        if request.type == RequestType.M:
+            meas_bases = [resp.measurement_basis.value for resp in messages.values()]
+            meas_outcomes = [resp.measurement_outcome for resp in messages.values()]
+        else:
+            meas_bases = None
+            meas_outcomes = None
+
+        memory_positions = {node_id: mem_pos[0] for node_id, mem_pos in memory_positions.items()}
+
+        nodes, qubit_ids, qubit_states = self._get_log_data(
+            memory_positions=memory_positions,
+            get_qubit_states=True,
+        )
+
+        qubit_groups = InstrLogger._get_qubit_groups()
+
+        self.network.global_log(
+            sim_time=ns.sim_time(),
+            ent_type=request.type,
+            ent_stage=EntanglementStage.FINISH,
+            meas_bases=meas_bases,
+            meas_outcomes=meas_outcomes,
+            nodes=nodes,
+            path=list(self.path),
+            qubit_ids=qubit_ids,
+            qubit_states=qubit_states,
+            qubit_groups=qubit_groups,
+            msg=f"entanglement of type {request.type.value} created between {nodes[0]} and {nodes[1]}",
+        )
+
+        # Handle next before replying to users
+        # This is to avoid the user effectively calling _handle_next before us
+        self._handle_next()
+
+        # Respond to the user
+        for node in self.nodes:
+            self.react_to(node.ID, messages[node.ID])
 
 
 class QDevice(QuantumProcessor):
