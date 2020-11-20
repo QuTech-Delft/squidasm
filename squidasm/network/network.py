@@ -213,36 +213,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         request = queue_item.request
         memory_positions = {node_id: mem_pos[0] for node_id, mem_pos in delivery.memory_positions.items()}
 
-        # For Measure Directly requests, check the response messages
-        # to be able to log the bases and outcomes.
-        responses = self._handle_delivery_custom(event)
-        if request.type == RequestType.M:
-            meas_bases = [resp.measurement_basis.value for resp in responses.values()]
-            meas_outcomes = [resp.measurement_outcome for resp in responses.values()]
-        else:
-            meas_bases = None
-            meas_outcomes = None
-
-        nodes, qubit_ids, qubit_states = self._get_log_data(
-            memory_positions=memory_positions,
-            get_qubit_states=True,
-        )
-
-        qubit_groups = InstrLogger._get_qubit_groups()
-
-        self.network.global_log(
-            sim_time=ns.sim_time(),
-            ent_type=request.type,
-            ent_stage=EntanglementStage.FINISH,
-            meas_bases=meas_bases,
-            meas_outcomes=meas_outcomes,
-            nodes=nodes,
-            path=list(self.path),
-            qubit_ids=qubit_ids,
-            qubit_states=qubit_states,
-            qubit_groups=qubit_groups,
-            msg=f"entanglement of type {request.type.value} created between {nodes[0]} and {nodes[1]}",
-        )
+        self._handle_delivery_custom(event)
 
     def _get_log_data(self, memory_positions, get_qubit_states=False):
         nodes = []
@@ -340,6 +311,36 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
                 raise NotADirectoryError("Requests of type other than K or M is not yet supported")
             messages[node.ID] = msg
 
+        # For Measure Directly requests, check the response messages
+        # to be able to log the bases and outcomes.
+        if request.type == RequestType.M:
+            meas_bases = [resp.measurement_basis.value for resp in messages.values()]
+            meas_outcomes = [resp.measurement_outcome for resp in messages.values()]
+        else:
+            meas_bases = None
+            meas_outcomes = None
+
+        nodes, qubit_ids, qubit_states = self._get_log_data(
+            memory_positions=memory_positions,
+            get_qubit_states=True,
+        )
+
+        qubit_groups = InstrLogger._get_qubit_groups()
+
+        self.network.global_log(
+            sim_time=ns.sim_time(),
+            ent_type=request.type,
+            ent_stage=EntanglementStage.FINISH,
+            meas_bases=meas_bases,
+            meas_outcomes=meas_outcomes,
+            nodes=nodes,
+            path=list(self.path),
+            qubit_ids=qubit_ids,
+            qubit_states=qubit_states,
+            qubit_groups=qubit_groups,
+            msg=f"entanglement of type {request.type.value} created between {nodes[0]} and {nodes[1]}",
+        )
+
         # Handle next before replying to users
         # This is to avoid the user effectively calling _handle_next before us
         self._handle_next()
@@ -347,9 +348,6 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         # Respond to the user
         for node in self.nodes:
             self.react_to(node.ID, messages[node.ID])
-
-        # Return messages so we can log
-        return messages
 
 
 class QDevice(QuantumProcessor):
