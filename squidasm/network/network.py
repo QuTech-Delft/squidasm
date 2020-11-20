@@ -207,14 +207,6 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         return memory_positions
 
-    def _handle_delivery(self, event):
-        delivery = self._magic_distributor.peek_delivery(event)
-        queue_item = self._requests_in_process[event]
-        request = queue_item.request
-        memory_positions = {node_id: mem_pos[0] for node_id, mem_pos in delivery.memory_positions.items()}
-
-        self._handle_delivery_custom(event)
-
     def _get_log_data(self, memory_positions, get_qubit_states=False):
         nodes = []
         qubit_ids = []
@@ -243,7 +235,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             qubit_state = qapi.reduced_dm(qubit).tolist()
         return qubit_state
 
-    def _handle_delivery_custom(self, event):
+    def _handle_delivery(self, event):
         """
         NOTE: This is a literal copy of the _handle_delivery method in the netsquid_magic package,
         with one change: the `messages` dict is returned at the end, so that their contents can be logged.
