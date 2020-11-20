@@ -303,6 +303,11 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
                 raise NotADirectoryError("Requests of type other than K or M is not yet supported")
             messages[node.ID] = msg
 
+        # Respond to the user
+        # NOTE: we do this *before* calling self._handle_next() which might be problematic (?).
+        for node in self.nodes:
+            self.react_to(node.ID, messages[node.ID])
+
         # For Measure Directly requests, check the response messages
         # to be able to log the bases and outcomes.
         if request.type == RequestType.M:
@@ -335,13 +340,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             msg=f"entanglement of type {request.type.value} created between {nodes[0]} and {nodes[1]}",
         )
 
-        # Handle next before replying to users
-        # This is to avoid the user effectively calling _handle_next before us
         self._handle_next()
-
-        # Respond to the user
-        for node in self.nodes:
-            self.react_to(node.ID, messages[node.ID])
 
 
 class QDevice(QuantumProcessor):
