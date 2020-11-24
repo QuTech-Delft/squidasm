@@ -28,6 +28,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         log_config=None,
         epr_sockets=None,
         compiler=None,
+        return_arrays=True,
         **kwargs,
     ):
         node_name = get_node_name_for_app(app_name)
@@ -40,6 +41,7 @@ class NetSquidConnection(BaseNetQASMConnection):
             log_config=log_config,
             epr_sockets=epr_sockets,
             compiler=compiler,
+            return_arrays=return_arrays,
         )
 
     def _get_network_info(self) -> Type[NetworkInfo]:
