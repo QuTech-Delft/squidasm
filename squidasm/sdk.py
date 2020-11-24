@@ -28,6 +28,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         log_config=None,
         epr_sockets=None,
         compiler=None,
+        **kwargs,
     ):
         node_name = get_node_name_for_app(app_name)
         self._message_queue = get_queue(node_name)
