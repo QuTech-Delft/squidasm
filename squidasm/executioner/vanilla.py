@@ -12,6 +12,7 @@ from netsquid.components.instructions import (
     INSTR_ROT_Z,
     INSTR_CNOT,
     INSTR_CZ,
+    INSTR_SWAP,
 )
 
 from squidasm.executioner.base import NetSquidExecutioner
@@ -32,6 +33,7 @@ VANILLA_NS_INSTR_MAPPING = {
     vanilla.RotZInstruction: INSTR_ROT_Z,
     vanilla.CnotInstruction: INSTR_CNOT,
     vanilla.CphaseInstruction: INSTR_CZ,
+    vanilla.MovInstruction: INSTR_SWAP,
 }
 
 
