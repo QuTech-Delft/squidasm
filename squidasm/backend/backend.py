@@ -13,6 +13,9 @@ from squidasm.network.stack import NetworkStack
 
 
 class Backend:
+
+    _SUBROUTINE_HANDLER_CLASS = SubroutineHandler
+
     def __init__(
         self,
         app_cfgs: List[AppConfig],
@@ -66,7 +69,7 @@ class Backend:
             else:
                 raise ValueError(f"Quantum hardware {node_hardware} not supported.")
 
-            subroutine_handler = SubroutineHandler(
+            subroutine_handler = self.__class__._SUBROUTINE_HANDLER_CLASS(
                 node=node,
                 instr_log_dir=instr_log_dir,
                 flavour=flavour
@@ -103,14 +106,6 @@ class Backend:
             node_name: subroutine_handler._executioner
             for node_name, subroutine_handler in self.subroutine_handlers.items()
         }
-
-    @staticmethod
-    def _get_subroutine_handlers(nodes, instr_log_dir, flavour):
-        subroutine_handlers = {}
-        for node in nodes.values():
-            subroutine_handler = SubroutineHandler(node, instr_log_dir=instr_log_dir, flavour=flavour)
-            subroutine_handlers[node.name] = subroutine_handler
-        return subroutine_handlers
 
     def start(self):
         """Starts the backend"""
