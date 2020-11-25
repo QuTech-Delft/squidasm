@@ -37,20 +37,12 @@ class NVNetSquidExecutioner(NetSquidExecutioner):
             # See https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm-docs/-/blob/master/nv-gates-docs.md
             # for the circuit.
             self._logger.debug(f"Moving qubit from carbon (position {position}) to electron before measuring")
-            yield from self._execute_qdevice_instruction(ns_instr=INSTR_INIT, qubit_mapping=[0])
-            yield from self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=np.pi/2)
-            yield from self._execute_qdevice_instruction(
-                ns_instr=INSTR_CYDIR, qubit_mapping=[0, position], angle=-np.pi/2)
-            yield from self._execute_qdevice_instruction(ns_instr=INSTR_ROT_X, qubit_mapping=[0], angle=-np.pi/2)
-            yield from self._execute_qdevice_instruction(
-                ns_instr=INSTR_CXDIR, qubit_mapping=[0, position], angle=np.pi/2)
-            yield from self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=-np.pi/2)
+            self._execute_qdevice_instruction(ns_instr=INSTR_INIT, qubit_mapping=[0])
+            self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=np.pi/2)
+            self._execute_qdevice_instruction(ns_instr=INSTR_CYDIR, qubit_mapping=[0, position], angle=-np.pi/2)
+            self._execute_qdevice_instruction(ns_instr=INSTR_ROT_X, qubit_mapping=[0], angle=-np.pi/2)
+            self._execute_qdevice_instruction(ns_instr=INSTR_CXDIR, qubit_mapping=[0, position], angle=np.pi/2)
+            self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=-np.pi/2)
 
         # Measure the electron.
-        # NOTE: we cannot use super()._do_meas() since it will try to find the electron in the unit module,
-        # but it was already freed and hence not in the unit module.
-        self._logger.debug(f"Measuring qubit 0")
-        if self.qdevice.busy:
-            yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
-        outcome = self.qdevice.measure(0)[0][0]
-        return outcome
+        return super()._meas_physical_qubit(0)
