@@ -1,3 +1,5 @@
+import numpy as np
+
 from netsquid.components.instructions import (
     INSTR_INIT,
     INSTR_ROT_X,
@@ -28,8 +30,17 @@ class NVNetSquidExecutioner(NetSquidExecutioner):
 
     def _do_meas(self, subroutine_id, q_address):
         position = self._get_position(subroutine_id=subroutine_id, address=q_address)
-        assert position == 0, "Can only measure the electron directly"
-        super()._do_meas(
+        if position != 0:  # a carbon
+            # Move the state to the electron (position=0) first and then measure the electron.
+            self._logger.debug(f"Moving qubit from carbon (position {position}) to electron before measuring")
+            yield from self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=np.pi/2)
+            yield from self._execute_qdevice_instruction(ns_instr=INSTR_CYDIR, qubit_mapping=[0, position], angle=-np.pi/2)
+            yield from self._execute_qdevice_instruction(ns_instr=INSTR_ROT_X, qubit_mapping=[0], angle=-np.pi/2)
+            yield from self._execute_qdevice_instruction(ns_instr=INSTR_CXDIR, qubit_mapping=[0, position], angle=np.pi/2)
+            yield from self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=-np.pi/2)
+
+        # Measure the electron.
+        yield super()._do_meas(
             subroutine_id=subroutine_id,
-            q_address=q_address,
+            q_address=0,
         )
