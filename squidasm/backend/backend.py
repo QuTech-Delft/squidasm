@@ -3,7 +3,12 @@ from typing import List, Dict
 import netsquid as ns
 from netsquid.nodes import Node
 from netqasm.runtime.app_config import AppConfig
-from netqasm.runtime.interface.config import default_network_config, parse_network_config, QuantumHardware
+from netqasm.runtime.interface.config import (
+    default_network_config,
+    parse_network_config,
+    QuantumHardware,
+    NetworkConfig,
+)
 from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour
 
 from squidasm.qnodeos import SubroutineHandler
@@ -15,6 +20,7 @@ from squidasm.network.stack import NetworkStack
 class Backend:
 
     _SUBROUTINE_HANDLER_CLASS = SubroutineHandler
+    _NETWORK_STACK_CLASS = NetworkStack
 
     def __init__(
         self,
@@ -34,6 +40,8 @@ class Backend:
         if network_config is None:
             app_names = [cfg.app_name for cfg in app_cfgs]
             network_cfg_obj = default_network_config(app_names=app_names)
+        elif isinstance(network_config, NetworkConfig):
+            network_cfg_obj = network_config
         else:
             network_cfg_obj = parse_network_config(cfg=network_config)
 
@@ -74,7 +82,7 @@ class Backend:
                 instr_log_dir=instr_log_dir,
                 flavour=flavour
             )
-            subroutine_handler.network_stack = NetworkStack(
+            subroutine_handler.network_stack = self.__class__._NETWORK_STACK_CLASS(
                 node=node,
                 link_layer_services=ll_services[node.name]
             )
