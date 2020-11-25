@@ -1,7 +1,5 @@
 import numpy as np
 
-from pydynaa import EventExpression
-
 from netsquid.components.instructions import (
     INSTR_INIT,
     INSTR_ROT_X,
