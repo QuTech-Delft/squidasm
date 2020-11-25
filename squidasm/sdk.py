@@ -33,7 +33,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         self._message_queue = get_queue(node_name)
         if compiler is None:
             backend = get_running_backend()
-            subroutine_handler = backend.subroutine_handlers[self.node_name]
+            subroutine_handler = backend.subroutine_handlers[node_name]
             flavour = subroutine_handler.flavour
             if isinstance(flavour, NVFlavour):
                 compiler = NVSubroutineCompiler
