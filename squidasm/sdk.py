@@ -1,8 +1,6 @@
 from threading import Thread
 from typing import Type
 
-from netqasm.lang.subroutine import PreSubroutine, Subroutine
-from netqasm.lang.parsing.text import assemble_subroutine
 from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
@@ -33,6 +31,12 @@ class NetSquidConnection(BaseNetQASMConnection):
     ):
         node_name = get_node_name_for_app(app_name)
         self._message_queue = get_queue(node_name)
+        if compiler is None:
+            backend = get_running_backend()
+            subroutine_handler = backend.subroutine_handlers[node_name]
+            flavour = subroutine_handler.flavour
+            if isinstance(flavour, NVFlavour):
+                compiler = NVSubroutineCompiler
         super().__init__(
             app_name=app_name,
             node_name=node_name,
@@ -69,24 +73,6 @@ class NetSquidConnection(BaseNetQASMConnection):
             self._message_queue.join()
         else:
             self._message_queue.join_task(item=item)
-
-    def _pre_process_subroutine(self, pre_subroutine: PreSubroutine) -> Subroutine:
-        """Parses and assembles the subroutine.
-        """
-        subroutine: Subroutine = assemble_subroutine(pre_subroutine)
-        if self._compiler is not None:
-            subroutine = self._compiler(subroutine=subroutine).compile()
-        else:
-            backend = get_running_backend()
-            subroutine_handler = backend.subroutine_handlers[self.node_name]
-            flavour = subroutine_handler.flavour
-            if isinstance(flavour, NVFlavour):
-                self._logger.info("Compiling subroutine to NV flavour")
-                subroutine = NVSubroutineCompiler(subroutine=subroutine).compile()
-
-        if self._track_lines:
-            self._log_subroutine(subroutine=subroutine)
-        return subroutine
 
 
 class NetSquidNetworkInfo(NetworkInfo):
