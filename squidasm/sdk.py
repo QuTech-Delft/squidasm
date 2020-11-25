@@ -1,8 +1,6 @@
 from threading import Thread
 from typing import Type
 
-from netqasm.lang.subroutine import PreSubroutine, Subroutine
-from netqasm.lang.parsing.text import assemble_subroutine
 from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
