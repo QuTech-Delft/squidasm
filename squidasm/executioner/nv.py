@@ -49,8 +49,8 @@ class NVNetSquidExecutioner(NetSquidExecutioner):
         # Measure the electron.
         # NOTE: we cannot use super()._do_meas() since it will try to find the electron in the unit module,
         # but it was already freed and hence not in the unit module.
-        self._logger.debug(f"Measuring qubit {position}")
+        self._logger.debug(f"Measuring qubit 0")
         if self.qdevice.busy:
             yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
-        outcome = self.qdevice.measure(position)[0][0]
+        outcome = self.qdevice.measure(0)[0][0]
         return outcome
