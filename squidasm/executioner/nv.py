@@ -35,12 +35,15 @@ class NVNetSquidExecutioner(NetSquidExecutioner):
             # See https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm-docs/-/blob/master/nv-gates-docs.md
             # for the circuit.
             self._logger.debug(f"Moving qubit from carbon (position {position}) to electron before measuring")
-            self._execute_qdevice_instruction(ns_instr=INSTR_INIT, qubit_mapping=[0])
-            self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=np.pi/2)
-            self._execute_qdevice_instruction(ns_instr=INSTR_CYDIR, qubit_mapping=[0, position], angle=-np.pi/2)
-            self._execute_qdevice_instruction(ns_instr=INSTR_ROT_X, qubit_mapping=[0], angle=-np.pi/2)
-            self._execute_qdevice_instruction(ns_instr=INSTR_CXDIR, qubit_mapping=[0, position], angle=np.pi/2)
-            self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=-np.pi/2)
+            yield from self._execute_qdevice_instruction(ns_instr=INSTR_INIT, qubit_mapping=[0])
+            yield from self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=np.pi/2)
+            yield from self._execute_qdevice_instruction(
+                ns_instr=INSTR_CYDIR, qubit_mapping=[0, position], angle=-np.pi/2)
+            yield from self._execute_qdevice_instruction(ns_instr=INSTR_ROT_X, qubit_mapping=[0], angle=-np.pi/2)
+            yield from self._execute_qdevice_instruction(
+                ns_instr=INSTR_CXDIR, qubit_mapping=[0, position], angle=np.pi/2)
+            yield from self._execute_qdevice_instruction(ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=-np.pi/2)
 
         # Measure the electron.
-        return super()._meas_physical_qubit(0)
+        outcome = yield from super()._meas_physical_qubit(0)
+        return outcome
