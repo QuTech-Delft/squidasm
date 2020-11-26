@@ -112,6 +112,9 @@ class NetSquidExecutioner(Executioner, Entity):
 
     def _do_meas(self, subroutine_id, q_address):
         position = self._get_position(subroutine_id=subroutine_id, address=q_address)
+        return self._meas_physical_qubit(position)
+
+    def _meas_physical_qubit(self, position):
         self._logger.debug(f"Measuring qubit {position}")
         if self.qdevice.busy:
             yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
