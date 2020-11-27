@@ -168,9 +168,11 @@ class NetSquidExecutioner(Executioner, Entity):
         return qubit
 
     def execute_subroutine(self, subroutine):
-        yield self._schedule_after(self._host_latency, self._wait_event)
+        self._schedule_after(self._host_latency, self._wait_event)
+        yield EventExpression(source=self, event_type=self._wait_event)
         yield from super().execute_subroutine(subroutine)
 
     def _execute_command(self, subroutine_id, command):
-        yield self._schedule_after(self._instr_proc_time, self._wait_event)
+        self._schedule_after(self._instr_proc_time, self._wait_event)
+        yield EventExpression(source=self, event_type=self._wait_event)
         yield from super()._execute_command(subroutine_id, command)
