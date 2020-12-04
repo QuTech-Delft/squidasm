@@ -1,13 +1,14 @@
-from typing import List
+from typing import List, Dict, Tuple
 
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits.qubit import Qubit
 
 from netqasm.logging.output import InstrLogger as NQInstrLogger
-from netqasm.logging.output import QubitGroups, QubitState
+from netqasm.logging.output import QubitGroup, QubitGroups, QubitState
+from netqasm.lang import instr as instructions
 
 from squidasm.ns_util import is_state_entangled
-from squidasm.backend.glob import get_running_backend
+from squidasm.backend.glob import get_running_backend, QubitInfo
 
 
 class InstrLogger(NQInstrLogger):
@@ -69,3 +70,30 @@ class InstrLogger(NQInstrLogger):
     def _get_node_name(self) -> str:
         """Returns the name of this node"""
         return self._executioner._node.name
+
+    def _update_qubits(
+        self,
+        subroutine_id: int,
+        instr: instructions.base.NetQASMInstruction,
+        qubit_ids: List[int],
+    ) -> None:
+        add_qubit_instrs = [
+            instructions.core.InitInstruction,
+            instructions.core.CreateEPRInstruction,
+            instructions.core.RecvEPRInstruction,
+        ]
+        remove_qubit_instrs = [
+            instructions.core.QFreeInstruction,
+            instructions.core.MeasInstruction,
+        ]
+        node_name = self._get_node_name()
+        if any(isinstance(instr, cmd_cls) for cmd_cls in add_qubit_instrs):
+            for qubit_id in qubit_ids:
+                QubitInfo.update_qubits_used(node_name, qubit_id, True)
+        elif any(isinstance(instr, cmd_cls) for cmd_cls in remove_qubit_instrs):
+            for qubit_id in qubit_ids:
+                QubitInfo.update_qubits_used(node_name, qubit_id, False)
+
+    @classmethod
+    def _get_qubit_groups_and_states(cls) -> Tuple[Dict[int, QubitGroup], Dict[int, QubitState]]:
+        return QubitInfo.get_qubit_groups_and_states()

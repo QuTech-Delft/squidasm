@@ -1,3 +1,11 @@
+from typing import Tuple, Dict
+
+from netsquid.qubits import qubitapi as qapi
+from netsquid.components.qmemory import MemPositionBusyError
+
+from netqasm.runtime.interface.logging import QubitState, QubitGroup
+from squidasm.ns_util import is_state_entangled
+
 _CURRENT_BACKEND = [None]
 
 
@@ -71,3 +79,45 @@ def put_current_backend(backend):
 
 def pop_current_backend():
     _CURRENT_BACKEND[0] = None
+
+
+class QubitInfo:
+    _qubits_in_use: Dict[Tuple[str, int], bool] = {}  # (node_name, phys_pos), is_used
+
+    @classmethod
+    def update_qubits_used(cls, node_name: str, pos: int, used: bool):
+        cls._qubits_in_use[(node_name, pos)] = used
+
+    @classmethod
+    def get_qubit_groups_and_states(cls) -> Tuple[Dict[int, QubitGroup], Dict[int, QubitState]]:
+        backend = get_running_backend()
+
+        groups: Dict[int, QubitGroup] = {}
+        states: Dict[int, QubitState] = {}
+
+        for app_name, node in backend.app_node_map.items():
+            num_pos = node.qmem.num_positions
+            for pos in range(num_pos):
+                try:
+                    qubit = node.qmem.peek(pos, skip_noise=True)[0]
+                except MemPositionBusyError:
+                    with node.qmem._access_busy_memory([pos]):
+                        qubit = node.qmem.peek(pos, skip_noise=True)[0]
+
+                if qubit is None:
+                    continue
+
+                if (node.name, pos) in cls._qubits_in_use:
+                    if not cls._qubits_in_use[(node.name, pos)]:
+                        continue
+
+                group_id = hash(qubit.qstate)
+                if group_id not in groups:
+                    groups[group_id] = QubitGroup(is_entangled=None, qubit_ids=[])
+                groups[group_id].qubit_ids.append([app_name, pos])
+                groups[group_id].is_entangled = is_state_entangled(qubit.qstate)
+
+                if qubit.qstate.num_qubits == 1:
+                    states[group_id] = qapi.reduced_dm(qubit).tolist()
+
+        return groups, states
