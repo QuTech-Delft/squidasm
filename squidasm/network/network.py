@@ -193,7 +193,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         nodes = [node.name for node in self.nodes]
         qubit_ids = [memory_positions[node.ID] for node in self.nodes]
 
-        qubit_groups, qubit_states = QubitInfo.get_qubit_groups_and_states()
+        qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -204,7 +204,6 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             nodes=nodes,
             path=list(self.path),
             qubit_ids=qubit_ids,
-            qubit_states=qubit_states,
             qubit_groups=qubit_groups,
             msg=f"start entanglement creation between {nodes[0]} and {nodes[1]}",
         )
@@ -328,7 +327,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         for node in self.nodes:
             QubitInfo.update_qubits_used(node.name, memory_positions[node.ID], True)
-        qubit_groups, qubit_states = QubitInfo.get_qubit_groups_and_states()
+        qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -339,7 +338,6 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             nodes=node_names,
             path=list(self.path),
             qubit_ids=qubit_ids,
-            qubit_states=qubit_states,
             qubit_groups=qubit_groups,
             msg=f"entanglement of type {request.type.value} created between {node_names[0]} and {node_names[1]}",
         )

@@ -3,7 +3,7 @@ from typing import Tuple, Dict
 from netsquid.qubits import qubitapi as qapi
 from netsquid.components.qmemory import MemPositionBusyError
 
-from netqasm.runtime.interface.logging import QubitState, QubitGroup
+from netqasm.runtime.interface.logging import QubitGroup
 from squidasm.ns_util import is_state_entangled
 
 _CURRENT_BACKEND = [None]
@@ -89,11 +89,10 @@ class QubitInfo:
         cls._qubits_in_use[(node_name, pos)] = used
 
     @classmethod
-    def get_qubit_groups_and_states(cls) -> Tuple[Dict[int, QubitGroup], Dict[int, QubitState]]:
+    def get_qubit_groups(cls) -> Dict[int, QubitGroup]:
         backend = get_running_backend()
 
         groups: Dict[int, QubitGroup] = {}
-        states: Dict[int, QubitState] = {}
 
         for app_name, node in backend.app_node_map.items():
             num_pos = node.qmem.num_positions
@@ -113,11 +112,11 @@ class QubitInfo:
 
                 group_id = hash(qubit.qstate)
                 if group_id not in groups:
-                    groups[group_id] = QubitGroup(is_entangled=None, qubit_ids=[])
+                    groups[group_id] = QubitGroup(is_entangled=None, qubit_ids=[], state=None)
                 groups[group_id].qubit_ids.append([app_name, pos])
                 groups[group_id].is_entangled = is_state_entangled(qubit.qstate)
 
                 if qubit.qstate.num_qubits == 1:
-                    states[group_id] = qapi.reduced_dm(qubit).tolist()
+                    groups[group_id].state = qapi.reduced_dm(qubit).tolist()
 
-        return groups, states
+        return groups
