@@ -95,13 +95,13 @@ class QubitInfo:
         groups: Dict[int, QubitGroup] = {}
 
         for app_name, node in backend.app_node_map.items():
-            num_pos = node.qmem.num_positions
+            num_pos = node.qmemory.num_positions
             for pos in range(num_pos):
                 try:
-                    qubit = node.qmem.peek(pos, skip_noise=True)[0]
+                    qubit = node.qmemory.peek(pos, skip_noise=True)[0]
                 except MemPositionBusyError:
-                    with node.qmem._access_busy_memory([pos]):
-                        qubit = node.qmem.peek(pos, skip_noise=True)[0]
+                    with node.qmemory._access_busy_memory([pos]):
+                        qubit = node.qmemory.peek(pos, skip_noise=True)[0]
 
                 if qubit is None:
                     continue
