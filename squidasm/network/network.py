@@ -27,6 +27,7 @@ from netsquid_magic.magic_distributor import (
 
 from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
 from netqasm.runtime.interface.config import Link
+from squidasm.network.nv_config import NVConfig, build_nv_qdevice
 
 from netqasm.runtime.interface.logging import EntanglementStage
 
@@ -46,7 +47,7 @@ class NetSquidNetwork(Network):
     and creates link layer services for each pair of connected nodes.
     """
 
-    def __init__(self, network_config: NetworkConfig, global_log_dir=None):
+    def __init__(self, network_config: NetworkConfig, nv_config: NVConfig, global_log_dir=None):
         if global_log_dir is not None:
             logger_path = os.path.join(global_log_dir, "network_log.yaml")
             self._global_logger = NetworkLogger(logger_path)
@@ -54,6 +55,7 @@ class NetSquidNetwork(Network):
             self._global_logger = None
 
         self._network_config = network_config
+        self._nv_config = nv_config
         self._node_hardware_types: Dict[str, QuantumHardware] = {}
 
         # create NetSquid `Node`s and add them to this `Network`
@@ -86,12 +88,15 @@ class NetSquidNetwork(Network):
             mem_fidelities = [T1T2NoiseModel(q.t1, q.t2) for q in node_cfg.qubits]
 
             if hardware == QuantumHardware.NV:
-                qdevice = NVQDevice(
-                    name=f"{node_cfg.name}_NVQDevice",
-                    num_qubits=len(node_cfg.qubits),
-                    gate_fidelity=node_cfg.gate_fidelity,
-                    mem_fidelities=mem_fidelities,
-                )
+                if self._nv_config is None:
+                    qdevice = NVQDevice(
+                        name=f"{node_cfg.name}_NVQDevice",
+                        num_qubits=len(node_cfg.qubits),
+                        gate_fidelity=node_cfg.gate_fidelity,
+                        mem_fidelities=mem_fidelities,
+                    )
+                else:
+                    qdevice = build_nv_qdevice(name=f"{node_cfg.name}_NVQDevice", cfg=self._nv_config)
             elif hardware == QuantumHardware.TrappedIon:
                 raise ValueError("TrappedIon hardware not supported.")
             else:  # use generic hardware (vanilla flavour)

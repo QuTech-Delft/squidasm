@@ -15,6 +15,7 @@ from squidasm.qnodeos import SubroutineHandler
 from squidasm.backend.glob import put_current_backend, pop_current_backend
 from squidasm.network.network import NetSquidNetwork
 from squidasm.network.stack import NetworkStack
+from squidasm.network.nv_config import parse_nv_config
 
 
 class Backend:
@@ -27,6 +28,7 @@ class Backend:
         app_cfgs: List[AppConfig],
         instr_log_dir=None,
         network_config=None,
+        nv_config=None,
         flavour=None,
     ):
         """
@@ -45,9 +47,15 @@ class Backend:
         else:
             network_cfg_obj = parse_network_config(cfg=network_config)
 
+        if nv_config is None:
+            nv_config_obj = None
+        else:
+            nv_config_obj = parse_nv_config(nv_config)
+
         # Create the network.
         network = NetSquidNetwork(
             network_config=network_cfg_obj,
+            nv_config=nv_config_obj,
             global_log_dir=instr_log_dir
         )
         self._network = network
@@ -77,10 +85,19 @@ class Backend:
             else:
                 raise ValueError(f"Quantum hardware {node_hardware} not supported.")
 
+            if nv_config_obj is not None:
+                instr_proc_time = nv_config_obj.instr_proc_time
+                host_latency = nv_config_obj.host_latency
+            else:
+                instr_proc_time = 0
+                host_latency = 0
+
             subroutine_handler = self.__class__._SUBROUTINE_HANDLER_CLASS(
                 node=node,
                 instr_log_dir=instr_log_dir,
-                flavour=flavour
+                flavour=flavour,
+                instr_proc_time=instr_proc_time,
+                host_latency=host_latency
             )
             subroutine_handler.network_stack = self.__class__._NETWORK_STACK_CLASS(
                 node=node,

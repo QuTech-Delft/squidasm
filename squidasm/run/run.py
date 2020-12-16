@@ -46,6 +46,7 @@ def run_applications(
     post_function=None,
     instr_log_dir=None,
     network_config=None,
+    nv_config=None,
     results_file=None,
     formalism=Formalism.KET,
     flavour=None,
@@ -69,6 +70,7 @@ def run_applications(
             app_cfgs=app_cfgs,
             instr_log_dir=instr_log_dir,
             network_config=network_config,
+            nv_config=nv_config,
             flavour=flavour
         )
         backend.start()

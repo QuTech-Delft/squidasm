@@ -25,7 +25,8 @@ class NetSquidExecutioner(Executioner, Entity):
 
     instr_logger_class = InstrLogger
 
-    def __init__(self, node, name=None, network_stack=None, instr_log_dir=None, instr_mapping=None):
+    def __init__(self, node, name=None, network_stack=None, instr_log_dir=None,
+                 instr_mapping=None, instr_proc_time=0, host_latency=0):
         """Executes a NetQASM using a NetSquid quantum processor to execute quantum instructions"""
         if not isinstance(node, Node):
             raise TypeError(f"node should be a Node, not {type(node)}")
@@ -51,6 +52,13 @@ class NetSquidExecutioner(Executioner, Entity):
         # Handler for calling epr data
         self._handle_pending_epr_responses_handler = EventHandler(lambda Event: self._handle_pending_epr_responses())
         self._handle_epr_data_handler = EventHandler(lambda Event: self._handle_epr_data())
+
+        # Simulated processing time of each NetQASM instruction in ns
+        self._instr_proc_time = instr_proc_time
+
+        # latency that mocks the time QNodeOS needs to wait for the host
+        # before the Host sends the next subroutine (e.g. because it does communication)
+        self._host_latency = host_latency
 
     def _get_simulated_time(self):
         return ns.sim_time()
@@ -122,7 +130,7 @@ class NetSquidExecutioner(Executioner, Entity):
         return outcome
 
     def _do_wait(self):
-        self._schedule_after(1, self._wait_event)
+        self._schedule_after(1e3, self._wait_event)
         yield EventExpression(source=self, event_type=self._wait_event)
 
     def _get_unused_physical_qubit(self):
@@ -158,3 +166,15 @@ class NetSquidExecutioner(Executioner, Entity):
                 self._logger.info("NOTE Accessing qubit from busy memory")
                 qubit = self.qdevice._get_qubits(phys_pos, skip_noise=True)[0]
         return qubit
+
+    def execute_subroutine(self, subroutine):
+        if self._host_latency > 0:
+            self._schedule_after(self._host_latency, self._wait_event)
+            yield EventExpression(source=self, event_type=self._wait_event)
+        yield from super().execute_subroutine(subroutine)
+
+    def _execute_command(self, subroutine_id, command):
+        if self._instr_proc_time > 0:
+            self._schedule_after(self._instr_proc_time, self._wait_event)
+            yield EventExpression(source=self, event_type=self._wait_event)
+        yield from super()._execute_command(subroutine_id, command)
