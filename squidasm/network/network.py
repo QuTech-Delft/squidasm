@@ -29,10 +29,11 @@ from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHa
 from netqasm.runtime.interface.config import Link
 
 from netqasm.runtime.interface.logging import EntanglementStage
-from squidasm.output import InstrLogger
 
 from netqasm.logging.glob import get_netqasm_logger
 from netqasm.logging.output import NetworkLogger
+
+from squidasm.backend.glob import QubitInfo
 
 logger = get_netqasm_logger()
 
@@ -189,7 +190,10 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             get_qubit_states=False,
         )
 
-        qubit_groups = InstrLogger._get_qubit_groups()
+        nodes = [node.name for node in self.nodes]
+        qubit_ids = [memory_positions[node.ID] for node in self.nodes]
+
+        qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -200,7 +204,6 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             nodes=nodes,
             path=list(self.path),
             qubit_ids=qubit_ids,
-            qubit_states=qubit_states,
             qubit_groups=qubit_groups,
             msg=f"start entanglement creation between {nodes[0]} and {nodes[1]}",
         )
@@ -319,12 +322,12 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         memory_positions = {node_id: mem_pos[0] for node_id, mem_pos in memory_positions.items()}
 
-        nodes, qubit_ids, qubit_states = self._get_log_data(
-            memory_positions=memory_positions,
-            get_qubit_states=True,
-        )
+        node_names = [node.name for node in self.nodes]
+        qubit_ids = [memory_positions[node.ID] for node in self.nodes]
 
-        qubit_groups = InstrLogger._get_qubit_groups()
+        for node in self.nodes:
+            QubitInfo.update_qubits_used(node.name, memory_positions[node.ID], True)
+        qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -332,12 +335,11 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             ent_stage=EntanglementStage.FINISH,
             meas_bases=meas_bases,
             meas_outcomes=meas_outcomes,
-            nodes=nodes,
+            nodes=node_names,
             path=list(self.path),
             qubit_ids=qubit_ids,
-            qubit_states=qubit_states,
             qubit_groups=qubit_groups,
-            msg=f"entanglement of type {request.type.value} created between {nodes[0]} and {nodes[1]}",
+            msg=f"entanglement of type {request.type.value} created between {node_names[0]} and {node_names[1]}",
         )
 
         self._handle_next()
@@ -346,19 +348,19 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 class QDevice(QuantumProcessor):
     # Default instructions. Durations are arbitrary
     _default_phys_instructions = [
-        PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),
-        PhysicalInstruction(ns_instructions.INSTR_X, duration=2),
-        PhysicalInstruction(ns_instructions.INSTR_Y, duration=2),
-        PhysicalInstruction(ns_instructions.INSTR_Z, duration=2),
-        PhysicalInstruction(ns_instructions.INSTR_H, duration=3),
-        PhysicalInstruction(ns_instructions.INSTR_K, duration=3),
-        PhysicalInstruction(ns_instructions.INSTR_S, duration=3),
-        PhysicalInstruction(ns_instructions.INSTR_T, duration=4),
-        PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=4),
-        PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=4),
-        PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=4),
-        PhysicalInstruction(ns_instructions.INSTR_CNOT, duration=5),
-        PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5),
+        PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1e5),
+        PhysicalInstruction(ns_instructions.INSTR_X, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_Y, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_Z, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_H, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_K, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_S, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_T, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_CNOT, duration=5e5),
+        PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5e5),
     ]
 
     def __init__(

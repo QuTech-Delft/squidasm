@@ -12,7 +12,7 @@ from squidasm.run import reset
 
 
 def test():
-    set_log_level(logging.DEBUG)
+    set_log_level(logging.INFO)
     alice = Node(name="Alice", qmemory=QDevice())
     subroutine_handler = SubroutineHandler(alice)
 
@@ -45,15 +45,20 @@ ret_reg m!
     )
     # Put the subroutine
     subroutine = parse_text_subroutine(subroutine)
+    print(subroutine)
     queue.put(bytes(SubroutineMessage(subroutine=subroutine)))
 
     # Starting subroutine
     subroutine_handler.start()
 
     # Starting netsquid
-    ns.sim_run(1000)
+    ns.sim_run(2e5)
 
     shared_memory = subroutine_handler._executioner._shared_memories[app_id]
     m = shared_memory.get_register(parse_register("M0"))
     assert m in set([0, 1])
     reset()
+
+
+if __name__ == "__main__":
+    test()
