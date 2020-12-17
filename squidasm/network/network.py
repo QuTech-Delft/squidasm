@@ -388,7 +388,7 @@ class QDevice(QuantumProcessor):
         if phys_instrs is None:
             phys_instrs = QDevice._default_phys_instructions
         for instr in phys_instrs:
-            instr.q_noise_model = DepolarNoiseModel(depolar_rate=(1-gate_fidelity))
+            instr.q_noise_model = DepolarNoiseModel(depolar_rate=(1-gate_fidelity), time_independent=True)
 
         super().__init__(
             name=name,
