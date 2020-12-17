@@ -1,5 +1,6 @@
 import os
 from typing import List, Dict, Optional
+import numpy as np
 
 import netsquid as ns
 from netsquid.util import sim_time
@@ -24,6 +25,7 @@ from netsquid_magic.magic_distributor import (
     DepolariseMagicDistributor,
     BitflipMagicDistributor
 )
+from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
 
 from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
 from netqasm.runtime.interface.config import Link
@@ -157,7 +159,11 @@ class NetSquidNetwork(Network):
             noise_type = NoiseType(link.noise_type)
             if noise_type == NoiseType.NoNoise:
                 return PerfectStateMagicDistributor(nodes=[node1, node2], state_delay=state_delay)
-            elif noise_type == NoiseType.Depolarise:
+            elif noise_type == NoiseType.Depolarise:  # use Depolarise distributor defined in this module
+                noise = 1 - link.fidelity
+                return LinearDepolariseMagicDistributor(
+                    nodes=[node1, node2], depolar_noise=noise, state_delay=state_delay)
+            elif noise_type == NoiseType.DiscreteDepolarise:  # use Depolarise distributor defined in netsquid_magic
                 noise = 1 - link.fidelity
                 return DepolariseMagicDistributor(nodes=[node1, node2], prob_max_mixed=noise, state_delay=state_delay)
             elif noise_type == NoiseType.Bitflip:
@@ -414,3 +420,70 @@ class NVQDevice(QDevice):
             gate_fidelity=gate_fidelity,
             mem_fidelities=mem_fidelities,
         )
+
+
+class LinearDepolariseMagicDistributor(MagicDistributor):
+    """
+    Distributes (noisy) EPR pairs to 2 connected nodes, using samplers created
+    by a :class:`LinearDepolariseStateSamplerFactory`.
+    """
+
+    def __init__(self, nodes, depolar_noise, **kwargs):
+        """
+        Parameters
+        ----------
+        nodes : list of :obj:`~netsquid.nodes.node.Node`
+            Pair of nodes to which noisy EPR pairs will be distributed.
+        depolar_noise : float
+            Depolarizing noise.
+        """
+        self.depolar_noise = depolar_noise
+        super().__init__(delivery_sampler_factory=LinearDepolariseStateSamplerFactory(),
+                         nodes=nodes, **kwargs)
+
+    def add_delivery(self, memory_positions, **kwargs):
+        return super().add_delivery(memory_positions=memory_positions, depolar_noise=self.depolar_noise, **kwargs)
+
+
+class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
+    """
+    A factory for samplers that produce a linear combination of a perfect EPR pair and the maximally
+    mixed state over the two 2 nodes (I/4).
+    """
+
+    def __init__(self):
+        super().__init__(func_delivery=self._delivery_func,
+                         func_success_probability=self._get_success_probability)
+
+    @staticmethod
+    def _delivery_func(depolar_noise, **kwargs):
+        """
+        Parameters
+        ----------
+        depolar_noise : float
+            Used to calculate the linear combination of the original state
+            and the maximally mixed state.
+
+        Returns
+        -------
+        tuple `(states, probabilities)`
+            where `states` is a list of :obj:`~netsquid.qubits.qstate.QState`
+            objects and `probabilities` is a list of floats of the same length.
+        """
+        epr_state = np.array(
+            [[0.5, 0, 0, 0.5],
+             [0, 0, 0, 0],
+             [0, 0, 0, 0],
+             [0.5, 0, 0, 0.5]],
+            dtype=np.complex)
+        maximally_mixed = np.array(
+            [[0.25, 0, 0, 0],
+             [0, 0.25, 0, 0],
+             [0, 0, 0.25, 0],
+             [0, 0, 0, 0.25]],
+            dtype=np.complex)
+        return [(1 - depolar_noise) * epr_state + depolar_noise * maximally_mixed], [1]
+
+    @staticmethod
+    def _get_success_probability(**kwargs):
+        return 1
