@@ -5,32 +5,17 @@ from netsquid.qubits.qubit import Qubit
 
 from netqasm.logging.output import InstrLogger as NQInstrLogger
 from netqasm.logging.output import QubitGroups, QubitState
+from netqasm.lang import instr as instructions
 
-from squidasm.ns_util import is_state_entangled
-from squidasm.backend.glob import get_running_backend
+from squidasm.backend.glob import get_running_backend, QubitInfo
 
 
 class InstrLogger(NQInstrLogger):
     @classmethod
     def _get_qubit_groups(cls) -> QubitGroups:
-        """Returns the current qubit groups in the simulation (qubits which have interacted
-        and therefore may or may not be entangled)"""
-        qubit_groups = {}
-        for node_name, app_id, qubit_id in cls._qubits:
-            qubit = cls._get_qubit_in_mem(
-                node_name=node_name,
-                app_id=app_id,
-                qubit_id=qubit_id,
-            )
-            if qubit is None:
-                continue
-            group_id = hash(qubit.qstate)
-            if group_id not in qubit_groups:
-                qubit_groups[group_id] = {"qubits": []}
-            qubit_groups[group_id]["qubits"].append([node_name, qubit_id])
-            if "is_entangled" not in qubit_groups[group_id]:
-                qubit_groups[group_id]["is_entangled"] = is_state_entangled(qubit.qstate)
-        return qubit_groups
+        # """Returns the current qubit groups in the simulation (qubits which have interacted
+        # and therefore may or may not be entangled)"""
+        return QubitInfo.get_qubit_groups()
 
     @classmethod
     def _get_qubit_in_mem(
@@ -69,3 +54,26 @@ class InstrLogger(NQInstrLogger):
     def _get_node_name(self) -> str:
         """Returns the name of this node"""
         return self._executioner._node.name
+
+    def _update_qubits(
+        self,
+        subroutine_id: int,
+        instr: instructions.base.NetQASMInstruction,
+        qubit_ids: List[int],
+    ) -> None:
+        add_qubit_instrs = [
+            instructions.core.InitInstruction,
+            instructions.core.CreateEPRInstruction,
+            instructions.core.RecvEPRInstruction,
+        ]
+        remove_qubit_instrs = [
+            instructions.core.QFreeInstruction,
+            instructions.core.MeasInstruction,
+        ]
+        node_name = self._get_node_name()
+        if any(isinstance(instr, cmd_cls) for cmd_cls in add_qubit_instrs):
+            for qubit_id in qubit_ids:
+                QubitInfo.update_qubits_used(node_name, qubit_id, True)
+        elif any(isinstance(instr, cmd_cls) for cmd_cls in remove_qubit_instrs):
+            for qubit_id in qubit_ids:
+                QubitInfo.update_qubits_used(node_name, qubit_id, False)

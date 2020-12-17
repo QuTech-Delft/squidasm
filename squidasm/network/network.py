@@ -1,5 +1,6 @@
 import os
 from typing import List, Dict, Optional
+import numpy as np
 
 import netsquid as ns
 from netsquid.util import sim_time
@@ -24,15 +25,18 @@ from netsquid_magic.magic_distributor import (
     DepolariseMagicDistributor,
     BitflipMagicDistributor
 )
+from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
 
 from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
 from netqasm.runtime.interface.config import Link
+from squidasm.network.nv_config import NVConfig, build_nv_qdevice
 
 from netqasm.runtime.interface.logging import EntanglementStage
-from squidasm.output import InstrLogger
 
 from netqasm.logging.glob import get_netqasm_logger
 from netqasm.logging.output import NetworkLogger
+
+from squidasm.backend.glob import QubitInfo
 
 logger = get_netqasm_logger()
 
@@ -45,7 +49,7 @@ class NetSquidNetwork(Network):
     and creates link layer services for each pair of connected nodes.
     """
 
-    def __init__(self, network_config: NetworkConfig, global_log_dir=None):
+    def __init__(self, network_config: NetworkConfig, nv_config: NVConfig, global_log_dir=None):
         if global_log_dir is not None:
             logger_path = os.path.join(global_log_dir, "network_log.yaml")
             self._global_logger = NetworkLogger(logger_path)
@@ -53,6 +57,7 @@ class NetSquidNetwork(Network):
             self._global_logger = None
 
         self._network_config = network_config
+        self._nv_config = nv_config
         self._node_hardware_types: Dict[str, QuantumHardware] = {}
 
         # create NetSquid `Node`s and add them to this `Network`
@@ -85,12 +90,15 @@ class NetSquidNetwork(Network):
             mem_fidelities = [T1T2NoiseModel(q.t1, q.t2) for q in node_cfg.qubits]
 
             if hardware == QuantumHardware.NV:
-                qdevice = NVQDevice(
-                    name=f"{node_cfg.name}_NVQDevice",
-                    num_qubits=len(node_cfg.qubits),
-                    gate_fidelity=node_cfg.gate_fidelity,
-                    mem_fidelities=mem_fidelities,
-                )
+                if self._nv_config is None:
+                    qdevice = NVQDevice(
+                        name=f"{node_cfg.name}_NVQDevice",
+                        num_qubits=len(node_cfg.qubits),
+                        gate_fidelity=node_cfg.gate_fidelity,
+                        mem_fidelities=mem_fidelities,
+                    )
+                else:
+                    qdevice = build_nv_qdevice(name=f"{node_cfg.name}_NVQDevice", cfg=self._nv_config)
             elif hardware == QuantumHardware.TrappedIon:
                 raise ValueError("TrappedIon hardware not supported.")
             else:  # use generic hardware (vanilla flavour)
@@ -151,7 +159,11 @@ class NetSquidNetwork(Network):
             noise_type = NoiseType(link.noise_type)
             if noise_type == NoiseType.NoNoise:
                 return PerfectStateMagicDistributor(nodes=[node1, node2], state_delay=state_delay)
-            elif noise_type == NoiseType.Depolarise:
+            elif noise_type == NoiseType.Depolarise:  # use Depolarise distributor defined in this module
+                noise = 1 - link.fidelity
+                return LinearDepolariseMagicDistributor(
+                    nodes=[node1, node2], depolar_noise=noise, state_delay=state_delay)
+            elif noise_type == NoiseType.DiscreteDepolarise:  # use Depolarise distributor defined in netsquid_magic
                 noise = 1 - link.fidelity
                 return DepolariseMagicDistributor(nodes=[node1, node2], prob_max_mixed=noise, state_delay=state_delay)
             elif noise_type == NoiseType.Bitflip:
@@ -189,7 +201,10 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             get_qubit_states=False,
         )
 
-        qubit_groups = InstrLogger._get_qubit_groups()
+        nodes = [node.name for node in self.nodes]
+        qubit_ids = [memory_positions[node.ID] for node in self.nodes]
+
+        qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -200,7 +215,6 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             nodes=nodes,
             path=list(self.path),
             qubit_ids=qubit_ids,
-            qubit_states=qubit_states,
             qubit_groups=qubit_groups,
             msg=f"start entanglement creation between {nodes[0]} and {nodes[1]}",
         )
@@ -319,12 +333,12 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         memory_positions = {node_id: mem_pos[0] for node_id, mem_pos in memory_positions.items()}
 
-        nodes, qubit_ids, qubit_states = self._get_log_data(
-            memory_positions=memory_positions,
-            get_qubit_states=True,
-        )
+        node_names = [node.name for node in self.nodes]
+        qubit_ids = [memory_positions[node.ID] for node in self.nodes]
 
-        qubit_groups = InstrLogger._get_qubit_groups()
+        for node in self.nodes:
+            QubitInfo.update_qubits_used(node.name, memory_positions[node.ID], True)
+        qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -332,12 +346,11 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             ent_stage=EntanglementStage.FINISH,
             meas_bases=meas_bases,
             meas_outcomes=meas_outcomes,
-            nodes=nodes,
+            nodes=node_names,
             path=list(self.path),
             qubit_ids=qubit_ids,
-            qubit_states=qubit_states,
             qubit_groups=qubit_groups,
-            msg=f"entanglement of type {request.type.value} created between {nodes[0]} and {nodes[1]}",
+            msg=f"entanglement of type {request.type.value} created between {node_names[0]} and {node_names[1]}",
         )
 
         self._handle_next()
@@ -346,19 +359,19 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 class QDevice(QuantumProcessor):
     # Default instructions. Durations are arbitrary
     _default_phys_instructions = [
-        PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),
-        PhysicalInstruction(ns_instructions.INSTR_X, duration=2),
-        PhysicalInstruction(ns_instructions.INSTR_Y, duration=2),
-        PhysicalInstruction(ns_instructions.INSTR_Z, duration=2),
-        PhysicalInstruction(ns_instructions.INSTR_H, duration=3),
-        PhysicalInstruction(ns_instructions.INSTR_K, duration=3),
-        PhysicalInstruction(ns_instructions.INSTR_S, duration=3),
-        PhysicalInstruction(ns_instructions.INSTR_T, duration=4),
-        PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=4),
-        PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=4),
-        PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=4),
-        PhysicalInstruction(ns_instructions.INSTR_CNOT, duration=5),
-        PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5),
+        PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1e5),
+        PhysicalInstruction(ns_instructions.INSTR_X, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_Y, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_Z, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_H, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_K, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_S, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_T, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=1e3),
+        PhysicalInstruction(ns_instructions.INSTR_CNOT, duration=5e5),
+        PhysicalInstruction(ns_instructions.INSTR_CZ, duration=5e5),
     ]
 
     def __init__(
@@ -375,7 +388,7 @@ class QDevice(QuantumProcessor):
         if phys_instrs is None:
             phys_instrs = QDevice._default_phys_instructions
         for instr in phys_instrs:
-            instr.q_noise_model = DepolarNoiseModel(depolar_rate=(1-gate_fidelity))
+            instr.q_noise_model = DepolarNoiseModel(depolar_rate=(1-gate_fidelity), time_independent=True)
 
         super().__init__(
             name=name,
@@ -407,3 +420,70 @@ class NVQDevice(QDevice):
             gate_fidelity=gate_fidelity,
             mem_fidelities=mem_fidelities,
         )
+
+
+class LinearDepolariseMagicDistributor(MagicDistributor):
+    """
+    Distributes (noisy) EPR pairs to 2 connected nodes, using samplers created
+    by a :class:`LinearDepolariseStateSamplerFactory`.
+    """
+
+    def __init__(self, nodes, depolar_noise, **kwargs):
+        """
+        Parameters
+        ----------
+        nodes : list of :obj:`~netsquid.nodes.node.Node`
+            Pair of nodes to which noisy EPR pairs will be distributed.
+        depolar_noise : float
+            Depolarizing noise.
+        """
+        self.depolar_noise = depolar_noise
+        super().__init__(delivery_sampler_factory=LinearDepolariseStateSamplerFactory(),
+                         nodes=nodes, **kwargs)
+
+    def add_delivery(self, memory_positions, **kwargs):
+        return super().add_delivery(memory_positions=memory_positions, depolar_noise=self.depolar_noise, **kwargs)
+
+
+class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
+    """
+    A factory for samplers that produce a linear combination of a perfect EPR pair and the maximally
+    mixed state over the two 2 nodes (I/4).
+    """
+
+    def __init__(self):
+        super().__init__(func_delivery=self._delivery_func,
+                         func_success_probability=self._get_success_probability)
+
+    @staticmethod
+    def _delivery_func(depolar_noise, **kwargs):
+        """
+        Parameters
+        ----------
+        depolar_noise : float
+            Used to calculate the linear combination of the original state
+            and the maximally mixed state.
+
+        Returns
+        -------
+        tuple `(states, probabilities)`
+            where `states` is a list of :obj:`~netsquid.qubits.qstate.QState`
+            objects and `probabilities` is a list of floats of the same length.
+        """
+        epr_state = np.array(
+            [[0.5, 0, 0, 0.5],
+             [0, 0, 0, 0],
+             [0, 0, 0, 0],
+             [0.5, 0, 0, 0.5]],
+            dtype=np.complex)
+        maximally_mixed = np.array(
+            [[0.25, 0, 0, 0],
+             [0, 0.25, 0, 0],
+             [0, 0, 0.25, 0],
+             [0, 0, 0, 0.25]],
+            dtype=np.complex)
+        return [(1 - depolar_noise) * epr_state + depolar_noise * maximally_mixed], [1]
+
+    @staticmethod
+    def _get_success_probability(**kwargs):
+        return 1

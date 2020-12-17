@@ -4,6 +4,10 @@ CHANGELOG
 Upcoming
 --------
 
+2020-12-17 (0.5.0)
+------------------
+- Using `netqasm` 0.5.0, see [`netqasm` CHANGELOG](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md).
+
 2020-11-20 (0.4.0)
 ------------------
 - Using `netqasm` 0.4.0, see [`netqasm` CHANGELOG](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md).
