@@ -7,7 +7,7 @@ from netqasm.logging.output import InstrLogger as NQInstrLogger
 from netqasm.logging.output import QubitGroups, QubitState
 from netqasm.lang import instr as instructions
 
-from squidasm.backend.glob import get_running_backend, QubitInfo
+from squidasm.glob import get_running_backend, QubitInfo
 
 
 class InstrLogger(NQInstrLogger):

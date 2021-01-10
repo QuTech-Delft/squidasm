@@ -6,8 +6,8 @@ from netqasm.backend.messages import (
     SubroutineMessage,
     SignalMessage
 )
-from squidasm.queues import get_queue, Signal
-from squidasm.backend.glob import get_node_id, get_node_name
+from squidasm.interface.queues import get_queue, Signal
+from squidasm.glob import get_node_id, get_node_name
 from squidasm.sdk import NetSquidNetworkInfo
 
 

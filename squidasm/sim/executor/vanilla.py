@@ -15,7 +15,7 @@ from netsquid.components.instructions import (
     INSTR_SWAP,
 )
 
-from squidasm.executioner.base import NetSquidExecutioner
+from squidasm.sim.executor.base import NetSquidExecutioner
 from netqasm.lang.instr import vanilla, core
 
 

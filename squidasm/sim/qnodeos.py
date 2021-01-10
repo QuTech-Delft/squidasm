@@ -11,9 +11,9 @@ from netqasm.backend.messages import deserialize_host_msg as deserialize_message
 from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour, Flavour
 from netqasm.backend.qnodeos import BaseSubroutineHandler
 
-from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
-from squidasm.executioner.nv import NVNetSquidExecutioner
-from squidasm.queues import get_queue
+from squidasm.sim.executor.vanilla import VanillaNetSquidExecutioner
+from squidasm.sim.executor.nv import NVNetSquidExecutioner
+from squidasm.interface.queues import get_queue
 
 
 # TODO how to know which are wait events?

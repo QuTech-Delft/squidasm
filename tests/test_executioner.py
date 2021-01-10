@@ -6,8 +6,8 @@ from netsquid.nodes import Node
 
 from netqasm.logging.glob import set_log_level
 from netqasm.lang.parsing import parse_text_subroutine, parse_register
-from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
-from squidasm.network import QDevice
+from squidasm.sim.executor.vanilla import VanillaNetSquidExecutioner
+from squidasm.sim.network import QDevice
 from squidasm.run import reset
 
 

@@ -2,7 +2,7 @@ from netsquid.qubits import qubitapi as qapi
 
 from netqasm.sdk.qubit import Qubit
 
-from squidasm.backend.glob import get_running_backend
+from squidasm.glob import get_running_backend
 
 
 def get_qubit_state(qubit, reduced_dm=True):
