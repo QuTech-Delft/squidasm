@@ -13,10 +13,10 @@ from netqasm.sdk.classical_communication import reset_socket_hub
 from netqasm.runtime.app_config import AppConfig
 from netqasm.runtime.settings import Formalism
 
-from squidasm.backend.backend import Backend
-from squidasm.thread_util import as_completed
-from squidasm.network import reset_network
-from squidasm.queues import reset_queues
+from squidasm.backend import Backend
+from squidasm.util.thread import as_completed
+from squidasm.sim.network import reset_network
+from squidasm.interface.queues import reset_queues
 
 logger = get_netqasm_logger()
 

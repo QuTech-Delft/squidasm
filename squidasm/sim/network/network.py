@@ -29,14 +29,14 @@ from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFa
 
 from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
 from netqasm.runtime.interface.config import Link
-from squidasm.network.nv_config import NVConfig, build_nv_qdevice
+from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
 
 from netqasm.runtime.interface.logging import EntanglementStage
 
 from netqasm.logging.glob import get_netqasm_logger
 from netqasm.logging.output import NetworkLogger
 
-from squidasm.backend.glob import QubitInfo
+from squidasm.glob import QubitInfo
 
 logger = get_netqasm_logger()
 

@@ -5,9 +5,9 @@ from netsquid.nodes import Node
 from netqasm.logging.glob import set_log_level
 from netqasm.lang.parsing import parse_text_subroutine, parse_register
 from netqasm.backend.messages import InitNewAppMessage, SubroutineMessage
-from squidasm.network import QDevice
-from squidasm.qnodeos import SubroutineHandler
-from squidasm.queues import get_queue
+from squidasm.sim.network import QDevice
+from squidasm.sim.qnodeos import SubroutineHandler
+from squidasm.interface.queues import get_queue
 from squidasm.run import reset
 
 

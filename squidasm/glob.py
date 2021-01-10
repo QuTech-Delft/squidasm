@@ -4,7 +4,7 @@ from netsquid.qubits import qubitapi as qapi
 from netsquid.components.qmemory import MemPositionBusyError
 
 from netqasm.runtime.interface.logging import QubitGroup
-from squidasm.ns_util import is_state_entangled
+from squidasm.util.ns import is_state_entangled
 
 _CURRENT_BACKEND = [None]
 

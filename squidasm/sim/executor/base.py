@@ -12,7 +12,7 @@ import netsquid as ns
 from netsquid_magic.sleeper import Sleeper
 
 from netqasm.backend.executioner import Executioner, NotAllocatedError
-from squidasm.output import InstrLogger
+from squidasm.logging.output import InstrLogger
 
 PendingEPRResponse = namedtuple("PendingEPRResponse", [
     "response",

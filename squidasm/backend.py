@@ -11,11 +11,11 @@ from netqasm.runtime.interface.config import (
 )
 from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour
 
-from squidasm.qnodeos import SubroutineHandler
-from squidasm.backend.glob import put_current_backend, pop_current_backend
-from squidasm.network.network import NetSquidNetwork
-from squidasm.network.stack import NetworkStack
-from squidasm.network.nv_config import parse_nv_config
+from squidasm.sim.qnodeos import SubroutineHandler
+from squidasm.glob import put_current_backend, pop_current_backend
+from squidasm.sim.network.network import NetSquidNetwork
+from squidasm.sim.network.stack import NetworkStack
+from squidasm.sim.network.nv_config import parse_nv_config
 
 
 class Backend:
