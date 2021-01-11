@@ -126,9 +126,9 @@ class Backend:
         return {node_name: node.qmemory for node_name, node in self.nodes.items()}
 
     @property
-    def executioners(self):
+    def executors(self):
         return {
-            node_name: subroutine_handler._executioner
+            node_name: subroutine_handler._executor
             for node_name, subroutine_handler in self.subroutine_handlers.items()
         }
 

@@ -54,7 +54,7 @@ ret_reg m!
     # Starting netsquid
     ns.sim_run(2e5)
 
-    shared_memory = subroutine_handler._executioner._shared_memories[app_id]
+    shared_memory = subroutine_handler._executor._shared_memories[app_id]
     m = shared_memory.get_register(parse_register("M0"))
     assert m in set([0, 1])
     reset()

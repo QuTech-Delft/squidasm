@@ -26,8 +26,8 @@ class InstrLogger(NQInstrLogger):
     ) -> Qubit:
         """Returns the qubit object in memory"""
         backend = get_running_backend()
-        executioner = backend.subroutine_handlers[node_name]._executioner
-        return executioner._get_qubit(app_id=app_id, virtual_address=qubit_id)
+        executor = backend.subroutine_handlers[node_name]._executor
+        return executor._get_qubit(app_id=app_id, virtual_address=qubit_id)
 
     def _get_qubit_states(
         self,
@@ -53,7 +53,7 @@ class InstrLogger(NQInstrLogger):
 
     def _get_node_name(self) -> str:
         """Returns the name of this node"""
-        return self._executioner._node.name
+        return self._executor._node.name
 
     def _update_qubits(
         self,

@@ -11,8 +11,8 @@ from netqasm.backend.messages import deserialize_host_msg as deserialize_message
 from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour, Flavour
 from netqasm.backend.qnodeos import BaseSubroutineHandler
 
-from squidasm.sim.executor.vanilla import VanillaNetSquidExecutioner
-from squidasm.sim.executor.nv import NVNetSquidExecutioner
+from squidasm.sim.executor.vanilla import VanillaNetSquidExecutor
+from squidasm.sim.executor.nv import NVNetSquidExecutor
 from squidasm.interface.queues import get_queue
 
 
@@ -102,11 +102,11 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
         self._sleeper = Sleeper()
 
     @classmethod
-    def _get_executioner_class(cls, flavour=None):
+    def _get_executor_class(cls, flavour=None):
         if flavour is None or isinstance(flavour, VanillaFlavour):
-            return VanillaNetSquidExecutioner
+            return VanillaNetSquidExecutor
         elif isinstance(flavour, NVFlavour):
-            return NVNetSquidExecutioner
+            return NVNetSquidExecutor
         else:
             raise ValueError(f"Flavour {flavour} is not supported.")
 
@@ -116,14 +116,14 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
 
     @property
     def network_stack(self):
-        return self._executioner.network_stack
+        return self._executor.network_stack
 
     @network_stack.setter
     def network_stack(self, network_stack):
-        self._executioner.network_stack = network_stack
+        self._executor.network_stack = network_stack
 
     def get_epr_reaction_handler(self):
-        return self._executioner._handle_epr_response
+        return self._executor._handle_epr_response
 
     def run(self):
         while self.is_running:

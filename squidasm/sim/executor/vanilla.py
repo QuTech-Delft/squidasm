@@ -15,7 +15,7 @@ from netsquid.components.instructions import (
     INSTR_SWAP,
 )
 
-from squidasm.sim.executor.base import NetSquidExecutioner
+from squidasm.sim.executor.base import NetSquidExecutor
 from netqasm.lang.instr import vanilla, core
 
 
@@ -37,7 +37,7 @@ VANILLA_NS_INSTR_MAPPING = {
 }
 
 
-class VanillaNetSquidExecutioner(NetSquidExecutioner):
+class VanillaNetSquidExecutor(NetSquidExecutor):
     def __init__(self, node, name=None, network_stack=None, instr_log_dir=None,
                  flavour=None, instr_proc_time=0, host_latency=0):
         """Represents a QNodeOS processor that communicates with a QDevice that supports vanilla instructions"""
