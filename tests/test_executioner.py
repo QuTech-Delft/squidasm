@@ -6,12 +6,12 @@ from netsquid.nodes import Node
 
 from netqasm.logging.glob import set_log_level
 from netqasm.lang.parsing import parse_text_subroutine, parse_register
-from squidasm.sim.executor.vanilla import VanillaNetSquidExecutioner
+from squidasm.sim.executor.vanilla import VanillaNetSquidExecutor
 from squidasm.sim.network import QDevice
 from squidasm.run import reset
 
 
-def test_executioner():
+def test_executor():
     set_log_level(logging.DEBUG)
     subroutine = """
 # NETQASM 1.0
@@ -33,23 +33,23 @@ ret_reg m!
     subroutine = parse_text_subroutine(subroutine)
     app_id = 0
     node = Node("Alice", qmemory=QDevice())
-    executioner = VanillaNetSquidExecutioner(node=node)
+    executor = VanillaNetSquidExecutor(node=node)
     # Consume the generator
-    executioner.init_new_application(app_id=app_id, max_qubits=1)
+    executor.init_new_application(app_id=app_id, max_qubits=1)
 
     class ExecuteProtocol(NodeProtocol):
         def run(self):
-            yield from executioner.execute_subroutine(subroutine=subroutine)
+            yield from executor.execute_subroutine(subroutine=subroutine)
 
     node = Node("node", qmemory=QDevice())
     prot = ExecuteProtocol(node)
     prot.start()
     ns.sim_run()
 
-    shared_memory = executioner._shared_memories[app_id]
+    shared_memory = executor._shared_memories[app_id]
     m = shared_memory.get_register(parse_register("M0"))
     assert m in set([0, 1])
-    qubit = executioner._qdevice._get_qubits(0)[0]
+    qubit = executor._qdevice._get_qubits(0)[0]
     dm = qubit.qstate.dm
     expected_dm = np.array([[1, 0], [0, 0]])
     assert np.all(np.isclose(dm, expected_dm))

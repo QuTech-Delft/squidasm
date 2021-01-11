@@ -29,19 +29,19 @@ def get_qubit_state(qubit, reduced_dm=True):
         qubits = [qubit]
     else:
         qubits = list(qubit)
-    # Get the executioner and qmemory from the backend
+    # Get the executor and qmemory from the backend
     backend = get_running_backend()
     ns_qubits = []
     for q in qubits:
         node_name = q._conn.node_name
         assert node_name in backend.nodes, f"Unknown node {node_name}"
-        executioner = backend.executioners[node_name]
+        executor = backend.executors[node_name]
         qmemory = backend.qmemories[node_name]
 
         # Get the physical position of the qubit
         virtual_address = q.qubit_id
         app_id = q._conn.app_id
-        phys_pos = executioner._get_position(address=virtual_address, app_id=app_id)
+        phys_pos = executor._get_position(address=virtual_address, app_id=app_id)
 
         # Get the netsquid qubit
         ns_qubit = qmemory.mem_positions[phys_pos].get_qubit()

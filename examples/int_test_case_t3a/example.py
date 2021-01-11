@@ -34,7 +34,7 @@ def main():
         logger.debug("End Alice thread")
 
     def post_function(backend):
-        shared_memory = backend._subroutine_handlers["Alice"]._executioner._shared_memories[0]
+        shared_memory = backend._subroutine_handlers["Alice"]._executor._shared_memories[0]
         zero_outcomes = shared_memory.get_register(parse_register("R1"))
         one_outcomes = shared_memory.get_register(parse_register("R2"))
         logger.info(f'zero_outcomes = {zero_outcomes}')
