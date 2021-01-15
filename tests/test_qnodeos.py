@@ -7,7 +7,7 @@ from netqasm.lang.parsing import parse_text_subroutine, parse_register
 from netqasm.backend.messages import InitNewAppMessage, SubroutineMessage
 from squidasm.sim.network import QDevice
 from squidasm.sim.qnodeos import SubroutineHandler
-from squidasm.interface.queues import get_queue
+from squidasm.interface.queues import QueueManager
 from squidasm.run import reset
 
 
@@ -17,7 +17,7 @@ def test():
     subroutine_handler = SubroutineHandler(alice)
 
     # Put subroutine in queue
-    queue = get_queue(alice.name)
+    queue = QueueManager.get_queue(alice.name)
     subroutine = """
 # NETQASM 1.0
 # APPID 0

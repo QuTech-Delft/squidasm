@@ -16,7 +16,7 @@ from netqasm.runtime.settings import Formalism
 from squidasm.backend import Backend
 from squidasm.util.thread import as_completed
 from squidasm.sim.network import reset_network
-from squidasm.interface.queues import reset_queues
+# from squidasm.interface.queues import reset_queues
 
 logger = get_netqasm_logger()
 
@@ -33,7 +33,7 @@ def reset(save_loggers=False):
     ns.sim_reset()
     reset_memories()
     reset_network()
-    reset_queues()
+    # reset_queues()
     reset_socket_hub()
     reset_struct_loggers()
     # Reset logging

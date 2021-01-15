@@ -27,8 +27,7 @@ class Backend:
         self,
         app_cfgs: List[AppConfig],
         instr_log_dir=None,
-        network_config=None,
-        nv_config=None,
+        network: NetSquidNetwork,
         flavour=None,
     ):
         """
@@ -38,28 +37,27 @@ class Backend:
         The Backend should be started by calling `start`, which also starts pydynaa.
         """
 
-        # If no network_config specified, use a default one where nodes have the same names as the apps.
-        if network_config is None:
-            app_names = [cfg.app_name for cfg in app_cfgs]
-            network_cfg_obj = default_network_config(app_names=app_names)
-        elif isinstance(network_config, NetworkConfig):
-            network_cfg_obj = network_config
-        else:
-            network_cfg_obj = parse_network_config(cfg=network_config)
+        # # If no network_config specified, use a default one where nodes have the same names as the apps.
+        # if network_config is None:
+        #     app_names = [cfg.app_name for cfg in app_cfgs]
+        #     network_cfg_obj = default_network_config(app_names=app_names)
+        # elif isinstance(network_config, NetworkConfig):
+        #     network_cfg_obj = network_config
+        # else:
+        #     network_cfg_obj = parse_network_config(cfg=network_config)
 
-        if nv_config is None:
-            nv_config_obj = None
-        else:
-            nv_config_obj = parse_nv_config(nv_config)
+        # if nv_config is None:
+        #     nv_config_obj = None
+        # else:
+        #     nv_config_obj = parse_nv_config(nv_config)
 
-        # Create the network.
-        network = NetSquidNetwork(
-            network_config=network_cfg_obj,
-            nv_config=nv_config_obj,
-            global_log_dir=instr_log_dir
-        )
+        # # Create the network.
+        # network = NetSquidNetwork(
+        #     network_config=network_cfg_obj,
+        #     nv_config=nv_config_obj,
+        #     global_log_dir=instr_log_dir
+        # )
         self._network = network
-        self._nodes = network.nodes
 
         self._app_node_map: Dict[str, Node] = dict()
         self._subroutine_handlers: Dict[str, SubroutineHandler] = dict()
@@ -109,9 +107,13 @@ class Backend:
 
             self._subroutine_handlers[app.node_name] = subroutine_handler
 
-    @property
-    def nodes(self):
-        return self._nodes
+    # @property
+    # def nodes(self):
+    #     return self.network.nodes
+
+    # @property
+    # def network(self):
+    #     return self._network
 
     @property
     def app_node_map(self):

@@ -60,11 +60,28 @@ class NetSquidNetwork(Network):
         self._nv_config = nv_config
         self._node_hardware_types: Dict[str, QuantumHardware] = {}
 
+        if nv_config is not None:
+            self._instr_proc_time = nv_config.instr_proc_time
+            self._host_latency = nv_config.host_latency
+        else:
+            self._instr_proc_time = 0
+            self._host_latency = 0
+
         # create NetSquid `Node`s and add them to this `Network`
         self._build_network()
 
         self._link_layer_services: Dict[str, Dict[int, LinkLayerService]] = dict()
         self._create_link_layer_services()
+
+    # TODO: set_log_directory()
+
+    @property
+    def instr_proc_time(self):
+        return self._instr_proc_time
+
+    @property
+    def host_latency(self):
+        return self._host_latency
 
     @property
     def node_hardware_types(self):
