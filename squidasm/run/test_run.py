@@ -4,7 +4,7 @@ import os
 from time import perf_counter
 
 from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
-from squidasm.run.runtime_mgr import Program, Application, ApplicationInstance
+from netqasm.runtime.application import Program, Application, ApplicationInstance
 from netqasm.runtime.interface.config import NetworkConfig, default_network_config
 from netqasm.runtime.env import get_timed_log_dir
 

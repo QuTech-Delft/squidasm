@@ -1,7 +1,7 @@
 import os
 
-from squidasm.run.simulate import (
-    create_app_instance, create_network_cfg, simulate_application)
+from netqasm.runtime.application import create_app_instance, create_network_cfg
+from squidasm.run.simulate import simulate_application
 
 # APP_DIR = "../netqasm/netqasm/examples/apps/teleport"
 # APP_DIR = "../netqasm/netqasm/examples/apps/bb84"

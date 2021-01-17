@@ -34,44 +34,10 @@ from squidasm.interface.queues import QueueManager
 from netqasm.logging.output import save_all_struct_loggers, reset_struct_loggers
 from netqasm.sdk.classical_communication import reset_socket_hub
 
+from netqasm.runtime.application import ApplicationInstance, ApplicationOutput
+
 from squidasm.util.thread import as_completed
 _logger = get_netqasm_logger()
-
-
-@dataclass
-class Program:
-    party: str
-    entry: Callable
-    args: List[str]
-    results: List[str]
-
-
-@dataclass
-class AppMetadata:
-    name: str
-    description: str
-    authors: List[str]
-    version: str
-
-
-@dataclass
-class Application:
-    programs: List[Program]
-    metadata: AppMetadata
-
-
-# @dataclass
-# class LoggingConfig:
-#     log_dir: str
-
-
-@dataclass
-class ApplicationInstance:
-    app: Application
-    program_inputs: Dict[str, Dict[str, Any]]
-    network: NetworkConfig  # TODO: decide if needed
-    party_alloc: Dict[str, str]
-    logging_cfg: LogConfig
 
 
 class SquidAsmRuntimeManager(RuntimeManager):
@@ -98,6 +64,10 @@ class SquidAsmRuntimeManager(RuntimeManager):
     @property
     def netsquid_formalism(self) -> ns.QFormalism:
         return self._netsquid_formalism
+
+    @netsquid_formalism.setter
+    def netsquid_formalism(self, formalism):
+        self._netsquid_formalism = formalism
 
     @property
     def is_running(self) -> bool:
@@ -225,7 +195,8 @@ class SquidAsmRuntimeManager(RuntimeManager):
 
             # Join the application threads and the backend
             program_names = [program.party for program in app_instance.app.programs]
-            names = [f'prog_{prog_name}' for prog_name in program_names]
+            # NOTE: use app_<name> instead of prog_<name> for now for backward compatibility
+            names = [f'app_{prog_name}' for prog_name in program_names]
             results = {}
             for future, name in as_completed(program_futures, names=names):
                 results[name] = future.get()
