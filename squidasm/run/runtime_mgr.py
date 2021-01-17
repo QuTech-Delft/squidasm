@@ -22,6 +22,7 @@ from netqasm.sdk.config import LogConfig
 
 from squidasm.sim.qnodeos import SubroutineHandler
 from squidasm.sim.network.stack import NetworkStack
+from squidasm.sim.network import reset_network
 from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour
 from squidasm.sim.network.network import NetSquidNetwork
 from squidasm.sim.network.nv_config import NVConfig
@@ -142,6 +143,7 @@ class SquidAsmRuntimeManager(RuntimeManager):
         self._backend_thread.join()
         self._backend_thread = None
         QueueManager.destroy_queues()
+        reset_network()
 
     def reset_backend(self, save_loggers=False):
         if save_loggers:
