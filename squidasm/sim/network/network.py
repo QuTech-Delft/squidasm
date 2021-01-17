@@ -74,6 +74,9 @@ class NetSquidNetwork(Network):
         self._create_link_layer_services()
 
     # TODO: set_log_directory()
+    def set_logger(self, log_dir):
+        logger_path = os.path.join(log_dir, "network_log.yaml")
+        self._global_logger = NetworkLogger(logger_path)
 
     @property
     def instr_proc_time(self):

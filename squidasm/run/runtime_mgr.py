@@ -17,6 +17,8 @@ from netqasm.runtime.interface.config import (
     QuantumHardware,
     NetworkConfig,
 )
+from netqasm.runtime.app_config import AppConfig
+from netqasm.sdk.config import LogConfig
 
 from squidasm.sim.qnodeos import SubroutineHandler
 from squidasm.sim.network.stack import NetworkStack
@@ -58,13 +60,18 @@ class Application:
     metadata: AppMetadata
 
 
+# @dataclass
+# class LoggingConfig:
+#     log_dir: str
+
+
 @dataclass
 class ApplicationInstance:
     app: Application
     program_inputs: Dict[str, Dict[str, Any]]
-    network: NetworkConfig
+    network: NetworkConfig  # TODO: decide if needed
     party_alloc: Dict[str, str]
-    logging_cfg: Any
+    logging_cfg: LogConfig
 
 
 class SquidAsmRuntimeManager(RuntimeManager):
@@ -78,6 +85,7 @@ class SquidAsmRuntimeManager(RuntimeManager):
         self._is_running = False
         self._party_map = dict()
         self._backend_thread = None
+        self._backend_log_dir = None
 
     @property
     def network(self) -> Optional[NetSquidNetwork]:
@@ -94,6 +102,17 @@ class SquidAsmRuntimeManager(RuntimeManager):
     @property
     def is_running(self) -> bool:
         return self._is_running
+
+    @property
+    def backend_log_dir(self) -> Optional[str]:
+        return self._backend_log_dir
+
+    @backend_log_dir.setter
+    def backend_log_dir(self, new_dir: str) -> None:
+        self._backend_log_dir = new_dir
+        for handler in self.subroutine_handlers.values():
+            handler._executor.set_instr_logger(new_dir)
+        self._network_instance.set_logger(new_dir)
 
     @property
     def party_map(self):  # TODO type
@@ -167,50 +186,55 @@ class SquidAsmRuntimeManager(RuntimeManager):
         # reload(logging)
         set_log_level("INFO")
 
-    def get_network(self) -> NetSquidNetwork:
-        return self.network
-
     def set_network(self, cfg: NetworkConfig, nv_cfg: Optional[NVConfig] = None) -> None:
         network = NetSquidNetwork(
             network_config=cfg,
             nv_config=nv_cfg,
-            global_log_dir=None  # TODO
+            global_log_dir=self.backend_log_dir  # TODO
         )
         self._network_instance = network
         self._create_subroutine_handlers()
 
-    def run_app(self, app_instance: ApplicationInstance) -> ApplicationOutput:
+    def run_app(
+        self,
+        app_instance: ApplicationInstance,
+        use_app_config=True,
+        save_loggers=True,
+    ) -> ApplicationOutput:
         programs = app_instance.app.programs
 
         for party, node_name in app_instance.party_alloc.items():
             self._party_map[party] = self.network.get_node(node_name)
 
         with ThreadPool(len(programs) + 1) as executor:
-            # Start the backend thread
-            # backend_future = executor.apply_async(self.__class__.start_backend, args=(self,))
-
             # Start the program threads
             program_futures = []
             for program in programs:
                 inputs = app_instance.program_inputs[program.party]
-                # if use_app_config:
-                #     inputs['app_config'] = app_cfg
-                # inputs['app_config'] = app_cfg
+                if use_app_config:
+                    app_cfg = AppConfig(
+                        app_name=program.party,
+                        node_name=self._party_map[program.party],
+                        main_func=program.entry,
+                        log_config=app_instance.logging_cfg,
+                        inputs=inputs
+                    )
+                    inputs['app_config'] = app_cfg
                 future = executor.apply_async(program.entry, kwds=inputs)
                 program_futures.append(future)
 
             # Join the application threads and the backend
             program_names = [program.party for program in app_instance.app.programs]
-            # print(f"program names: {program_names}")
-            # names = ['backend'] + [f'prog_{prog_name}' for prog_name in program_names]
             names = [f'prog_{prog_name}' for prog_name in program_names]
             results = {}
-            for future, name in as_completed(
-                    # [backend_future] + program_futures, names=names):
-                    program_futures, names=names):
+            for future, name in as_completed(program_futures, names=names):
                 results[name] = future.get()
             # if results_file is not None:
             #     save_results(results=results, results_file=results_file)
+
+            if save_loggers:
+                save_all_struct_loggers()
+            reset_struct_loggers()
 
             return results
 
@@ -231,7 +255,7 @@ class SquidAsmRuntimeManager(RuntimeManager):
 
             subroutine_handler = self.__class__._SUBROUTINE_HANDLER_CLASS(
                 node=node,
-                instr_log_dir=None,  # TODO
+                instr_log_dir=self._backend_log_dir,  # TODO
                 flavour=flavour,
                 instr_proc_time=self.network.instr_proc_time,
                 host_latency=self.network.host_latency
