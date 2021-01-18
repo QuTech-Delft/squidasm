@@ -1,22 +1,16 @@
 import os
-import sys
-import importlib
-from typing import List, Any, Optional, Callable
+from typing import Optional, Callable
 from netsquid import QFormalism
 
-from netqasm.runtime.settings import Formalism, Flavour
-from netqasm.runtime.interface.config import (
-    default_network_config, parse_network_config, NetworkConfig)
-from netqasm.sdk.config import LogConfig
-# from netqasm.runtime.env import load_app_files, load_app_config_file, load_roles_config
-from netqasm.runtime import env
-from squidasm.sim.network.nv_config import parse_nv_config, NVConfig
+from netqasm.util.yaml import dump_yaml
 from netqasm.runtime.settings import Formalism
-from netsquid import QFormalism
+from netqasm.runtime.interface.config import default_network_config, NetworkConfig
+from netqasm.sdk.config import LogConfig
+from netqasm.runtime import env, process_logs
+from squidasm.sim.network.nv_config import parse_nv_config, NVConfig
 
 from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
-from netqasm.runtime.application import (
-    Application, ApplicationInstance, Program, load_yaml_file)
+from netqasm.runtime.application import ApplicationInstance, load_yaml_file
 
 
 _NS_FORMALISMS = {
@@ -41,7 +35,7 @@ def simulate_application(
     network_cfg: Optional[NetworkConfig] = None,
     nv_cfg: Optional[NVConfig] = None,
     log_cfg: Optional[LogConfig] = None,
-    formalism: Formalism = QFormalism.KET,
+    formalism: Formalism = Formalism.KET,
     use_app_config: bool = True,
     post_function: Optional[Callable] = None,
     enable_logging: bool = True,
@@ -63,9 +57,11 @@ def simulate_application(
         if not os.path.exists(log_dir):
             os.mkdir(log_dir)
 
+    timed_log_dir = None
+
     mgr.start_backend()
 
-    for i in range(num_rounds):
+    for _ in range(num_rounds):
         if enable_logging:
             if log_cfg.split_runs or timed_log_dir is None:
                 # create new timed directory for next run or for first run
@@ -75,11 +71,17 @@ def simulate_application(
             app_instance.logging_cfg.log_subroutines_dir = timed_log_dir
             app_instance.logging_cfg.comm_log_dir = timed_log_dir
         results = mgr.run_app(app_instance, use_app_config=use_app_config)
-        print(f"results: {results}")
+
+        if enable_logging is not None:
+            path = os.path.join(timed_log_dir, "results.yaml")
+            dump_yaml(data=results, file_path=path)
 
     if post_function is not None:
         post_function(mgr)
 
     mgr.stop_backend()
+
+    if enable_logging:
+        process_logs.make_last_log(log_dir=timed_log_dir)
 
     return results

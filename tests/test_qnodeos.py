@@ -8,7 +8,6 @@ from netqasm.backend.messages import InitNewAppMessage, SubroutineMessage
 from squidasm.sim.network import QDevice
 from squidasm.sim.qnodeos import SubroutineHandler
 from squidasm.interface.queues import QueueManager
-from squidasm.run import reset
 
 
 def test():
@@ -57,7 +56,6 @@ ret_reg m!
     shared_memory = subroutine_handler._executor._shared_memories[app_id]
     m = shared_memory.get_register(parse_register("M0"))
     assert m in set([0, 1])
-    reset()
 
 
 if __name__ == "__main__":

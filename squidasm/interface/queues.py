@@ -1,9 +1,5 @@
 from queue import Queue
-from time import sleep
-from timeit import default_timer as timer
 from typing import Dict
-
-from netqasm.backend.messages import Signal
 
 
 class TaskQueue:
@@ -45,33 +41,6 @@ class TaskQueue:
 
     def join(self):
         return self._queue.join()
-
-
-# def wait_for_queue_creation(absolute_key, timeout=5.0):
-#     t_start = timer()
-
-#     while True:
-#         queue = _QUEUES.get(absolute_key)
-#         if queue is not None:
-#             return queue
-
-#         sleep(0.1)
-#         now = timer()
-#         if (now - t_start) > timeout:
-#             raise TimeoutError(f"No queue found with key {absolute_key}. (Waited for {timeout} seconds)")
-
-
-# def signal_queue(node_name, signal, key=None):
-#     """Puts a signal on a queue"""
-#     if not isinstance(signal, Signal):
-#         raise TypeError(f"signal should be of type Signal, not {type(signal)}")
-#     queue = get_queue(node_name=node_name, key=key)
-#     queue.put(signal)
-
-
-# def stop_queue(node_name, key=None):
-#     """Signals a queue to stop"""
-#     signal_queue(node_name=node_name, signal=Signal.STOP, key=key)
 
 
 class QueueManager:

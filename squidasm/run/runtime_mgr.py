@@ -1,24 +1,15 @@
-from typing import Optional, Dict, List, Any, Callable
-from dataclasses import dataclass
+from typing import Optional, Dict
 import netsquid as ns
 from multiprocessing.pool import ThreadPool
 import threading
-import logging
-from importlib import reload
 
-from netqasm.runtime.runtime_mgr import (
-    RuntimeManager,
-    NetworkInstance,
-    ApplicationOutput)
+from netqasm.runtime.runtime_mgr import RuntimeManager, ApplicationOutput
 from netqasm.logging.glob import get_netqasm_logger, set_log_level
 from netqasm.runtime.interface.config import (
-    default_network_config,
-    parse_network_config,
     QuantumHardware,
     NetworkConfig,
 )
 from netqasm.runtime.app_config import AppConfig
-from netqasm.sdk.config import LogConfig
 
 from squidasm.sim.qnodeos import SubroutineHandler
 from squidasm.sim.network.stack import NetworkStack
@@ -29,13 +20,12 @@ from squidasm.sim.network.nv_config import NVConfig
 from squidasm.glob import put_current_backend, pop_current_backend
 
 from netqasm.sdk.shared_memory import reset_memories
-from squidasm.sim.network import reset_network
-# from squidasm.interface.queues import reset_queues
 from squidasm.interface.queues import QueueManager
 from netqasm.logging.output import save_all_struct_loggers, reset_struct_loggers
 from netqasm.sdk.classical_communication import reset_socket_hub
 
-from netqasm.runtime.application import ApplicationInstance, ApplicationOutput
+from netqasm.runtime.application import ApplicationInstance
+from netqasm.sdk.classical_communication.thread_socket.socket import ThreadSocket
 
 from squidasm.util.thread import as_completed
 _logger = get_netqasm_logger()
@@ -115,7 +105,7 @@ class SquidAsmRuntimeManager(RuntimeManager):
             return
 
         def backend_thread(manager):
-            _logger.debug(f"Starting netsquid backend")
+            _logger.debug("Starting netsquid backend")
             if self.network is None:
                 _logger.warning("Trying to start backend but no Network Instance exists")
                 return
@@ -144,6 +134,8 @@ class SquidAsmRuntimeManager(RuntimeManager):
         self._backend_thread = None
         QueueManager.destroy_queues()
         reset_network()
+        reset_socket_hub()
+        reset_struct_loggers()
 
     def reset_backend(self, save_loggers=False):
         if save_loggers:
@@ -202,12 +194,12 @@ class SquidAsmRuntimeManager(RuntimeManager):
             results = {}
             for future, name in as_completed(program_futures, names=names):
                 results[name] = future.get()
-            # if results_file is not None:
-            #     save_results(results=results, results_file=results_file)
 
             if save_loggers:
                 save_all_struct_loggers()
             reset_struct_loggers()
+            reset_socket_hub()
+            ThreadSocket._COMM_LOGGERS = {}
 
             return results
 
