@@ -167,7 +167,7 @@ class NetSquidNetwork(Network):
                 )
                 self._link_layer_services[node.name][remote_node.ID] = link_layer_service
 
-    def _create_link_distributor(self, link: Link, state_delay: Optional[float] = 1.) -> MagicDistributor:
+    def _create_link_distributor(self, link: Link, state_delay: Optional[float] = 1000) -> MagicDistributor:
         """
         Create a MagicDistributor for a pair of nodes,
         based on configuration in a `Link` object.
