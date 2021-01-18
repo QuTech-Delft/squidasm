@@ -126,11 +126,11 @@ class SquidAsmRuntimeManager(RuntimeManager):
                 subroutine_handler.start()
 
             self._is_running = True
-            print("\n-------------\nStarting NetSquid simulator\n-------------\n")
+            _logger.info("\n-------------\nStarting NetSquid simulator\n-------------\n")
             put_current_backend(self)
             ns.sim_run()
             pop_current_backend()
-            print("\n-------------\nNetSquid simulator finished\n-------------\n")
+            _logger.info("\n-------------\nNetSquid simulator finished\n-------------\n")
             self._is_running = False
 
         t = threading.Thread(target=backend_thread, args=(self, ))

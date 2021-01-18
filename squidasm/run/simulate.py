@@ -11,10 +11,19 @@ from netqasm.sdk.config import LogConfig
 # from netqasm.runtime.env import load_app_files, load_app_config_file, load_roles_config
 from netqasm.runtime import env
 from squidasm.sim.network.nv_config import parse_nv_config, NVConfig
+from netqasm.runtime.settings import Formalism
+from netsquid import QFormalism
 
 from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
 from netqasm.runtime.application import (
     Application, ApplicationInstance, Program, load_yaml_file)
+
+
+_NS_FORMALISMS = {
+    Formalism.STAB: QFormalism.STAB,
+    Formalism.KET: QFormalism.KET,
+    Formalism.DM: QFormalism.DM,
+}
 
 
 def create_nv_cfg(nv_config_file: str = None) -> NVConfig:
@@ -38,7 +47,7 @@ def simulate_application(
     enable_logging: bool = True,
 ):
     mgr = SquidAsmRuntimeManager()
-    mgr.netsquid_formalism = formalism
+    mgr.netsquid_formalism = _NS_FORMALISMS[formalism]
 
     if network_cfg is None:
         node_names = [name for name in app_instance.party_alloc.keys()]
@@ -57,8 +66,6 @@ def simulate_application(
     mgr.start_backend()
 
     for i in range(num_rounds):
-        print(f"\niteration {i}")
-
         if enable_logging:
             if log_cfg.split_runs or timed_log_dir is None:
                 # create new timed directory for next run or for first run
