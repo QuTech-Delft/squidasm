@@ -72,7 +72,7 @@ def simulate_application(
             app_instance.logging_cfg.comm_log_dir = timed_log_dir
         results = mgr.run_app(app_instance, use_app_config=use_app_config)
 
-        if enable_logging is not None:
+        if enable_logging:
             path = os.path.join(timed_log_dir, "results.yaml")
             dump_yaml(data=results, file_path=path)
 
