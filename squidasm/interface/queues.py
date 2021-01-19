@@ -1,34 +1,15 @@
 from queue import Queue
-from time import sleep
-from timeit import default_timer as timer
-
-from netqasm.backend.messages import Signal
-
-_QUEUES = {}
-
-
-def get_queue(node_name, key=None, create_new=False, wait_for=5.0):
-    """ wait_for: time in secs to wait for queue to be created if not exists """
-    absolute_key = (node_name, key)
-    queue = _QUEUES.get(absolute_key)
-    if queue is None:
-        if create_new:
-            queue = TaskQueue()
-            _QUEUES[absolute_key] = queue
-        else:
-            queue = wait_for_queue_creation(absolute_key, wait_for)
-    return queue
-
-
-def reset_queues():
-    while len(_QUEUES) > 0:
-        _QUEUES.popitem()
+from typing import Dict
 
 
 class TaskQueue:
     """Subclass Queue which allow to wait for a specific task to be done and not only all"""
 
     def __init__(self):
+        self._queue = Queue()
+        self._fin_tasks = set()
+
+    def reset(self):
         self._queue = Queue()
         self._fin_tasks = set()
 
@@ -54,33 +35,38 @@ class TaskQueue:
     def join_task(self, item):
         while item not in self._fin_tasks:
             pass
+        # When the task has finished, remove it to prevent future
+        # messages that are exactly the same to immediately be finished.
+        self._fin_tasks.remove(item)
 
     def join(self):
         return self._queue.join()
 
 
-def wait_for_queue_creation(absolute_key, timeout=5.0):
-    t_start = timer()
+class QueueManager:
+    _QUEUES: Dict[str, TaskQueue] = {}
 
-    while True:
-        queue = _QUEUES.get(absolute_key)
-        if queue is not None:
-            return queue
+    @classmethod
+    def create_queue(cls, node_name: str) -> TaskQueue:
+        if cls._QUEUES.get(node_name) is not None:
+            raise RuntimeError(f"Queue for node {node_name} already exists.")
+        queue = TaskQueue()
+        cls._QUEUES[node_name] = queue
+        return queue
 
-        sleep(0.1)
-        now = timer()
-        if (now - t_start) > timeout:
-            raise TimeoutError(f"No queue found with key {absolute_key}. (Waited for {timeout} seconds)")
+    @classmethod
+    def get_queue(cls, node_name: str) -> TaskQueue:
+        queue = cls._QUEUES.get(node_name)
+        if queue is None:
+            raise RuntimeError(f"Queue for node {node_name} does not exist.")
+        return queue
 
+    @classmethod
+    def reset_queues(cls) -> None:
+        for queue in cls._QUEUES.values():
+            queue.reset()
 
-def signal_queue(node_name, signal, key=None):
-    """Puts a signal on a queue"""
-    if not isinstance(signal, Signal):
-        raise TypeError(f"signal should be of type Signal, not {type(signal)}")
-    queue = get_queue(node_name=node_name, key=key)
-    queue.put(signal)
-
-
-def stop_queue(node_name, key=None):
-    """Signals a queue to stop"""
-    signal_queue(node_name=node_name, signal=Signal.STOP, key=key)
+    @classmethod
+    def destroy_queues(cls) -> None:
+        while len(cls._QUEUES) > 0:
+            cls._QUEUES.popitem()

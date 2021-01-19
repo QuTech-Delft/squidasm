@@ -6,7 +6,7 @@ from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.network import NetworkInfo
 
-from squidasm.interface.queues import get_queue
+from squidasm.interface.queues import QueueManager
 from squidasm.glob import (
     get_node_id_for_app,
     get_node_name_for_app,
@@ -30,7 +30,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         **kwargs,
     ):
         node_name = get_node_name_for_app(app_name)
-        self._message_queue = get_queue(node_name)
+        self._message_queue = QueueManager.get_queue(node_name)
         if compiler is None:
             backend = get_running_backend()
             subroutine_handler = backend.subroutine_handlers[node_name]

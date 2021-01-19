@@ -13,7 +13,7 @@ from netqasm.backend.qnodeos import BaseSubroutineHandler
 
 from squidasm.sim.executor.vanilla import VanillaNetSquidExecutor
 from squidasm.sim.executor.nv import NVNetSquidExecutor
-from squidasm.interface.queues import get_queue
+from squidasm.interface.queues import QueueManager
 
 
 # TODO how to know which are wait events?
@@ -93,7 +93,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
         )
         NodeProtocol.__init__(self, node=node)
 
-        self._message_queue = get_queue(self.node.name, create_new=True)
+        self._message_queue = QueueManager.create_queue(self.node.name)
 
         # Keep track of tasks to execute
         self._subroutine_tasks = []
@@ -127,6 +127,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
 
     def run(self):
         while self.is_running:
+            # print("running")
             # Check if there is a new message
             # self._logger.debug('Checking for next message')
             raw_msg = self._next_message()
@@ -227,7 +228,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
         self._logger.debug(f"SubroutineHandler at node {self.node} handles the signal {signal}")
         if Signal(signal.signal) == Signal.STOP:
             self._logger.debug(f"SubroutineHandler at node {self.node} stops")
-            self.stop()
+            # self.stop()
         else:
             raise ValueError(f"Unkown signal {signal}")
 
