@@ -1,6 +1,7 @@
 import os
 from typing import List, Dict, Optional
 import numpy as np
+import copy
 
 import netsquid as ns
 from netsquid.util import sim_time
@@ -386,7 +387,7 @@ class QDevice(QuantumProcessor):
         if mem_fidelities is None:
             mem_fidelities = [T1T2NoiseModel(0, 0) for _ in range(num_qubits)]
         if phys_instrs is None:
-            phys_instrs = QDevice._default_phys_instructions
+            phys_instrs = copy.deepcopy(QDevice._default_phys_instructions)
         for instr in phys_instrs:
             instr.q_noise_model = DepolarNoiseModel(depolar_rate=(1-gate_fidelity), time_independent=True)
 
