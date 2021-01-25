@@ -4,6 +4,10 @@ CHANGELOG
 Upcoming
 --------
 
+2021-01-25 (0.5.1)
+------------------
+- Fix a bug where all nodes use the same noise parameters as the node defined last in `network.yaml`.
+
 2020-12-17 (0.5.0)
 ------------------
 - Using `netqasm` 0.5.0, see [`netqasm` CHANGELOG](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md).
