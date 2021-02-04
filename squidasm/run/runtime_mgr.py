@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 import netsquid as ns
 from multiprocessing.pool import ThreadPool
 import threading
@@ -164,7 +164,7 @@ class SquidAsmRuntimeManager(RuntimeManager):
         app_instance: ApplicationInstance,
         use_app_config=True,
         save_loggers=True,
-    ) -> ApplicationOutput:
+    ) -> Dict[str, Any]:
         programs = app_instance.app.programs
 
         for party, node_name in app_instance.party_alloc.items():
