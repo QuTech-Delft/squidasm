@@ -1,10 +1,10 @@
 import os
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict, Any, List
 from netsquid import QFormalism
 
 from netqasm.util.yaml import dump_yaml
 from netqasm.runtime.settings import Formalism
-from netqasm.runtime.interface.config import default_network_config, NetworkConfig
+from netqasm.runtime.interface.config import default_network_config, NetworkConfig, QuantumHardware
 from netqasm.sdk.config import LogConfig
 from netqasm.runtime import env, process_logs
 from squidasm.sim.network.nv_config import parse_nv_config, NVConfig
@@ -39,13 +39,20 @@ def simulate_application(
     use_app_config: bool = True,
     post_function: Optional[Callable] = None,
     enable_logging: bool = True,
-):
+    hardware: str = "generic",
+) -> List[Dict[str, Any]]:
     mgr = SquidAsmRuntimeManager()
     mgr.netsquid_formalism = _NS_FORMALISMS[formalism]
 
     if network_cfg is None:
         node_names = [name for name in app_instance.party_alloc.keys()]
-        network_cfg = default_network_config(node_names=node_names)
+        if hardware == "nv":
+            hardware = QuantumHardware.NV
+        elif hardware == "generic":
+            hardware = QuantumHardware.Generic
+        else:
+            raise ValueError(f"Unsupported hardware: {hardware}")
+        network_cfg = default_network_config(node_names=node_names, hardware=hardware)
 
     mgr.set_network(cfg=network_cfg, nv_cfg=nv_cfg)
 
@@ -61,6 +68,8 @@ def simulate_application(
 
     mgr.start_backend()
 
+    results = []
+
     for _ in range(num_rounds):
         if enable_logging:
             if log_cfg.split_runs or timed_log_dir is None:
@@ -70,7 +79,8 @@ def simulate_application(
             mgr.backend_log_dir = timed_log_dir
             app_instance.logging_cfg.log_subroutines_dir = timed_log_dir
             app_instance.logging_cfg.comm_log_dir = timed_log_dir
-        results = mgr.run_app(app_instance, use_app_config=use_app_config)
+        result = mgr.run_app(app_instance, use_app_config=use_app_config)
+        results.append(result)
 
         if enable_logging:
             path = os.path.join(timed_log_dir, "results.yaml")
