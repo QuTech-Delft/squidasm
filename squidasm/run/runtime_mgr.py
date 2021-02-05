@@ -3,7 +3,7 @@ import netsquid as ns
 from multiprocessing.pool import ThreadPool
 import threading
 
-from netqasm.runtime.runtime_mgr import RuntimeManager, ApplicationOutput
+from netqasm.runtime.runtime_mgr import RuntimeManager
 from netqasm.logging.glob import get_netqasm_logger, set_log_level
 from netqasm.runtime.interface.config import (
     QuantumHardware,
