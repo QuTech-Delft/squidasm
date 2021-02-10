@@ -30,14 +30,14 @@ from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFa
 
 from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
 from netqasm.runtime.interface.config import Link
-from squidasm.network.nv_config import NVConfig, build_nv_qdevice
+from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
 
 from netqasm.runtime.interface.logging import EntanglementStage
 
 from netqasm.logging.glob import get_netqasm_logger
 from netqasm.logging.output import NetworkLogger
 
-from squidasm.backend.glob import QubitInfo
+from squidasm.glob import QubitInfo
 
 logger = get_netqasm_logger()
 
@@ -61,11 +61,31 @@ class NetSquidNetwork(Network):
         self._nv_config = nv_config
         self._node_hardware_types: Dict[str, QuantumHardware] = {}
 
+        if nv_config is not None:
+            self._instr_proc_time = nv_config.instr_proc_time
+            self._host_latency = nv_config.host_latency
+        else:
+            self._instr_proc_time = 0
+            self._host_latency = 0
+
         # create NetSquid `Node`s and add them to this `Network`
         self._build_network()
 
         self._link_layer_services: Dict[str, Dict[int, LinkLayerService]] = dict()
         self._create_link_layer_services()
+
+    # TODO: set_log_directory()
+    def set_logger(self, log_dir):
+        logger_path = os.path.join(log_dir, "network_log.yaml")
+        self._global_logger = NetworkLogger(logger_path)
+
+    @property
+    def instr_proc_time(self):
+        return self._instr_proc_time
+
+    @property
+    def host_latency(self):
+        return self._host_latency
 
     @property
     def node_hardware_types(self):
@@ -148,7 +168,7 @@ class NetSquidNetwork(Network):
                 )
                 self._link_layer_services[node.name][remote_node.ID] = link_layer_service
 
-    def _create_link_distributor(self, link: Link, state_delay: Optional[float] = 1.) -> MagicDistributor:
+    def _create_link_distributor(self, link: Link, state_delay: Optional[float] = 1000) -> MagicDistributor:
         """
         Create a MagicDistributor for a pair of nodes,
         based on configuration in a `Link` object.

@@ -11,8 +11,8 @@ from netsquid.nodes.node import Node
 import netsquid as ns
 from netsquid_magic.sleeper import Sleeper
 
-from netqasm.backend.executioner import Executioner, NotAllocatedError
-from squidasm.output import InstrLogger
+from netqasm.backend.executor import Executor, NotAllocatedError
+from squidasm.logging.output import InstrLogger
 
 PendingEPRResponse = namedtuple("PendingEPRResponse", [
     "response",
@@ -21,7 +21,7 @@ PendingEPRResponse = namedtuple("PendingEPRResponse", [
 ])
 
 
-class NetSquidExecutioner(Executioner, Entity):
+class NetSquidExecutor(Executor, Entity):
 
     instr_logger_class = InstrLogger
 
@@ -35,7 +35,7 @@ class NetSquidExecutioner(Executioner, Entity):
         super().__init__(name=name, instr_log_dir=instr_log_dir)
 
         if instr_mapping is None:
-            raise ValueError("A NetSquidExecutioner needs to have an instruction mapping")
+            raise ValueError("A NetSquidExecutor needs to have an instruction mapping")
         self._instr_mapping = instr_mapping
 
         self._node = node

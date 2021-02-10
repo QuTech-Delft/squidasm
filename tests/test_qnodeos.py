@@ -5,10 +5,9 @@ from netsquid.nodes import Node
 from netqasm.logging.glob import set_log_level
 from netqasm.lang.parsing import parse_text_subroutine, parse_register
 from netqasm.backend.messages import InitNewAppMessage, SubroutineMessage
-from squidasm.network import QDevice
-from squidasm.qnodeos import SubroutineHandler
-from squidasm.queues import get_queue
-from squidasm.run import reset
+from squidasm.sim.network import QDevice
+from squidasm.sim.qnodeos import SubroutineHandler
+from squidasm.interface.queues import QueueManager
 
 
 def test():
@@ -17,7 +16,7 @@ def test():
     subroutine_handler = SubroutineHandler(alice)
 
     # Put subroutine in queue
-    queue = get_queue(alice.name)
+    queue = QueueManager.get_queue(alice.name)
     subroutine = """
 # NETQASM 1.0
 # APPID 0
@@ -54,10 +53,9 @@ ret_reg m!
     # Starting netsquid
     ns.sim_run(2e5)
 
-    shared_memory = subroutine_handler._executioner._shared_memories[app_id]
+    shared_memory = subroutine_handler._executor._shared_memories[app_id]
     m = shared_memory.get_register(parse_register("M0"))
     assert m in set([0, 1])
-    reset()
 
 
 if __name__ == "__main__":

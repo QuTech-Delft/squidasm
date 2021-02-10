@@ -11,9 +11,9 @@ from netqasm.backend.messages import deserialize_host_msg as deserialize_message
 from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour, Flavour
 from netqasm.backend.qnodeos import BaseSubroutineHandler
 
-from squidasm.executioner.vanilla import VanillaNetSquidExecutioner
-from squidasm.executioner.nv import NVNetSquidExecutioner
-from squidasm.queues import get_queue
+from squidasm.sim.executor.vanilla import VanillaNetSquidExecutor
+from squidasm.sim.executor.nv import NVNetSquidExecutor
+from squidasm.interface.queues import QueueManager
 
 
 # TODO how to know which are wait events?
@@ -93,7 +93,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
         )
         NodeProtocol.__init__(self, node=node)
 
-        self._message_queue = get_queue(self.node.name, create_new=True)
+        self._message_queue = QueueManager.create_queue(self.node.name)
 
         # Keep track of tasks to execute
         self._subroutine_tasks = []
@@ -102,11 +102,11 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
         self._sleeper = Sleeper()
 
     @classmethod
-    def _get_executioner_class(cls, flavour=None):
+    def _get_executor_class(cls, flavour=None):
         if flavour is None or isinstance(flavour, VanillaFlavour):
-            return VanillaNetSquidExecutioner
+            return VanillaNetSquidExecutor
         elif isinstance(flavour, NVFlavour):
-            return NVNetSquidExecutioner
+            return NVNetSquidExecutor
         else:
             raise ValueError(f"Flavour {flavour} is not supported.")
 
@@ -116,17 +116,18 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
 
     @property
     def network_stack(self):
-        return self._executioner.network_stack
+        return self._executor.network_stack
 
     @network_stack.setter
     def network_stack(self, network_stack):
-        self._executioner.network_stack = network_stack
+        self._executor.network_stack = network_stack
 
     def get_epr_reaction_handler(self):
-        return self._executioner._handle_epr_response
+        return self._executor._handle_epr_response
 
     def run(self):
         while self.is_running:
+            # print("running")
             # Check if there is a new message
             # self._logger.debug('Checking for next message')
             raw_msg = self._next_message()
@@ -227,7 +228,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
         self._logger.debug(f"SubroutineHandler at node {self.node} handles the signal {signal}")
         if Signal(signal.signal) == Signal.STOP:
             self._logger.debug(f"SubroutineHandler at node {self.node} stops")
-            self.stop()
+            # self.stop()
         else:
             raise ValueError(f"Unkown signal {signal}")
 

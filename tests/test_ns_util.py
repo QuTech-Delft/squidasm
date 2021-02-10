@@ -5,7 +5,7 @@ import numpy as np
 import netsquid as ns
 from netsquid.qubits import qubitapi as qapi
 
-from squidasm.ns_util import is_state_entangled, partial_transpose
+from squidasm.util.ns import is_state_entangled, partial_transpose
 
 
 f = 1 / np.sqrt(2)

@@ -1,5 +1,5 @@
 from timeit import default_timer as timer
-from typing import Dict
+from typing import Dict, Tuple
 
 from qlink_interface import LinkLayerRecv
 
@@ -12,11 +12,18 @@ from netqasm.backend.network_stack import BaseNetworkStack, Address
 # NOTE This is a hack for now to have something that the signaling protocol would do
 class SignalingProtocol:
     def __init__(self):
-        self._circuits = {}
+        # Mapping (addr1, addr2) -> circuit ID
+        self._circuits: Dict[Tuple[Address, Address], int] = {}
+
         # NOTE for now let the protocol keep track of what purpose IDs to use in the
         # link layer requests since we don't use a network layer yet
-        self._purpose_ids = {}
-        self._next_purpose_id = 0
+
+        # Mapping (node1 ID, node2 ID, node1 socket ID) -> purpose ID
+        # NOTE if a certain "(nid1, nid2, sid1) -> pid" entty exists,
+        # then a "(nid2, nid1, sid2) -> pid" entry (i.e. same pid) *should* also exist
+        self._purpose_ids: Dict[Tuple[int, int, int], int] = {}
+
+        self._next_purpose_id: int = 0
 
     def reset(self):
         self.__init__()
@@ -34,13 +41,13 @@ class SignalingProtocol:
             (remote_address.node_id, remote_address.epr_socket_id),
         ]))
 
-    def has_circuit(self, local_address, remote_address):
+    def has_circuit(self, local_address: Address, remote_address: Address) -> bool:
         return (
             (local_address, remote_address) in self._circuits and
             (remote_address, local_address) in self._circuits
         )
 
-    def _assign_purpose_id(self, local_address, remote_address):
+    def _assign_purpose_id(self, local_address: Address, remote_address: Address) -> None:
         keys = [
             # Local node ID, remote Node ID, local epr socket ID
             (local_address.node_id, remote_address.node_id, local_address.epr_socket_id),
@@ -77,6 +84,8 @@ def reset_network():
 class NetworkStack(BaseNetworkStack):
     def __init__(self, node, link_layer_services):
         self._node = node
+
+        # Map keys are remote node IDs
         self._link_layer_services: Dict[int, LinkLayerService] = link_layer_services
 
         self._signaling_protocol = _SIGNALING_PROTOCOL
