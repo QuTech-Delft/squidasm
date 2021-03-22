@@ -4,7 +4,11 @@ from netsquid import QFormalism
 
 from netqasm.util.yaml import dump_yaml
 from netqasm.runtime.settings import Formalism
-from netqasm.runtime.interface.config import default_network_config, NetworkConfig, QuantumHardware
+from netqasm.runtime.interface.config import (
+    default_network_config,
+    NetworkConfig,
+    QuantumHardware,
+)
 from netqasm.sdk.config import LogConfig
 from netqasm.runtime import env, process_logs
 from squidasm.sim.network.nv_config import parse_nv_config, NVConfig
@@ -60,7 +64,9 @@ def simulate_application(
         log_cfg = LogConfig() if log_cfg is None else log_cfg
         app_instance.logging_cfg = log_cfg
 
-        log_dir = os.path.abspath("./log") if log_cfg.log_dir is None else log_cfg.log_dir
+        log_dir = (
+            os.path.abspath("./log") if log_cfg.log_dir is None else log_cfg.log_dir
+        )
         if not os.path.exists(log_dir):
             os.mkdir(log_dir)
 

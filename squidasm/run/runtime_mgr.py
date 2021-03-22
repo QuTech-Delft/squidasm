@@ -28,6 +28,7 @@ from netqasm.runtime.application import ApplicationInstance
 from netqasm.sdk.classical_communication.thread_socket.socket import ThreadSocket
 
 from squidasm.util.thread import as_completed
+
 _logger = get_netqasm_logger()
 
 
@@ -107,7 +108,9 @@ class SquidAsmRuntimeManager(RuntimeManager):
         def backend_thread(manager):
             _logger.debug("Starting netsquid backend")
             if self.network is None:
-                _logger.warning("Trying to start backend but no Network Instance exists")
+                _logger.warning(
+                    "Trying to start backend but no Network Instance exists"
+                )
                 return
 
             ns.set_qstate_formalism(self.netsquid_formalism)
@@ -116,14 +119,18 @@ class SquidAsmRuntimeManager(RuntimeManager):
                 subroutine_handler.start()
 
             self._is_running = True
-            _logger.info("\n-------------\nStarting NetSquid simulator\n-------------\n")
+            _logger.info(
+                "\n-------------\nStarting NetSquid simulator\n-------------\n"
+            )
             put_current_backend(self)
             ns.sim_run()
             pop_current_backend()
-            _logger.info("\n-------------\nNetSquid simulator finished\n-------------\n")
+            _logger.info(
+                "\n-------------\nNetSquid simulator finished\n-------------\n"
+            )
             self._is_running = False
 
-        t = threading.Thread(target=backend_thread, args=(self, ))
+        t = threading.Thread(target=backend_thread, args=(self,))
         self._backend_thread = t
         t.start()
 
@@ -151,11 +158,13 @@ class SquidAsmRuntimeManager(RuntimeManager):
         # reload(logging)
         set_log_level("INFO")
 
-    def set_network(self, cfg: NetworkConfig, nv_cfg: Optional[NVConfig] = None) -> None:
+    def set_network(
+        self, cfg: NetworkConfig, nv_cfg: Optional[NVConfig] = None
+    ) -> None:
         network = NetSquidNetwork(
             network_config=cfg,
             nv_config=nv_cfg,
-            global_log_dir=self.backend_log_dir  # TODO
+            global_log_dir=self.backend_log_dir,  # TODO
         )
         self._network_instance = network
         self._create_subroutine_handlers()
@@ -182,16 +191,16 @@ class SquidAsmRuntimeManager(RuntimeManager):
                         node_name=self._party_map[program.party],
                         main_func=program.entry,
                         log_config=app_instance.logging_cfg,
-                        inputs=inputs
+                        inputs=inputs,
                     )
-                    inputs['app_config'] = app_cfg
+                    inputs["app_config"] = app_cfg
                 future = executor.apply_async(program.entry, kwds=inputs)
                 program_futures.append(future)
 
             # Join the application threads and the backend
             program_names = [program.party for program in app_instance.app.programs]
             # NOTE: use app_<name> instead of prog_<name> for now for backward compatibility
-            names = [f'app_{prog_name}' for prog_name in program_names]
+            names = [f"app_{prog_name}" for prog_name in program_names]
             results = {}
             for future, name in as_completed(program_futures, names=names):
                 results[name] = future.get()
@@ -224,11 +233,10 @@ class SquidAsmRuntimeManager(RuntimeManager):
                 instr_log_dir=self._backend_log_dir,  # TODO
                 flavour=flavour,
                 instr_proc_time=self.network.instr_proc_time,
-                host_latency=self.network.host_latency
+                host_latency=self.network.host_latency,
             )
             subroutine_handler.network_stack = self.__class__._NETWORK_STACK_CLASS(
-                node=node,
-                link_layer_services=ll_services[node.name]
+                node=node, link_layer_services=ll_services[node.name]
             )
             reaction_handler = subroutine_handler.get_epr_reaction_handler()
             for service in ll_services[node.name].values():

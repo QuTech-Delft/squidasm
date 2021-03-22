@@ -31,10 +31,16 @@ def main():
     mgr = SquidAsmRuntimeManager()
     network_cfg = default_network_config(["delft", "amsterdam"])
 
-    prog_sender = Program(party="sender", entry=sender_main, args=["app_config"], results=[])
-    prog_receiver = Program(party="receiver", entry=receiver_main, args=["app_config"], results=[])
+    prog_sender = Program(
+        party="sender", entry=sender_main, args=["app_config"], results=[]
+    )
+    prog_receiver = Program(
+        party="receiver", entry=receiver_main, args=["app_config"], results=[]
+    )
 
-    log_cfg = LogConfig(track_lines=False, log_subroutines_dir=os.getcwd(), comm_log_dir="TEMP_LOG")
+    log_cfg = LogConfig(
+        track_lines=False, log_subroutines_dir=os.getcwd(), comm_log_dir="TEMP_LOG"
+    )
 
     app = Application(programs=[prog_sender, prog_receiver], metadata=None)
     app_instance = ApplicationInstance(
@@ -48,7 +54,7 @@ def main():
             "sender": "delft",
             "receiver": "amsterdam",
         },
-        logging_cfg=log_cfg
+        logging_cfg=log_cfg,
     )
 
     mgr.set_network(network_cfg)

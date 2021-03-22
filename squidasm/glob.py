@@ -112,7 +112,9 @@ class QubitInfo:
 
                 group_id = hash(qubit.qstate)
                 if group_id not in groups:
-                    groups[group_id] = QubitGroup(is_entangled=None, qubit_ids=[], state=None)
+                    groups[group_id] = QubitGroup(
+                        is_entangled=None, qubit_ids=[], state=None
+                    )
                 groups[group_id].qubit_ids.append([app_name, pos])
                 groups[group_id].is_entangled = is_state_entangled(qubit.qstate)
 

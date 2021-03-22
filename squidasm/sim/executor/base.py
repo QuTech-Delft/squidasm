@@ -14,19 +14,30 @@ from netsquid_magic.sleeper import Sleeper
 from netqasm.backend.executor import Executor, NotAllocatedError
 from squidasm.logging.output import InstrLogger
 
-PendingEPRResponse = namedtuple("PendingEPRResponse", [
-    "response",
-    "epr_cmd_data",
-    "pair_index",
-])
+PendingEPRResponse = namedtuple(
+    "PendingEPRResponse",
+    [
+        "response",
+        "epr_cmd_data",
+        "pair_index",
+    ],
+)
 
 
 class NetSquidExecutor(Executor, Entity):
 
     instr_logger_class = InstrLogger
 
-    def __init__(self, node, name=None, network_stack=None, instr_log_dir=None,
-                 instr_mapping=None, instr_proc_time=0, host_latency=0):
+    def __init__(
+        self,
+        node,
+        name=None,
+        network_stack=None,
+        instr_log_dir=None,
+        instr_mapping=None,
+        instr_proc_time=0,
+        host_latency=0,
+    ):
         """Executes a NetQASM using a NetSquid quantum processor to execute quantum instructions"""
         if not isinstance(node, Node):
             raise TypeError(f"node should be a Node, not {type(node)}")
@@ -50,8 +61,12 @@ class NetSquidExecutor(Executor, Entity):
         self._sleeper = Sleeper()
 
         # Handler for calling epr data
-        self._handle_pending_epr_responses_handler = EventHandler(lambda Event: self._handle_pending_epr_responses())
-        self._handle_epr_data_handler = EventHandler(lambda Event: self._handle_epr_data())
+        self._handle_pending_epr_responses_handler = EventHandler(
+            lambda Event: self._handle_pending_epr_responses()
+        )
+        self._handle_epr_data_handler = EventHandler(
+            lambda Event: self._handle_epr_data()
+        )
 
         # Simulated processing time of each NetQASM instruction in ns
         self._instr_proc_time = instr_proc_time
@@ -80,22 +95,30 @@ class NetSquidExecutor(Executor, Entity):
         """Performs a single qubit rotation with the given angle"""
         position = self._get_position(subroutine_id=subroutine_id, address=address)
         ns_instr = self._get_netsquid_instruction(instr=instr)
-        self._logger.debug(f"Doing instr {instr} with angle {angle} on qubit {position}")
-        yield from self._execute_qdevice_instruction(ns_instr=ns_instr, qubit_mapping=[position], angle=angle)
+        self._logger.debug(
+            f"Doing instr {instr} with angle {angle} on qubit {position}"
+        )
+        yield from self._execute_qdevice_instruction(
+            ns_instr=ns_instr, qubit_mapping=[position], angle=angle
+        )
 
-    def _do_controlled_qubit_rotation(self, instr, subroutine_id, address1, address2, angle):
-        positions = self._get_positions(subroutine_id=subroutine_id, addresses=[address1, address2])
+    def _do_controlled_qubit_rotation(
+        self, instr, subroutine_id, address1, address2, angle
+    ):
+        positions = self._get_positions(
+            subroutine_id=subroutine_id, addresses=[address1, address2]
+        )
         ns_instr = self._get_netsquid_instruction(instr=instr)
         self._logger.debug(f"Doing instr {instr} on qubits {positions}")
 
         yield from self._execute_qdevice_instruction(
-            ns_instr=ns_instr,
-            qubit_mapping=positions,
-            angle=angle
+            ns_instr=ns_instr, qubit_mapping=positions, angle=angle
         )
 
     def _do_two_qubit_instr(self, instr, subroutine_id, address1, address2):
-        positions = self._get_positions(subroutine_id=subroutine_id, addresses=[address1, address2])
+        positions = self._get_positions(
+            subroutine_id=subroutine_id, addresses=[address1, address2]
+        )
         ns_instr = self._get_netsquid_instruction(instr=instr)
         self._logger.debug(f"Doing instr {instr} on qubits {positions}")
 
@@ -106,9 +129,15 @@ class NetSquidExecutor(Executor, Entity):
 
     def _execute_qdevice_instruction(self, ns_instr, qubit_mapping, **kwargs):
         if self.qdevice.busy:
-            yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
-        self.qdevice.execute_instruction(ns_instr, qubit_mapping=qubit_mapping, **kwargs)
-        yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
+            yield EventExpression(
+                source=self.qdevice, event_type=self.qdevice.evtype_program_done
+            )
+        self.qdevice.execute_instruction(
+            ns_instr, qubit_mapping=qubit_mapping, **kwargs
+        )
+        yield EventExpression(
+            source=self.qdevice, event_type=self.qdevice.evtype_program_done
+        )
 
     def _get_netsquid_instruction(self, instr):
         ns_instr = self._instr_mapping.get(instr.__class__)
@@ -125,7 +154,9 @@ class NetSquidExecutor(Executor, Entity):
     def _meas_physical_qubit(self, position):
         self._logger.debug(f"Measuring qubit {position}")
         if self.qdevice.busy:
-            yield EventExpression(source=self.qdevice, event_type=self.qdevice.evtype_program_done)
+            yield EventExpression(
+                source=self.qdevice, event_type=self.qdevice.evtype_program_done
+            )
         outcome = self.qdevice.measure(position)[0][0]
         return outcome
 
