@@ -1,17 +1,20 @@
 import logging
-import netsquid as ns
-from netsquid.nodes import Node
 
-from netqasm.logging.glob import set_log_level
-from netqasm.lang.parsing import parse_text_subroutine, parse_register
+import netsquid as ns
 from netqasm.backend.messages import InitNewAppMessage, SubroutineMessage
+from netqasm.lang.parsing import parse_register, parse_text_subroutine
+from netqasm.logging.glob import set_log_level
+from netqasm.sdk.shared_memory import SharedMemoryManager
+from netsquid.nodes import Node
+from squidasm.interface.queues import QueueManager
 from squidasm.sim.network import QDevice
 from squidasm.sim.qnodeos import SubroutineHandler
-from squidasm.interface.queues import QueueManager
 
 
 def test():
     set_log_level(logging.INFO)
+    SharedMemoryManager.reset_memories()
+
     alice = Node(name="Alice", qmemory=QDevice())
     subroutine_handler = SubroutineHandler(alice)
 
@@ -37,10 +40,12 @@ ret_reg m!
     # Initialize the new application
     app_id = 0
     queue.put(
-        bytes(InitNewAppMessage(
-            app_id=app_id,
-            max_qubits=1,
-        )),
+        bytes(
+            InitNewAppMessage(
+                app_id=app_id,
+                max_qubits=1,
+            )
+        ),
     )
     # Put the subroutine
     subroutine = parse_text_subroutine(subroutine)
@@ -51,7 +56,7 @@ ret_reg m!
     subroutine_handler.start()
 
     # Starting netsquid
-    ns.sim_run(2e5)
+    ns.sim_run(5e5)
 
     shared_memory = subroutine_handler._executor._shared_memories[app_id]
     m = shared_memory.get_register(parse_register("M0"))
