@@ -2,5 +2,11 @@
 count = True
 statistics = True
 filename = *.py, *.pyx
-max-line-length = 120
 per-file-ignores = */__init__.py:F401
+
+# The 'black' formatter already limits code line lengths to 88.
+# Let flake8 allow comments and docstrings to be at most 120 characters, for now.
+max-line-length = 120
+
+ # https://black.readthedocs.io/en/stable/compatible_configs.html#flake8
+extend-ignore = E203, W503
