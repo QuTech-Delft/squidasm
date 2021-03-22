@@ -36,8 +36,25 @@ endif
 clean:
 	@/usr/bin/find . -name '*.pyc' -delete
 
-lint:
+lint-isort:
+	$(info Running isort...)
+	@$(PYTHON3) -m isort --check --diff ${SOURCEDIR} ${TESTDIR} ${EXAMPLEDIR}
+
+lint-black:
+	$(info Running black...)
+	@$(PYTHON3) -m black --check ${SOURCEDIR} ${TESTDIR} ${EXAMPLEDIR}
+
+lint-flake8:
+	$(info Running flake8...)
 	@$(PYTHON3) -m flake8 ${SOURCEDIR} ${TESTDIR} ${EXAMPLEDIR}
+
+lint-mypy:
+	$(info Running mypy...)
+	@$(PYTHON3) -m mypy ${SOURCEDIR} ${TESTDIR} ${EXAMPLEDIR}
+
+# TODO: also run lint-mypy
+# TODO: fix lint-isort in CI
+lint: lint-black lint-flake8
 
 tests:
 	@$(PYTHON3) -m pytest --cov=${SOURCEDIR} --cov-fail-under=${MINCOV} tests

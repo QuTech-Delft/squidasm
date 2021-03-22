@@ -1,6 +1,5 @@
-from netsquid.qubits import qubitapi as qapi
-
 from netqasm.sdk.qubit import Qubit
+from netsquid.qubits import qubitapi as qapi
 
 from squidasm.glob import get_running_backend
 
@@ -51,8 +50,10 @@ def get_qubit_state(qubit, reduced_dm=True):
         dm = qapi.reduced_dm(ns_qubits)
     else:
         if len(qubits) != 1:
-            raise ValueError("Getting the state of multiple qubits with `reduced_dm=False` is not allowed "
-                             "since it can require merging the states")
+            raise ValueError(
+                "Getting the state of multiple qubits with `reduced_dm=False` is not allowed "
+                "since it can require merging the states"
+            )
         dm = ns_qubits[0].qstate.dm
 
     return dm

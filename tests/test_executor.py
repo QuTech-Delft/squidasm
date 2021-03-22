@@ -1,11 +1,12 @@
 import logging
-import numpy as np
-import netsquid as ns
-from netsquid.protocols import NodeProtocol
-from netsquid.nodes import Node
 
+import netsquid as ns
+import numpy as np
+from netqasm.lang.parsing import parse_register, parse_text_subroutine
 from netqasm.logging.glob import set_log_level
-from netqasm.lang.parsing import parse_text_subroutine, parse_register
+from netsquid.nodes import Node
+from netsquid.protocols import NodeProtocol
+
 from squidasm.sim.executor.vanilla import VanillaNetSquidExecutor
 from squidasm.sim.network import QDevice
 

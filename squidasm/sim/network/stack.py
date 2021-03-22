@@ -1,12 +1,10 @@
 from timeit import default_timer as timer
 from typing import Dict, Tuple
 
-from qlink_interface import LinkLayerRecv
-
+from netqasm.backend.network_stack import Address, BaseNetworkStack
 from netsquid_magic.link_layer import LinkLayerService
 from netsquid_magic.sleeper import Sleeper
-
-from netqasm.backend.network_stack import BaseNetworkStack, Address
+from qlink_interface import LinkLayerRecv
 
 
 # NOTE This is a hack for now to have something that the signaling protocol would do
@@ -36,22 +34,36 @@ class SignalingProtocol:
         self._circuits[(local_address, remote_address)] = circuit_id
 
     def get_circuit_id(self, local_address, remote_address):
-        return hash(frozenset([
-            (local_address.node_id, local_address.epr_socket_id),
-            (remote_address.node_id, remote_address.epr_socket_id),
-        ]))
-
-    def has_circuit(self, local_address: Address, remote_address: Address) -> bool:
-        return (
-            (local_address, remote_address) in self._circuits and
-            (remote_address, local_address) in self._circuits
+        return hash(
+            frozenset(
+                [
+                    (local_address.node_id, local_address.epr_socket_id),
+                    (remote_address.node_id, remote_address.epr_socket_id),
+                ]
+            )
         )
 
-    def _assign_purpose_id(self, local_address: Address, remote_address: Address) -> None:
+    def has_circuit(self, local_address: Address, remote_address: Address) -> bool:
+        return (local_address, remote_address) in self._circuits and (
+            remote_address,
+            local_address,
+        ) in self._circuits
+
+    def _assign_purpose_id(
+        self, local_address: Address, remote_address: Address
+    ) -> None:
         keys = [
             # Local node ID, remote Node ID, local epr socket ID
-            (local_address.node_id, remote_address.node_id, local_address.epr_socket_id),
-            (remote_address.node_id, local_address.node_id, remote_address.epr_socket_id),
+            (
+                local_address.node_id,
+                remote_address.node_id,
+                local_address.epr_socket_id,
+            ),
+            (
+                remote_address.node_id,
+                local_address.node_id,
+                remote_address.epr_socket_id,
+            ),
         ]
         purpose_id = None
         for key in keys:
@@ -67,9 +79,11 @@ class SignalingProtocol:
     def _get_purpose_id(self, node_id, remote_node_id, epr_socket_id):
         purpose_id = self._purpose_ids.get((node_id, remote_node_id, epr_socket_id))
         if purpose_id is None:
-            raise ValueError(f"Not a known circuit for node with ID {node_id}, "
-                             f"to remote node with ID {remote_node_id} and "
-                             f"with EPR socket ID {epr_socket_id}")
+            raise ValueError(
+                f"Not a known circuit for node with ID {node_id}, "
+                f"to remote node with ID {remote_node_id} and "
+                f"with EPR socket ID {epr_socket_id}"
+            )
         return purpose_id
 
 
@@ -97,10 +111,14 @@ class NetworkStack(BaseNetworkStack):
         # For now use only link layer
         link_layer_service = self._link_layer_services.get(remote_node_id)
         if link_layer_service is None:
-            raise ValueError(f"The node with ID {remote_node_id} is not known to the network")
+            raise ValueError(
+                f"The node with ID {remote_node_id} is not known to the network"
+            )
         return link_layer_service.put(request)
 
-    def setup_epr_socket(self, epr_socket_id, remote_node_id, remote_epr_socket_id, timeout=5):
+    def setup_epr_socket(
+        self, epr_socket_id, remote_node_id, remote_epr_socket_id, timeout=5
+    ):
         """Asks the network stack to setup circuits to be used"""
         local_address = Address(
             node_id=self._node.ID,
@@ -160,7 +178,9 @@ class NetworkStack(BaseNetworkStack):
     def _wait_for_remote_node(self, local_address, remote_address, timeout=1):
         t_start = timer()
         while True:
-            if self._signaling_protocol.has_circuit(local_address=local_address, remote_address=remote_address):
+            if self._signaling_protocol.has_circuit(
+                local_address=local_address, remote_address=remote_address
+            ):
                 break
             # Wait a little until checking again
             yield self._sleeper.sleep()

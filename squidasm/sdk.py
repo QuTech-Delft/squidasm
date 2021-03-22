@@ -6,18 +6,17 @@ from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.network import NetworkInfo
 
-from squidasm.interface.queues import QueueManager
 from squidasm.glob import (
-    get_node_id_for_app,
-    get_node_name_for_app,
-    get_node_name,
     get_node_id,
-    get_running_backend
+    get_node_id_for_app,
+    get_node_name,
+    get_node_name_for_app,
+    get_running_backend,
 )
+from squidasm.interface.queues import QueueManager
 
 
 class NetSquidConnection(BaseNetQASMConnection):
-
     def __init__(
         self,
         app_name,
@@ -58,7 +57,13 @@ class NetSquidConnection(BaseNetQASMConnection):
             self._execute_callback(item=raw_msg, callback=callback)
         else:
             # Execute callback in a new thread after the subroutine is finished
-            thread = Thread(target=self._execute_callback, args=(raw_msg, callback,))
+            thread = Thread(
+                target=self._execute_callback,
+                args=(
+                    raw_msg,
+                    callback,
+                ),
+            )
             thread.daemon = True
             thread.start()
 

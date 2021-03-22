@@ -1,17 +1,15 @@
 import os
 
-from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
-from netqasm.runtime.application import Program, Application, ApplicationInstance
-from netqasm.runtime.interface.config import default_network_config
+from netqasm.examples.apps.teleport.app_receiver import main as receiver_main
+from netqasm.examples.apps.teleport.app_sender import main as sender_main
+from netqasm.runtime.application import Application, ApplicationInstance, Program
 from netqasm.runtime.env import get_timed_log_dir
-
+from netqasm.runtime.interface.config import default_network_config
+from netqasm.sdk.config import LogConfig
 from netqasm.sdk.external import NetQASMConnection
 from netqasm.sdk.qubit import Qubit
 
-from netqasm.examples.apps.teleport.app_sender import main as sender_main
-from netqasm.examples.apps.teleport.app_receiver import main as receiver_main
-
-from netqasm.sdk.config import LogConfig
+from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
 
 
 def alice_entry():
@@ -31,10 +29,16 @@ def main():
     mgr = SquidAsmRuntimeManager()
     network_cfg = default_network_config(["delft", "amsterdam"])
 
-    prog_sender = Program(party="sender", entry=sender_main, args=["app_config"], results=[])
-    prog_receiver = Program(party="receiver", entry=receiver_main, args=["app_config"], results=[])
+    prog_sender = Program(
+        party="sender", entry=sender_main, args=["app_config"], results=[]
+    )
+    prog_receiver = Program(
+        party="receiver", entry=receiver_main, args=["app_config"], results=[]
+    )
 
-    log_cfg = LogConfig(track_lines=False, log_subroutines_dir=os.getcwd(), comm_log_dir="TEMP_LOG")
+    log_cfg = LogConfig(
+        track_lines=False, log_subroutines_dir=os.getcwd(), comm_log_dir="TEMP_LOG"
+    )
 
     app = Application(programs=[prog_sender, prog_receiver], metadata=None)
     app_instance = ApplicationInstance(
@@ -48,7 +52,7 @@ def main():
             "sender": "delft",
             "receiver": "amsterdam",
         },
-        logging_cfg=log_cfg
+        logging_cfg=log_cfg,
     )
 
     mgr.set_network(network_cfg)
