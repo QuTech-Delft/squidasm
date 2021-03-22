@@ -1,23 +1,22 @@
+from netqasm.lang.instr import core, vanilla
 from netsquid.components.instructions import (
-    INSTR_INIT,
-    INSTR_X,
-    INSTR_Y,
-    INSTR_Z,
+    INSTR_CNOT,
+    INSTR_CZ,
     INSTR_H,
+    INSTR_INIT,
     INSTR_K,
-    INSTR_S,
-    INSTR_T,
     INSTR_ROT_X,
     INSTR_ROT_Y,
     INSTR_ROT_Z,
-    INSTR_CNOT,
-    INSTR_CZ,
+    INSTR_S,
     INSTR_SWAP,
+    INSTR_T,
+    INSTR_X,
+    INSTR_Y,
+    INSTR_Z,
 )
 
 from squidasm.sim.executor.base import NetSquidExecutor
-from netqasm.lang.instr import vanilla, core
-
 
 VANILLA_NS_INSTR_MAPPING = {
     core.InitInstruction: INSTR_INIT,

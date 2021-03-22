@@ -6,14 +6,14 @@ from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.network import NetworkInfo
 
-from squidasm.interface.queues import QueueManager
 from squidasm.glob import (
-    get_node_id_for_app,
-    get_node_name_for_app,
-    get_node_name,
     get_node_id,
+    get_node_id_for_app,
+    get_node_name,
+    get_node_name_for_app,
     get_running_backend,
 )
+from squidasm.interface.queues import QueueManager
 
 
 class NetSquidConnection(BaseNetQASMConnection):

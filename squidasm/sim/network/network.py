@@ -1,43 +1,41 @@
-import os
-from typing import List, Dict, Optional
-import numpy as np
 import copy
+import os
+from typing import Dict, List, Optional
 
 import netsquid as ns
-from netsquid.util import sim_time
-from netsquid.qubits import qubitapi as qapi
-from netsquid.components import QuantumProcessor, PhysicalInstruction
+import numpy as np
+from netqasm.logging.glob import get_netqasm_logger
+from netqasm.logging.output import NetworkLogger
+from netqasm.runtime.interface.config import (
+    Link,
+    NetworkConfig,
+    NoiseType,
+    QuantumHardware,
+)
+from netqasm.runtime.interface.logging import EntanglementStage
+from netsquid.components import PhysicalInstruction, QuantumProcessor
 from netsquid.components import instructions as ns_instructions
-from netsquid.components.models.qerrormodels import T1T2NoiseModel, DepolarNoiseModel
-from netsquid.nodes import Network, Node
+from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qmemory import MemPositionBusyError
-
+from netsquid.nodes import Network, Node
+from netsquid.qubits import qubitapi as qapi
+from netsquid.util import sim_time
 from netsquid_magic.link_layer import (
     LinkLayerService,
     MagicLinkLayerProtocol,
     SingleClickTranslationUnit,
 )
-
-from qlink_interface import RequestType, LinkLayerOKTypeK, LinkLayerOKTypeM
-
 from netsquid_magic.magic_distributor import (
+    BitflipMagicDistributor,
+    DepolariseMagicDistributor,
     MagicDistributor,
     PerfectStateMagicDistributor,
-    DepolariseMagicDistributor,
-    BitflipMagicDistributor,
 )
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
-
-from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
-from netqasm.runtime.interface.config import Link
-from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
-
-from netqasm.runtime.interface.logging import EntanglementStage
-
-from netqasm.logging.glob import get_netqasm_logger
-from netqasm.logging.output import NetworkLogger
+from qlink_interface import LinkLayerOKTypeK, LinkLayerOKTypeM, RequestType
 
 from squidasm.glob import QubitInfo
+from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
 
 logger = get_netqasm_logger()
 

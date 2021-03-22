@@ -1,6 +1,8 @@
 import logging
-from netqasm.runtime.application import app_instance_from_path, network_cfg_from_path
+
 from netqasm.logging.glob import set_log_level
+from netqasm.runtime.application import app_instance_from_path, network_cfg_from_path
+
 from squidasm.run.simulate import simulate_application
 
 APP_DIR = "../netqasm/netqasm/examples/apps/teleport"

@@ -1,9 +1,9 @@
-from typing import Tuple, Dict
-
-from netsquid.qubits import qubitapi as qapi
-from netsquid.components.qmemory import MemPositionBusyError
+from typing import Dict, Tuple
 
 from netqasm.runtime.interface.logging import QubitGroup
+from netsquid.components.qmemory import MemPositionBusyError
+from netsquid.qubits import qubitapi as qapi
+
 from squidasm.util.ns import is_state_entangled
 
 _CURRENT_BACKEND = [None]

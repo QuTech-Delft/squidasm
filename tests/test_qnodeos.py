@@ -6,6 +6,7 @@ from netqasm.lang.parsing import parse_register, parse_text_subroutine
 from netqasm.logging.glob import set_log_level
 from netqasm.sdk.shared_memory import SharedMemoryManager
 from netsquid.nodes import Node
+
 from squidasm.interface.queues import QueueManager
 from squidasm.sim.network import QDevice
 from squidasm.sim.qnodeos import SubroutineHandler

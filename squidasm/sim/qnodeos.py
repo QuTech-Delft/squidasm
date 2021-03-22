@@ -2,19 +2,17 @@ import random
 from queue import Empty
 from types import GeneratorType
 
-from pydynaa import EventType, EventExpression
-from netsquid.protocols import NodeProtocol
-from netsquid_magic.sleeper import Sleeper
-
 from netqasm.backend.messages import MessageType, Signal
 from netqasm.backend.messages import deserialize_host_msg as deserialize_message
-from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour, Flavour
 from netqasm.backend.qnodeos import BaseSubroutineHandler
+from netqasm.lang.instr.flavour import Flavour, NVFlavour, VanillaFlavour
+from netsquid.protocols import NodeProtocol
+from netsquid_magic.sleeper import Sleeper
+from pydynaa import EventExpression, EventType
 
-from squidasm.sim.executor.vanilla import VanillaNetSquidExecutor
-from squidasm.sim.executor.nv import NVNetSquidExecutor
 from squidasm.interface.queues import QueueManager
-
+from squidasm.sim.executor.nv import NVNetSquidExecutor
+from squidasm.sim.executor.vanilla import VanillaNetSquidExecutor
 
 # TODO how to know which are wait events?
 _WAIT_EVENT_NAMES = ["ANY_EVENT", "LOOP", "WAIT"]

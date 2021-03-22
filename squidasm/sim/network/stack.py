@@ -1,12 +1,10 @@
 from timeit import default_timer as timer
 from typing import Dict, Tuple
 
-from qlink_interface import LinkLayerRecv
-
+from netqasm.backend.network_stack import Address, BaseNetworkStack
 from netsquid_magic.link_layer import LinkLayerService
 from netsquid_magic.sleeper import Sleeper
-
-from netqasm.backend.network_stack import BaseNetworkStack, Address
+from qlink_interface import LinkLayerRecv
 
 
 # NOTE This is a hack for now to have something that the signaling protocol would do

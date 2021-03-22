@@ -1,12 +1,9 @@
-import pytest
-
-import numpy as np
-
 import netsquid as ns
+import numpy as np
+import pytest
 from netsquid.qubits import qubitapi as qapi
 
 from squidasm.util.ns import is_state_entangled, partial_transpose
-
 
 f = 1 / np.sqrt(2)
 

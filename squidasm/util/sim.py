@@ -1,6 +1,5 @@
-from netsquid.qubits import qubitapi as qapi
-
 from netqasm.sdk.qubit import Qubit
+from netsquid.qubits import qubitapi as qapi
 
 from squidasm.glob import get_running_backend
 

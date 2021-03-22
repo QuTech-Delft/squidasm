@@ -1,11 +1,10 @@
-from typing import Optional
 from itertools import product
+from typing import Optional
 
 import numpy as np
-from numpy import linalg, ndarray
-
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits.qstate import QState
+from numpy import linalg, ndarray
 
 
 def is_dm_pure(dm: ndarray, tol: Optional[float] = None) -> bool:

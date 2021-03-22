@@ -1,17 +1,15 @@
 import os
 
-from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
-from netqasm.runtime.application import Program, Application, ApplicationInstance
-from netqasm.runtime.interface.config import default_network_config
+from netqasm.examples.apps.teleport.app_receiver import main as receiver_main
+from netqasm.examples.apps.teleport.app_sender import main as sender_main
+from netqasm.runtime.application import Application, ApplicationInstance, Program
 from netqasm.runtime.env import get_timed_log_dir
-
+from netqasm.runtime.interface.config import default_network_config
+from netqasm.sdk.config import LogConfig
 from netqasm.sdk.external import NetQASMConnection
 from netqasm.sdk.qubit import Qubit
 
-from netqasm.examples.apps.teleport.app_sender import main as sender_main
-from netqasm.examples.apps.teleport.app_receiver import main as receiver_main
-
-from netqasm.sdk.config import LogConfig
+from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
 
 
 def alice_entry():

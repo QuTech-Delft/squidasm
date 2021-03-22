@@ -1,19 +1,18 @@
 from dataclasses import dataclass
-import numpy as np
 
+import numpy as np
 from netsquid.components.instructions import (
+    INSTR_CXDIR,
+    INSTR_CYDIR,
+    INSTR_INIT,
+    INSTR_MEASURE,
     INSTR_ROT_X,
     INSTR_ROT_Y,
     INSTR_ROT_Z,
-    INSTR_INIT,
-    INSTR_CXDIR,
-    INSTR_CYDIR,
-    INSTR_MEASURE,
 )
-from netsquid.components.qprocessor import QuantumProcessor
-from netsquid.qubits.operators import Operator
 from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
-from netsquid.components.qprocessor import PhysicalInstruction
+from netsquid.components.qprocessor import PhysicalInstruction, QuantumProcessor
+from netsquid.qubits.operators import Operator
 
 
 @dataclass

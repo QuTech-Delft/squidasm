@@ -1,32 +1,26 @@
-from typing import Optional, Dict, Any
-import netsquid as ns
-from multiprocessing.pool import ThreadPool
 import threading
+from multiprocessing.pool import ThreadPool
+from typing import Any, Dict, Optional
 
-from netqasm.runtime.runtime_mgr import RuntimeManager
+import netsquid as ns
+from netqasm.lang.instr.flavour import NVFlavour, VanillaFlavour
 from netqasm.logging.glob import get_netqasm_logger, set_log_level
-from netqasm.runtime.interface.config import (
-    QuantumHardware,
-    NetworkConfig,
-)
+from netqasm.logging.output import reset_struct_loggers, save_all_struct_loggers
 from netqasm.runtime.app_config import AppConfig
+from netqasm.runtime.application import ApplicationInstance
+from netqasm.runtime.interface.config import NetworkConfig, QuantumHardware
+from netqasm.runtime.runtime_mgr import RuntimeManager
+from netqasm.sdk.classical_communication import reset_socket_hub
+from netqasm.sdk.classical_communication.thread_socket.socket import ThreadSocket
+from netqasm.sdk.shared_memory import SharedMemoryManager
 
-from squidasm.sim.qnodeos import SubroutineHandler
-from squidasm.sim.network.stack import NetworkStack
+from squidasm.glob import pop_current_backend, put_current_backend
+from squidasm.interface.queues import QueueManager
 from squidasm.sim.network import reset_network
-from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour
 from squidasm.sim.network.network import NetSquidNetwork
 from squidasm.sim.network.nv_config import NVConfig
-from squidasm.glob import put_current_backend, pop_current_backend
-
-from netqasm.sdk.shared_memory import SharedMemoryManager
-from squidasm.interface.queues import QueueManager
-from netqasm.logging.output import save_all_struct_loggers, reset_struct_loggers
-from netqasm.sdk.classical_communication import reset_socket_hub
-
-from netqasm.runtime.application import ApplicationInstance
-from netqasm.sdk.classical_communication.thread_socket.socket import ThreadSocket
-
+from squidasm.sim.network.stack import NetworkStack
+from squidasm.sim.qnodeos import SubroutineHandler
 from squidasm.util.thread import as_completed
 
 _logger = get_netqasm_logger()

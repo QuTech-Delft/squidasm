@@ -1,21 +1,20 @@
 import os
-from typing import Optional, Callable, Dict, Any, List
-from netsquid import QFormalism
+from typing import Any, Callable, Dict, List, Optional
 
-from netqasm.util.yaml import dump_yaml
-from netqasm.runtime.settings import Formalism
+from netqasm.runtime import env, process_logs
+from netqasm.runtime.application import ApplicationInstance, load_yaml_file
 from netqasm.runtime.interface.config import (
-    default_network_config,
     NetworkConfig,
     QuantumHardware,
+    default_network_config,
 )
+from netqasm.runtime.settings import Formalism
 from netqasm.sdk.config import LogConfig
-from netqasm.runtime import env, process_logs
-from squidasm.sim.network.nv_config import parse_nv_config, NVConfig
+from netqasm.util.yaml import dump_yaml
+from netsquid import QFormalism
 
 from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
-from netqasm.runtime.application import ApplicationInstance, load_yaml_file
-
+from squidasm.sim.network.nv_config import NVConfig, parse_nv_config
 
 _NS_FORMALISMS = {
     Formalism.STAB: QFormalism.STAB,

@@ -1,17 +1,12 @@
 from collections import namedtuple
 
-from pydynaa import (
-    EventExpression,
-    EventType,
-    Entity,
-    EventHandler,
-)
+import netsquid as ns
+from netqasm.backend.executor import Executor, NotAllocatedError
 from netsquid.components.qmemory import MemPositionBusyError
 from netsquid.nodes.node import Node
-import netsquid as ns
 from netsquid_magic.sleeper import Sleeper
+from pydynaa import Entity, EventExpression, EventHandler, EventType
 
-from netqasm.backend.executor import Executor, NotAllocatedError
 from squidasm.logging.output import InstrLogger
 
 PendingEPRResponse = namedtuple(

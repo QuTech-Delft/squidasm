@@ -1,17 +1,15 @@
 import numpy as np
-
+from netqasm.lang.instr import core, nv
 from netsquid.components.instructions import (
+    INSTR_CXDIR,
+    INSTR_CYDIR,
     INSTR_INIT,
     INSTR_ROT_X,
     INSTR_ROT_Y,
     INSTR_ROT_Z,
-    INSTR_CXDIR,
-    INSTR_CYDIR,
 )
 
 from squidasm.sim.executor.base import NetSquidExecutor
-from netqasm.lang.instr import nv, core
-
 
 NV_NS_INSTR_MAPPING = {
     core.InitInstruction: INSTR_INIT,

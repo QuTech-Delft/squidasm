@@ -1,13 +1,12 @@
 from typing import List
 
+from netqasm.lang import instr as instructions
+from netqasm.logging.output import InstrLogger as NQInstrLogger
+from netqasm.logging.output import QubitGroups, QubitState
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits.qubit import Qubit
 
-from netqasm.logging.output import InstrLogger as NQInstrLogger
-from netqasm.logging.output import QubitGroups, QubitState
-from netqasm.lang import instr as instructions
-
-from squidasm.glob import get_running_backend, QubitInfo
+from squidasm.glob import QubitInfo, get_running_backend
 
 
 class InstrLogger(NQInstrLogger):
