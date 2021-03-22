@@ -19,7 +19,7 @@ from squidasm.sim.network.network import NetSquidNetwork
 from squidasm.sim.network.nv_config import NVConfig
 from squidasm.glob import put_current_backend, pop_current_backend
 
-from netqasm.sdk.shared_memory import reset_memories
+from netqasm.sdk.shared_memory import SharedMemoryManager
 from squidasm.interface.queues import QueueManager
 from netqasm.logging.output import save_all_struct_loggers, reset_struct_loggers
 from netqasm.sdk.classical_communication import reset_socket_hub
@@ -132,6 +132,7 @@ class SquidAsmRuntimeManager(RuntimeManager):
             subroutine_handler.stop()
         self._backend_thread.join()
         self._backend_thread = None
+        SharedMemoryManager.reset_memories()
         QueueManager.destroy_queues()
         reset_network()
         reset_socket_hub()
@@ -141,7 +142,7 @@ class SquidAsmRuntimeManager(RuntimeManager):
         if save_loggers:
             save_all_struct_loggers()
         ns.sim_reset()
-        reset_memories()
+        SharedMemoryManager.reset_memories()
         reset_network()
         QueueManager.reset_queues()
         reset_socket_hub()
