@@ -36,6 +36,9 @@ endif
 clean:
 	@/usr/bin/find . -name '*.pyc' -delete
 
+pip-list:
+	@$(PYTHON3) -m pip list
+
 lint-isort:
 	$(info Running isort...)
 	@$(PYTHON3) -m isort --check --diff ${SOURCEDIR} ${TESTDIR} ${EXAMPLEDIR}
@@ -53,7 +56,7 @@ lint-mypy:
 	@$(PYTHON3) -m mypy ${SOURCEDIR} ${TESTDIR} ${EXAMPLEDIR}
 
 # TODO: also run lint-mypy
-lint: lint-isort lint-black lint-flake8
+lint: pip-list lint-isort lint-black lint-flake8
 
 tests:
 	@$(PYTHON3) -m pytest --cov=${SOURCEDIR} --cov-fail-under=${MINCOV} tests
