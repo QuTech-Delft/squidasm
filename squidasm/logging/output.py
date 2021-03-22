@@ -1,6 +1,6 @@
 from typing import List
 
-from netqasm.lang import instr as instructions
+from netqasm.lang import instr as ins
 from netqasm.logging.output import InstrLogger as NQInstrLogger
 from netqasm.logging.output import QubitGroups, QubitState
 from netsquid.qubits import qubitapi as qapi
@@ -52,22 +52,22 @@ class InstrLogger(NQInstrLogger):
 
     def _get_node_name(self) -> str:
         """Returns the name of this node"""
-        return self._executor._node.name
+        return self._executor._node.name  # type: ignore
 
     def _update_qubits(
         self,
         subroutine_id: int,
-        instr: instructions.base.NetQASMInstruction,
+        instr: ins.NetQASMInstruction,
         qubit_ids: List[int],
     ) -> None:
         add_qubit_instrs = [
-            instructions.core.InitInstruction,
-            instructions.core.CreateEPRInstruction,
-            instructions.core.RecvEPRInstruction,
+            ins.core.InitInstruction,
+            ins.core.CreateEPRInstruction,
+            ins.core.RecvEPRInstruction,
         ]
         remove_qubit_instrs = [
-            instructions.core.QFreeInstruction,
-            instructions.core.MeasInstruction,
+            ins.core.QFreeInstruction,
+            ins.core.MeasInstruction,
         ]
         node_name = self._get_node_name()
         if any(isinstance(instr, cmd_cls) for cmd_cls in add_qubit_instrs):

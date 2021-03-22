@@ -1,15 +1,18 @@
 from timeit import default_timer as timer
-from typing import Dict, Tuple
+from typing import Dict, Generator, Tuple, Union
 
 from netqasm.backend.network_stack import Address, BaseNetworkStack
+from netsquid.nodes.node import Node as NetSquidNode
 from netsquid_magic.link_layer import LinkLayerService
 from netsquid_magic.sleeper import Sleeper
-from qlink_interface import LinkLayerRecv
+from qlink_interface import LinkLayerCreate, LinkLayerRecv
+
+from pydynaa import EventExpression
 
 
 # NOTE This is a hack for now to have something that the signaling protocol would do
 class SignalingProtocol:
-    def __init__(self):
+    def __init__(self) -> None:
         # Mapping (addr1, addr2) -> circuit ID
         self._circuits: Dict[Tuple[Address, Address], int] = {}
 
@@ -23,17 +26,17 @@ class SignalingProtocol:
 
         self._next_purpose_id: int = 0
 
-    def reset(self):
-        self.__init__()
+    def reset(self) -> None:
+        self.__init__()  # type: ignore
 
-    def setup_circuit(self, local_address, remote_address):
+    def setup_circuit(self, local_address: Address, remote_address: Address) -> None:
         circuit_id = self.get_circuit_id(
             local_address=local_address,
             remote_address=remote_address,
         )
         self._circuits[(local_address, remote_address)] = circuit_id
 
-    def get_circuit_id(self, local_address, remote_address):
+    def get_circuit_id(self, local_address: Address, remote_address: Address) -> int:
         return hash(
             frozenset(
                 [
@@ -76,7 +79,9 @@ class SignalingProtocol:
         for key in keys:
             self._purpose_ids[key] = purpose_id
 
-    def _get_purpose_id(self, node_id, remote_node_id, epr_socket_id):
+    def _get_purpose_id(
+        self, node_id: int, remote_node_id: int, epr_socket_id: int
+    ) -> int:
         purpose_id = self._purpose_ids.get((node_id, remote_node_id, epr_socket_id))
         if purpose_id is None:
             raise ValueError(
@@ -88,25 +93,27 @@ class SignalingProtocol:
 
 
 # A single instance of the (hack) signaling protocol
-_SIGNALING_PROTOCOL = SignalingProtocol()
+_SIGNALING_PROTOCOL: SignalingProtocol = SignalingProtocol()
 
 
-def reset_network():
+def reset_network() -> None:
     _SIGNALING_PROTOCOL.reset()
 
 
 class NetworkStack(BaseNetworkStack):
-    def __init__(self, node, link_layer_services):
-        self._node = node
+    def __init__(
+        self, node: NetSquidNode, link_layer_services: Dict[int, LinkLayerService]
+    ) -> None:
+        self._node: NetSquidNode = node
 
         # Map keys are remote node IDs
         self._link_layer_services: Dict[int, LinkLayerService] = link_layer_services
 
-        self._signaling_protocol = _SIGNALING_PROTOCOL
+        self._signaling_protocol: SignalingProtocol = _SIGNALING_PROTOCOL
 
-        self._sleeper = Sleeper()
+        self._sleeper: Sleeper = Sleeper()
 
-    def put(self, request):
+    def put(self, request: Union[LinkLayerCreate, LinkLayerRecv]) -> None:
         remote_node_id = request.remote_node_id
         # For now use only link layer
         link_layer_service = self._link_layer_services.get(remote_node_id)
@@ -114,11 +121,15 @@ class NetworkStack(BaseNetworkStack):
             raise ValueError(
                 f"The node with ID {remote_node_id} is not known to the network"
             )
-        return link_layer_service.put(request)
+        link_layer_service.put(request)
 
     def setup_epr_socket(
-        self, epr_socket_id, remote_node_id, remote_epr_socket_id, timeout=5
-    ):
+        self,
+        epr_socket_id: int,
+        remote_node_id: int,
+        remote_epr_socket_id: int,
+        timeout: float = 5.0,
+    ) -> Generator[EventExpression, None, None]:
         """Asks the network stack to setup circuits to be used"""
         local_address = Address(
             node_id=self._node.ID,

@@ -49,7 +49,10 @@ class NetSquidNetwork(Network):
     """
 
     def __init__(
-        self, network_config: NetworkConfig, nv_config: NVConfig, global_log_dir=None
+        self,
+        network_config: NetworkConfig,
+        nv_config: Optional[NVConfig],
+        global_log_dir=None,
     ):
         if global_log_dir is not None:
             logger_path = os.path.join(global_log_dir, "network_log.yaml")
@@ -92,7 +95,7 @@ class NetSquidNetwork(Network):
         return self._node_hardware_types
 
     @property
-    def link_layer_services(self):
+    def link_layer_services(self) -> Dict[str, Dict[int, LinkLayerService]]:
         return self._link_layer_services
 
     def global_log(self, *args, **kwargs):

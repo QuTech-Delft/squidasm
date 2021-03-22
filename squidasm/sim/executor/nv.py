@@ -26,7 +26,6 @@ class NVNetSquidExecutor(NetSquidExecutor):
         self,
         node,
         name=None,
-        network_stack=None,
         instr_log_dir=None,
         flavour=None,
         instr_proc_time=0,
@@ -36,7 +35,6 @@ class NVNetSquidExecutor(NetSquidExecutor):
         super().__init__(
             node,
             name,
-            network_stack,
             instr_log_dir,
             instr_mapping=NV_NS_INSTR_MAPPING,
             instr_proc_time=instr_proc_time,
