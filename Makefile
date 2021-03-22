@@ -38,7 +38,7 @@ clean:
 
 lint-isort:
 	$(info Running isort...)
-	@$(PYTHON3) -m isort --check ${SOURCEDIR} ${TESTDIR} ${EXAMPLEDIR}
+	@$(PYTHON3) -m isort --check --diff ${SOURCEDIR} ${TESTDIR} ${EXAMPLEDIR}
 
 lint-black:
 	$(info Running black...)
