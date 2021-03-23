@@ -179,7 +179,9 @@ class NetSquidExecutor(Executor, Entity):
             )
         return ns_instr
 
-    def _do_meas(self, subroutine_id: int, q_address: int):
+    def _do_meas(
+        self, subroutine_id: int, q_address: int
+    ) -> Generator[EventExpression, None, int]:
         position = self._get_position(subroutine_id=subroutine_id, address=q_address)
         return self._meas_physical_qubit(position)
 

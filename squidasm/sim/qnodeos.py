@@ -87,7 +87,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
         self,
         node: NetSquidNode,
         instr_log_dir: Optional[str] = None,
-        flavour: Flavour = None,
+        flavour: Optional[Flavour] = None,
         instr_proc_time: int = 0,
         host_latency: int = 0,
     ):

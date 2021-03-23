@@ -45,8 +45,9 @@ class SquidAsmRuntimeManager(RuntimeManager):
         return self._network_instance
 
     @property
-    def nodes(self):
-        return self.network.nodes
+    def nodes(self) -> Dict[str, NetSquidNode]:
+        assert self.network is not None
+        return self.network.nodes  # type: ignore
 
     @property
     def netsquid_formalism(self) -> ns.QFormalism:

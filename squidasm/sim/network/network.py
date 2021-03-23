@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import netsquid as ns
 import numpy as np
@@ -24,6 +24,7 @@ from netsquid_magic.link_layer import (
     LinkLayerService,
     MagicLinkLayerProtocol,
     SingleClickTranslationUnit,
+    TranslationUnit,
 )
 from netsquid_magic.magic_distributor import (
     BitflipMagicDistributor,
@@ -36,6 +37,8 @@ from qlink_interface import LinkLayerOKTypeK, LinkLayerOKTypeM, RequestType
 
 from squidasm.glob import QubitInfo
 from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
+
+T_SingleQubitState = Tuple[Tuple[np.complex, np.complex]]
 
 logger = get_netqasm_logger()
 
@@ -52,18 +55,21 @@ class NetSquidNetwork(Network):
         self,
         network_config: NetworkConfig,
         nv_config: Optional[NVConfig],
-        global_log_dir=None,
-    ):
+        global_log_dir: Optional[str] = None,
+    ) -> None:
+        self._global_logger: NetworkLogger
         if global_log_dir is not None:
             logger_path = os.path.join(global_log_dir, "network_log.yaml")
             self._global_logger = NetworkLogger(logger_path)
         else:
             self._global_logger = None
 
-        self._network_config = network_config
-        self._nv_config = nv_config
+        self._network_config: NetworkConfig = network_config
+        self._nv_config: Optional[NVConfig] = nv_config
         self._node_hardware_types: Dict[str, QuantumHardware] = {}
 
+        self._instr_proc_time: int
+        self._host_latency: int
         if nv_config is not None:
             self._instr_proc_time = nv_config.instr_proc_time
             self._host_latency = nv_config.host_latency
@@ -78,31 +84,31 @@ class NetSquidNetwork(Network):
         self._create_link_layer_services()
 
     # TODO: set_log_directory()
-    def set_logger(self, log_dir):
+    def set_logger(self, log_dir: str):
         logger_path = os.path.join(log_dir, "network_log.yaml")
         self._global_logger = NetworkLogger(logger_path)
 
     @property
-    def instr_proc_time(self):
+    def instr_proc_time(self) -> int:
         return self._instr_proc_time
 
     @property
-    def host_latency(self):
+    def host_latency(self) -> int:
         return self._host_latency
 
     @property
-    def node_hardware_types(self):
+    def node_hardware_types(self) -> Dict[str, QuantumHardware]:
         return self._node_hardware_types
 
     @property
     def link_layer_services(self) -> Dict[str, Dict[int, LinkLayerService]]:
         return self._link_layer_services
 
-    def global_log(self, *args, **kwargs):
+    def global_log(self, *args, **kwargs) -> None:
         if self._global_logger is not None:
             self._global_logger.log(*args, **kwargs)
 
-    def _build_network(self):
+    def _build_network(self) -> None:
         for i, node_cfg in enumerate(self._network_config.nodes):
             try:
                 hardware = QuantumHardware(node_cfg.hardware)
@@ -137,7 +143,7 @@ class NetSquidNetwork(Network):
             node = Node(name=node_cfg.name, ID=i, qmemory=qdevice)
             self.add_node(node)
 
-    def _create_link_layer_services(self):
+    def _create_link_layer_services(self) -> None:
         """
         Create a MagicNetworkLayerProtocol for each link in the network,
         and create link layer services for each of the endpoints for each link.
@@ -218,18 +224,23 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
     """
 
     def __init__(
-        self, nodes, magic_distributor, translation_unit, path: List[str], network
-    ):
+        self,
+        nodes: Tuple[Node, Node],
+        magic_distributor: MagicDistributor,
+        translation_unit: TranslationUnit,
+        path: List[str],
+        network: NetSquidNetwork,
+    ) -> None:
         super().__init__(
             nodes=nodes,
             magic_distributor=magic_distributor,
             translation_unit=translation_unit,
         )
 
-        self.path = path
-        self.network = network
+        self.path: List[str] = path
+        self.network: NetSquidNetwork = network
 
-    def _get_unused_memory_positions(self):
+    def _get_unused_memory_positions(self) -> Optional[Dict[int, int]]:
         # NOTE override this method in order to be able to see what qubits are being used
         # In the current version of the magic link layer protocol, if there are memory_positions
         # then the generation of the pair will for sure start. However this could
@@ -261,9 +272,11 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             msg=f"start entanglement creation between {nodes[0]} and {nodes[1]}",
         )
 
-        return memory_positions
+        return memory_positions  # type: ignore
 
-    def _get_log_data(self, memory_positions, get_qubit_states=False):
+    def _get_log_data(
+        self, memory_positions: Dict[int, int], get_qubit_states: bool = False
+    ) -> Tuple[List[str], List[int], List[Optional[T_SingleQubitState]]]:
         nodes = []
         qubit_ids = []
         qubit_states = []
@@ -278,7 +291,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         return nodes, qubit_ids, qubit_states
 
     @staticmethod
-    def _get_qubit_state(node, phys_pos):
+    def _get_qubit_state(node: Node, phys_pos: int) -> Optional[T_SingleQubitState]:
         try:
             qubit = node.qmemory._get_qubits(phys_pos)[0]
         except MemPositionBusyError:
@@ -291,7 +304,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             qubit_state = qapi.reduced_dm(qubit).tolist()
         return qubit_state
 
-    def _handle_delivery(self, event):
+    def _handle_delivery(self, event: Any) -> None:
         """
         NOTE: This is a literal copy of the _handle_delivery method in the netsquid_magic package,
         with one change: the `messages` dict is returned at the end, so that their contents can be logged.
@@ -370,6 +383,8 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         # For Measure Directly requests, check the response messages
         # to be able to log the bases and outcomes.
+        meas_bases: Optional[List[int]]
+        meas_outcomes: Optional[List[int]]
         if request.type == RequestType.M:
             meas_bases = [resp.measurement_basis.value for resp in messages.values()]
             meas_outcomes = [resp.measurement_outcome for resp in messages.values()]
@@ -406,7 +421,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
 class QDevice(QuantumProcessor):
     # Default instructions. Durations are arbitrary
-    _default_phys_instructions = [
+    _default_phys_instructions: List[PhysicalInstruction] = [
         PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1e5),
         PhysicalInstruction(ns_instructions.INSTR_X, duration=1e3),
         PhysicalInstruction(ns_instructions.INSTR_Y, duration=1e3),
@@ -424,12 +439,12 @@ class QDevice(QuantumProcessor):
 
     def __init__(
         self,
-        name="QDevice",
-        num_qubits=5,
-        phys_instrs=None,
-        gate_fidelity=1,
-        mem_fidelities=None,
-    ):
+        name: str = "QDevice",
+        num_qubits: int = 5,
+        phys_instrs: Optional[List[PhysicalInstruction]] = None,
+        gate_fidelity: float = 1.0,
+        mem_fidelities: Optional[List[float]] = None,
+    ) -> None:
         self.gate_fidelity = gate_fidelity
         if mem_fidelities is None:
             mem_fidelities = [T1T2NoiseModel(0, 0) for _ in range(num_qubits)]
@@ -454,9 +469,13 @@ class NVQDevice(QDevice):
     """
 
     def __init__(
-        self, name="NVQDevice", num_qubits=5, gate_fidelity=1, mem_fidelities=None
-    ):
-        phys_instrs = [
+        self,
+        name: str = "NVQDevice",
+        num_qubits: int = 5,
+        gate_fidelity: float = 1,
+        mem_fidelities: Optional[List[float]] = None,
+    ) -> None:
+        phys_instrs: List[PhysicalInstruction] = [
             PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),
             PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=2),
             PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=2),

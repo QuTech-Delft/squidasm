@@ -1,10 +1,11 @@
-from netqasm.sdk.qubit import Qubit
+import numpy as np
+from netqasm.sdk.qubit import Qubit as SdkQubit
 from netsquid.qubits import qubitapi as qapi
 
 from squidasm.glob import get_running_backend
 
 
-def get_qubit_state(qubit, reduced_dm=True):
+def get_qubit_state(qubit: SdkQubit, reduced_dm: bool = True) -> np.ndarray:
     """Get the state of the qubit(s), only possible in simulation and can be used for debugging.
 
     .. note:: The function gets the *current* state of the qubit(s). So make sure the the subroutine is flushed
@@ -24,7 +25,7 @@ def get_qubit_state(qubit, reduced_dm=True):
     np.array
         The state as a density matrix.
     """
-    if isinstance(qubit, Qubit):
+    if isinstance(qubit, SdkQubit):
         qubits = [qubit]
     else:
         qubits = list(qubit)

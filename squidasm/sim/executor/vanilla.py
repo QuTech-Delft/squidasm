@@ -1,4 +1,9 @@
+from typing import Dict, Optional
+
+from netqasm.lang import instr as ins
 from netqasm.lang.instr import core, vanilla
+from netqasm.lang.instr.flavour import Flavour
+from netsquid.components import Instruction as NetSquidInstruction
 from netsquid.components.instructions import (
     INSTR_CNOT,
     INSTR_CZ,
@@ -15,10 +20,13 @@ from netsquid.components.instructions import (
     INSTR_Y,
     INSTR_Z,
 )
+from netsquid.nodes.node import Node as NetSquidNode
 
 from squidasm.sim.executor.base import NetSquidExecutor
 
-VANILLA_NS_INSTR_MAPPING = {
+T_InstrMap = Dict[ins.NetQASMInstruction, NetSquidInstruction]
+
+VANILLA_NS_INSTR_MAPPING: T_InstrMap = {
     core.InitInstruction: INSTR_INIT,
     vanilla.GateXInstruction: INSTR_X,
     vanilla.GateYInstruction: INSTR_Y,
@@ -39,12 +47,12 @@ VANILLA_NS_INSTR_MAPPING = {
 class VanillaNetSquidExecutor(NetSquidExecutor):
     def __init__(
         self,
-        node,
-        name=None,
-        instr_log_dir=None,
-        flavour=None,
-        instr_proc_time=0,
-        host_latency=0,
+        node: NetSquidNode,
+        name: Optional[str] = None,
+        instr_log_dir: Optional[str] = None,
+        flavour: Optional[Flavour] = None,
+        instr_proc_time: int = 0,
+        host_latency: int = 0,
     ):
         """Represents a QNodeOS processor that communicates with a QDevice that supports vanilla instructions"""
         super().__init__(

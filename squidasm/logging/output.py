@@ -25,6 +25,8 @@ class InstrLogger(NQInstrLogger):
     ) -> Qubit:
         """Returns the qubit object in memory"""
         backend = get_running_backend()
+        if backend is None:
+            raise RuntimeError("Backend is None")
         executor = backend.subroutine_handlers[node_name]._executor
         return executor._get_qubit(app_id=app_id, virtual_address=qubit_id)
 

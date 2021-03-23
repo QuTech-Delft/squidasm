@@ -156,7 +156,7 @@ class NetworkStack(BaseNetworkStack):
             timeout=timeout,
         )
 
-    def _setup_recv_rule(self, local_address, remote_address):
+    def _setup_recv_rule(self, local_address: Address, remote_address: Address) -> None:
         self._signaling_protocol._assign_purpose_id(
             local_address=local_address,
             remote_address=remote_address,
@@ -167,7 +167,9 @@ class NetworkStack(BaseNetworkStack):
         )
         self.put(request=recv_request)
 
-    def _get_recv_request(self, local_address, remote_address):
+    def _get_recv_request(
+        self, local_address: Address, remote_address: Address
+    ) -> LinkLayerRecv:
         # NOTE using purpose ID for now since we communicate with link layer
         purpose_id = self.get_purpose_id(
             remote_node_id=remote_address.node_id,
@@ -179,14 +181,16 @@ class NetworkStack(BaseNetworkStack):
         )
 
     # NOTE this is used for now since we communicate directly to the link layer
-    def get_purpose_id(self, remote_node_id, epr_socket_id):
+    def get_purpose_id(self, remote_node_id: int, epr_socket_id: int) -> int:
         return self._signaling_protocol._get_purpose_id(
             node_id=self._node.ID,
             remote_node_id=remote_node_id,
             epr_socket_id=epr_socket_id,
         )
 
-    def _wait_for_remote_node(self, local_address, remote_address, timeout=1):
+    def _wait_for_remote_node(
+        self, local_address: Address, remote_address: Address, timeout: float = 1.0
+    ) -> Generator[EventExpression, None, None]:
         t_start = timer()
         while True:
             if self._signaling_protocol.has_circuit(
