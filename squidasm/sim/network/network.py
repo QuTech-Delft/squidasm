@@ -35,7 +35,7 @@ from netsquid_magic.magic_distributor import (
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
 from qlink_interface import LinkLayerOKTypeK, LinkLayerOKTypeM, RequestType
 
-from squidasm.glob import QubitInfo
+from squidasm.glob import QubitInfo, get_running_backend
 from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
 
 T_SingleQubitState = Tuple[Tuple[np.complex, np.complex]]
@@ -54,7 +54,7 @@ class NetSquidNetwork(Network):
     def __init__(
         self,
         network_config: NetworkConfig,
-        nv_config: Optional[NVConfig],
+        nv_config: Optional[NVConfig] = None,
         global_log_dir: Optional[str] = None,
     ) -> None:
         self._global_logger: NetworkLogger
@@ -257,7 +257,11 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         nodes = [node.name for node in self.nodes]
         qubit_ids = [memory_positions[node.ID] for node in self.nodes]
 
-        qubit_groups = QubitInfo.get_qubit_groups()
+        if get_running_backend(block=False) is None:
+            # TODO: handle in a better way
+            qubit_groups = None
+        else:
+            qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -401,7 +405,12 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         for node in self.nodes:
             QubitInfo.update_qubits_used(node.name, memory_positions[node.ID], True)
-        qubit_groups = QubitInfo.get_qubit_groups()
+
+        if get_running_backend(block=False) is None:
+            # TODO: handle in a better way
+            qubit_groups = None
+        else:
+            qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
