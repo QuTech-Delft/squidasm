@@ -31,6 +31,8 @@ def get_qubit_state(qubit: SdkQubit, reduced_dm: bool = True) -> np.ndarray:
         qubits = list(qubit)
     # Get the executor and qmemory from the backend
     backend = get_running_backend()
+    if backend is None:
+        raise RuntimeError("Backend is None")
     ns_qubits = []
     for q in qubits:
         node_name = q._conn.node_name

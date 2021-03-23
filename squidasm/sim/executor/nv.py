@@ -1,4 +1,4 @@
-from typing import Dict, Generator, List, Optional
+from typing import Dict, Generator, Optional
 
 import numpy as np
 from netqasm.lang import instr as ins
@@ -15,7 +15,7 @@ from netsquid.components.instructions import (
 )
 from netsquid.nodes.node import Node as NetSquidNode
 
-from pydynaa import Entity, EventExpression, EventHandler, EventType
+from pydynaa import EventExpression
 from squidasm.sim.executor.base import NetSquidExecutor
 
 T_InstrMap = Dict[ins.NetQASMInstruction, NetSquidInstruction]
