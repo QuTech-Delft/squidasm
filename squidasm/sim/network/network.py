@@ -35,10 +35,18 @@ from netsquid_magic.magic_distributor import (
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
 from qlink_interface import LinkLayerOKTypeK, LinkLayerOKTypeM, RequestType
 
+from pydynaa import EventType
 from squidasm.glob import QubitInfo, get_running_backend
 from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
 
 T_SingleQubitState = Tuple[Tuple[np.complex, np.complex]]
+
+EprDeliveredEvent: EventType = EventType(
+    "EPR_DELIVERED",
+    "Event that an EPR has been delivered by a Distributor, and hence Executors "
+    "can start looking at their updated Array values",
+)
+
 
 logger = get_netqasm_logger()
 
@@ -424,6 +432,8 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             qubit_groups=qubit_groups,
             msg=f"entanglement of type {request.type.value} created between {node_names[0]} and {node_names[1]}",
         )
+
+        self._schedule_now(EprDeliveredEvent)
 
         self._handle_next()
 

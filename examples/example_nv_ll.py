@@ -215,8 +215,7 @@ ret_arr @2
 def main():
     start = time.perf_counter()
 
-    # set_log_level(logging.DEBUG)
-    set_log_level(logging.WARNING)
+    set_log_level(logging.INFO)
 
     network_cfg = default_network_config(["alice", "bob"], hardware=QuantumHardware.NV)
     network = NetSquidNetwork(network_cfg)

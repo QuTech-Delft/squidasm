@@ -199,6 +199,9 @@ class NetSquidExecutor(Executor, Entity):
     def _do_wait(self) -> Generator[EventExpression, None, None]:
         self._schedule_after(1e3, self._wait_event)
         yield EventExpression(source=self, event_type=self._wait_event)
+        # self._logger.info("waiting for EprDeliveryEvent")
+        # yield EventExpression(event_type=EprDeliveredEvent)
+        # self._logger.info("EprDeliveryEvent has happened")
 
     def _get_unused_physical_qubit(self) -> int:
         # Assuming that the topology of the unit module is a complete graph
