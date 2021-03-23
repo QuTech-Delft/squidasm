@@ -87,4 +87,4 @@ def is_ppt(mat: ndarray, dim: int = 2, size_b: Optional[int] = None) -> bool:
     Inputs are the same as for :func:`~.partial_transpose`.
     """
     pt_mat = partial_transpose(mat=mat, dim=dim, size_b=size_b)
-    return np.all(linalg.eigvals(pt_mat) >= 0)
+    return np.all(linalg.eigvals(pt_mat) >= 0)  # type: ignore

@@ -1,5 +1,10 @@
+from typing import Dict, Generator, Optional
+
 import numpy as np
+from netqasm.lang import instr as ins
 from netqasm.lang.instr import core, nv
+from netqasm.lang.instr.flavour import Flavour
+from netsquid.components import Instruction as NetSquidInstruction
 from netsquid.components.instructions import (
     INSTR_CXDIR,
     INSTR_CYDIR,
@@ -8,10 +13,14 @@ from netsquid.components.instructions import (
     INSTR_ROT_Y,
     INSTR_ROT_Z,
 )
+from netsquid.nodes.node import Node as NetSquidNode
 
+from pydynaa import EventExpression
 from squidasm.sim.executor.base import NetSquidExecutor
 
-NV_NS_INSTR_MAPPING = {
+T_InstrMap = Dict[ins.NetQASMInstruction, NetSquidInstruction]
+
+NV_NS_INSTR_MAPPING: T_InstrMap = {
     core.InitInstruction: INSTR_INIT,
     nv.RotXInstruction: INSTR_ROT_X,
     nv.RotYInstruction: INSTR_ROT_Y,
@@ -24,26 +33,26 @@ NV_NS_INSTR_MAPPING = {
 class NVNetSquidExecutor(NetSquidExecutor):
     def __init__(
         self,
-        node,
-        name=None,
-        network_stack=None,
-        instr_log_dir=None,
-        flavour=None,
-        instr_proc_time=0,
-        host_latency=0,
-    ):
+        node: NetSquidNode,
+        name: Optional[str] = None,
+        instr_log_dir: Optional[str] = None,
+        flavour: Optional[Flavour] = None,
+        instr_proc_time: int = 0,
+        host_latency: int = 0,
+    ) -> None:
         """Represents a QNodeOS processor that communicates with a QDevice that supports NV instructions"""
         super().__init__(
             node,
             name,
-            network_stack,
             instr_log_dir,
             instr_mapping=NV_NS_INSTR_MAPPING,
             instr_proc_time=instr_proc_time,
             host_latency=host_latency,
         )
 
-    def _do_meas(self, subroutine_id, q_address):
+    def _do_meas(
+        self, subroutine_id: int, q_address: int
+    ) -> Generator[EventExpression, None, int]:
         position = self._get_position(subroutine_id=subroutine_id, address=q_address)
         if position != 0:  # a carbon
             # Move the state to the electron (position=0) first and then measure the electron.

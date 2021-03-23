@@ -13,6 +13,7 @@ from netqasm.runtime.runtime_mgr import RuntimeManager
 from netqasm.sdk.classical_communication import reset_socket_hub
 from netqasm.sdk.classical_communication.thread_socket.socket import ThreadSocket
 from netqasm.sdk.shared_memory import SharedMemoryManager
+from netsquid.nodes.node import Node as NetSquidNode
 
 from squidasm.glob import pop_current_backend, put_current_backend
 from squidasm.interface.queues import QueueManager
@@ -31,21 +32,22 @@ class SquidAsmRuntimeManager(RuntimeManager):
     _NETWORK_STACK_CLASS = NetworkStack
 
     def __init__(self):
-        self._network_instance = None
-        self._netsquid_formalism = ns.QFormalism.KET
-        self._subroutine_handlers = dict()
-        self._is_running = False
-        self._party_map = dict()
+        self._network_instance: Optional[NetSquidNetwork] = None
+        self._netsquid_formalism: ns.QFormalism = ns.QFormalism.KET
+        self._subroutine_handlers: Dict[str, SubroutineHandler] = dict()
+        self._is_running: bool = False
+        self._party_map: Dict[str, NetSquidNode] = dict()
         self._backend_thread = None
-        self._backend_log_dir = None
+        self._backend_log_dir: Optional[str] = None
 
     @property
     def network(self) -> Optional[NetSquidNetwork]:
         return self._network_instance
 
     @property
-    def nodes(self):
-        return self.network.nodes
+    def nodes(self) -> Dict[str, NetSquidNode]:
+        assert self.network is not None
+        return self.network.nodes  # type: ignore
 
     @property
     def netsquid_formalism(self) -> ns.QFormalism:
@@ -68,15 +70,16 @@ class SquidAsmRuntimeManager(RuntimeManager):
         self._backend_log_dir = new_dir
         for handler in self.subroutine_handlers.values():
             handler._executor.set_instr_logger(new_dir)
+        assert self._network_instance is not None
         self._network_instance.set_logger(new_dir)
 
     @property
-    def party_map(self):  # TODO type
+    def party_map(self) -> Dict[str, NetSquidNode]:
         return self._party_map
 
     # TODO rename
     @property
-    def app_node_map(self):  # TODO type
+    def app_node_map(self) -> Dict[str, NetSquidNode]:
         return self._party_map
 
     @property
@@ -169,6 +172,8 @@ class SquidAsmRuntimeManager(RuntimeManager):
         use_app_config=True,
         save_loggers=True,
     ) -> Dict[str, Any]:
+        assert self.network is not None
+
         programs = app_instance.app.programs
 
         for party, node_name in app_instance.party_alloc.items():

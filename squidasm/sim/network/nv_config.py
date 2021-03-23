@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Dict
 
 import numpy as np
 from netsquid.components.instructions import (
@@ -72,7 +73,7 @@ class NVLinkConfig:
 
 
 # Build a NVConfig object from a dict that is created by reading a yaml file.
-def parse_nv_config(cfg) -> NVConfig:
+def parse_nv_config(cfg: Dict) -> NVConfig:
     try:
         return NVConfig(
             tot_num_qubits=cfg["tot_num_qubits"],
@@ -107,7 +108,7 @@ def parse_nv_config(cfg) -> NVConfig:
         raise ValueError(f"Invalid NV configuration: key not found: {e}")
 
 
-def build_nv_qdevice(name, cfg: NVConfig):
+def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
 
     # noise models for single- and multi-qubit operations
     electron_init_noise = DepolarNoiseModel(
