@@ -1,24 +1,12 @@
 from __future__ import annotations
 
-from threading import Thread
 from typing import TYPE_CHECKING, Callable, List, Optional, Type
 
 from netqasm.backend.executor import Executor
-from netqasm.lang.instr.flavour import NVFlavour
-from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.network import NetworkInfo
-from netqasm.sdk.shared_memory import SharedMemoryManager
+from netqasm.sdk.shared_memory import SharedMemory, SharedMemoryManager
 from netsquid.components.component import Port
-
-from squidasm.glob import (
-    get_node_id,
-    get_node_id_for_app,
-    get_node_name,
-    get_node_name_for_app,
-    get_running_backend,
-)
-from squidasm.interface.queues import QueueManager
 
 from .sdk import NetSquidNetworkInfo
 
@@ -26,8 +14,6 @@ if TYPE_CHECKING:
     from netqasm.sdk.compiling import SubroutineCompiler
     from netqasm.sdk.config import LogConfig
     from netqasm.sdk.epr_socket import EPRSocket
-
-    from squidasm.interface.queues import TaskQueue
 
 
 class SThreadNetSquidConnection(BaseNetQASMConnection):
@@ -76,7 +62,7 @@ class SThreadNetSquidConnection(BaseNetQASMConnection):
 
     @property
     def shared_memory(self) -> SharedMemory:
-        if self._shared_memory is None:
+        if self._shared_memory is None:  # type: ignore
             mem = SharedMemoryManager.get_shared_memory(
                 self.node_name, key=self._app_id
             )

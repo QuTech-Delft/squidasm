@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Generator
 
-from netqasm.sdk.classical_communication.message import StructuredMessage
 from netqasm.sdk.classical_communication.socket import Socket
 from netsquid.components.component import Port
-from netsquid.protocols import NodeProtocol
-
-if TYPE_CHECKING:
-    from netqasm.sdk.config import LogConfig
 
 from pydynaa import EventExpression, EventType
+
+if TYPE_CHECKING:
+    from .protocols import HostProtocol
 
 NewClasMsgEvent: EventType = EventType(
     "NewClasMsgEvent",
@@ -23,7 +21,7 @@ class NetSquidSocket(Socket):
         self,
         app_name: str,
         remote_app_name: str,
-        protocol: NodeProtocol,
+        protocol: HostProtocol,
         port: Port,
         socket_id: int = 0,
     ):
@@ -31,8 +29,8 @@ class NetSquidSocket(Socket):
         super().__init__(
             app_name=app_name, remote_app_name=remote_app_name, socket_id=socket_id
         )
-        self._protocol = protocol
-        self._port = port
+        self._protocol: HostProtocol = protocol
+        self._port: Port = port
 
     def send(self, msg: str) -> None:
         """Sends a message to the remote node."""

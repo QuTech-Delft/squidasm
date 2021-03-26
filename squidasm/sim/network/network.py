@@ -322,7 +322,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         with one change: the `messages` dict is returned at the end, so that their contents can be logged.
         """
 
-        logger.info("Handling delivery of entanglement")
+        # logger.info("Handling delivery of entanglement")
         queue_item = self._pop_from_requests_in_process(event)
         request = queue_item.request
         node_id = queue_item.node_id
