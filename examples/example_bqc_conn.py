@@ -1,4 +1,5 @@
 import logging
+import math
 import time
 from typing import Dict, Generator, List, Optional, Tuple
 
@@ -12,15 +13,18 @@ from netqasm.lang.subroutine import Subroutine
 from netqasm.logging.glob import set_log_level
 from netqasm.runtime.interface.config import QuantumHardware, default_network_config
 from netqasm.sdk.compiling import NVSubroutineCompiler
+from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.shared_memory import SharedMemory, SharedMemoryManager
 from netsquid.components import ClassicalChannel
 from netsquid.components.component import Port
 from netsquid.nodes import Node
 from netsquid.nodes.connections import DirectConnection
-from netsquid.protocols import NodeProtocol
+from netsquid.protocols import NodeProtocol, Protocol
 
-from pydynaa import EventExpression
+from pydynaa import EventExpression, EventType
+from squidasm.sdk.socket import NetSquidSocket as Socket
+from squidasm.sdk.socket import NewClasMsgEvent
 from squidasm.sdk.sthread import SThreadNetSquidConnection
 from squidasm.sim.executor.nv import NVNetSquidExecutor
 from squidasm.sim.network.network import NetSquidNetwork
@@ -70,8 +74,14 @@ class HostProtocol(NodeProtocol):
     def __init__(self, name: str, qnodeos: QNodeOsProtocol) -> None:
         super().__init__(node=Node(f"host_{name}"))
         self.node.add_ports(["qnos"])
+        self.node.add_ports(["peer"])
         self._qnodeos = qnodeos
         self._result: Optional[Dict] = None
+
+        self._qnos_input_buffer: List[str] = []
+        self._cl_input_buffer: List[str] = []
+
+        self._listener = HostListener(self.node.ports["peer"])
 
         self._conn: SThreadNetSquidConnection = SThreadNetSquidConnection(
             app_name="name",
@@ -84,13 +94,19 @@ class HostProtocol(NodeProtocol):
     def qnos_port(self) -> Port:
         return self.node.ports["qnos"]
 
+    @property
+    def peer_port(self) -> Port:
+        return self.node.ports["peer"]
+
     def _send_text_subroutine(self, text: str) -> None:
         subroutine = parse_text_subroutine(text, flavour=NVFlavour())
         self.qnos_port.tx_output(bytes(SubroutineMessage(subroutine)))
 
     def _receive_results(self) -> Generator[EventExpression, None, SharedMemory]:
-        yield self.await_port_input(self.qnos_port)
-        msg = self.qnos_port.rx_input().items[0]
+        if len(self._qnos_input_buffer) == 0:
+            yield self.await_port_input(self.qnos_port)
+            self._qnos_input_buffer = self.qnos_port.rx_input().items
+        msg = self._qnos_input_buffer.pop(0)
         assert msg == "done"
         shared_memory = self._qnodeos.executor._shared_memories[0]
         return shared_memory
@@ -98,86 +114,101 @@ class HostProtocol(NodeProtocol):
     def get_result(self) -> Optional[Dict]:
         return self._result
 
+    def _send_classical(self, text: str) -> None:
+        print(f"Sending msg {text} at time {ns.sim_time()}")
+        self.peer_port.tx_output(text)
+
+    def start(self) -> None:
+        super().start()
+        self._listener.start()
+
+    def stop(self) -> None:
+        self._listener.stop()
+        super().stop()
+
+    def _recv_classical(self) -> Generator[EventExpression, None, str]:
+        if len(self._listener._buffer) == 0:
+            yield EventExpression(event_type=NewClasMsgEvent)
+        return self._listener._buffer.pop(0)
+
+
+class HostListener(Protocol):
+    def __init__(self, port: Port) -> None:
+        self._buffer: List[str] = []
+        self._port: Port = port
+
+    def run(self) -> Generator[EventExpression, None, None]:
+        while True:
+            yield self.await_port_input(self._port)
+            self._buffer += self._port.rx_input().items
+            self._schedule_now(NewClasMsgEvent)
+
 
 class ClientProtocol(HostProtocol):
     def run(self) -> Generator[EventExpression, None, None]:
         app_id = 0
-        self._qnodeos.executor.init_new_application(app_id=app_id, max_qubits=1)
+        self._qnodeos.executor.init_new_application(app_id=app_id, max_qubits=2)
         yield from self._qnodeos.executor.setup_epr_socket(0, 1, 0)
 
-        subroutine = """
-# NETQASM 1.0
-# APPID 0
-set R0 10
-array R0 @0
-set R0 1
-array R0 @1
-set R0 0
-set R1 0
-store R0 @1[R1]
-set R0 20
-array R0 @2
-set R0 0
-set R1 0
-store R0 @2[R1]
-set R0 1
-set R1 1
-store R0 @2[R1]
-set R0 10
-array R0 @3
-set R0 1
-array R0 @4
-set R0 0
-set R1 0
-store R0 @4[R1]
-set R0 20
-array R0 @5
-set R0 0
-set R1 0
-store R0 @5[R1]
-set R0 1
-set R1 1
-store R0 @5[R1]
-set R0 1
-set R1 0
-set R2 1
-set R3 2
-set R4 0
-create_epr R0 R1 R2 R3 R4
-set R0 0
-set R1 10
-wait_all @0[R0:R1]
-set Q0 0
-rot_y Q0 8 4
-rot_x Q0 16 4
-set Q0 0
-meas Q0 M0
-qfree Q0
-set R0 1
-set R1 0
-set R2 4
-set R3 5
-set R4 3
-create_epr R0 R1 R2 R3 R4
-set R0 0
-set R1 10
-wait_all @3[R0:R1]
-set Q0 0
-rot_y Q0 8 4
-rot_x Q0 16 4
-set Q0 0
-meas Q0 M1
-qfree Q0
-ret_reg M0
-ret_reg M1
-"""
-        # self._send_text_subroutine(subroutine)
+        epr_socket = EPRSocket("server")
+        epr_socket._conn = self._conn
+        epr_socket._remote_node_id = 1
+
+        socket = Socket("client", "server", self, self.peer_port)
+
+        alpha = 0
+        beta = 0
+        theta1 = 0
+        theta2 = 0
+        r1 = 0
+        r2 = 0
+        trap = False
 
         with self._conn as client:
-            q = Qubit(client)
-        results = yield from self._receive_results()
-        p1 = results.get_register("M0")
-        p2 = results.get_register("M1")
+            epr1 = epr_socket.create()[0]
+
+            # RSP
+            if trap and dummy == 2:
+                # remotely-prepare a dummy state
+                p2 = epr1.measure(store_array=False)
+            else:
+                epr1.rot_Z(angle=theta2)
+                epr1.H()
+                p2 = epr1.measure(store_array=False)
+
+            # Create EPR pair
+            epr2 = epr_socket.create()[0]
+
+            # RSP
+            if trap and dummy == 1:
+                # remotely-prepare a dummy state
+                p1 = epr2.measure(store_array=False)
+            else:
+                epr2.rot_Z(angle=theta1)
+                epr2.H()
+                p1 = epr2.measure(store_array=False)
+            client.flush()
+
+            results = yield from self._receive_results()
+            p1 = results.get_register("M0")
+            p2 = results.get_register("M1")
+            p1 = int(p1)
+            p2 = int(p2)
+
+            if trap and dummy == 2:
+                delta1 = -theta1 + (p1 + r1) * math.pi
+            else:
+                delta1 = alpha - theta1 + (p1 + r1) * math.pi
+            socket.send(str(delta1))
+
+            m1 = yield from socket.recv()
+            m1 = int(m1)
+            if trap and dummy == 1:
+                delta2 = -theta2 + (p2 + r2) * math.pi
+            else:
+                delta2 = math.pow(-1, (m1 + r1)) * beta - theta2 + (p2 + r2) * math.pi
+            socket.send(str(delta2))
+
         self._result = {"p1": p1, "p2": p2}
 
 
@@ -187,92 +218,45 @@ class ServerProtocol(HostProtocol):
         self._qnodeos.executor.init_new_application(app_id=app_id, max_qubits=2)
         yield from self._qnodeos.executor.setup_epr_socket(0, 0, 0)
 
-        subrt1 = """
-# NETQASM 1.0
-# APPID 0
-set R0 10
-array R0 @0
-set R0 1
-array R0 @1
-set R0 0
-set R1 0
-store R0 @1[R1]
-set R0 10
-array R0 @2
-set R0 1
-array R0 @3
-set R0 0
-set R1 0
-store R0 @3[R1]
-set R0 0
-set R1 0
-set R2 1
-set R3 0
-recv_epr R0 R1 R2 R3
-set R0 0
-set R1 10
-wait_all @0[R0:R1]
-set Q0 1
-qalloc Q0
-init Q0
-set Q0 0
-set Q1 1
-rot_y Q0 8 4
-crot_y Q0 Q1 24 4
-rot_x Q0 24 4
-crot_x Q0 Q1 8 4
-set Q0 0
-qfree Q0
-set R0 0
-set R1 0
-set R2 3
-set R3 2
-recv_epr R0 R1 R2 R3
-set R0 0
-set R1 10
-wait_all @2[R0:R1]
-set Q0 0
-set Q1 1
-rot_y Q1 8 4
-crot_x Q0 Q1 8 4
-rot_z Q0 24 4
-rot_x Q1 24 4
-rot_y Q1 24 4
-"""
-        self._send_text_subroutine(subrt1)
-        yield from self._receive_results()
+        epr_socket = EPRSocket("client")
+        epr_socket._conn = self._conn
+        epr_socket._remote_node_id = 0
 
-        subrt2 = """
-# NETQASM 1.0
-# APPID 0
-set Q0 0
-rot_y Q0 8 4
-rot_x Q0 16 4
-set Q0 0
-meas Q0 M0
-qfree Q0
-ret_reg M0
-"""
+        socket = Socket("server", "client", self, self.peer_port)
 
-        self._send_text_subroutine(subrt2)
-        results2 = yield from self._receive_results()
-        m1 = results2.get_register("M0")
+        with self._conn as server:
+            epr1 = epr_socket.recv()[0]
+            epr2 = epr_socket.recv()[0]
 
-        subrt3 = """
-# NETQASM 1.0
-# APPID 0
-set Q0 1
-rot_y Q0 8 4
-rot_x Q0 16 4
-set Q0 1
-meas Q0 M0
-qfree Q0
-ret_reg M0
-"""
+            epr2.cphase(epr1)
+            server.flush()
+            yield from self._receive_results()
 
-        self._send_text_subroutine(subrt3)
-        results3 = yield from self._receive_results()
-        m2 = results3.get_register("M0")
+            delta1 = yield from socket.recv()
+            delta1 = float(delta1)
+
+            epr2.rot_Z(angle=delta1)
+            epr2.H()
+            m1 = epr2.measure(store_array=False)
+            server.flush()
+
+            results = yield from self._receive_results()
+            m1 = results.get_register("M0")
+
+            socket.send(str(m1))
+
+            delta2 = yield from socket.recv()
+            delta2 = float(delta2)
+
+            epr1.rot_Z(angle=delta2)
+            epr1.H()
+            m2 = epr1.measure(store_array=False)
+            server.flush()
+
+            results = yield from self._receive_results()
+            m2 = results.get_register("M0")
+
+        m1, m2 = int(m1), int(m2)
         self._result = {"m1": m1, "m2": m2}
 
 
@@ -326,11 +310,29 @@ def main():
     host_server.qnos_port.connect(conn_server.ports["A"])
     qnos_server.host_port.connect(conn_server.ports["B"])
 
+    conn_client_server = DirectConnection(
+        name="conn_client_server",
+        channel_AtoB=ClassicalChannel("chan_client_server"),
+        channel_BtoA=ClassicalChannel("chan_server_client"),
+    )
+    network.add_subcomponent(conn_client_server)
+
+    host_client.peer_port.connect(conn_client_server.ports["A"])
+    host_server.peer_port.connect(conn_client_server.ports["B"])
+
     host_client.start()
     qnos_client.start()
     host_server.start()
     qnos_server.start()
+
     ns.sim_run()
+
+    host_client.stop()
+    qnos_client.stop()
+    host_server.stop()
+    qnos_server.stop()
+
+    ns.sim_reset()
 
     client_results = host_client.get_result()
     # print(f"client results: {client_results}")
@@ -343,9 +345,10 @@ def main():
 if __name__ == "__main__":
     start = time.perf_counter()
 
-    num = 1
+    num = 100
 
     results: List[Tuple[Dict, Dict]] = []
+
     for _ in range(num):
         SharedMemoryManager.reset_memories()
         results.append(main())

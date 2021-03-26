@@ -1,4 +1,5 @@
 import logging
+import math
 import time
 from typing import Dict, Generator, List, Optional, Tuple
 
@@ -12,6 +13,7 @@ from netqasm.lang.subroutine import Subroutine
 from netqasm.logging.glob import set_log_level
 from netqasm.runtime.interface.config import QuantumHardware, default_network_config
 from netqasm.sdk.compiling import NVSubroutineCompiler
+from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.shared_memory import SharedMemory, SharedMemoryManager
 from netsquid.components import ClassicalChannel
@@ -21,6 +23,7 @@ from netsquid.nodes.connections import DirectConnection
 from netsquid.protocols import NodeProtocol
 
 from pydynaa import EventExpression
+from squidasm.sdk.socket import NetSquidSocket
 from squidasm.sdk.sthread import SThreadNetSquidConnection
 from squidasm.sim.executor.nv import NVNetSquidExecutor
 from squidasm.sim.network.network import NetSquidNetwork
@@ -70,6 +73,7 @@ class HostProtocol(NodeProtocol):
     def __init__(self, name: str, qnodeos: QNodeOsProtocol) -> None:
         super().__init__(node=Node(f"host_{name}"))
         self.node.add_ports(["qnos"])
+        self.node.add_ports(["peer"])
         self._qnodeos = qnodeos
         self._result: Optional[Dict] = None
 
@@ -83,6 +87,10 @@ class HostProtocol(NodeProtocol):
     @property
     def qnos_port(self) -> Port:
         return self.node.ports["qnos"]
+
+    @property
+    def peer_port(self) -> Port:
+        return self.node.ports["peer"]
 
     def _send_text_subroutine(self, text: str) -> None:
         subroutine = parse_text_subroutine(text, flavour=NVFlavour())
@@ -98,6 +106,15 @@ class HostProtocol(NodeProtocol):
     def get_result(self) -> Optional[Dict]:
         return self._result
 
+    # def _send_classical(self, text: str) -> None:
+    #     self.peer_port.tx_output(text)
+
+    # def _recv_classical(self) -> Generator[EventExpression, None, str]:
+    #     yield self.await_port_input(self.peer_port)
+    #     msg = self.peer_port.rx_input().items[0]
+    #     assert isinstance(msg, str)
+    #     return msg
+
 
 class ClientProtocol(HostProtocol):
     def run(self) -> Generator[EventExpression, None, None]:
@@ -105,80 +122,10 @@ class ClientProtocol(HostProtocol):
         self._qnodeos.executor.init_new_application(app_id=app_id, max_qubits=1)
         yield from self._qnodeos.executor.setup_epr_socket(0, 1, 0)
 
-        subroutine = """
-# NETQASM 1.0
-# APPID 0
-set R0 10
-array R0 @0
-set R0 1
-array R0 @1
-set R0 0
-set R1 0
-store R0 @1[R1]
-set R0 20
-array R0 @2
-set R0 0
-set R1 0
-store R0 @2[R1]
-set R0 1
-set R1 1
-store R0 @2[R1]
-set R0 10
-array R0 @3
-set R0 1
-array R0 @4
-set R0 0
-set R1 0
-store R0 @4[R1]
-set R0 20
-array R0 @5
-set R0 0
-set R1 0
-store R0 @5[R1]
-set R0 1
-set R1 1
-store R0 @5[R1]
-set R0 1
-set R1 0
-set R2 1
-set R3 2
-set R4 0
-create_epr R0 R1 R2 R3 R4
-set R0 0
-set R1 10
-wait_all @0[R0:R1]
-set Q0 0
-rot_y Q0 8 4
-rot_x Q0 16 4
-set Q0 0
-meas Q0 M0
-qfree Q0
-set R0 1
-set R1 0
-set R2 4
-set R3 5
-set R4 3
-create_epr R0 R1 R2 R3 R4
-set R0 0
-set R1 10
-wait_all @3[R0:R1]
-set Q0 0
-rot_y Q0 8 4
-rot_x Q0 16 4
-set Q0 0
-meas Q0 M1
-qfree Q0
-ret_reg M0
-ret_reg M1
-"""
-        # self._send_text_subroutine(subroutine)
-
-        with self._conn as client:
-            q = Qubit(client)
-        results = yield from self._receive_results()
-        p1 = results.get_register("M0")
-        p2 = results.get_register("M1")
-        self._result = {"p1": p1, "p2": p2}
+        socket = NetSquidSocket("client", "server", self, self.peer_port)
+        with self._conn:
+            socket.send("hello")
+        # self._send_classical("hello")
 
 
 class ServerProtocol(HostProtocol):
@@ -187,99 +134,18 @@ class ServerProtocol(HostProtocol):
         self._qnodeos.executor.init_new_application(app_id=app_id, max_qubits=2)
         yield from self._qnodeos.executor.setup_epr_socket(0, 0, 0)
 
-        subrt1 = """
-# NETQASM 1.0
-# APPID 0
-set R0 10
-array R0 @0
-set R0 1
-array R0 @1
-set R0 0
-set R1 0
-store R0 @1[R1]
-set R0 10
-array R0 @2
-set R0 1
-array R0 @3
-set R0 0
-set R1 0
-store R0 @3[R1]
-set R0 0
-set R1 0
-set R2 1
-set R3 0
-recv_epr R0 R1 R2 R3
-set R0 0
-set R1 10
-wait_all @0[R0:R1]
-set Q0 1
-qalloc Q0
-init Q0
-set Q0 0
-set Q1 1
-rot_y Q0 8 4
-crot_y Q0 Q1 24 4
-rot_x Q0 24 4
-crot_x Q0 Q1 8 4
-set Q0 0
-qfree Q0
-set R0 0
-set R1 0
-set R2 3
-set R3 2
-recv_epr R0 R1 R2 R3
-set R0 0
-set R1 10
-wait_all @2[R0:R1]
-set Q0 0
-set Q1 1
-rot_y Q1 8 4
-crot_x Q0 Q1 8 4
-rot_z Q0 24 4
-rot_x Q1 24 4
-rot_y Q1 24 4
-"""
-        self._send_text_subroutine(subrt1)
-        yield from self._receive_results()
+        socket = NetSquidSocket("server", "client", self, self.peer_port)
 
-        subrt2 = """
-# NETQASM 1.0
-# APPID 0
-set Q0 0
-rot_y Q0 8 4
-rot_x Q0 16 4
-set Q0 0
-meas Q0 M0
-qfree Q0
-ret_reg M0
-"""
-
-        self._send_text_subroutine(subrt2)
-        results2 = yield from self._receive_results()
-        m1 = results2.get_register("M0")
-
-        subrt3 = """
-# NETQASM 1.0
-# APPID 0
-set Q0 1
-rot_y Q0 8 4
-rot_x Q0 16 4
-set Q0 1
-meas Q0 M0
-qfree Q0
-ret_reg M0
-"""
-
-        self._send_text_subroutine(subrt3)
-        results3 = yield from self._receive_results()
-        m2 = results3.get_register("M0")
-        self._result = {"m1": m1, "m2": m2}
+        # msg = yield from self._recv_classical()
+        with self._conn:
+            msg = yield from socket.recv()
+            self._result = {"received_msg": msg}
 
 
 def main():
     # set_log_level(logging.DEBUG)
-    # set_log_level(logging.INFO)
-    set_log_level(logging.WARNING)
+    set_log_level(logging.INFO)
+    # set_log_level(logging.WARNING)
 
     network_cfg = default_network_config(
         ["client", "server"], hardware=QuantumHardware.NV
@@ -325,6 +191,16 @@ def main():
 
     host_server.qnos_port.connect(conn_server.ports["A"])
     qnos_server.host_port.connect(conn_server.ports["B"])
+
+    conn_client_server = DirectConnection(
+        name="conn_client_server",
+        channel_AtoB=ClassicalChannel("chan_client_server"),
+        channel_BtoA=ClassicalChannel("chan_server_client"),
+    )
+    network.add_subcomponent(conn_client_server)
+
+    host_client.peer_port.connect(conn_client_server.ports["A"])
+    host_server.peer_port.connect(conn_client_server.ports["B"])
 
     host_client.start()
     qnos_client.start()
