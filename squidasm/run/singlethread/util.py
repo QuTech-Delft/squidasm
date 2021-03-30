@@ -5,8 +5,8 @@ from typing import Callable
 
 
 def load_program(filename: str) -> Callable:
-    spec = importlib.util.spec_from_file_location("module", filename)
-    module = importlib.util.module_from_spec(spec)
+    spec = importlib.util.spec_from_file_location("module", filename)  # type: ignore
+    module = importlib.util.module_from_spec(spec)  # type: ignore
     spec.loader.exec_module(module)  # type: ignore
     func = getattr(module, "main")
     return func  # type: ignore
