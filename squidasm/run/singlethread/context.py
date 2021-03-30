@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict
 from netqasm.sdk.network import NetworkInfo
 
 if TYPE_CHECKING:
-    from squidasm.sdk.protocols import HostProtocol
+    from squidasm.run.singlethread.protocols import HostProtocol
 
 
 class NetSquidNetworkInfo(NetworkInfo):

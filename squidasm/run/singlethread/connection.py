@@ -14,8 +14,9 @@ from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.shared_memory import SharedMemory
 
 from pydynaa import EventExpression
-from squidasm.run.ns_sthread.context import NetSquidContext
-from squidasm.sdk.protocols import HostProtocol, NewResultEvent
+
+from .context import NetSquidContext
+from .protocols import HostProtocol, NewResultEvent
 
 if TYPE_CHECKING:
     from netqasm.sdk.compiling import SubroutineCompiler

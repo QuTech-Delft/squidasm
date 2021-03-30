@@ -20,10 +20,7 @@ from netsquid.nodes import Node
 from netsquid.protocols import NodeProtocol, Protocol
 
 from pydynaa import EventExpression, EventType
-
-# from squidasm.sdk.socket import NewClasMsgEvent
-from squidasm.run.ns_sthread.socket import NewClasMsgEvent
-from squidasm.sdk.sthread import SThreadNetSquidConnection
+from squidasm.run.singlethread.csocket import NewClasMsgEvent
 from squidasm.sim.executor.nv import NVNetSquidExecutor
 from squidasm.sim.network.stack import NetworkStack
 
@@ -40,7 +37,7 @@ NewHostMsgEvent: EventType = EventType(
 
 class QNodeOsProtocol(NodeProtocol):
     def __init__(self, node: Node) -> None:
-        super().__init__(node=node)
+        super().__init__(node=node, name=node.name)
         self._executor = NVNetSquidExecutor(node=self.node)
         self.node.add_ports(["host"])
         self._flavour = NVFlavour()
@@ -137,7 +134,7 @@ class QNodeOsListener(Protocol):
 
 class HostProtocol(NodeProtocol):
     def __init__(self, name: str, qnodeos: QNodeOsProtocol, entry: Callable) -> None:
-        super().__init__(node=Node(f"host_{name}"))
+        super().__init__(node=Node(f"host_{name}"), name=name)
         self.node.add_ports(["qnos"])
         self.node.add_ports(["peer"])
         self._qnodeos = qnodeos
@@ -150,13 +147,6 @@ class HostProtocol(NodeProtocol):
         self._results_listener = ResultsListener(self.node.ports["qnos"])
 
         self._entry = entry
-
-        self._conn: SThreadNetSquidConnection = SThreadNetSquidConnection(
-            app_name="name",
-            qnos_port=self.node.ports["qnos"],
-            compiler=NVSubroutineCompiler,
-            executor=qnodeos._executor,
-        )
 
     @property
     def qnos_port(self) -> Port:
@@ -202,6 +192,9 @@ class HostProtocol(NodeProtocol):
         if len(self._listener._buffer) == 0:
             yield EventExpression(source=self._listener, event_type=NewClasMsgEvent)
         return self._listener._buffer.pop(0)
+
+    def run(self) -> Generator[EventExpression, None, None]:
+        self._result = yield from self._entry()
 
 
 class HostListener(Protocol):

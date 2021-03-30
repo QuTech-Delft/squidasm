@@ -10,8 +10,8 @@ from netsquid.components import ClassicalChannel
 from netsquid.nodes.connections import DirectConnection
 
 from pydynaa import EventExpression
-from squidasm.sdk.protocols import HostProtocol, QNodeOsProtocol
-from squidasm.sdk.socket import NetSquidSocket
+from squidasm.run.singlethread.protocols import HostProtocol, QNodeOsProtocol
+from squidasm.run.singlethread.csocket import NetSquidSocket
 from squidasm.sim.network.network import NetSquidNetwork
 from squidasm.sim.network.stack import NetworkStack
 

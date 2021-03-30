@@ -1,6 +1,6 @@
 from .connection import NetSquidConnection as NetQASMConnection
 from .context import NetSquidContext
-from .socket import NetSquidSocket as Socket
+from .csocket import NetSquidSocket as Socket
 
 __all__ = [
     "NetQASMConnection",

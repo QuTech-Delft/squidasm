@@ -6,7 +6,8 @@ from netqasm.sdk.classical_communication.socket import Socket
 from netsquid.components.component import Port
 
 from pydynaa import EventExpression, EventType
-from squidasm.run.ns_sthread.context import NetSquidContext
+
+from .context import NetSquidContext
 
 if TYPE_CHECKING:
     from .protocols import HostProtocol
