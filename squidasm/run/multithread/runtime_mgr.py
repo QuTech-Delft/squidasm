@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 
 import netsquid as ns
 from netqasm.lang.instr.flavour import NVFlavour, VanillaFlavour
-from netqasm.logging.glob import get_netqasm_logger, set_log_level
+from netqasm.logging.glob import get_netqasm_logger
 from netqasm.logging.output import reset_struct_loggers, save_all_struct_loggers
 from netqasm.runtime.app_config import AppConfig
 from netqasm.runtime.application import ApplicationInstance

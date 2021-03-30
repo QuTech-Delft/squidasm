@@ -29,14 +29,14 @@ def get_current_nodes(block: bool = True) -> Dict[str, NetSquidNode]:
     backend = get_running_backend(block=block)
     if backend is None:
         raise RuntimeError("Backend is None")
-    return backend.nodes
+    return backend.nodes  # type: ignore
 
 
 def get_current_node_names(block: bool = True) -> KeysView[str]:
     backend = get_running_backend(block=block)
     if backend is None:
         raise RuntimeError("Backend is None")
-    return backend.nodes.keys()
+    return backend.nodes.keys()  # type: ignore
 
 
 def get_current_node_ids(block: bool = True) -> Dict[str, int]:
@@ -50,7 +50,7 @@ def get_current_app_node_mapping(block: bool = True) -> Dict[str, NetSquidNode]:
     backend = get_running_backend(block=block)
     if backend is None:
         raise RuntimeError("Backend is None")
-    return backend.app_node_map
+    return backend.app_node_map  # type: ignore
 
 
 def get_node_id_for_app(app_name: str) -> int:
