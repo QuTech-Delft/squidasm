@@ -10,10 +10,11 @@ from netqasm.runtime.interface.config import (
 )
 from netqasm.runtime.settings import Formalism
 from netqasm.sdk.config import LogConfig
+from netqasm.sdk.shared_memory import SharedMemoryManager
 from netqasm.util.yaml import dump_yaml
 from netsquid import QFormalism
 
-from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
+from squidasm.run.multithread.runtime_mgr import SquidAsmRuntimeManager
 from squidasm.sim.network.nv_config import NVConfig, parse_nv_config
 
 _NS_FORMALISMS = {
@@ -92,6 +93,8 @@ def simulate_application(
             assert timed_log_dir is not None
             path = os.path.join(timed_log_dir, "results.yaml")
             dump_yaml(data=results, file_path=path)
+
+        SharedMemoryManager.reset_memories()
 
     if post_function is not None:
         post_function(mgr)

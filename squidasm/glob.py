@@ -11,7 +11,7 @@ from squidasm.util.ns import is_state_entangled
 if TYPE_CHECKING:
     from netsquid.nodes.node import Node as NetSquidNode
 
-    from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
+    from squidasm.run.multithread.runtime_mgr import SquidAsmRuntimeManager
 
 _CURRENT_BACKEND: List[Optional[SquidAsmRuntimeManager]] = [None]
 

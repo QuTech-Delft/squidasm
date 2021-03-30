@@ -40,6 +40,8 @@ class SquidAsmRuntimeManager(RuntimeManager):
         self._backend_thread = None
         self._backend_log_dir: Optional[str] = None
 
+        self.reset_backend()
+
     @property
     def network(self) -> Optional[NetSquidNetwork]:
         return self._network_instance

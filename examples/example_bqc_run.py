@@ -3,6 +3,7 @@ import time
 
 from netqasm.logging.glob import set_log_level
 from netqasm.runtime.interface.config import QuantumHardware, default_network_config
+from netqasm.runtime.settings import Simulator, set_simulator
 
 from squidasm.run.singlethread import NetSquidContext, run_files
 from squidasm.sim.network.network import NetSquidNetwork
@@ -10,6 +11,7 @@ from squidasm.sim.network.network import NetSquidNetwork
 
 def main():
     set_log_level(logging.WARNING)
+    set_simulator(Simulator.NETSQUID_SINGLE_THREAD)
 
     network_cfg = default_network_config(
         ["client", "server"], hardware=QuantumHardware.NV
