@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable, Dict, Generator, List, Optional
 
 import netsquid as ns
@@ -33,6 +35,8 @@ NewHostMsgEvent: EventType = EventType(
     "A new message from the Host has arrived at QNodeOS",
 )
 
+SUBRT_FINISHED = "Subroutine finished"
+
 
 class QNodeOsProtocol(NodeProtocol):
     def __init__(self, node: Node) -> None:
@@ -42,11 +46,6 @@ class QNodeOsProtocol(NodeProtocol):
         self._flavour = NVFlavour()
 
         self._listener = QNodeOsListener(self.node.ports["host"])
-        # TODO remove
-        self._listener._outer = self
-
-    # def reset(self) -> None:
-    #     self._executor = NVNetSquidExecutor(node=self.node)
 
     def set_network_stack(self, network_stack: NetworkStack):
         self._executor.network_stack = network_stack
@@ -60,27 +59,24 @@ class QNodeOsProtocol(NodeProtocol):
         return self._executor
 
     def _receive_msg(self) -> Generator[EventExpression, None, bytes]:
-        if len(self._listener._buffer) == 0:
+        if len(self._listener.buffer) == 0:
             yield EventExpression(source=self._listener, event_type=NewHostMsgEvent)
-        return self._listener._buffer.pop(0)
+        return self._listener.buffer.pop(0)
 
     def _receive_init_msg(self) -> Generator[EventExpression, None, Subroutine]:
-        if len(self._listener._buffer) == 0:
+        if len(self._listener.buffer) == 0:
             yield EventExpression(source=self._listener, event_type=NewHostMsgEvent)
 
-        raw_msg = self._listener._buffer.pop(0)
+        raw_msg = self._listener.buffer.pop(0)
         msg = deserialize_host_msg(raw_msg)
         assert isinstance(msg, InitNewAppMessage)
         self.executor.init_new_application(msg.app_id, msg.max_qubits)
 
     def _receive_subroutine(self) -> Generator[EventExpression, None, Subroutine]:
-        if len(self._listener._buffer) == 0:
+        if len(self._listener.buffer) == 0:
             yield EventExpression(source=self._listener, event_type=NewHostMsgEvent)
 
-        # raw_msg = self._listener._buffer.pop(0)
-        # yield self.await_port_input(self.host_port)
-        # raw_msg = self.host_port.rx_input().items[0]
-        raw_msg = self._listener._buffer.pop(0)
+        raw_msg = self._listener.buffer.pop(0)
         msg = deserialize_host_msg(raw_msg)
         assert isinstance(msg, SubroutineMessage)
         subroutine = deser_subroutine(msg.subroutine, flavour=self._flavour)
@@ -99,13 +95,13 @@ class QNodeOsProtocol(NodeProtocol):
                 yield from self._executor.setup_epr_socket(
                     msg.epr_socket_id, msg.remote_node_id, msg.remote_epr_socket_id
                 )
-                self.host_port.tx_output("done")
+                self.host_port.tx_output(SUBRT_FINISHED)
             elif isinstance(msg, SubroutineMessage):
                 subroutine = deser_subroutine(msg.subroutine, flavour=self._flavour)
                 yield from self._executor.execute_subroutine(subroutine=subroutine)
                 # Tell the host that the subroutine has finished so that it can inspect
                 # the shared memory.
-                self.host_port.tx_output("done")
+                self.host_port.tx_output(SUBRT_FINISHED)
             elif isinstance(msg, StopAppMessage):
                 yield from self._executor.stop_application(msg.app_id)
                 self.stop()
@@ -123,6 +119,10 @@ class QNodeOsListener(Protocol):
     def __init__(self, port: Port) -> None:
         self._buffer: List[bytes] = []
         self._port: Port = port
+
+    @property
+    def buffer(self) -> List[bytes]:
+        return self._buffer
 
     def run(self) -> Generator[EventExpression, None, None]:
         while True:
@@ -142,7 +142,7 @@ class HostProtocol(NodeProtocol):
         self._qnos_input_buffer: List[str] = []
         self._cl_input_buffer: List[str] = []
 
-        self._listener = HostListener(self.node.ports["peer"])
+        self._peer_listener = HostPeerListener(self.node.ports["peer"])
         self._results_listener = ResultsListener(self.node.ports["qnos"])
 
         self._entry = entry
@@ -155,6 +155,14 @@ class HostProtocol(NodeProtocol):
     def peer_port(self) -> Port:
         return self.node.ports["peer"]
 
+    @property
+    def results_listener(self) -> ResultsListener:
+        return self._results_listener
+
+    @property
+    def peer_listener(self) -> HostPeerListener:
+        return self._peer_listener
+
     def _send_init_app_msg(self, app_id: int, max_qubits: int) -> None:
         self.qnos_port.tx_output(bytes(InitNewAppMessage(app_id, max_qubits)))
 
@@ -163,13 +171,13 @@ class HostProtocol(NodeProtocol):
         self.qnos_port.tx_output(bytes(SubroutineMessage(subroutine)))
 
     def _receive_results(self) -> Generator[EventExpression, None, SharedMemory]:
-        if len(self._results_listener._buffer) == 0:
+        if len(self._results_listener.buffer) == 0:
             yield EventExpression(
                 source=self._results_listener, event_type=NewResultEvent
             )
 
-        msg = self._results_listener._buffer.pop(0)
-        assert msg == "done"
+        msg = self._results_listener.buffer.pop(0)
+        assert msg == SUBRT_FINISHED
         shared_memory = self._qnodeos.executor._shared_memories[0]
         return shared_memory
 
@@ -182,27 +190,33 @@ class HostProtocol(NodeProtocol):
 
     def start(self) -> None:
         super().start()
-        self._listener.start()
+        self._peer_listener.start()
         self._results_listener.start()
 
     def stop(self) -> None:
         self._results_listener.stop()
-        self._listener.stop()
+        self._peer_listener.stop()
         super().stop()
 
     def _recv_classical(self) -> Generator[EventExpression, None, str]:
-        if len(self._listener._buffer) == 0:
-            yield EventExpression(source=self._listener, event_type=NewClasMsgEvent)
-        return self._listener._buffer.pop(0)
+        if len(self._peer_listener.buffer) == 0:
+            yield EventExpression(
+                source=self._peer_listener, event_type=NewClasMsgEvent
+            )
+        return self._peer_listener.buffer.pop(0)
 
     def run(self) -> Generator[EventExpression, None, None]:
         self._result = yield from self._entry()
 
 
-class HostListener(Protocol):
+class HostPeerListener(Protocol):
     def __init__(self, port: Port) -> None:
         self._buffer: List[str] = []
         self._port: Port = port
+
+    @property
+    def buffer(self) -> List[str]:
+        return self._buffer
 
     def run(self) -> Generator[EventExpression, None, None]:
         while True:
@@ -215,6 +229,10 @@ class ResultsListener(Protocol):
     def __init__(self, port: Port) -> None:
         self._buffer: List[str] = []
         self._port: Port = port
+
+    @property
+    def buffer(self) -> List[str]:
+        return self._buffer
 
     def run(self) -> Generator[EventExpression, None, None]:
         while True:

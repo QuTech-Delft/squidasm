@@ -22,7 +22,7 @@ from netqasm.sdk.shared_memory import SharedMemory
 from pydynaa import EventExpression
 
 from .context import NetSquidContext
-from .protocols import HostProtocol, NewResultEvent
+from .protocols import SUBRT_FINISHED, HostProtocol, NewResultEvent
 
 if TYPE_CHECKING:
     from netqasm.sdk.compiling import SubroutineCompiler
@@ -54,7 +54,6 @@ class NetSquidConnection(BaseNetQASMConnection):
         for sck in self._epr_sockets:
             sck.conn = self
 
-        # self._shared_memory = protocol._qnodeos.executor._shared_memories[0]
         self._shared_memory = None
         self._logger: logging.Logger = get_netqasm_logger(
             f"{self.__class__.__name__}({self.app_name})"
@@ -88,13 +87,13 @@ class NetSquidConnection(BaseNetQASMConnection):
         self._commit_message(StopAppMessage(self._app_id))
 
     def wait_for_results(self) -> Generator[EventExpression, None, None]:
-        if len(self._protocol._results_listener._buffer) == 0:
+        if len(self._protocol.results_listener.buffer) == 0:
             yield EventExpression(
-                source=self._protocol._results_listener, event_type=NewResultEvent
+                source=self._protocol.results_listener, event_type=NewResultEvent
             )
 
-        msg = self._protocol._results_listener._buffer.pop(0)
-        assert msg == "done"
+        msg = self._protocol.results_listener.buffer.pop(0)
+        assert msg == SUBRT_FINISHED
 
     def _commit_message(
         self, msg: T_Message, block: bool = True, callback: Optional[Callable] = None
@@ -128,11 +127,9 @@ class NetSquidConnection(BaseNetQASMConnection):
 
         self._logger.debug(f"Flushing presubroutine:\n{presubroutine}")
 
-        # Parse, assembly and possibly compile the subroutine
         subroutine = self._builder._pre_process_subroutine(presubroutine)
         self._logger.info(f"Flushing compiled subroutine:\n{subroutine}")
 
-        # Commit the subroutine to the quantum device
         self._commit_message(
             msg=SubroutineMessage(subroutine=subroutine),
             block=block,

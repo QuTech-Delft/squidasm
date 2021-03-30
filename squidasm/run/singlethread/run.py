@@ -1,9 +1,6 @@
-import importlib
 import itertools
 import os
 import pathlib
-import re
-import sys
 from typing import Callable, Dict, List, Tuple
 
 import netsquid as ns
@@ -17,8 +14,10 @@ from squidasm.sim.network import reset_network
 from squidasm.sim.network.network import NetSquidNetwork
 from squidasm.sim.network.stack import NetworkStack
 
+from . import util
 
-def setup_connections(
+
+def _setup_connections(
     network: NetSquidNetwork,
     protocols: List[Tuple[HostProtocol, QNodeOsProtocol]],
 ) -> None:
@@ -45,7 +44,7 @@ def setup_connections(
         host2.peer_port.connect(conn.ports["B"])
 
 
-def setup_network_stacks(
+def _setup_network_stacks(
     network: NetSquidNetwork, protocols: List[Tuple[HostProtocol, QNodeOsProtocol]]
 ):
     for _, qnos in protocols:
@@ -86,50 +85,6 @@ def run_protocols(
     return results
 
 
-def _load_program(filename: str) -> Callable:
-    spec = importlib.util.spec_from_file_location("module", filename)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)  # type: ignore
-    func = getattr(module, "main")
-    return func  # type: ignore
-
-
-def _modify_and_import(module_name, package):
-    spec = importlib.util.find_spec(module_name, package)
-    source = spec.loader.get_source(module_name)
-    lines = source.splitlines()
-    new_lines = []
-    socket_name = None
-    epr_socket_name = None
-    for line in lines:
-        new_lines.append(line)
-        sck_result = re.search(r" (\w+) = Socket\(", line)
-        epr_result = re.search(r" (\w+) = EPRSocket\(", line)
-        if sck_result is not None:
-            socket_name = sck_result.group(1)
-        if epr_result is not None:
-            epr_socket_name = epr_result.group(1)
-        if socket_name is None and epr_socket_name is None:
-            continue
-        if re.search(fr"{socket_name}\.recv\(\)", line) and not re.search(
-            fr"{epr_socket_name}\.recv\(\)", line
-        ):
-            new_line = re.sub(
-                fr"{socket_name}.recv\(\)", f"(yield from {socket_name}.recv())", line
-            )
-            new_lines[-1] = new_line
-        if re.search(r"\w+\.flush\(\)", line):
-            new_line = re.sub(r"(\w+\.flush\(\))", r"(yield from \1)", line)
-            new_lines[-1] = new_line
-
-    new_source = "\n".join(new_lines)
-    module = importlib.util.module_from_spec(spec)
-    codeobj = compile(new_source, module.__spec__.origin, "exec")
-    exec(codeobj, module.__dict__)
-    sys.modules[module_name] = module
-    return module
-
-
 def run_programs(
     num: int, network: NetSquidNetwork, programs: Dict[str, Callable]
 ) -> List[List[Dict]]:
@@ -141,10 +96,10 @@ def run_programs(
         host = HostProtocol(name, qnos, code)
         network.add_node(host.node)
         protocols.append((host, qnos))
-        NetSquidContext()._protocols[name] = host
+        NetSquidContext.add_protocol(name, host)
 
-    setup_connections(network, protocols)
-    setup_network_stacks(network, protocols)
+    _setup_connections(network, protocols)
+    _setup_network_stacks(network, protocols)
 
     return run_protocols(num, protocols)
 
@@ -157,10 +112,10 @@ def run_files(
     for name, filename in filenames.items():
         if insert_yields:
             module = str(pathlib.Path(filename).with_suffix("")).replace(os.sep, ".")
-            module = _modify_and_import(module, None)
+            module = util.modify_and_import(module, None)
             code = getattr(module, "main")
         else:
-            code = _load_program(filename)
+            code = util.load_program(filename)
 
         programs[name] = code
 

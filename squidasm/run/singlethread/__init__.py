@@ -1,6 +1,7 @@
 from .connection import NetSquidConnection as NetQASMConnection
 from .context import NetSquidContext
 from .csocket import NetSquidSocket as Socket
+from .run import run_files, run_programs, run_protocols
 
 __all__ = [
     "NetQASMConnection",
@@ -15,4 +16,7 @@ __all__ = [
     "SubroutineCompiler",
     "Builder",
     "NetSquidContext",
+    "run_files",
+    "run_programs",
+    "run_protocols",
 ]

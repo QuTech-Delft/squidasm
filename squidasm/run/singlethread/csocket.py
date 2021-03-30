@@ -41,8 +41,8 @@ class NetSquidSocket(Socket):
     ) -> Generator[EventExpression, None, str]:
         """Receive a message from the remote node."""
 
-        if len(self._protocol._listener._buffer) == 0:
+        if len(self._protocol.peer_listener.buffer) == 0:
             yield EventExpression(
-                source=self._protocol._listener, event_type=NewClasMsgEvent
+                source=self._protocol.peer_listener, event_type=NewClasMsgEvent
             )
-        return self._protocol._listener._buffer.pop(0)
+        return self._protocol.peer_listener.buffer.pop(0)

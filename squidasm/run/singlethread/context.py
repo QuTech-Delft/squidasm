@@ -39,5 +39,21 @@ class NetSquidContext:
         return cls._nodes
 
     @classmethod
+    def set_nodes(cls, nodes: Dict[int, str]) -> None:
+        cls._nodes = nodes
+
+    @classmethod
+    def add_node(cls, id: int, node: str) -> None:
+        cls._nodes[id] = node
+
+    @classmethod
     def get_protocols(cls) -> Dict[str, HostProtocol]:
         return cls._protocols
+
+    @classmethod
+    def set_protocols(cls, protocols: Dict[str, HostProtocol]) -> None:
+        cls._protocols = protocols
+
+    @classmethod
+    def add_protocol(cls, name: str, protocol: HostProtocol) -> None:
+        cls._protocols[name] = protocol
