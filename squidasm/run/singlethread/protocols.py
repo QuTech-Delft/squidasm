@@ -1,4 +1,3 @@
-import importlib
 from typing import Callable, Dict, Generator, List, Optional
 
 import netsquid as ns
@@ -14,7 +13,6 @@ from netqasm.lang.instr import NVFlavour
 from netqasm.lang.parsing import deserialize as deser_subroutine
 from netqasm.lang.parsing import parse_text_subroutine
 from netqasm.lang.subroutine import Subroutine
-from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.shared_memory import SharedMemory
 from netsquid.components.component import Port
 from netsquid.nodes import Node

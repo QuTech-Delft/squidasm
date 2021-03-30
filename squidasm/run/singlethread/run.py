@@ -1,26 +1,18 @@
-import ast
 import importlib
-import inspect
 import itertools
-import logging
 import os
 import pathlib
 import re
 import sys
-import time
-from typing import Callable, Dict, Generator, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import netsquid as ns
-from netqasm.logging.glob import set_log_level
-from netqasm.runtime.interface.config import QuantumHardware, default_network_config
 from netqasm.sdk.shared_memory import SharedMemoryManager
 from netsquid.components import ClassicalChannel
 from netsquid.nodes.connections import DirectConnection
 
-from pydynaa import EventExpression
 from squidasm.run.singlethread.context import NetSquidContext
 from squidasm.run.singlethread.protocols import HostProtocol, QNodeOsProtocol
-from squidasm.run.singlethread.util import make_generator
 from squidasm.sim.network import reset_network
 from squidasm.sim.network.network import NetSquidNetwork
 from squidasm.sim.network.stack import NetworkStack
@@ -66,7 +58,7 @@ def setup_network_stacks(
 
 def run_protocols(
     num: int, protocols: List[Tuple[HostProtocol, QNodeOsProtocol]]
-) -> List[Tuple[Dict, Dict]]:
+) -> List[List[Dict]]:
     # results is list of round results
     # round result is a list of outputs (dicts) per node
     results: List[List[Dict]] = []
@@ -84,7 +76,7 @@ def run_protocols(
 
         round_results: List[Dict] = []
         for host, _ in protocols:
-            round_results.append(host.get_result())
+            round_results.append(host.get_result())  # type: ignore
         results.append(round_results)
 
         for host, qnos in protocols:
@@ -97,10 +89,9 @@ def run_protocols(
 def _load_program(filename: str) -> Callable:
     spec = importlib.util.spec_from_file_location("module", filename)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    spec.loader.exec_module(module)  # type: ignore
     func = getattr(module, "main")
-    # gen = make_generator(func)
-    return func
+    return func  # type: ignore
 
 
 def _modify_and_import(module_name, package):
@@ -112,27 +103,26 @@ def _modify_and_import(module_name, package):
     epr_socket_name = None
     for line in lines:
         new_lines.append(line)
-        sck_result = re.search(" (\w+) = Socket\(", line)
-        epr_result = re.search(" (\w+) = EPRSocket\(", line)
+        sck_result = re.search(r" (\w+) = Socket\(", line)
+        epr_result = re.search(r" (\w+) = EPRSocket\(", line)
         if sck_result is not None:
             socket_name = sck_result.group(1)
         if epr_result is not None:
             epr_socket_name = epr_result.group(1)
         if socket_name is None and epr_socket_name is None:
             continue
-        if re.search(f"{socket_name}\.recv\(\)", line) and not re.search(
-            f"{epr_socket_name}\.recv\(\)", line
+        if re.search(fr"{socket_name}\.recv\(\)", line) and not re.search(
+            fr"{epr_socket_name}\.recv\(\)", line
         ):
             new_line = re.sub(
-                f"{socket_name}.recv\(\)", f"(yield from {socket_name}.recv())", line
+                fr"{socket_name}.recv\(\)", f"(yield from {socket_name}.recv())", line
             )
             new_lines[-1] = new_line
-        if re.search("\w+\.flush\(\)", line):
+        if re.search(r"\w+\.flush\(\)", line):
             new_line = re.sub(r"(\w+\.flush\(\))", r"(yield from \1)", line)
             new_lines[-1] = new_line
 
     new_source = "\n".join(new_lines)
-    # new_source = source
     module = importlib.util.module_from_spec(spec)
     codeobj = compile(new_source, module.__spec__.origin, "exec")
     exec(codeobj, module.__dict__)

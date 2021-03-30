@@ -27,7 +27,7 @@ class NetSquidNetworkInfo(NetworkInfo):
 
     @classmethod
     def get_node_name_for_app(cls, app_name: str) -> str:
-        return cls._get_node_name(node_name=app_name)
+        raise NotImplementedError
 
 
 class NetSquidContext:

@@ -1,12 +1,6 @@
-from netqasm.sdk import EPRSocket
-from netqasm.sdk.connection import DebugConnection
-from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk.compiling import NVSubroutineCompiler
-from netqasm.lang.parsing.text import parse_text_subroutine
-from netqasm.backend.messages import SubroutineMessage
-from netqasm.lang.instr.flavour import NVFlavour
-
-from qlink_interface import EPRType
+from netqasm.sdk.connection import DebugConnection
+from netqasm.sdk.external import NetQASMConnection
 
 
 def main(

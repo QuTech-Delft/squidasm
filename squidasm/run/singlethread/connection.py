@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Generator, List, Optional, Type
+import logging
+from typing import TYPE_CHECKING, Callable, Dict, Generator, List, Optional, Type
 
 from netqasm.backend.messages import (
     InitNewAppMessage,
@@ -10,7 +11,12 @@ from netqasm.backend.messages import (
 )
 from netqasm.logging.glob import get_netqasm_logger
 from netqasm.sdk.builder import Builder
-from netqasm.sdk.connection import BaseNetQASMConnection
+from netqasm.sdk.connection import (
+    BaseNetQASMConnection,
+    NetworkInfo,
+    PreSubroutine,
+    T_Message,
+)
 from netqasm.sdk.shared_memory import SharedMemory
 
 from pydynaa import EventExpression
@@ -20,15 +26,9 @@ from .protocols import HostProtocol, NewResultEvent
 
 if TYPE_CHECKING:
     from netqasm.sdk.compiling import SubroutineCompiler
-    from netqasm.sdk.config import LogConfig
     from netqasm.sdk.epr_socket import EPRSocket
 
-    from squidasm.interface.queues import TaskQueue
-
 from .context import NetSquidNetworkInfo
-
-# class NetSquidSharedMemory(SharedMemory):
-#     pass
 
 
 class NetSquidConnection(BaseNetQASMConnection):
@@ -70,7 +70,7 @@ class NetSquidConnection(BaseNetQASMConnection):
     def shared_memory(self) -> SharedMemory:
         return self._protocol._qnodeos.executor._shared_memories[0]
 
-    def __enter__(self) -> None:
+    def __enter__(self) -> NetSquidConnection:
         self._commit_message(
             msg=InitNewAppMessage(
                 app_id=0,

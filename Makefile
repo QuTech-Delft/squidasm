@@ -50,7 +50,7 @@ lint-flake8:
 
 lint-mypy:
 	$(info Running mypy...)
-	@$(PYTHON3) -m mypy ${SOURCEDIR} ${TESTDIR} ${EXAMPLEDIR}
+	@$(PYTHON3) -m mypy ${SOURCEDIR} ${TESTDIR}
 
 # TODO: fix lint-isort in CI
 lint: lint-black lint-flake8 lint-mypy

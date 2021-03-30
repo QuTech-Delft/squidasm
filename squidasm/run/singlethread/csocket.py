@@ -36,7 +36,7 @@ class NetSquidSocket(Socket):
         """Sends a message to the remote node."""
         self._port.tx_output(msg)
 
-    def recv_generator(
+    def recv(
         self,
     ) -> Generator[EventExpression, None, str]:
         """Receive a message from the remote node."""
@@ -46,6 +46,3 @@ class NetSquidSocket(Socket):
                 source=self._protocol._listener, event_type=NewClasMsgEvent
             )
         return self._protocol._listener._buffer.pop(0)
-
-    def recv(self) -> str:
-        return (yield from self.recv_generator())

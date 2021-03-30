@@ -1,7 +1,5 @@
-import importlib
 import logging
 import time
-from typing import Dict, List
 
 from netqasm.logging.glob import set_log_level
 from netqasm.runtime.interface.config import QuantumHardware, default_network_config

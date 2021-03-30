@@ -2,7 +2,6 @@ import logging
 import time
 from typing import Dict, Generator, List, Tuple
 
-import netsquid as ns
 from netqasm.logging.glob import set_log_level
 from netqasm.runtime.interface.config import QuantumHardware, default_network_config
 from netqasm.sdk.shared_memory import SharedMemoryManager
