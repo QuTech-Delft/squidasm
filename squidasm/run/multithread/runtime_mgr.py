@@ -153,9 +153,6 @@ class SquidAsmRuntimeManager(RuntimeManager):
         QueueManager.reset_queues()
         reset_socket_hub()
         reset_struct_loggers()
-        # logging.shutdown()
-        # reload(logging)
-        set_log_level("INFO")
 
     def set_network(
         self, cfg: NetworkConfig, nv_cfg: Optional[NVConfig] = None
