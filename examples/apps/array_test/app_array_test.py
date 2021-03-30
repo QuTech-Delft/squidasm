@@ -9,7 +9,10 @@ from netqasm.lang.instr.flavour import NVFlavour
 from qlink_interface import EPRType
 
 
-def main(app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False}, inputs={}):
+def main(
+    app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False},
+    inputs={},
+):
     kwargs = {
         "app_name": "client",
         "log_config": None,
@@ -19,8 +22,12 @@ def main(app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": 
 
     # Initialize the connection
     if not app_config["debug"]:
-        client = NetQASMConnection(**kwargs, addr=app_config["addr"], port=app_config["port"],
-                                   dev=app_config["dev"])
+        client = NetQASMConnection(
+            **kwargs,
+            addr=app_config["addr"],
+            port=app_config["port"],
+            dev=app_config["dev"]
+        )
     else:
         DebugConnection.node_ids["server"] = 0
         DebugConnection.node_ids["client"] = 1

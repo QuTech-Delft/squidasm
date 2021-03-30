@@ -6,9 +6,9 @@ from netqasm.sdk.compiling import NVSubroutineCompiler
 
 def main(
     app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False},
-    inputs={'alpha': 0, 'beta': 0}
+    inputs={"alpha": 0, "beta": 0},
 ):
-    alpha, beta = inputs['alpha'], inputs['beta']
+    alpha, beta = inputs["alpha"], inputs["beta"]
 
     # Arguments to connection class
     kwargs = {
@@ -19,8 +19,12 @@ def main(
 
     # Initialize the connection
     if not app_config["debug"]:
-        server = NetQASMConnection(**kwargs, addr=app_config["addr"], port=app_config["port"],
-                                   dev=app_config["dev"])
+        server = NetQASMConnection(
+            **kwargs,
+            addr=app_config["addr"],
+            port=app_config["port"],
+            dev=app_config["dev"]
+        )
     else:
         DebugConnection.node_ids["server"] = 0
         DebugConnection.node_ids["client"] = 1
@@ -49,7 +53,7 @@ def main(
         m2 = m2 if not app_config["debug"] else 0
 
     m1, m2 = int(m1), int(m2)
-    return {'m1': m1, 'm2': m2}
+    return {"m1": m1, "m2": m2}
 
 
 if __name__ == "__main__":

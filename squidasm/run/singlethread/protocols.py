@@ -157,6 +157,9 @@ class HostProtocol(NodeProtocol):
     def peer_port(self) -> Port:
         return self.node.ports["peer"]
 
+    def _send_init_app_msg(self, app_id: int, max_qubits: int) -> None:
+        self.qnos_port.tx_output(bytes(InitNewAppMessage(app_id, max_qubits)))
+
     def _send_text_subroutine(self, text: str) -> None:
         subroutine = parse_text_subroutine(text, flavour=NVFlavour())
         self.qnos_port.tx_output(bytes(SubroutineMessage(subroutine)))

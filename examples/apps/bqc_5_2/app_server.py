@@ -4,7 +4,10 @@ from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk.compiling import NVSubroutineCompiler
 
 
-def main(app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False}, inputs={}):
+def main(
+    app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False},
+    inputs={},
+):
     socket = Socket("server", "client")
 
     kwargs = {
@@ -15,8 +18,12 @@ def main(app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": 
 
     # Initialize the connection
     if not app_config["debug"]:
-        server = NetQASMConnection(**kwargs, addr=app_config["addr"], port=app_config["port"],
-                                   dev=app_config["dev"])
+        server = NetQASMConnection(
+            **kwargs,
+            addr=app_config["addr"],
+            port=app_config["port"],
+            dev=app_config["dev"]
+        )
     else:
         DebugConnection.node_ids["server"] = 0
         DebugConnection.node_ids["client"] = 1
@@ -49,7 +56,7 @@ def main(app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": 
         m2 = m2 if not app_config["debug"] else 0
 
     m1, m2 = int(m1), int(m2)
-    return {'m1': m1, 'm2': m2}
+    return {"m1": m1, "m2": m2}
 
 
 if __name__ == "__main__":

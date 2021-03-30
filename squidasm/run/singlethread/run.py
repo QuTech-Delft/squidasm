@@ -64,7 +64,7 @@ def setup_network_stacks(
             service.add_reaction_handler(qnos._executor._handle_epr_response)
 
 
-def run_netsquid(
+def run_protocols(
     num: int, protocols: List[Tuple[HostProtocol, QNodeOsProtocol]]
 ) -> List[Tuple[Dict, Dict]]:
     # results is list of round results
@@ -92,27 +92,6 @@ def run_netsquid(
             qnos.stop()
 
     return results
-
-
-def run_programs(
-    num: int, network: NetSquidNetwork, programs: Dict[str, Callable]
-) -> List[List[Dict]]:
-    protocols: List[Tuple[HostProtocol, QNodeOsProtocol]] = []
-
-    for name, code in programs.items():
-        # generator = make_generator(code)
-        qnos = QNodeOsProtocol(node=network.get_node(name))
-        host = HostProtocol(name, qnos, code)
-        network.add_node(host.node)
-        protocols.append((host, qnos))
-        NetSquidContext()._protocols[name] = host
-
-    setup_connections(network, protocols)
-    setup_network_stacks(network, protocols)
-
-    NetSquidContext._nodes = {0: "client", 1: "server"}
-
-    return run_netsquid(num, protocols)
 
 
 def _load_program(filename: str) -> Callable:
@@ -161,19 +140,13 @@ def _modify_and_import(module_name, package):
     return module
 
 
-def run_files(
-    num: int, network: NetSquidNetwork, filenames: Dict[str, str], insert_yields=False
+def run_programs(
+    num: int, network: NetSquidNetwork, programs: Dict[str, Callable]
 ) -> List[List[Dict]]:
     protocols: List[Tuple[HostProtocol, QNodeOsProtocol]] = []
 
-    for name, filename in filenames.items():
-        if insert_yields:
-            module = str(pathlib.Path(filename).with_suffix("")).replace(os.sep, ".")
-            module = _modify_and_import(module, None)
-            code = getattr(module, "main")
-        else:
-            code = _load_program(filename)
-
+    for name, code in programs.items():
+        # generator = make_generator(code)
         qnos = QNodeOsProtocol(node=network.get_node(name))
         host = HostProtocol(name, qnos, code)
         network.add_node(host.node)
@@ -183,6 +156,22 @@ def run_files(
     setup_connections(network, protocols)
     setup_network_stacks(network, protocols)
 
-    NetSquidContext._nodes = {0: "client", 1: "server"}
+    return run_protocols(num, protocols)
 
-    return run_netsquid(num, protocols)
+
+def run_files(
+    num: int, network: NetSquidNetwork, filenames: Dict[str, str], insert_yields=False
+) -> List[List[Dict]]:
+    programs: Dict[str, Callable] = {}
+
+    for name, filename in filenames.items():
+        if insert_yields:
+            module = str(pathlib.Path(filename).with_suffix("")).replace(os.sep, ".")
+            module = _modify_and_import(module, None)
+            code = getattr(module, "main")
+        else:
+            code = _load_program(filename)
+
+        programs[name] = code
+
+    return run_programs(num, network, programs)

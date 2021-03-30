@@ -19,7 +19,7 @@ NUM_PAIRS = 20
 class AliceProtocol(HostProtocol):
     def run(self) -> Generator[EventExpression, None, None]:
         app_id = 0
-        self._qnodeos.executor.init_new_application(app_id=app_id, max_qubits=1)
+        self._send_init_app_msg(app_id=app_id, max_qubits=1)
         yield from self._qnodeos.executor.setup_epr_socket(0, 1 - self.node.ID, 0)
 
         subroutine = f"""
@@ -83,7 +83,7 @@ ret_arr @3
 class BobProtocol(HostProtocol):
     def run(self) -> Generator[EventExpression, None, None]:
         app_id = 0
-        self._qnodeos.executor.init_new_application(app_id=app_id, max_qubits=1)
+        self._send_init_app_msg(app_id=app_id, max_qubits=1)
         yield from self._qnodeos.executor.setup_epr_socket(0, 1 - self.node.ID, 0)
 
         subroutine = f"""
@@ -149,7 +149,7 @@ def main():
     network = NetSquidNetwork(network_cfg)
 
     qnos_alice = QNodeOsProtocol(node=network.get_node("alice"))
-    host_alice = AliceProtocol("alice", qnos_alice)
+    host_alice = AliceProtocol("alice", qnos_alice, None)
     network.add_node(host_alice.node)
 
     ll_alice = network.link_layer_services["alice"]
@@ -169,7 +169,7 @@ def main():
     qnos_alice.host_port.connect(conn_alice.ports["B"])
 
     qnos_bob = QNodeOsProtocol(network.get_node("bob"))
-    host_bob = BobProtocol("bob", qnos_bob)
+    host_bob = BobProtocol("bob", qnos_bob, None)
     network.add_node(host_bob.node)
 
     ll_bob = network.link_layer_services["bob"]

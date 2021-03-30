@@ -3,9 +3,12 @@ from netqasm.sdk.external import Socket
 
 def main(
     app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False},
-    inputs={'alpha': 0, 'beta': 0}
+    inputs={"alpha": 0, "beta": 0},
 ):
-    alpha, beta, = inputs['alpha'], inputs['beta']
+    alpha, beta, = (
+        inputs["alpha"],
+        inputs["beta"],
+    )
 
     socket = Socket("client", "server")
     socket.send(str(alpha))

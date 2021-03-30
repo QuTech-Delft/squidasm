@@ -6,6 +6,7 @@ from typing import Dict, List
 from netqasm.logging.glob import set_log_level
 from netqasm.runtime.interface.config import QuantumHardware, default_network_config
 
+from squidasm.run.singlethread import NetSquidContext
 from squidasm.run.singlethread.run import run_files
 from squidasm.sim.network.network import NetSquidNetwork
 
@@ -18,8 +19,10 @@ def main():
     )
     network = NetSquidNetwork(network_cfg)
 
-    client = "examples/apps/bqc_5_6/app_client.py"
-    server = "examples/apps/bqc_5_6/app_server.py"
+    NetSquidContext._nodes = {0: "client", 1: "server"}
+
+    client = "examples/apps/bqc_5_5/app_client.py"
+    server = "examples/apps/bqc_5_5/app_server.py"
 
     start = time.perf_counter()
 

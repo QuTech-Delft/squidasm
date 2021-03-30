@@ -8,9 +8,14 @@ from netqasm.sdk.compiling import NVSubroutineCompiler
 
 def main(
     app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False},
-    inputs={'alpha': 0, 'beta': 0, 'theta1': 0, 'theta2': 0, 'r1': 0, 'r2': 0},
+    inputs={"alpha": 0, "beta": 0, "theta1": 0, "theta2": 0, "r1": 0, "r2": 0},
 ):
-    alpha, beta, theta1, r1 = inputs['alpha'], inputs['beta'], inputs['theta1'], inputs['r1']
+    alpha, beta, theta1, r1 = (
+        inputs["alpha"],
+        inputs["beta"],
+        inputs["theta1"],
+        inputs["r1"],
+    )
 
     socket = Socket("client", "server")
 
@@ -28,8 +33,12 @@ def main(
 
     # Initialize the connection
     if not app_config["debug"]:
-        client = NetQASMConnection(**kwargs, addr=app_config["addr"], port=app_config["port"],
-                                   dev=app_config["dev"])
+        client = NetQASMConnection(
+            **kwargs,
+            addr=app_config["addr"],
+            port=app_config["port"],
+            dev=app_config["dev"]
+        )
     else:
         DebugConnection.node_ids["server"] = 0
         DebugConnection.node_ids["client"] = 1
@@ -57,7 +66,7 @@ def main(
 
         socket.send(str(delta2))
 
-    return {'p1': p1}
+    return {"p1": p1}
 
 
 if __name__ == "__main__":

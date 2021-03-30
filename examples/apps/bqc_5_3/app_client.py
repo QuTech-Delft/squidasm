@@ -6,9 +6,9 @@ from netqasm.sdk.compiling import NVSubroutineCompiler
 
 def main(
     app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False},
-    inputs={'theta1': 0},
+    inputs={"theta1": 0},
 ):
-    theta1 = inputs['theta1']
+    theta1 = inputs["theta1"]
 
     # Create a EPR socket for entanglement generation
     epr_socket = EPRSocket("server", min_fidelity=75)
@@ -24,8 +24,12 @@ def main(
 
     # Initialize the connection
     if not app_config["debug"]:
-        client = NetQASMConnection(**kwargs, addr=app_config["addr"], port=app_config["port"],
-                                   dev=app_config["dev"])
+        client = NetQASMConnection(
+            **kwargs,
+            addr=app_config["addr"],
+            port=app_config["port"],
+            dev=app_config["dev"]
+        )
     else:
         DebugConnection.node_ids["server"] = 0
         DebugConnection.node_ids["client"] = 1
@@ -43,7 +47,7 @@ def main(
         client.flush()
 
     p1 = int(p1)
-    return {'p1': p1}
+    return {"p1": p1}
 
 
 if __name__ == "__main__":
