@@ -3,6 +3,10 @@ import importlib
 import inspect
 import itertools
 import logging
+import os
+import pathlib
+import re
+import sys
 import time
 from typing import Callable, Dict, Generator, List, Tuple
 
@@ -16,6 +20,7 @@ from netsquid.nodes.connections import DirectConnection
 from pydynaa import EventExpression
 from squidasm.run.singlethread.context import NetSquidContext
 from squidasm.run.singlethread.protocols import HostProtocol, QNodeOsProtocol
+from squidasm.run.singlethread.util import make_generator
 from squidasm.sim.network import reset_network
 from squidasm.sim.network.network import NetSquidNetwork
 from squidasm.sim.network.stack import NetworkStack
@@ -110,41 +115,74 @@ def run_programs(
     return run_netsquid(num, protocols)
 
 
-def main(num: int) -> List[List[Dict]]:
-    # set_log_level(logging.DEBUG)
-    # set_log_level(logging.INFO)
-    set_log_level(logging.WARNING)
-
-    network_cfg = default_network_config(
-        ["client", "server"], hardware=QuantumHardware.NV
-    )
-    network = NetSquidNetwork(network_cfg)
-
-    spec = importlib.util.spec_from_file_location(
-        "server", "examples/apps/bqc_5_6/app_server.py"
-    )
-    server = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(server)
-    bqc_server = getattr(server, "main")
-
-    spec = importlib.util.spec_from_file_location(
-        "client", "examples/apps/bqc_5_6/app_client.py"
-    )
-    client = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(client)
-    bqc_client = getattr(client, "main")
-
-    return run_programs(
-        num=num, network=network, programs={"client": bqc_client, "server": bqc_server}
-    )
+def _load_program(filename: str) -> Callable:
+    spec = importlib.util.spec_from_file_location("module", filename)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    func = getattr(module, "main")
+    # gen = make_generator(func)
+    return func
 
 
-if __name__ == "__main__":
-    start = time.perf_counter()
+def _modify_and_import(module_name, package):
+    spec = importlib.util.find_spec(module_name, package)
+    source = spec.loader.get_source(module_name)
+    lines = source.splitlines()
+    new_lines = []
+    socket_name = None
+    epr_socket_name = None
+    for line in lines:
+        new_lines.append(line)
+        sck_result = re.search(" (\w+) = Socket\(", line)
+        epr_result = re.search(" (\w+) = EPRSocket\(", line)
+        if sck_result is not None:
+            socket_name = sck_result.group(1)
+        if epr_result is not None:
+            epr_socket_name = epr_result.group(1)
+        if socket_name is None and epr_socket_name is None:
+            continue
+        if re.search(f"{socket_name}\.recv\(\)", line) and not re.search(
+            f"{epr_socket_name}\.recv\(\)", line
+        ):
+            new_line = re.sub(
+                f"{socket_name}.recv\(\)", f"(yield from {socket_name}.recv())", line
+            )
+            new_lines[-1] = new_line
+        if re.search("\w+\.flush\(\)", line):
+            new_line = re.sub(r"(\w+\.flush\(\))", r"(yield from \1)", line)
+            new_lines[-1] = new_line
 
-    results = main(num=10)
-    print(results)
-    m2_0_count = len([r for r in results if r[1]["m2"] == 0])
-    print(m2_0_count)
+    new_source = "\n".join(new_lines)
+    # new_source = source
+    module = importlib.util.module_from_spec(spec)
+    codeobj = compile(new_source, module.__spec__.origin, "exec")
+    exec(codeobj, module.__dict__)
+    sys.modules[module_name] = module
+    return module
 
-    print(f"finished simulation in {round(time.perf_counter() - start, 2)} seconds")
+
+def run_files(
+    num: int, network: NetSquidNetwork, filenames: Dict[str, str], insert_yields=False
+) -> List[List[Dict]]:
+    protocols: List[Tuple[HostProtocol, QNodeOsProtocol]] = []
+
+    for name, filename in filenames.items():
+        if insert_yields:
+            module = str(pathlib.Path(filename).with_suffix("")).replace(os.sep, ".")
+            module = _modify_and_import(module, None)
+            code = getattr(module, "main")
+        else:
+            code = _load_program(filename)
+
+        qnos = QNodeOsProtocol(node=network.get_node(name))
+        host = HostProtocol(name, qnos, code)
+        network.add_node(host.node)
+        protocols.append((host, qnos))
+        NetSquidContext()._protocols[name] = host
+
+    setup_connections(network, protocols)
+    setup_network_stacks(network, protocols)
+
+    NetSquidContext._nodes = {0: "client", 1: "server"}
+
+    return run_netsquid(num, protocols)

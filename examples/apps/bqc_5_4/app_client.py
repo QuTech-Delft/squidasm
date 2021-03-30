@@ -1,16 +1,16 @@
 import math
 
 from netqasm.sdk import EPRSocket
+from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import DebugConnection
 from netqasm.sdk.external import NetQASMConnection, Socket
-from netqasm.sdk.compiling import NVSubroutineCompiler
 
 
 def main(
     app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False},
-    inputs={'alpha': 0, 'theta1': 0, 'r1': 0},
+    inputs={"alpha": 0, "theta1": 0, "r1": 0},
 ):
-    alpha, theta1, r1 = inputs['alpha'], inputs['theta1'], inputs['r1']
+    alpha, theta1, r1 = inputs["alpha"], inputs["theta1"], inputs["r1"]
 
     socket = Socket("client", "server")
 
@@ -28,8 +28,12 @@ def main(
 
     # Initialize the connection
     if not app_config["debug"]:
-        client = NetQASMConnection(**kwargs, addr=app_config["addr"], port=app_config["port"],
-                                   dev=app_config["dev"])
+        client = NetQASMConnection(
+            **kwargs,
+            addr=app_config["addr"],
+            port=app_config["port"],
+            dev=app_config["dev"]
+        )
     else:
         DebugConnection.node_ids["server"] = 0
         DebugConnection.node_ids["client"] = 1
@@ -52,7 +56,7 @@ def main(
 
         socket.send(str(delta1))
 
-    return {'p1': p1}
+    return {"p1": p1}
 
 
 if __name__ == "__main__":
