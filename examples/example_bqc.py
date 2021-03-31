@@ -27,7 +27,7 @@ def main():
 
     start = time.perf_counter()
 
-    num = 50
+    num = 20
     results = run_files(
         num=num,
         network=network,
