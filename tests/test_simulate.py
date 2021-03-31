@@ -8,7 +8,7 @@ from squidasm.run.multithread.simulate import simulate_application
 APP_DIR = "../netqasm/netqasm/examples/apps/teleport"
 
 
-def test():
+def main():
     set_log_level(logging.INFO)
     app_instance = app_instance_from_path(APP_DIR)
     network_cfg = network_cfg_from_path(APP_DIR)
@@ -17,4 +17,4 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    main()
