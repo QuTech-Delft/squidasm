@@ -35,10 +35,18 @@ from netsquid_magic.magic_distributor import (
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
 from qlink_interface import LinkLayerOKTypeK, LinkLayerOKTypeM, RequestType
 
-from squidasm.glob import QubitInfo
+from pydynaa import EventType
+from squidasm.glob import QubitInfo, get_running_backend
 from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
 
 T_SingleQubitState = Tuple[Tuple[np.complex, np.complex]]
+
+EprDeliveredEvent: EventType = EventType(
+    "EPR_DELIVERED",
+    "Event that an EPR has been delivered by a Distributor, and hence Executors "
+    "can start looking at their updated Array values",
+)
+
 
 logger = get_netqasm_logger()
 
@@ -54,7 +62,7 @@ class NetSquidNetwork(Network):
     def __init__(
         self,
         network_config: NetworkConfig,
-        nv_config: Optional[NVConfig],
+        nv_config: Optional[NVConfig] = None,
         global_log_dir: Optional[str] = None,
     ) -> None:
         self._global_logger: NetworkLogger
@@ -257,7 +265,11 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         nodes = [node.name for node in self.nodes]
         qubit_ids = [memory_positions[node.ID] for node in self.nodes]
 
-        qubit_groups = QubitInfo.get_qubit_groups()
+        if get_running_backend(block=False) is None:
+            # TODO: handle in a better way
+            qubit_groups = None
+        else:
+            qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -272,6 +284,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             msg=f"start entanglement creation between {nodes[0]} and {nodes[1]}",
         )
 
+        logger.debug(f"scheduling entanglement at positions {memory_positions}")
         return memory_positions  # type: ignore
 
     def _get_log_data(
@@ -310,12 +323,15 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         with one change: the `messages` dict is returned at the end, so that their contents can be logged.
         """
 
-        logger.info("Handling delivery of entanglement")
         queue_item = self._pop_from_requests_in_process(event)
         request = queue_item.request
         node_id = queue_item.node_id
         create_id = queue_item.create_id
         memory_positions = self._magic_distributor.peek_delivery(event).memory_positions
+
+        logger.debug(
+            f"Handling delivery of entanglement at positions {memory_positions}"
+        )
 
         # Decrement remaining pairs
         self._decrement_pairs_left(node_id=node_id, create_id=create_id)
@@ -401,7 +417,12 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         for node in self.nodes:
             QubitInfo.update_qubits_used(node.name, memory_positions[node.ID], True)
-        qubit_groups = QubitInfo.get_qubit_groups()
+
+        if get_running_backend(block=False) is None:
+            # TODO: handle in a better way
+            qubit_groups = None
+        else:
+            qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -415,6 +436,8 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             qubit_groups=qubit_groups,
             msg=f"entanglement of type {request.type.value} created between {node_names[0]} and {node_names[1]}",
         )
+
+        self._schedule_now(EprDeliveredEvent)
 
         self._handle_next()
 

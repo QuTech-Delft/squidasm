@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Dict
 
 import numpy as np
+from netqasm.util.yaml import load_yaml
 from netsquid.components.instructions import (
     INSTR_CXDIR,
     INSTR_CYDIR,
@@ -250,3 +251,8 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
     )
     qmem._fail_exception = True
     return qmem
+
+
+def nv_cfg_from_file(path) -> NVConfig:
+    cfg = load_yaml(path)
+    return parse_nv_config(cfg)
