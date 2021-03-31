@@ -39,9 +39,13 @@ SUBRT_FINISHED = "Subroutine finished"
 
 
 class QNodeOsProtocol(NodeProtocol):
-    def __init__(self, node: Node) -> None:
+    def __init__(
+        self, node: Node, instr_proc_time: int = 0, host_latency: int = 0
+    ) -> None:
         super().__init__(node=node, name=node.name)
-        self._executor = NVNetSquidExecutor(node=self.node)
+        self._executor = NVNetSquidExecutor(
+            node=self.node, instr_proc_time=instr_proc_time, host_latency=host_latency
+        )
         self.node.add_ports(["host"])
         self._flavour = NVFlavour()
 

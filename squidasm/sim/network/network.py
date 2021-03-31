@@ -284,6 +284,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             msg=f"start entanglement creation between {nodes[0]} and {nodes[1]}",
         )
 
+        logger.debug(f"scheduling entanglement at positions {memory_positions}")
         return memory_positions  # type: ignore
 
     def _get_log_data(
@@ -322,12 +323,15 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         with one change: the `messages` dict is returned at the end, so that their contents can be logged.
         """
 
-        logger.debug("Handling delivery of entanglement")
         queue_item = self._pop_from_requests_in_process(event)
         request = queue_item.request
         node_id = queue_item.node_id
         create_id = queue_item.create_id
         memory_positions = self._magic_distributor.peek_delivery(event).memory_positions
+
+        logger.debug(
+            f"Handling delivery of entanglement at positions {memory_positions}"
+        )
 
         # Decrement remaining pairs
         self._decrement_pairs_left(node_id=node_id, create_id=create_id)

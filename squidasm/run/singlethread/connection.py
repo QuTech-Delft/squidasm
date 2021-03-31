@@ -124,6 +124,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         for sck, opened in self._epr_sck_status.items():
             if not opened:
                 yield from self._commit_open_epr_socket(sck)
+                self._epr_sck_status[sck] = True
 
         self._logger.debug(f"Flushing presubroutine:\n{presubroutine}")
 

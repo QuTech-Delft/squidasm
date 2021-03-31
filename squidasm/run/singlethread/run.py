@@ -58,8 +58,10 @@ def _setup_network_stacks(
 def run_protocols(
     num: int, protocols: List[Tuple[HostProtocol, QNodeOsProtocol]]
 ) -> List[List[Dict]]:
-    # results is list of round results
-    # round result is a list of outputs (dicts) per node
+    """Simulate an application represented by NetSquid Protocols."""
+
+    # `results` is list of `round results`.
+    # A `round result` is a list of outputs (dicts) per node.
     results: List[List[Dict]] = []
 
     for i in range(num):
@@ -68,8 +70,8 @@ def run_protocols(
         reset_network()
 
         for host, qnos in protocols:
-            host.start()
             qnos.start()
+            host.start()
 
         ns.sim_run()
 
@@ -79,8 +81,8 @@ def run_protocols(
         results.append(round_results)
 
         for host, qnos in protocols:
-            host.stop()
             qnos.stop()
+            host.stop()
 
     return results
 
@@ -88,11 +90,16 @@ def run_protocols(
 def run_programs(
     num: int, network: NetSquidNetwork, programs: Dict[str, Callable]
 ) -> List[List[Dict]]:
+    """Simulate an application represented by functions."""
     protocols: List[Tuple[HostProtocol, QNodeOsProtocol]] = []
 
     for name, code in programs.items():
-        # generator = make_generator(code)
-        qnos = QNodeOsProtocol(node=network.get_node(name))
+        # for now, classical communication latencies are mocked in the Executor itself
+        qnos = QNodeOsProtocol(
+            node=network.get_node(name),
+            instr_proc_time=network.instr_proc_time,
+            host_latency=network.host_latency,
+        )
         host = HostProtocol(name, qnos, code)
         network.add_node(host.node)
         protocols.append((host, qnos))
@@ -107,10 +114,12 @@ def run_programs(
 def run_files(
     num: int, network: NetSquidNetwork, filenames: Dict[str, str], insert_yields=False
 ) -> List[List[Dict]]:
+    """Simulate an application represented by source files."""
     programs: Dict[str, Callable] = {}
 
     for name, filename in filenames.items():
         if insert_yields:
+            # Add `yield from` to flush() and classical recv() statements.
             module = str(pathlib.Path(filename).with_suffix("")).replace(os.sep, ".")
             module = util.modify_and_import(module, None)
             code = getattr(module, "main")

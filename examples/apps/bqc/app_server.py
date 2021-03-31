@@ -14,7 +14,7 @@ def main(
     # Create a EPR socket for entanglement generation
     epr_socket = EPRSocket("client", min_fidelity=75)
 
-    # Arguments to connection class
+    # Initialize the connection
     kwargs = {
         "app_name": "server",
         "log_config": None,
@@ -37,19 +37,34 @@ def main(
         server = DebugConnection(**kwargs)
 
     with server:
-        epr = epr_socket.recv()[0]
+        # Create EPR Pair
+        epr1 = epr_socket.recv()[0]
+
+        epr2 = epr_socket.recv()[0]
+
+        epr2.cphase(epr1)
         server.flush()
 
         delta1 = float(socket.recv())
 
-        epr.rot_Z(angle=delta1)
-        epr.H()
-        m2 = epr.measure(store_array=False)
+        epr2.rot_Z(angle=delta1)
+        epr2.H()
+        m1 = epr2.measure(store_array=False)
+        m1 = m1 if not app_config["debug"] else 0
+        server.flush()
+
+        socket.send(str(m1))
+
+        delta2 = float(socket.recv())
+
+        epr1.rot_Z(angle=delta2)
+        epr1.H()
+        m2 = epr1.measure(store_array=False)
         m2 = m2 if not app_config["debug"] else 0
         server.flush()
 
-    m2 = int(m2)
-    return {"m2": m2}
+    m1, m2 = int(m1), int(m2)
+    return {"m1": m1, "m2": m2}
 
 
 if __name__ == "__main__":

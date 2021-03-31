@@ -21,6 +21,10 @@ def modify_and_import(module_name, package):
     epr_socket_name = None
     for line in lines:
         new_lines.append(line)
+        if re.search(r"\w+\.flush\(\)", line):
+            new_line = re.sub(r"(\w+\.flush\(\))", r"(yield from \1)", line)
+            new_lines[-1] = new_line
+            continue
         sck_result = re.search(r" (\w+) = Socket\(", line)
         epr_result = re.search(r" (\w+) = EPRSocket\(", line)
         if sck_result is not None:
@@ -35,9 +39,6 @@ def modify_and_import(module_name, package):
             new_line = re.sub(
                 fr"{socket_name}.recv\(\)", f"(yield from {socket_name}.recv())", line
             )
-            new_lines[-1] = new_line
-        if re.search(r"\w+\.flush\(\)", line):
-            new_line = re.sub(r"(\w+\.flush\(\))", r"(yield from \1)", line)
             new_lines[-1] = new_line
 
     new_source = "\n".join(new_lines)

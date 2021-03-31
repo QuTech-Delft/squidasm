@@ -80,6 +80,10 @@ class NVNetSquidExecutor(NetSquidExecutor):
                 ns_instr=INSTR_ROT_Y, qubit_mapping=[0], angle=-np.pi / 2
             )
 
+            # Explicitly free physical qubit 0, since the Executor will
+            # only free the original qubit.
+            self._clear_phys_qubit_in_memory(0)
+
         # Measure the electron.
         outcome = yield from super()._meas_physical_qubit(0)
         return outcome

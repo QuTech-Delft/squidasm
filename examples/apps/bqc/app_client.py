@@ -9,8 +9,8 @@ from netqasm.sdk.external import NetQASMConnection, Socket
 def main(
     app_config={"addr": "192.168.2.215", "port": 1275, "dev": "", "debug": False},
     inputs={
-        "alpha": 0,
-        "beta": 0,
+        "alpha": math.pi / 2,
+        "beta": math.pi / 2,
         "theta1": 0,
         "theta2": 0,
         "r1": 0,
@@ -87,7 +87,7 @@ def main(
             epr2.H()
             p1 = epr2.measure(store_array=False)
         p1 = p1 if not app_config["debug"] else 0
-        yield from client.flush()
+        client.flush()
 
         p1 = int(p1)
         p2 = int(p2)
@@ -98,7 +98,7 @@ def main(
             delta1 = alpha - theta1 + (p1 + r1) * math.pi
         socket.send(str(delta1))
 
-        m1 = int((yield from socket.recv()))
+        m1 = int(socket.recv())
         if trap and dummy == 1:
             delta2 = -theta2 + (p2 + r2) * math.pi
         else:
