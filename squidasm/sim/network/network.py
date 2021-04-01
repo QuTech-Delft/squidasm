@@ -1,11 +1,12 @@
 import copy
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import netsquid as ns
 import numpy as np
 from netqasm.logging.glob import get_netqasm_logger
 from netqasm.logging.output import NetworkLogger
+from netqasm.qlink_compat import RequestType
 from netqasm.runtime.interface.config import (
     Link,
     NetworkConfig,
@@ -33,7 +34,12 @@ from netsquid_magic.magic_distributor import (
     PerfectStateMagicDistributor,
 )
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
-from qlink_interface import LinkLayerOKTypeK, LinkLayerOKTypeM, RequestType
+from qlink_interface import (
+    ReqCreateAndKeep,
+    ReqMeasureDirectly,
+    ResCreateAndKeep,
+    ResMeasureDirectly,
+)
 
 from pydynaa import EventType
 from squidasm.glob import QubitInfo, get_running_backend
@@ -317,13 +323,22 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             qubit_state = qapi.reduced_dm(qubit).tolist()
         return qubit_state
 
-    def _handle_delivery(self, event: Any) -> None:
+    def _handle_delivery(self, event):
         """
-        NOTE: This is a literal copy of the _handle_delivery method in the netsquid_magic package,
-        with one change: the `messages` dict is returned at the end, so that their contents can be logged.
+        Handles the completion of an entanglement generation
+        Updates, the requests, number of pairs left etc,
+        measures the qubits in case of type M and returns the corresponding OK message
         """
 
-        queue_item = self._pop_from_requests_in_process(event)
+        # NOTE: This is a literal copy of the _handle_delivery method in the
+        # netsquid_magic package, with one change: the `messages` dict is
+        # returned at the end, so that their contents can be logged.
+        try:
+            queue_item = self._pop_from_requests_in_process(event)
+        except KeyError:
+            # This indicates that this delivery event is not the "reference" delivery event returned by add_delivery
+            # of the magic distributor. Since the below operations only need to be executed once, we can skip this.
+            return
         request = queue_item.request
         node_id = queue_item.node_id
         create_id = queue_item.create_id
@@ -358,9 +373,8 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
                 raise RuntimeError("Could not get the remote node ID")
 
             memory_position = memory_positions[node.ID][0]
-            if request.type == RequestType.K:
-
-                msg = LinkLayerOKTypeK(
+            if isinstance(request, ReqCreateAndKeep):
+                msg = ResCreateAndKeep(
                     create_id=create_id,
                     logical_qubit_id=memory_position,
                     directionality_flag=directionality_flag,
@@ -368,14 +382,14 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
                     purpose_id=request.purpose_id,
                     remote_node_id=remote_node_id,
                     goodness=request.minimum_fidelity,
-                    goodness_time=sim_time(),
+                    time_of_goodness=sim_time(),
                     bell_state=bell_state,
                 )
-            elif request.type == RequestType.M:
+            elif isinstance(request, ReqMeasureDirectly):
                 measurement_outcome, measurement_basis = self._measure_qubit(
                     node, request, memory_position
                 )
-                msg = LinkLayerOKTypeM(
+                msg = ResMeasureDirectly(
                     create_id=create_id,
                     measurement_outcome=measurement_outcome,
                     measurement_basis=measurement_basis,
@@ -401,7 +415,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         # to be able to log the bases and outcomes.
         meas_bases: Optional[List[int]]
         meas_outcomes: Optional[List[int]]
-        if request.type == RequestType.M:
+        if isinstance(request, ReqMeasureDirectly):
             meas_bases = [resp.measurement_basis.value for resp in messages.values()]
             meas_outcomes = [resp.measurement_outcome for resp in messages.values()]
         else:
@@ -424,9 +438,17 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         else:
             qubit_groups = QubitInfo.get_qubit_groups()
 
+        # qlink-layer 0.1.0 type
+        if isinstance(request, ReqCreateAndKeep):
+            qlink_0_1_type = RequestType.K
+        elif isinstance(request, ReqMeasureDirectly):
+            qlink_0_1_type = RequestType.M
+        else:
+            raise ValueError(f"Unsupported type of request {request}")
+
         self.network.global_log(
             sim_time=ns.sim_time(),
-            ent_type=request.type,
+            ent_type=qlink_0_1_type,
             ent_stage=EntanglementStage.FINISH,
             meas_bases=meas_bases,
             meas_outcomes=meas_outcomes,
@@ -434,7 +456,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             path=list(self.path),
             qubit_ids=qubit_ids,
             qubit_groups=qubit_groups,
-            msg=f"entanglement of type {request.type.value} created between {node_names[0]} and {node_names[1]}",
+            msg=f"entanglement of type {qlink_0_1_type.value} created between {node_names[0]} and {node_names[1]}",
         )
 
         self._schedule_now(EprDeliveredEvent)
@@ -474,7 +496,7 @@ class QDevice(QuantumProcessor):
         if phys_instrs is None:
             phys_instrs = copy.deepcopy(QDevice._default_phys_instructions)
         for instr in phys_instrs:
-            instr.q_noise_model = DepolarNoiseModel(
+            instr.quantum_noise_model = DepolarNoiseModel(
                 depolar_rate=(1 - gate_fidelity), time_independent=True
             )
 
