@@ -2,10 +2,10 @@ from timeit import default_timer as timer
 from typing import Dict, Generator, Tuple, Union
 
 from netqasm.backend.network_stack import Address, BaseNetworkStack
+from netqasm.qlink_compat import LinkLayerCreate, LinkLayerRecv, request_to_qlink_1_0
 from netsquid.nodes.node import Node as NetSquidNode
 from netsquid_magic.link_layer import LinkLayerService
 from netsquid_magic.sleeper import Sleeper
-from qlink_interface import LinkLayerCreate, LinkLayerRecv
 
 from pydynaa import EventExpression
 
@@ -121,7 +121,11 @@ class NetworkStack(BaseNetworkStack):
             raise ValueError(
                 f"The node with ID {remote_node_id} is not known to the network"
             )
-        link_layer_service.put(request)
+
+        # Convert request to qlink-layer 1.0.
+        converted_req = request_to_qlink_1_0(request)
+
+        link_layer_service.put(converted_req)
 
     def setup_epr_socket(
         self,

@@ -148,7 +148,7 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
             INSTR_INIT,
             parallel=False,
             topology=carbon_positions,
-            q_noise_model=carbon_init_noise,
+            quantum_noise_model=carbon_init_noise,
             apply_q_noise_after=True,
             duration=cfg.carbon_init,
         )
@@ -163,7 +163,7 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
                 instr,
                 parallel=False,
                 topology=carbon_positions,
-                q_noise_model=carbon_z_rot_noise,
+                quantum_noise_model=carbon_z_rot_noise,
                 apply_q_noise_after=True,
                 duration=dur,
             )
@@ -174,7 +174,7 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
             INSTR_INIT,
             parallel=False,
             topology=[electron_position],
-            q_noise_model=electron_init_noise,
+            quantum_noise_model=electron_init_noise,
             apply_q_noise_after=True,
             duration=cfg.electron_init,
         )
@@ -189,7 +189,7 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
                 instr,
                 parallel=False,
                 topology=[electron_position],
-                q_noise_model=electron_single_qubit_noise,
+                quantum_noise_model=electron_single_qubit_noise,
                 duration=dur,
             )
         )
@@ -202,7 +202,7 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
             INSTR_CXDIR,
             parallel=False,
             topology=electron_carbon_topologies,
-            q_noise_model=ec_noise,
+            quantum_noise_model=ec_noise,
             apply_q_noise_after=True,
             duration=cfg.ec_controlled_dir_x,
         )
@@ -213,7 +213,7 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
             INSTR_CYDIR,
             parallel=False,
             topology=electron_carbon_topologies,
-            q_noise_model=ec_noise,
+            quantum_noise_model=ec_noise,
             apply_q_noise_after=True,
             duration=cfg.ec_controlled_dir_y,
         )
@@ -233,7 +233,7 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
         INSTR_MEASURE,
         parallel=False,
         topology=[electron_position],
-        q_noise_model=None,
+        quantum_noise_model=None,
         duration=cfg.measure,
     )
 

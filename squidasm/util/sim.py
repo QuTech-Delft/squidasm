@@ -57,6 +57,6 @@ def get_qubit_state(qubit: SdkQubit, reduced_dm: bool = True) -> np.ndarray:
                 "Getting the state of multiple qubits with `reduced_dm=False` is not allowed "
                 "since it can require merging the states"
             )
-        dm = ns_qubits[0].qstate.dm
+        dm = ns_qubits[0].qstate.qrepr.reduced_dm()
 
     return dm

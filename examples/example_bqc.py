@@ -22,8 +22,8 @@ def main():
 
     NetSquidContext.set_nodes({0: "server", 1: "client"})
 
-    client = "examples/apps/bqc/app_client.py"
-    server = "examples/apps/bqc/app_server.py"
+    client = "./apps/bqc/app_client.py"
+    server = "./apps/bqc/app_server.py"
 
     start = time.perf_counter()
 

@@ -24,10 +24,10 @@ def is_state_entangled(state: QState, tol: Optional[float] = None) -> Optional[b
     """
     if state.num_qubits <= 1:
         return False
-    if is_dm_pure(dm=state.dm, tol=tol):
+    if is_dm_pure(dm=state.qrepr.reduced_dm(), tol=tol):
         return is_pure_state_entangled(state=state, tol=tol)
     if state.num_qubits == 2:
-        return not is_ppt(mat=state.dm)
+        return not is_ppt(mat=state.qrepr.reduced_dm())
     else:
         # Not implemented to decide if multipartite states are entangled in general
         return None

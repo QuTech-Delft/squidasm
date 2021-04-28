@@ -210,10 +210,10 @@ class NetSquidExecutor(Executor, Entity):
         raise RuntimeError("No more qubits left in qdevice")
 
     def _clear_phys_qubit_in_memory(self, physical_address: int) -> None:
-        self.qdevice.set_position_used(False, physical_address)
+        self.qdevice.mem_positions[physical_address].in_use = False
 
     def _reserve_physical_qubit(self, physical_address: int) -> None:
-        self.qdevice.set_position_used(True, physical_address)
+        self.qdevice.mem_positions[physical_address].in_use = True
 
     def _wait_to_handle_epr_responses(self) -> None:
         self._wait_once(

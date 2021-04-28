@@ -50,6 +50,6 @@ ret_reg m!
     m = shared_memory.get_register(parse_register("M0"))
     assert m in set([0, 1])
     qubit = executor._qdevice._get_qubits(0)[0]
-    dm = qubit.qstate.dm
+    dm = qubit.qstate.qrepr.reduced_dm()
     expected_dm = np.array([[1, 0], [0, 0]])
     assert np.all(np.isclose(dm, expected_dm))
