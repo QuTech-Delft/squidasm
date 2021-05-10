@@ -1,33 +1,29 @@
-from typing import Optional, Dict, Any
-import netsquid as ns
-from multiprocessing.pool import ThreadPool
 import threading
+from multiprocessing.pool import ThreadPool
+from typing import Any, Dict, Optional
 
-from netqasm.runtime.runtime_mgr import RuntimeManager
-from netqasm.logging.glob import get_netqasm_logger, set_log_level
-from netqasm.runtime.interface.config import (
-    QuantumHardware,
-    NetworkConfig,
-)
+import netsquid as ns
+from netqasm.lang.instr.flavour import NVFlavour, VanillaFlavour
+from netqasm.logging.glob import get_netqasm_logger
+from netqasm.logging.output import reset_struct_loggers, save_all_struct_loggers
 from netqasm.runtime.app_config import AppConfig
+from netqasm.runtime.application import ApplicationInstance
+from netqasm.runtime.interface.config import NetworkConfig, QuantumHardware
+from netqasm.runtime.runtime_mgr import RuntimeManager
+from netqasm.sdk.classical_communication import reset_socket_hub
+from netqasm.sdk.classical_communication.thread_socket.socket import ThreadSocket
+from netqasm.sdk.shared_memory import SharedMemoryManager
+from netsquid.nodes.node import Node as NetSquidNode
 
-from squidasm.sim.qnodeos import SubroutineHandler
-from squidasm.sim.network.stack import NetworkStack
+from squidasm.glob import pop_current_backend, put_current_backend
+from squidasm.interface.queues import QueueManager
 from squidasm.sim.network import reset_network
-from netqasm.lang.instr.flavour import VanillaFlavour, NVFlavour
 from squidasm.sim.network.network import NetSquidNetwork
 from squidasm.sim.network.nv_config import NVConfig
-from squidasm.glob import put_current_backend, pop_current_backend
-
-from netqasm.sdk.shared_memory import reset_memories
-from squidasm.interface.queues import QueueManager
-from netqasm.logging.output import save_all_struct_loggers, reset_struct_loggers
-from netqasm.sdk.classical_communication import reset_socket_hub
-
-from netqasm.runtime.application import ApplicationInstance
-from netqasm.sdk.classical_communication.thread_socket.socket import ThreadSocket
-
+from squidasm.sim.network.stack import NetworkStack
+from squidasm.sim.qnodeos import SubroutineHandler
 from squidasm.util.thread import as_completed
+
 _logger = get_netqasm_logger()
 
 
@@ -36,21 +32,24 @@ class SquidAsmRuntimeManager(RuntimeManager):
     _NETWORK_STACK_CLASS = NetworkStack
 
     def __init__(self):
-        self._network_instance = None
-        self._netsquid_formalism = ns.QFormalism.KET
-        self._subroutine_handlers = dict()
-        self._is_running = False
-        self._party_map = dict()
+        self._network_instance: Optional[NetSquidNetwork] = None
+        self._netsquid_formalism: ns.QFormalism = ns.QFormalism.KET
+        self._subroutine_handlers: Dict[str, SubroutineHandler] = dict()
+        self._is_running: bool = False
+        self._party_map: Dict[str, NetSquidNode] = dict()
         self._backend_thread = None
-        self._backend_log_dir = None
+        self._backend_log_dir: Optional[str] = None
+
+        self.reset_backend()
 
     @property
     def network(self) -> Optional[NetSquidNetwork]:
         return self._network_instance
 
     @property
-    def nodes(self):
-        return self.network.nodes
+    def nodes(self) -> Dict[str, NetSquidNode]:
+        assert self.network is not None
+        return self.network.nodes  # type: ignore
 
     @property
     def netsquid_formalism(self) -> ns.QFormalism:
@@ -73,15 +72,16 @@ class SquidAsmRuntimeManager(RuntimeManager):
         self._backend_log_dir = new_dir
         for handler in self.subroutine_handlers.values():
             handler._executor.set_instr_logger(new_dir)
+        assert self._network_instance is not None
         self._network_instance.set_logger(new_dir)
 
     @property
-    def party_map(self):  # TODO type
+    def party_map(self) -> Dict[str, NetSquidNode]:
         return self._party_map
 
     # TODO rename
     @property
-    def app_node_map(self):  # TODO type
+    def app_node_map(self) -> Dict[str, NetSquidNode]:
         return self._party_map
 
     @property
@@ -107,7 +107,9 @@ class SquidAsmRuntimeManager(RuntimeManager):
         def backend_thread(manager):
             _logger.debug("Starting netsquid backend")
             if self.network is None:
-                _logger.warning("Trying to start backend but no Network Instance exists")
+                _logger.warning(
+                    "Trying to start backend but no Network Instance exists"
+                )
                 return
 
             ns.set_qstate_formalism(self.netsquid_formalism)
@@ -116,14 +118,18 @@ class SquidAsmRuntimeManager(RuntimeManager):
                 subroutine_handler.start()
 
             self._is_running = True
-            _logger.info("\n-------------\nStarting NetSquid simulator\n-------------\n")
+            _logger.info(
+                "\n-------------\nStarting NetSquid simulator\n-------------\n"
+            )
             put_current_backend(self)
             ns.sim_run()
             pop_current_backend()
-            _logger.info("\n-------------\nNetSquid simulator finished\n-------------\n")
+            _logger.info(
+                "\n-------------\nNetSquid simulator finished\n-------------\n"
+            )
             self._is_running = False
 
-        t = threading.Thread(target=backend_thread, args=(self, ))
+        t = threading.Thread(target=backend_thread, args=(self,))
         self._backend_thread = t
         t.start()
 
@@ -132,6 +138,7 @@ class SquidAsmRuntimeManager(RuntimeManager):
             subroutine_handler.stop()
         self._backend_thread.join()
         self._backend_thread = None
+        SharedMemoryManager.reset_memories()
         QueueManager.destroy_queues()
         reset_network()
         reset_socket_hub()
@@ -141,20 +148,19 @@ class SquidAsmRuntimeManager(RuntimeManager):
         if save_loggers:
             save_all_struct_loggers()
         ns.sim_reset()
-        reset_memories()
+        SharedMemoryManager.reset_memories()
         reset_network()
         QueueManager.reset_queues()
         reset_socket_hub()
         reset_struct_loggers()
-        # logging.shutdown()
-        # reload(logging)
-        set_log_level("INFO")
 
-    def set_network(self, cfg: NetworkConfig, nv_cfg: Optional[NVConfig] = None) -> None:
+    def set_network(
+        self, cfg: NetworkConfig, nv_cfg: Optional[NVConfig] = None
+    ) -> None:
         network = NetSquidNetwork(
             network_config=cfg,
             nv_config=nv_cfg,
-            global_log_dir=self.backend_log_dir  # TODO
+            global_log_dir=self.backend_log_dir,  # TODO
         )
         self._network_instance = network
         self._create_subroutine_handlers()
@@ -165,6 +171,8 @@ class SquidAsmRuntimeManager(RuntimeManager):
         use_app_config=True,
         save_loggers=True,
     ) -> Dict[str, Any]:
+        assert self.network is not None
+
         programs = app_instance.app.programs
 
         for party, node_name in app_instance.party_alloc.items():
@@ -181,16 +189,16 @@ class SquidAsmRuntimeManager(RuntimeManager):
                         node_name=self._party_map[program.party],
                         main_func=program.entry,
                         log_config=app_instance.logging_cfg,
-                        inputs=inputs
+                        inputs=inputs,
                     )
-                    inputs['app_config'] = app_cfg
+                    inputs["app_config"] = app_cfg
                 future = executor.apply_async(program.entry, kwds=inputs)
                 program_futures.append(future)
 
             # Join the application threads and the backend
             program_names = [program.party for program in app_instance.app.programs]
             # NOTE: use app_<name> instead of prog_<name> for now for backward compatibility
-            names = [f'app_{prog_name}' for prog_name in program_names]
+            names = [f"app_{prog_name}" for prog_name in program_names]
             results = {}
             for future, name in as_completed(program_futures, names=names):
                 results[name] = future.get()
@@ -223,11 +231,10 @@ class SquidAsmRuntimeManager(RuntimeManager):
                 instr_log_dir=self._backend_log_dir,  # TODO
                 flavour=flavour,
                 instr_proc_time=self.network.instr_proc_time,
-                host_latency=self.network.host_latency
+                host_latency=self.network.host_latency,
             )
             subroutine_handler.network_stack = self.__class__._NETWORK_STACK_CLASS(
-                node=node,
-                link_layer_services=ll_services[node.name]
+                node=node, link_layer_services=ll_services[node.name]
             )
             reaction_handler = subroutine_handler.get_epr_reaction_handler()
             for service in ll_services[node.name].values():

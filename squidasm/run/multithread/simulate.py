@@ -1,17 +1,21 @@
 import os
-from typing import Optional, Callable, Dict, Any, List
+from typing import Any, Callable, Dict, List, Optional
+
+from netqasm.runtime import env, process_logs
+from netqasm.runtime.application import ApplicationInstance, load_yaml_file
+from netqasm.runtime.interface.config import (
+    NetworkConfig,
+    QuantumHardware,
+    default_network_config,
+)
+from netqasm.runtime.settings import Formalism
+from netqasm.sdk.config import LogConfig
+from netqasm.sdk.shared_memory import SharedMemoryManager
+from netqasm.util.yaml import dump_yaml
 from netsquid import QFormalism
 
-from netqasm.util.yaml import dump_yaml
-from netqasm.runtime.settings import Formalism
-from netqasm.runtime.interface.config import default_network_config, NetworkConfig, QuantumHardware
-from netqasm.sdk.config import LogConfig
-from netqasm.runtime import env, process_logs
-from squidasm.sim.network.nv_config import parse_nv_config, NVConfig
-
-from squidasm.run.runtime_mgr import SquidAsmRuntimeManager
-from netqasm.runtime.application import ApplicationInstance, load_yaml_file
-
+from squidasm.run.multithread.runtime_mgr import SquidAsmRuntimeManager
+from squidasm.sim.network.nv_config import NVConfig, parse_nv_config
 
 _NS_FORMALISMS = {
     Formalism.STAB: QFormalism.STAB,
@@ -20,7 +24,7 @@ _NS_FORMALISMS = {
 }
 
 
-def create_nv_cfg(nv_config_file: str = None) -> NVConfig:
+def create_nv_cfg(nv_config_file: str = None) -> Optional[NVConfig]:
     if nv_config_file is None:
         nv_cfg = None
     else:
@@ -60,11 +64,13 @@ def simulate_application(
         log_cfg = LogConfig() if log_cfg is None else log_cfg
         app_instance.logging_cfg = log_cfg
 
-        log_dir = os.path.abspath("./log") if log_cfg.log_dir is None else log_cfg.log_dir
+        log_dir = (
+            os.path.abspath("./log") if log_cfg.log_dir is None else log_cfg.log_dir
+        )
         if not os.path.exists(log_dir):
             os.mkdir(log_dir)
 
-    timed_log_dir = None
+    timed_log_dir: Optional[str] = None
 
     mgr.start_backend()
 
@@ -72,6 +78,7 @@ def simulate_application(
 
     for _ in range(num_rounds):
         if enable_logging:
+            assert log_cfg is not None
             if log_cfg.split_runs or timed_log_dir is None:
                 # create new timed directory for next run or for first run
                 timed_log_dir = env.get_timed_log_dir(log_dir)
@@ -83,8 +90,11 @@ def simulate_application(
         results.append(result)
 
         if enable_logging:
+            assert timed_log_dir is not None
             path = os.path.join(timed_log_dir, "results.yaml")
             dump_yaml(data=results, file_path=path)
+
+        SharedMemoryManager.reset_memories()
 
     if post_function is not None:
         post_function(mgr)

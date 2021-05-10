@@ -1,13 +1,12 @@
 from typing import List
 
+from netqasm.lang import instr as ins
+from netqasm.logging.output import InstrLogger as NQInstrLogger
+from netqasm.logging.output import QubitGroups, QubitState
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits.qubit import Qubit
 
-from netqasm.logging.output import InstrLogger as NQInstrLogger
-from netqasm.logging.output import QubitGroups, QubitState
-from netqasm.lang import instr as instructions
-
-from squidasm.glob import get_running_backend, QubitInfo
+from squidasm.glob import QubitInfo, get_running_backend
 
 
 class InstrLogger(NQInstrLogger):
@@ -26,6 +25,8 @@ class InstrLogger(NQInstrLogger):
     ) -> Qubit:
         """Returns the qubit object in memory"""
         backend = get_running_backend()
+        if backend is None:
+            raise RuntimeError("Backend is None")
         executor = backend.subroutine_handlers[node_name]._executor
         return executor._get_qubit(app_id=app_id, virtual_address=qubit_id)
 
@@ -53,22 +54,22 @@ class InstrLogger(NQInstrLogger):
 
     def _get_node_name(self) -> str:
         """Returns the name of this node"""
-        return self._executor._node.name
+        return self._executor._node.name  # type: ignore
 
     def _update_qubits(
         self,
         subroutine_id: int,
-        instr: instructions.base.NetQASMInstruction,
+        instr: ins.NetQASMInstruction,
         qubit_ids: List[int],
     ) -> None:
         add_qubit_instrs = [
-            instructions.core.InitInstruction,
-            instructions.core.CreateEPRInstruction,
-            instructions.core.RecvEPRInstruction,
+            ins.core.InitInstruction,
+            ins.core.CreateEPRInstruction,
+            ins.core.RecvEPRInstruction,
         ]
         remove_qubit_instrs = [
-            instructions.core.QFreeInstruction,
-            instructions.core.MeasInstruction,
+            ins.core.QFreeInstruction,
+            ins.core.MeasInstruction,
         ]
         node_name = self._get_node_name()
         if any(isinstance(instr, cmd_cls) for cmd_cls in add_qubit_instrs):

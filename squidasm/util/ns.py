@@ -1,11 +1,10 @@
-from typing import Optional
 from itertools import product
+from typing import Optional
 
 import numpy as np
-from numpy import linalg, ndarray
-
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits.qstate import QState
+from numpy import linalg, ndarray
 
 
 def is_dm_pure(dm: ndarray, tol: Optional[float] = None) -> bool:
@@ -15,7 +14,7 @@ def is_dm_pure(dm: ndarray, tol: Optional[float] = None) -> bool:
 
 
 def is_state_entangled(state: QState, tol: Optional[float] = None) -> Optional[bool]:
-    """ Checks if a arbitrary qubit state is entangled.
+    """Checks if a arbitrary qubit state is entangled.
     If a decision cannot be made, `None` is returned.
     Decision will always be made for
 
@@ -25,10 +24,10 @@ def is_state_entangled(state: QState, tol: Optional[float] = None) -> Optional[b
     """
     if state.num_qubits <= 1:
         return False
-    if is_dm_pure(dm=state.dm, tol=tol):
+    if is_dm_pure(dm=state.qrepr.reduced_dm(), tol=tol):
         return is_pure_state_entangled(state=state, tol=tol)
     if state.num_qubits == 2:
-        return not is_ppt(mat=state.dm)
+        return not is_ppt(mat=state.qrepr.reduced_dm())
     else:
         # Not implemented to decide if multipartite states are entangled in general
         return None
@@ -46,7 +45,9 @@ def is_pure_state_entangled(state: QState, tol: Optional[float] = None) -> bool:
     return False
 
 
-def partial_transpose(mat: ndarray, dim: int = 2, size_b: Optional[int] = None) -> ndarray:
+def partial_transpose(
+    mat: ndarray, dim: int = 2, size_b: Optional[int] = None
+) -> ndarray:
     """Takes the partial transpose of second half of the system.
     It is assumed that the matrix `mat` is of dimension `dim^(n+m) x dim^(n+m)`.
     Where `m` is given by `size_b` and `dim` is by default 2.
@@ -61,11 +62,15 @@ def partial_transpose(mat: ndarray, dim: int = 2, size_b: Optional[int] = None) 
     assert dim ** exponent == nrows, f"Number of rows ({nrows}) not a power of {dim}"
     if size_b is None:
         n = m = exponent // 2
-        assert n + m == exponent, (f"Number of rows ({nrows}) not {dim}^x where x is a "
-                                   f"even number, consider setting `size_b`")
+        assert n + m == exponent, (
+            f"Number of rows ({nrows}) not {dim}^x where x is a "
+            f"even number, consider setting `size_b`"
+        )
     else:
         n = exponent - m
-        assert n + m == exponent, f"Number of rows ({nrows}) not {dim}^x where x is divisible by {size_b}"
+        assert (
+            n + m == exponent
+        ), f"Number of rows ({nrows}) not {dim}^x where x is divisible by {size_b}"
 
     # Extract all dim^m x dim^m sub matrices
     N = dim ** n
@@ -73,7 +78,7 @@ def partial_transpose(mat: ndarray, dim: int = 2, size_b: Optional[int] = None) 
     submats = [[None] * N for _ in range(N)]
     for j, k in product(range(N), repeat=2):
         # Transpose each submatrix
-        submats[j][k] = mat[M*j:M*(j+1), N*k:N*(k+1)].transpose()
+        submats[j][k] = mat[M * j : M * (j + 1), N * k : N * (k + 1)].transpose()
     return np.block(submats)
 
 
@@ -82,4 +87,4 @@ def is_ppt(mat: ndarray, dim: int = 2, size_b: Optional[int] = None) -> bool:
     Inputs are the same as for :func:`~.partial_transpose`.
     """
     pt_mat = partial_transpose(mat=mat, dim=dim, size_b=size_b)
-    return np.all(linalg.eigvals(pt_mat) >= 0)
+    return np.all(linalg.eigvals(pt_mat) >= 0)  # type: ignore

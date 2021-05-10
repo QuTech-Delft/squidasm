@@ -1,11 +1,12 @@
 import logging
-import numpy as np
-import netsquid as ns
-from netsquid.protocols import NodeProtocol
-from netsquid.nodes import Node
 
+import netsquid as ns
+import numpy as np
+from netqasm.lang.parsing import parse_register, parse_text_subroutine
 from netqasm.logging.glob import set_log_level
-from netqasm.lang.parsing import parse_text_subroutine, parse_register
+from netsquid.nodes import Node
+from netsquid.protocols import NodeProtocol
+
 from squidasm.sim.executor.vanilla import VanillaNetSquidExecutor
 from squidasm.sim.network import QDevice
 
@@ -49,6 +50,6 @@ ret_reg m!
     m = shared_memory.get_register(parse_register("M0"))
     assert m in set([0, 1])
     qubit = executor._qdevice._get_qubits(0)[0]
-    dm = qubit.qstate.dm
+    dm = qubit.qstate.qrepr.reduced_dm()
     expected_dm = np.array([[1, 0], [0, 0]])
     assert np.all(np.isclose(dm, expected_dm))

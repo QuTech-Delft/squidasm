@@ -1,43 +1,58 @@
-import os
-from typing import List, Dict, Optional
-import numpy as np
 import copy
+import os
+from typing import Dict, List, Optional, Tuple
 
 import netsquid as ns
-from netsquid.util import sim_time
-from netsquid.qubits import qubitapi as qapi
-from netsquid.components import QuantumProcessor, PhysicalInstruction
+import numpy as np
+from netqasm.logging.glob import get_netqasm_logger
+from netqasm.logging.output import NetworkLogger
+from netqasm.qlink_compat import RequestType
+from netqasm.runtime.interface.config import (
+    Link,
+    NetworkConfig,
+    NoiseType,
+    QuantumHardware,
+)
+from netqasm.runtime.interface.logging import EntanglementStage
+from netsquid.components import PhysicalInstruction, QuantumProcessor
 from netsquid.components import instructions as ns_instructions
-from netsquid.components.models.qerrormodels import T1T2NoiseModel, DepolarNoiseModel
-from netsquid.nodes import Network, Node
+from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qmemory import MemPositionBusyError
-
+from netsquid.nodes import Network, Node
+from netsquid.qubits import qubitapi as qapi
+from netsquid.util import sim_time
 from netsquid_magic.link_layer import (
     LinkLayerService,
     MagicLinkLayerProtocol,
     SingleClickTranslationUnit,
+    TranslationUnit,
 )
-
-from qlink_interface import RequestType, LinkLayerOKTypeK, LinkLayerOKTypeM
-
 from netsquid_magic.magic_distributor import (
+    BitflipMagicDistributor,
+    DepolariseMagicDistributor,
     MagicDistributor,
     PerfectStateMagicDistributor,
-    DepolariseMagicDistributor,
-    BitflipMagicDistributor
 )
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
+from qlink_interface import (
+    ReqCreateAndKeep,
+    ReqMeasureDirectly,
+    ResCreateAndKeep,
+    ResMeasureDirectly,
+)
 
-from netqasm.runtime.interface.config import NetworkConfig, NoiseType, QuantumHardware
-from netqasm.runtime.interface.config import Link
+from pydynaa import EventType
+from squidasm.glob import QubitInfo, get_running_backend
 from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
 
-from netqasm.runtime.interface.logging import EntanglementStage
+T_SingleQubitState = Tuple[Tuple[np.complex, np.complex]]
 
-from netqasm.logging.glob import get_netqasm_logger
-from netqasm.logging.output import NetworkLogger
+EprDeliveredEvent: EventType = EventType(
+    "EPR_DELIVERED",
+    "Event that an EPR has been delivered by a Distributor, and hence Executors "
+    "can start looking at their updated Array values",
+)
 
-from squidasm.glob import QubitInfo
 
 logger = get_netqasm_logger()
 
@@ -50,17 +65,25 @@ class NetSquidNetwork(Network):
     and creates link layer services for each pair of connected nodes.
     """
 
-    def __init__(self, network_config: NetworkConfig, nv_config: NVConfig, global_log_dir=None):
+    def __init__(
+        self,
+        network_config: NetworkConfig,
+        nv_config: Optional[NVConfig] = None,
+        global_log_dir: Optional[str] = None,
+    ) -> None:
+        self._global_logger: NetworkLogger
         if global_log_dir is not None:
             logger_path = os.path.join(global_log_dir, "network_log.yaml")
             self._global_logger = NetworkLogger(logger_path)
         else:
             self._global_logger = None
 
-        self._network_config = network_config
-        self._nv_config = nv_config
+        self._network_config: NetworkConfig = network_config
+        self._nv_config: Optional[NVConfig] = nv_config
         self._node_hardware_types: Dict[str, QuantumHardware] = {}
 
+        self._instr_proc_time: int
+        self._host_latency: int
         if nv_config is not None:
             self._instr_proc_time = nv_config.instr_proc_time
             self._host_latency = nv_config.host_latency
@@ -75,31 +98,31 @@ class NetSquidNetwork(Network):
         self._create_link_layer_services()
 
     # TODO: set_log_directory()
-    def set_logger(self, log_dir):
+    def set_logger(self, log_dir: str):
         logger_path = os.path.join(log_dir, "network_log.yaml")
         self._global_logger = NetworkLogger(logger_path)
 
     @property
-    def instr_proc_time(self):
+    def instr_proc_time(self) -> int:
         return self._instr_proc_time
 
     @property
-    def host_latency(self):
+    def host_latency(self) -> int:
         return self._host_latency
 
     @property
-    def node_hardware_types(self):
+    def node_hardware_types(self) -> Dict[str, QuantumHardware]:
         return self._node_hardware_types
 
     @property
-    def link_layer_services(self):
+    def link_layer_services(self) -> Dict[str, Dict[int, LinkLayerService]]:
         return self._link_layer_services
 
-    def global_log(self, *args, **kwargs):
+    def global_log(self, *args, **kwargs) -> None:
         if self._global_logger is not None:
             self._global_logger.log(*args, **kwargs)
 
-    def _build_network(self):
+    def _build_network(self) -> None:
         for i, node_cfg in enumerate(self._network_config.nodes):
             try:
                 hardware = QuantumHardware(node_cfg.hardware)
@@ -119,7 +142,9 @@ class NetSquidNetwork(Network):
                         mem_fidelities=mem_fidelities,
                     )
                 else:
-                    qdevice = build_nv_qdevice(name=f"{node_cfg.name}_NVQDevice", cfg=self._nv_config)
+                    qdevice = build_nv_qdevice(
+                        name=f"{node_cfg.name}_NVQDevice", cfg=self._nv_config
+                    )
             elif hardware == QuantumHardware.TrappedIon:
                 raise ValueError("TrappedIon hardware not supported.")
             else:  # use generic hardware (vanilla flavour)
@@ -129,14 +154,10 @@ class NetSquidNetwork(Network):
                     gate_fidelity=node_cfg.gate_fidelity,
                     mem_fidelities=mem_fidelities,
                 )
-            node = Node(
-                name=node_cfg.name,
-                ID=i,
-                qmemory=qdevice
-            )
+            node = Node(name=node_cfg.name, ID=i, qmemory=qdevice)
             self.add_node(node)
 
-    def _create_link_layer_services(self):
+    def _create_link_layer_services(self) -> None:
         """
         Create a MagicNetworkLayerProtocol for each link in the network,
         and create link layer services for each of the endpoints for each link.
@@ -166,9 +187,13 @@ class NetSquidNetwork(Network):
                     magic_protocol=magic_protocol,
                     reaction_handler=None,
                 )
-                self._link_layer_services[node.name][remote_node.ID] = link_layer_service
+                self._link_layer_services[node.name][
+                    remote_node.ID
+                ] = link_layer_service
 
-    def _create_link_distributor(self, link: Link, state_delay: Optional[float] = 1000) -> MagicDistributor:
+    def _create_link_distributor(
+        self, link: Link, state_delay: Optional[float] = 1000
+    ) -> MagicDistributor:
         """
         Create a MagicDistributor for a pair of nodes,
         based on configuration in a `Link` object.
@@ -179,17 +204,28 @@ class NetSquidNetwork(Network):
         try:
             noise_type = NoiseType(link.noise_type)
             if noise_type == NoiseType.NoNoise:
-                return PerfectStateMagicDistributor(nodes=[node1, node2], state_delay=state_delay)
-            elif noise_type == NoiseType.Depolarise:  # use Depolarise distributor defined in this module
+                return PerfectStateMagicDistributor(
+                    nodes=[node1, node2], state_delay=state_delay
+                )
+            elif (
+                noise_type == NoiseType.Depolarise
+            ):  # use Depolarise distributor defined in this module
                 noise = 1 - link.fidelity
                 return LinearDepolariseMagicDistributor(
-                    nodes=[node1, node2], depolar_noise=noise, state_delay=state_delay)
-            elif noise_type == NoiseType.DiscreteDepolarise:  # use Depolarise distributor defined in netsquid_magic
+                    nodes=[node1, node2], depolar_noise=noise, state_delay=state_delay
+                )
+            elif (
+                noise_type == NoiseType.DiscreteDepolarise
+            ):  # use Depolarise distributor defined in netsquid_magic
                 noise = 1 - link.fidelity
-                return DepolariseMagicDistributor(nodes=[node1, node2], prob_max_mixed=noise, state_delay=state_delay)
+                return DepolariseMagicDistributor(
+                    nodes=[node1, node2], prob_max_mixed=noise, state_delay=state_delay
+                )
             elif noise_type == NoiseType.Bitflip:
                 flip_prob = 1 - link.fidelity
-                return BitflipMagicDistributor(nodes=[node1, node2], flip_prob=flip_prob, state_delay=state_delay)
+                return BitflipMagicDistributor(
+                    nodes=[node1, node2], flip_prob=flip_prob, state_delay=state_delay
+                )
         except ValueError:
             raise TypeError(f"Noise type {link.noise_type} not valid")
 
@@ -201,14 +237,24 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
     Furthermore, it logs requests and deliveries to the NetworkLogger of the network.
     """
 
-    def __init__(self, nodes, magic_distributor, translation_unit, path: List[str], network):
+    def __init__(
+        self,
+        nodes: Tuple[Node, Node],
+        magic_distributor: MagicDistributor,
+        translation_unit: TranslationUnit,
+        path: List[str],
+        network: NetSquidNetwork,
+    ) -> None:
         super().__init__(
-            nodes=nodes, magic_distributor=magic_distributor, translation_unit=translation_unit)
+            nodes=nodes,
+            magic_distributor=magic_distributor,
+            translation_unit=translation_unit,
+        )
 
-        self.path = path
-        self.network = network
+        self.path: List[str] = path
+        self.network: NetSquidNetwork = network
 
-    def _get_unused_memory_positions(self):
+    def _get_unused_memory_positions(self) -> Optional[Dict[int, int]]:
         # NOTE override this method in order to be able to see what qubits are being used
         # In the current version of the magic link layer protocol, if there are memory_positions
         # then the generation of the pair will for sure start. However this could
@@ -225,7 +271,11 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         nodes = [node.name for node in self.nodes]
         qubit_ids = [memory_positions[node.ID] for node in self.nodes]
 
-        qubit_groups = QubitInfo.get_qubit_groups()
+        if get_running_backend(block=False) is None:
+            # TODO: handle in a better way
+            qubit_groups = None
+        else:
+            qubit_groups = QubitInfo.get_qubit_groups()
 
         self.network.global_log(
             sim_time=ns.sim_time(),
@@ -240,9 +290,12 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             msg=f"start entanglement creation between {nodes[0]} and {nodes[1]}",
         )
 
-        return memory_positions
+        logger.debug(f"scheduling entanglement at positions {memory_positions}")
+        return memory_positions  # type: ignore
 
-    def _get_log_data(self, memory_positions, get_qubit_states=False):
+    def _get_log_data(
+        self, memory_positions: Dict[int, int], get_qubit_states: bool = False
+    ) -> Tuple[List[str], List[int], List[Optional[T_SingleQubitState]]]:
         nodes = []
         qubit_ids = []
         qubit_states = []
@@ -257,7 +310,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         return nodes, qubit_ids, qubit_states
 
     @staticmethod
-    def _get_qubit_state(node, phys_pos):
+    def _get_qubit_state(node: Node, phys_pos: int) -> Optional[T_SingleQubitState]:
         try:
             qubit = node.qmemory._get_qubits(phys_pos)[0]
         except MemPositionBusyError:
@@ -272,16 +325,28 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
     def _handle_delivery(self, event):
         """
-        NOTE: This is a literal copy of the _handle_delivery method in the netsquid_magic package,
-        with one change: the `messages` dict is returned at the end, so that their contents can be logged.
+        Handles the completion of an entanglement generation
+        Updates, the requests, number of pairs left etc,
+        measures the qubits in case of type M and returns the corresponding OK message
         """
 
-        logger.info("Handling delivery of entanglement")
-        queue_item = self._pop_from_requests_in_process(event)
+        # NOTE: This is a literal copy of the _handle_delivery method in the
+        # netsquid_magic package, with one change: the `messages` dict is
+        # returned at the end, so that their contents can be logged.
+        try:
+            queue_item = self._pop_from_requests_in_process(event)
+        except KeyError:
+            # This indicates that this delivery event is not the "reference" delivery event returned by add_delivery
+            # of the magic distributor. Since the below operations only need to be executed once, we can skip this.
+            return
         request = queue_item.request
         node_id = queue_item.node_id
         create_id = queue_item.create_id
         memory_positions = self._magic_distributor.peek_delivery(event).memory_positions
+
+        logger.debug(
+            f"Handling delivery of entanglement at positions {memory_positions}"
+        )
 
         # Decrement remaining pairs
         self._decrement_pairs_left(node_id=node_id, create_id=create_id)
@@ -308,9 +373,8 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
                 raise RuntimeError("Could not get the remote node ID")
 
             memory_position = memory_positions[node.ID][0]
-            if request.type == RequestType.K:
-
-                msg = LinkLayerOKTypeK(
+            if isinstance(request, ReqCreateAndKeep):
+                msg = ResCreateAndKeep(
                     create_id=create_id,
                     logical_qubit_id=memory_position,
                     directionality_flag=directionality_flag,
@@ -318,12 +382,14 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
                     purpose_id=request.purpose_id,
                     remote_node_id=remote_node_id,
                     goodness=request.minimum_fidelity,
-                    goodness_time=sim_time(),
+                    time_of_goodness=sim_time(),
                     bell_state=bell_state,
                 )
-            elif request.type == RequestType.M:
-                measurement_outcome, measurement_basis = self._measure_qubit(node, request, memory_position)
-                msg = LinkLayerOKTypeM(
+            elif isinstance(request, ReqMeasureDirectly):
+                measurement_outcome, measurement_basis = self._measure_qubit(
+                    node, request, memory_position
+                )
+                msg = ResMeasureDirectly(
                     create_id=create_id,
                     measurement_outcome=measurement_outcome,
                     measurement_basis=measurement_basis,
@@ -335,7 +401,9 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
                     bell_state=bell_state,
                 )
             else:
-                raise NotADirectoryError("Requests of type other than K or M is not yet supported")
+                raise NotADirectoryError(
+                    "Requests of type other than K or M is not yet supported"
+                )
             messages[node.ID] = msg
 
         # Respond to the user
@@ -345,25 +413,42 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
 
         # For Measure Directly requests, check the response messages
         # to be able to log the bases and outcomes.
-        if request.type == RequestType.M:
+        meas_bases: Optional[List[int]]
+        meas_outcomes: Optional[List[int]]
+        if isinstance(request, ReqMeasureDirectly):
             meas_bases = [resp.measurement_basis.value for resp in messages.values()]
             meas_outcomes = [resp.measurement_outcome for resp in messages.values()]
         else:
             meas_bases = None
             meas_outcomes = None
 
-        memory_positions = {node_id: mem_pos[0] for node_id, mem_pos in memory_positions.items()}
+        memory_positions = {
+            node_id: mem_pos[0] for node_id, mem_pos in memory_positions.items()
+        }
 
         node_names = [node.name for node in self.nodes]
         qubit_ids = [memory_positions[node.ID] for node in self.nodes]
 
         for node in self.nodes:
             QubitInfo.update_qubits_used(node.name, memory_positions[node.ID], True)
-        qubit_groups = QubitInfo.get_qubit_groups()
+
+        if get_running_backend(block=False) is None:
+            # TODO: handle in a better way
+            qubit_groups = None
+        else:
+            qubit_groups = QubitInfo.get_qubit_groups()
+
+        # qlink-layer 0.1.0 type
+        if isinstance(request, ReqCreateAndKeep):
+            qlink_0_1_type = RequestType.K
+        elif isinstance(request, ReqMeasureDirectly):
+            qlink_0_1_type = RequestType.M
+        else:
+            raise ValueError(f"Unsupported type of request {request}")
 
         self.network.global_log(
             sim_time=ns.sim_time(),
-            ent_type=request.type,
+            ent_type=qlink_0_1_type,
             ent_stage=EntanglementStage.FINISH,
             meas_bases=meas_bases,
             meas_outcomes=meas_outcomes,
@@ -371,15 +456,17 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             path=list(self.path),
             qubit_ids=qubit_ids,
             qubit_groups=qubit_groups,
-            msg=f"entanglement of type {request.type.value} created between {node_names[0]} and {node_names[1]}",
+            msg=f"entanglement of type {qlink_0_1_type.value} created between {node_names[0]} and {node_names[1]}",
         )
+
+        self._schedule_now(EprDeliveredEvent)
 
         self._handle_next()
 
 
 class QDevice(QuantumProcessor):
     # Default instructions. Durations are arbitrary
-    _default_phys_instructions = [
+    _default_phys_instructions: List[PhysicalInstruction] = [
         PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1e5),
         PhysicalInstruction(ns_instructions.INSTR_X, duration=1e3),
         PhysicalInstruction(ns_instructions.INSTR_Y, duration=1e3),
@@ -397,19 +484,21 @@ class QDevice(QuantumProcessor):
 
     def __init__(
         self,
-        name="QDevice",
-        num_qubits=5,
-        phys_instrs=None,
-        gate_fidelity=1,
-        mem_fidelities=None,
-    ):
+        name: str = "QDevice",
+        num_qubits: int = 5,
+        phys_instrs: Optional[List[PhysicalInstruction]] = None,
+        gate_fidelity: float = 1.0,
+        mem_fidelities: Optional[List[float]] = None,
+    ) -> None:
         self.gate_fidelity = gate_fidelity
         if mem_fidelities is None:
             mem_fidelities = [T1T2NoiseModel(0, 0) for _ in range(num_qubits)]
         if phys_instrs is None:
             phys_instrs = copy.deepcopy(QDevice._default_phys_instructions)
         for instr in phys_instrs:
-            instr.q_noise_model = DepolarNoiseModel(depolar_rate=(1-gate_fidelity), time_independent=True)
+            instr.quantum_noise_model = DepolarNoiseModel(
+                depolar_rate=(1 - gate_fidelity), time_independent=True
+            )
 
         super().__init__(
             name=name,
@@ -424,8 +513,14 @@ class NVQDevice(QDevice):
     A QDevice with NV hardware.
     """
 
-    def __init__(self, name="NVQDevice", num_qubits=5, gate_fidelity=1, mem_fidelities=None):
-        phys_instrs = [
+    def __init__(
+        self,
+        name: str = "NVQDevice",
+        num_qubits: int = 5,
+        gate_fidelity: float = 1,
+        mem_fidelities: Optional[List[float]] = None,
+    ) -> None:
+        phys_instrs: List[PhysicalInstruction] = [
             PhysicalInstruction(ns_instructions.INSTR_INIT, duration=1),
             PhysicalInstruction(ns_instructions.INSTR_ROT_X, duration=2),
             PhysicalInstruction(ns_instructions.INSTR_ROT_Y, duration=2),
@@ -459,11 +554,18 @@ class LinearDepolariseMagicDistributor(MagicDistributor):
             Depolarizing noise.
         """
         self.depolar_noise = depolar_noise
-        super().__init__(delivery_sampler_factory=LinearDepolariseStateSamplerFactory(),
-                         nodes=nodes, **kwargs)
+        super().__init__(
+            delivery_sampler_factory=LinearDepolariseStateSamplerFactory(),
+            nodes=nodes,
+            **kwargs,
+        )
 
     def add_delivery(self, memory_positions, **kwargs):
-        return super().add_delivery(memory_positions=memory_positions, depolar_noise=self.depolar_noise, **kwargs)
+        return super().add_delivery(
+            memory_positions=memory_positions,
+            depolar_noise=self.depolar_noise,
+            **kwargs,
+        )
 
 
 class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
@@ -473,8 +575,10 @@ class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
     """
 
     def __init__(self):
-        super().__init__(func_delivery=self._delivery_func,
-                         func_success_probability=self._get_success_probability)
+        super().__init__(
+            func_delivery=self._delivery_func,
+            func_success_probability=self._get_success_probability,
+        )
 
     @staticmethod
     def _delivery_func(depolar_noise, **kwargs):
@@ -492,17 +596,13 @@ class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
             objects and `probabilities` is a list of floats of the same length.
         """
         epr_state = np.array(
-            [[0.5, 0, 0, 0.5],
-             [0, 0, 0, 0],
-             [0, 0, 0, 0],
-             [0.5, 0, 0, 0.5]],
-            dtype=np.complex)
+            [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]],
+            dtype=np.complex,
+        )
         maximally_mixed = np.array(
-            [[0.25, 0, 0, 0],
-             [0, 0.25, 0, 0],
-             [0, 0, 0.25, 0],
-             [0, 0, 0, 0.25]],
-            dtype=np.complex)
+            [[0.25, 0, 0, 0], [0, 0.25, 0, 0], [0, 0, 0.25, 0], [0, 0, 0, 0.25]],
+            dtype=np.complex,
+        )
         return [(1 - depolar_noise) * epr_state + depolar_noise * maximally_mixed], [1]
 
     @staticmethod
