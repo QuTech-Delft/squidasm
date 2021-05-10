@@ -6,7 +6,7 @@ from netqasm.backend.executor import Executor
 from netqasm.backend.messages import Message, MessageType, Signal, SignalMessage
 from netqasm.backend.messages import deserialize_host_msg as deserialize_message
 from netqasm.backend.network_stack import BaseNetworkStack
-from netqasm.backend.qnodeos import BaseSubroutineHandler
+from netqasm.backend.qnodeos import QNodeController
 from netqasm.lang.instr.flavour import Flavour, NVFlavour, VanillaFlavour
 from netsquid.nodes.node import Node as NetSquidNode
 from netsquid.protocols import NodeProtocol
@@ -82,7 +82,7 @@ class Task:
         self._next_event = next_event
 
 
-class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
+class SubroutineHandler(QNodeController, NodeProtocol):
     def __init__(
         self,
         node: NetSquidNode,
@@ -92,7 +92,7 @@ class SubroutineHandler(BaseSubroutineHandler, NodeProtocol):
         host_latency: int = 0,
     ):
         """An extremely simplified version of QNodeOS for handling NetQASM subroutines"""
-        BaseSubroutineHandler.__init__(
+        QNodeController.__init__(
             self,
             name=node.name,
             instr_log_dir=instr_log_dir,

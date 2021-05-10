@@ -61,6 +61,7 @@ class NetSquidConnection(BaseNetQASMConnection):
 
         self._builder = Builder(
             connection=self,
+            app_id=self._app_id,
             max_qubits=max_qubits,
             compiler=compiler,
         )
