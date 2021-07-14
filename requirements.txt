@@ -1,4 +1,4 @@
 click>=7.1.1,<8.0.0
-netqasm>=0.6.0
+netqasm>=0.7.0
 netsquid>=1.0.6,<2.0.0
 netsquid-magic>=9.0.0,<10.0.0

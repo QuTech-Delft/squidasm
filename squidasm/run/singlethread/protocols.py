@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, Generator, List, Optional
+from typing import Any, Callable, Dict, Generator, List, Optional
 
 import netsquid as ns
 from netqasm.backend.executor import Executor
@@ -136,7 +136,13 @@ class QNodeOsListener(Protocol):
 
 
 class HostProtocol(NodeProtocol):
-    def __init__(self, name: str, qnodeos: QNodeOsProtocol, entry: Callable) -> None:
+    def __init__(
+        self,
+        name: str,
+        qnodeos: QNodeOsProtocol,
+        entry: Callable,
+        inputs: Optional[Dict[str, Any]] = None,
+    ) -> None:
         super().__init__(node=Node(f"host_{name}"), name=name)
         self.node.add_ports(["qnos"])
         self.node.add_ports(["peer"])
@@ -150,6 +156,7 @@ class HostProtocol(NodeProtocol):
         self._results_listener = ResultsListener(self.node.ports["qnos"])
 
         self._entry = entry
+        self._inputs = inputs
 
     @property
     def qnos_port(self) -> Port:
@@ -210,7 +217,10 @@ class HostProtocol(NodeProtocol):
         return self._peer_listener.buffer.pop(0)
 
     def run(self) -> Generator[EventExpression, None, None]:
-        self._result = yield from self._entry()
+        if self._inputs:
+            self._result = yield from self._entry(self._inputs)
+        else:
+            self._result = yield from self._entry()
 
 
 class HostPeerListener(Protocol):
