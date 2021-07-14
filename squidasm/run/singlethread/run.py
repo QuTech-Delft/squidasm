@@ -1,7 +1,7 @@
 import itertools
 import os
 import pathlib
-from typing import Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import netsquid as ns
 from netqasm.sdk.shared_memory import SharedMemoryManager
@@ -88,7 +88,10 @@ def run_protocols(
 
 
 def run_programs(
-    num: int, network: NetSquidNetwork, programs: Dict[str, Callable]
+    num: int,
+    network: NetSquidNetwork,
+    programs: Dict[str, Callable],
+    inputs: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> List[List[Dict]]:
     """Simulate an application represented by functions."""
     protocols: List[Tuple[HostProtocol, QNodeOsProtocol]] = []
@@ -100,7 +103,8 @@ def run_programs(
             instr_proc_time=network.instr_proc_time,
             host_latency=network.host_latency,
         )
-        host = HostProtocol(name, qnos, code)
+        input = inputs.get(name, {}) if inputs else None
+        host = HostProtocol(name, qnos, code, input)
         network.add_node(host.node)
         protocols.append((host, qnos))
         NetSquidContext.add_protocol(name, host)
@@ -112,7 +116,11 @@ def run_programs(
 
 
 def run_files(
-    num: int, network: NetSquidNetwork, filenames: Dict[str, str], insert_yields=False
+    num: int,
+    network: NetSquidNetwork,
+    filenames: Dict[str, str],
+    inputs: Optional[Dict[str, Dict[str, Any]]] = None,
+    insert_yields=False,
 ) -> List[List[Dict]]:
     """Simulate an application represented by source files."""
     programs: Dict[str, Callable] = {}
@@ -128,4 +136,4 @@ def run_files(
 
         programs[name] = code
 
-    return run_programs(num, network, programs)
+    return run_programs(num, network, programs, inputs)
