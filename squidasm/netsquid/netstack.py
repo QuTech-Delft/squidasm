@@ -239,6 +239,7 @@ class Netstack(ComponentProtocol):
         result: ResMeasureDirectly = self._egp.get_signal_result(
             ResMeasureDirectly.__name__, receiver=self
         )
+        self._logger.debug(f"bell index: {result.bell_state}")
         self.physical_memory.free(phys_id)
 
         app_mem = self.app_memories[req.app_id]

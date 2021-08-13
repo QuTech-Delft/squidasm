@@ -21,7 +21,7 @@ from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
 from squidasm.netsquid.common import AppMemory
-from squidasm.netsquid.config import QDeviceConfig, build_nv_qdevice
+from squidasm.netsquid.config import QDeviceConfig, build_nv_qdevice, perfect_nv_config
 from squidasm.netsquid.host import Host
 from squidasm.netsquid.processor import NVProcessor
 from squidasm.netsquid.qnos import Qnos
@@ -31,7 +31,8 @@ from squidasm.netsquid.stack import NodeStack
 class TestTwoNodes(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=QDeviceConfig())
+        nv_cfg = perfect_nv_config()
+        alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=nv_cfg)
         self._alice = NodeStack("alice", qdevice=alice_qdevice, node_id=0)
         self._alice.host = Host(self._alice.host_comp)
         self._alice.qnos = Qnos(self._alice.qnos_comp)
@@ -41,7 +42,7 @@ class TestTwoNodes(unittest.TestCase):
         # don't clear app memory so we can inspect it
         self._alice.qnos.handler.clear_memory = False
 
-        bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=QDeviceConfig())
+        bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=nv_cfg)
         self._bob = NodeStack("bob", qdevice=bob_qdevice, node_id=1)
         self._bob.host = Host(self._bob.host_comp)
         self._bob.qnos = Qnos(self._bob.qnos_comp)
@@ -296,7 +297,6 @@ class TestTwoNodes(unittest.TestCase):
         self._check_qmem = None
         self._check_cmem = check_cmem
 
-    @pytest.mark.skip("MD entanglement generation is still buggy")
     def test_entangle_md(self):
         SUBRT_1 = """
         # NETQASM 1.0
@@ -364,18 +364,30 @@ class TestTwoNodes(unittest.TestCase):
             basis_a = mem_a.get_array_value(0, 3)
             outcome_b = mem_b.get_array_value(0, 2)
             basis_b = mem_b.get_array_value(0, 3)
+            basis_b = mem_b.get_array_value(0, 3)
+
+            bell_state = mem_a.get_array_value(0, 9)
+            bell_index = ketstates.BellIndex(bell_state)
             print(f"a: {outcome_a}, b: {outcome_b}")
             print(f"bases: a: {basis_a}, b: {basis_b}")
+            print(f"bell index: {bell_index}")
+
             assert outcome_a in [0, 1]
             assert outcome_b in [0, 1]
-            assert outcome_a == outcome_b
+
+            if (
+                bell_index == ketstates.BellIndex.B00
+                or bell_index == ketstates.BellIndex.B10
+            ):
+                assert outcome_a == outcome_b
+            else:
+                assert outcome_a != outcome_b
 
         self._host_alice = AliceHost
         self._host_bob = BobHost
         self._check_qmem = None
         self._check_cmem = check_cmem
 
-    @pytest.mark.skip("MD entanglement generation is still buggy")
     def test_entangle_md_with_wait(self):
         SUBRT_1 = """
         # NETQASM 1.0
