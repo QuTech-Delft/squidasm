@@ -111,6 +111,10 @@ class Processor(ComponentProtocol):
     def _receive_netstack_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("netstack", SIGNAL_NSTK_PROC_MSG))
 
+    def _flush_netstack_msgs(self) -> None:
+        print(f"netstack buffer: {self._listeners['netstack'].buffer}")
+        self._listeners["netstack"].buffer.clear()
+
     def run(self) -> Generator[EventExpression, None, None]:
         while True:
             subroutine = yield from self._receive_handler_msg()
@@ -130,7 +134,7 @@ class Processor(ComponentProtocol):
         app_mem.set_prog_counter(0)
         while app_mem.prog_counter < len(subroutine.commands):
             instr = subroutine.commands[app_mem.prog_counter]
-            self._logger.info(
+            self._logger.debug(
                 f"{ns.sim_time()} interpreting instruction {instr} at line {app_mem.prog_counter}"
             )
 
@@ -445,8 +449,8 @@ class Processor(ComponentProtocol):
             result_array_addr,
         )
         self._send_netstack_msg(msg)
-        result = yield from self._receive_netstack_msg()
-        self._logger.debug(f"result from netstack: {result}")
+        # result = yield from self._receive_netstack_msg()
+        # self._logger.debug(f"result from netstack: {result}")
 
     def _interpret_recv_epr(self, app_id: int, instr: core.RecvEPRInstruction) -> None:
         app_mem = self.app_memories[app_id]
@@ -474,8 +478,8 @@ class Processor(ComponentProtocol):
             result_array_addr,
         )
         self._send_netstack_msg(msg)
-        result = yield from self._receive_netstack_msg()
-        self._logger.debug(f"result from netstack: {result}")
+        # result = yield from self._receive_netstack_msg()
+        # self._logger.debug(f"result from netstack: {result}")
 
     def _interpret_wait_all(
         self, app_id: int, instr: core.WaitAllInstruction
@@ -490,9 +494,23 @@ class Processor(ComponentProtocol):
         end: int = app_mem.get_reg_value(instr.slice.stop)
         addr: int = instr.slice.address.address
 
-        values = self.app_memories[app_id].get_array_values(addr, start, end)
-        while any(v is None for v in values):
-            yield from self._receive_netstack_msg()
+        self._logger.warning(
+            f"checking if @{addr}[{start}:{end}] has values for app ID {app_id}"
+        )
+
+        while True:
+            values = self.app_memories[app_id].get_array_values(addr, start, end)
+            if any(v is None for v in values):
+                self._logger.warning(
+                    f"waiting for netstack to write to @{addr}[{start}:{end}] "
+                    f"for app ID {app_id}"
+                )
+                yield from self._receive_netstack_msg()
+                self._logger.warning(f"netstack wrote something")
+            else:
+                break
+        self._flush_netstack_msgs()
+        self._logger.warning("all entries were written")
 
         self._logger.info(f"\nFinished waiting for array slice {instr.slice}")
 

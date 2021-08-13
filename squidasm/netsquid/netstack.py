@@ -189,39 +189,46 @@ class Netstack(ComponentProtocol):
         self._logger.debug(f"received peer msg: {peer_msg}")
 
         self._egp.put(request)
-        yield self.await_signal(
-            sender=self._egp, signal_label=ResCreateAndKeep.__name__
-        )
-        result: ResCreateAndKeep = self._egp.get_signal_result(
-            ResCreateAndKeep.__name__, receiver=self
-        )
 
-        if result.bell_state == BellIndex.B00:
-            pass
-        elif result.bell_state == BellIndex.B01:
-            prog = QuantumProgram()
-            prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-            yield self.qdevice.execute_program(prog)
-        elif result.bell_state == BellIndex.B10:
-            prog = QuantumProgram()
-            prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-            yield self.qdevice.execute_program(prog)
-        elif result.bell_state == BellIndex.B11:
-            prog = QuantumProgram()
-            prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-            prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-            yield self.qdevice.execute_program(prog)
+        for pair_index in range(request.number):
+            yield self.await_signal(
+                sender=self._egp, signal_label=ResCreateAndKeep.__name__
+            )
+            result: ResCreateAndKeep = self._egp.get_signal_result(
+                ResCreateAndKeep.__name__, receiver=self
+            )
 
-        app_mem = self.app_memories[req.app_id]
-        virt_id = app_mem.get_array_value(req.qubit_array_addr, 0)
-        app_mem.map_virt_id(virt_id, phys_id)
+            if result.bell_state == BellIndex.B00:
+                pass
+            elif result.bell_state == BellIndex.B01:
+                prog = QuantumProgram()
+                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+                yield self.qdevice.execute_program(prog)
+            elif result.bell_state == BellIndex.B10:
+                prog = QuantumProgram()
+                prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
+                yield self.qdevice.execute_program(prog)
+            elif result.bell_state == BellIndex.B11:
+                prog = QuantumProgram()
+                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+                prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
+                yield self.qdevice.execute_program(prog)
 
-        for i in range(10):
-            value = -1
-            if i == 9:
-                value = result.bell_state
-            app_mem.set_array_value(req.result_array_addr, i, value)
-        self._send_processor_msg("wrote to array")
+            app_mem = self.app_memories[req.app_id]
+            virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
+            app_mem.map_virt_id(virt_id, phys_id)
+
+            for i in range(10):
+                value = -1
+                if i == 9:
+                    value = result.bell_state
+                arr_index = 10 * pair_index + i
+                app_mem.set_array_value(req.result_array_addr, arr_index, value)
+            self._logger.warning(
+                f"wrote to @{req.result_array_addr}[{10 * pair_index}:"
+                f"{10 * pair_index + 10}] for app ID {req.app_id}"
+            )
+            self._send_processor_msg("wrote to array")
 
     def put_create_md_request(
         self, req: NetstackCreateRequest, request: ReqMeasureDirectly
@@ -281,23 +288,29 @@ class Netstack(ComponentProtocol):
 
         self._egp.put(ReqReceive(remote_node_id=req.remote_node_id))
 
-        yield self.await_signal(
-            sender=self._egp, signal_label=ResCreateAndKeep.__name__
-        )
-        result: ResCreateAndKeep = self._egp.get_signal_result(
-            ResCreateAndKeep.__name__, receiver=self
-        )
+        for pair_index in range(request.number):
+            yield self.await_signal(
+                sender=self._egp, signal_label=ResCreateAndKeep.__name__
+            )
+            result: ResCreateAndKeep = self._egp.get_signal_result(
+                ResCreateAndKeep.__name__, receiver=self
+            )
 
-        app_mem = self.app_memories[req.app_id]
-        virt_id = app_mem.get_array_value(req.qubit_array_addr, 0)
-        app_mem.map_virt_id(virt_id, phys_id)
+            app_mem = self.app_memories[req.app_id]
+            virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
+            app_mem.map_virt_id(virt_id, phys_id)
 
-        for i in range(10):
-            value = -1
-            if i == 9:
-                value = result.bell_state.value
-            app_mem.set_array_value(req.result_array_addr, i, value)
-        self._send_processor_msg("wrote to array")
+            for i in range(10):
+                value = -1
+                if i == 9:
+                    value = result.bell_state.value
+                arr_index = 10 * pair_index + i
+                app_mem.set_array_value(req.result_array_addr, arr_index, value)
+            self._logger.warning(
+                f"wrote to @{req.result_array_addr}[{10 * pair_index}:"
+                f"{10 * pair_index + 10}] for app ID {req.app_id}"
+            )
+            self._send_processor_msg("wrote to array")
 
     def put_receive_md_request(
         self, req: NetstackReceiveRequest, request: ReqMeasureDirectly
