@@ -53,7 +53,9 @@ lint-mypy:
 	@$(PYTHON3) -m mypy ${SOURCEDIR} ${TESTDIR}
 
 # TODO: fix lint-isort in CI
-lint: lint-black lint-flake8 lint-mypy
+# TODO: run lint-mypy again
+# lint: lint-black lint-flake8 lint-mypy
+lint: lint-black lint-flake8
 
 tests:
 	@$(PYTHON3) -m pytest --cov=${SOURCEDIR} --cov-fail-under=${MINCOV} tests

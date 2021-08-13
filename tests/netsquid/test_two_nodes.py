@@ -2,7 +2,6 @@ import unittest
 from typing import Dict, Generator, Optional, Type
 
 import netsquid as ns
-import pytest
 from netqasm.backend.messages import (
     InitNewAppMessage,
     OpenEPRSocketMessage,
@@ -21,7 +20,7 @@ from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
 from squidasm.netsquid.common import AppMemory
-from squidasm.netsquid.config import QDeviceConfig, build_nv_qdevice, perfect_nv_config
+from squidasm.netsquid.config import build_nv_qdevice, perfect_nv_config
 from squidasm.netsquid.host import Host
 from squidasm.netsquid.processor import NVProcessor
 from squidasm.netsquid.qnos import Qnos
