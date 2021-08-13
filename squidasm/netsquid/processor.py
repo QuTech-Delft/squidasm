@@ -112,7 +112,6 @@ class Processor(ComponentProtocol):
         return (yield from self._receive_msg("netstack", SIGNAL_NSTK_PROC_MSG))
 
     def _flush_netstack_msgs(self) -> None:
-        print(f"netstack buffer: {self._listeners['netstack'].buffer}")
         self._listeners["netstack"].buffer.clear()
 
     def run(self) -> Generator[EventExpression, None, None]:
@@ -494,23 +493,23 @@ class Processor(ComponentProtocol):
         end: int = app_mem.get_reg_value(instr.slice.stop)
         addr: int = instr.slice.address.address
 
-        self._logger.warning(
+        self._logger.debug(
             f"checking if @{addr}[{start}:{end}] has values for app ID {app_id}"
         )
 
         while True:
             values = self.app_memories[app_id].get_array_values(addr, start, end)
             if any(v is None for v in values):
-                self._logger.warning(
+                self._logger.debug(
                     f"waiting for netstack to write to @{addr}[{start}:{end}] "
                     f"for app ID {app_id}"
                 )
                 yield from self._receive_netstack_msg()
-                self._logger.warning(f"netstack wrote something")
+                self._logger.debug(f"netstack wrote something")
             else:
                 break
         self._flush_netstack_msgs()
-        self._logger.warning("all entries were written")
+        self._logger.debug("all entries were written")
 
         self._logger.info(f"\nFinished waiting for array slice {instr.slice}")
 

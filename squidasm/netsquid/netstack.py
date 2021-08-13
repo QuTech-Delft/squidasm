@@ -224,7 +224,7 @@ class Netstack(ComponentProtocol):
                     value = result.bell_state
                 arr_index = 10 * pair_index + i
                 app_mem.set_array_value(req.result_array_addr, arr_index, value)
-            self._logger.warning(
+            self._logger.debug(
                 f"wrote to @{req.result_array_addr}[{10 * pair_index}:"
                 f"{10 * pair_index + 10}] for app ID {req.app_id}"
             )
@@ -306,7 +306,7 @@ class Netstack(ComponentProtocol):
                     value = result.bell_state.value
                 arr_index = 10 * pair_index + i
                 app_mem.set_array_value(req.result_array_addr, arr_index, value)
-            self._logger.warning(
+            self._logger.debug(
                 f"wrote to @{req.result_array_addr}[{10 * pair_index}:"
                 f"{10 * pair_index + 10}] for app ID {req.app_id}"
             )
