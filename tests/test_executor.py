@@ -16,19 +16,15 @@ def test_executor():
     subroutine = """
 # NETQASM 1.0
 # APPID 0
-# DEFINE op h
-# DEFINE q Q0
-# DEFINE m M0
-set q! 0
-qalloc q!
-init q!
-op! q! // this is a comment
-meas q! m!
-bez m! EXIT
-x q!
+set Q0 0
+qalloc Q0
+init Q0
+h Q0
+meas Q0 M0
+bez M0 EXIT
+x Q0
 EXIT:
-ret_reg m!
-// this is also a comment
+ret_reg M0
 """
     subroutine = parse_text_subroutine(subroutine)
     app_id = 0
