@@ -110,7 +110,8 @@ class Qnos(Protocol):
     def get_virt_qubit_for_phys_id(self, phys_id: int) -> Tuple[int, int]:
         # returns (app_id, virt_id)
         for app_id, app_mem in self._app_memories.items():
-            if (virt_id := app_mem.virt_id_for(phys_id)) is not None:
+            virt_id = app_mem.virt_id_for(phys_id)
+            if virt_id is not None:
                 return app_id, virt_id
         raise RuntimeError(f"no virtual ID found for physical ID {phys_id}")
 

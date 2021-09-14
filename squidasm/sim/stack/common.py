@@ -41,7 +41,10 @@ class PortListener(Protocol):
 
             counter = 0
             # read all inputs and count them
-            while input := self._port.rx_input():
+            while True:
+                input = self._port.rx_input()
+                if input is None:
+                    break
                 self._buffer += input.items
                 counter += 1
             # if there are n inputs, there have been n events, but we yielded only

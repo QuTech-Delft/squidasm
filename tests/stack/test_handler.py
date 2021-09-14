@@ -90,8 +90,12 @@ class TestHandler(unittest.TestCase):
 
         class TestHandler(Handler):
             def run(self) -> Generator[EventExpression, None, None]:
-                if app := self._next_app():
-                    while subrt := app.next_subroutine():
+                app = self._next_app()
+                if app is not None:
+                    while True:
+                        subrt = app.next_subroutine()
+                        if subrt is None:
+                            break
                         app_mem = yield from self.assign_processor(app.id, subrt)
                         self._send_host_msg(app_mem)
 

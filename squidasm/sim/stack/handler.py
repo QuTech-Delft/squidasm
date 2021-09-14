@@ -225,8 +225,12 @@ class Handler(ComponentProtocol):
             msg = deserialize_host_msg(raw_host_msg)
             self.msg_from_host(msg)
 
-            if app := self._next_app():
+            app = self._next_app()
+            if app is not None:
                 # flush all pending subroutines for this app
-                while subrt := app.next_subroutine():
+                while True:
+                    subrt = app.next_subroutine()
+                    if subrt is None:
+                        break
                     app_mem = yield from self.assign_processor(app.id, subrt)
                     self._send_host_msg(app_mem)
