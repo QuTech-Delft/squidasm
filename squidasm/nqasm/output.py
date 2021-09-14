@@ -6,7 +6,7 @@ from netqasm.logging.output import QubitGroups, QubitState
 from netsquid.qubits import qubitapi as qapi
 from netsquid.qubits.qubit import Qubit
 
-from squidasm.glob import QubitInfo, get_running_backend
+from squidasm.sim.glob import QubitInfo, get_running_backend
 
 
 class InstrLogger(NQInstrLogger):

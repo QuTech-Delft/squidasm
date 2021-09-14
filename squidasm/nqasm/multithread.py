@@ -8,21 +8,21 @@ from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.network import NetworkInfo
 
-from squidasm.glob import (
+from squidasm.sim.glob import (
     get_node_id,
     get_node_id_for_app,
     get_node_name,
     get_node_name_for_app,
     get_running_backend,
 )
-from squidasm.interface.queues import QueueManager
+from squidasm.sim.queues import QueueManager
 
 if TYPE_CHECKING:
     from netqasm.sdk.compiling import SubroutineCompiler
     from netqasm.sdk.config import LogConfig
     from netqasm.sdk.epr_socket import EPRSocket
 
-    from squidasm.interface.queues import TaskQueue
+    from squidasm.sim.queues import TaskQueue
 
 
 class NetSquidConnection(BaseNetQASMConnection):

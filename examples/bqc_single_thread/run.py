@@ -17,13 +17,13 @@ def main():
     network_cfg = default_network_config(
         ["server", "client"], hardware=QuantumHardware.NV
     )  # NOTE the order in which node names are given determines their node IDs
-    nv_cfg = nv_cfg_from_file("examples/apps/bqc/nv.yaml")
+    nv_cfg = nv_cfg_from_file("examples/bqc_single_thread/nv.yaml")
     network = NetSquidNetwork(network_cfg, nv_cfg)
 
     NetSquidContext.set_nodes({0: "server", 1: "client"})
 
-    client = "./apps/bqc/app_client.py"
-    server = "./apps/bqc/app_server.py"
+    client = "./app_client.py"
+    server = "./app_server.py"
 
     start = time.perf_counter()
 

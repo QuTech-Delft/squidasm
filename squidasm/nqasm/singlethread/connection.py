@@ -20,15 +20,18 @@ from netqasm.sdk.connection import (
 from netqasm.sdk.shared_memory import SharedMemory
 
 from pydynaa import EventExpression
-
-from .context import NetSquidContext
-from .protocols import SUBRT_FINISHED, HostProtocol, NewResultEvent
+from squidasm.run.singlethread.context import NetSquidContext
+from squidasm.run.singlethread.protocols import (
+    SUBRT_FINISHED,
+    HostProtocol,
+    NewResultEvent,
+)
 
 if TYPE_CHECKING:
     from netqasm.sdk.compiling import SubroutineCompiler
     from netqasm.sdk.epr_socket import EPRSocket
 
-from .context import NetSquidNetworkInfo
+from squidasm.run.singlethread.context import NetSquidNetworkInfo
 
 
 class NetSquidConnection(BaseNetQASMConnection):
@@ -87,7 +90,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         self.flush()
         self._commit_message(StopAppMessage(self._app_id))
 
-    def wait_for_results(self) -> Generator[EventExpression, None, None]:
+    def _wait_for_results(self) -> Generator[EventExpression, None, None]:
         if len(self._protocol.results_listener.buffer) == 0:
             yield EventExpression(
                 source=self._protocol.results_listener, event_type=NewResultEvent
@@ -114,7 +117,7 @@ class NetSquidConnection(BaseNetQASMConnection):
                 min_fidelity=sck.min_fidelity,
             )
         )
-        yield from self.wait_for_results()
+        yield from self._wait_for_results()
 
     def _commit_subroutine(
         self,
@@ -138,7 +141,7 @@ class NetSquidConnection(BaseNetQASMConnection):
             callback=callback,
         )
 
-        yield from self.wait_for_results()
+        yield from self._wait_for_results()
 
         self._builder._reset()
 

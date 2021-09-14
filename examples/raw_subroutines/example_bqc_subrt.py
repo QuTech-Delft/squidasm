@@ -12,7 +12,7 @@ from pydynaa import EventExpression
 from squidasm.run.singlethread import run_protocols
 from squidasm.run.singlethread.protocols import HostProtocol, QNodeOsProtocol
 from squidasm.sim.network.network import NetSquidNetwork
-from squidasm.sim.network.stack import NetworkStack
+from squidasm.nqasm.netstack import NetworkStack
 
 
 class ClientProtocol(HostProtocol):
