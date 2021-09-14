@@ -8,10 +8,10 @@ from netsquid.nodes import Node
 from netsquid.protocols import Protocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
-from squidasm.sim.netsquid.common import AppMemory, PhysicalQuantumMemory
-from squidasm.sim.netsquid.handler import Handler, HandlerComponent
-from squidasm.sim.netsquid.netstack import Netstack, NetstackComponent
-from squidasm.sim.netsquid.processor import NVProcessor, Processor, ProcessorComponent
+from squidasm.sim.stack.common import AppMemory, PhysicalQuantumMemory
+from squidasm.sim.stack.handler import Handler, HandlerComponent
+from squidasm.sim.stack.netstack import Netstack, NetstackComponent
+from squidasm.sim.stack.processor import NVProcessor, Processor, ProcessorComponent
 
 # TODO: make this a parameter
 NUM_QUBITS = 5

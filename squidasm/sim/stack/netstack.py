@@ -22,7 +22,7 @@ from qlink_interface import (
 from qlink_interface.interface import ReqRemoteStatePrep
 
 from pydynaa import EventExpression
-from squidasm.sim.netsquid.common import (
+from squidasm.sim.stack.common import (
     AppMemory,
     ComponentProtocol,
     NetstackCreateRequest,
@@ -30,11 +30,11 @@ from squidasm.sim.netsquid.common import (
     PhysicalQuantumMemory,
     PortListener,
 )
-from squidasm.sim.netsquid.egp import EgpProtocol
-from squidasm.sim.netsquid.signals import SIGNAL_PEER_NSTK_MSG, SIGNAL_PROC_NSTK_MSG
+from squidasm.sim.stack.egp import EgpProtocol
+from squidasm.sim.stack.signals import SIGNAL_PEER_NSTK_MSG, SIGNAL_PROC_NSTK_MSG
 
 if TYPE_CHECKING:
-    from squidasm.sim.netsquid.qnos import Qnos
+    from squidasm.sim.stack.qnos import Qnos
 
 PI = math.pi
 PI_OVER_2 = math.pi / 2

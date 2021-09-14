@@ -8,8 +8,8 @@ from netsquid.nodes import Node
 from netsquid.protocols import Protocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
-from squidasm.sim.netsquid.host import Host, HostComponent
-from squidasm.sim.netsquid.qnos import Qnos, QnosComponent
+from squidasm.sim.stack.host import Host, HostComponent
+from squidasm.sim.stack.qnos import Qnos, QnosComponent
 
 
 class ProcessingNode(Node):

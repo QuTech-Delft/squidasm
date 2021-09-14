@@ -5,8 +5,8 @@ from netqasm.sdk.epr_socket import EPRType
 from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.sim.netsquid.config import QDeviceConfig, perfect_nv_config
-from squidasm.sim.netsquid.program import Program, ProgramContext, ProgramMeta
+from squidasm.sim.stack.config import QDeviceConfig, perfect_nv_config
+from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
 class ClientProgram(Program):

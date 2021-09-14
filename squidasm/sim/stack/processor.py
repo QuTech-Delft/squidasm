@@ -23,7 +23,7 @@ from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
 
 from pydynaa import EventExpression
-from squidasm.sim.netsquid.common import (
+from squidasm.sim.stack.common import (
     AppMemory,
     ComponentProtocol,
     NetstackCreateRequest,
@@ -31,10 +31,10 @@ from squidasm.sim.netsquid.common import (
     PhysicalQuantumMemory,
     PortListener,
 )
-from squidasm.sim.netsquid.signals import SIGNAL_HAND_PROC_MSG, SIGNAL_NSTK_PROC_MSG
+from squidasm.sim.stack.signals import SIGNAL_HAND_PROC_MSG, SIGNAL_NSTK_PROC_MSG
 
 if TYPE_CHECKING:
-    from squidasm.sim.netsquid.qnos import Qnos
+    from squidasm.sim.stack.qnos import Qnos
 
 PI = math.pi
 PI_OVER_2 = math.pi / 2

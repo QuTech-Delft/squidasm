@@ -11,10 +11,10 @@ from netsquid_magic.link_layer import (
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 
 from pydynaa import EventExpression
-from squidasm.sim.netsquid.config import QDeviceConfig, build_nv_qdevice
-from squidasm.sim.netsquid.context import NetSquidContext
-from squidasm.sim.netsquid.program import Program, ProgramContext, ProgramMeta
-from squidasm.sim.netsquid.stack import NodeStack
+from squidasm.sim.stack.config import QDeviceConfig, build_nv_qdevice
+from squidasm.sim.stack.context import NetSquidContext
+from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
+from squidasm.sim.stack.stack import NodeStack
 
 
 class ClientProgram(Program):

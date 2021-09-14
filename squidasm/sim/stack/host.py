@@ -13,12 +13,12 @@ from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
 from pydynaa import EventExpression
-from squidasm.sim.netsquid.common import ComponentProtocol, PortListener
-from squidasm.sim.netsquid.connection import QnosConnection
-from squidasm.sim.netsquid.context import NetSquidContext
-from squidasm.sim.netsquid.csocket import ClassicalSocket
-from squidasm.sim.netsquid.program import Program, ProgramContext
-from squidasm.sim.netsquid.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
+from squidasm.sim.stack.common import ComponentProtocol, PortListener
+from squidasm.sim.stack.connection import QnosConnection
+from squidasm.sim.stack.context import NetSquidContext
+from squidasm.sim.stack.csocket import ClassicalSocket
+from squidasm.sim.stack.program import Program, ProgramContext
+from squidasm.sim.stack.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
 
 
 class HostComponent(Component):

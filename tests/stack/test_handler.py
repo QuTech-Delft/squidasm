@@ -12,10 +12,10 @@ from netsquid_magic.link_layer import (
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
-from squidasm.sim.netsquid.config import QDeviceConfig, build_nv_qdevice
-from squidasm.sim.netsquid.handler import Handler
-from squidasm.sim.netsquid.qnos import Qnos
-from squidasm.sim.netsquid.stack import NodeStack
+from squidasm.sim.stack.config import QDeviceConfig, build_nv_qdevice
+from squidasm.sim.stack.handler import Handler
+from squidasm.sim.stack.qnos import Qnos
+from squidasm.sim.stack.stack import NodeStack
 
 
 class TestHandler(unittest.TestCase):

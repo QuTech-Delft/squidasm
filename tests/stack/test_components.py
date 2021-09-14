@@ -3,10 +3,10 @@ import unittest
 import netsquid as ns
 from netqasm.backend.messages import InitNewAppMessage, OpenEPRSocketMessage
 
-from squidasm.sim.netsquid.config import QDeviceConfig, build_nv_qdevice
-from squidasm.sim.netsquid.handler import Handler
-from squidasm.sim.netsquid.netstack import EprSocket, Netstack
-from squidasm.sim.netsquid.stack import NodeStack
+from squidasm.sim.stack.config import QDeviceConfig, build_nv_qdevice
+from squidasm.sim.stack.handler import Handler
+from squidasm.sim.stack.netstack import EprSocket, Netstack
+from squidasm.sim.stack.stack import NodeStack
 
 
 class TestHandler(unittest.TestCase):

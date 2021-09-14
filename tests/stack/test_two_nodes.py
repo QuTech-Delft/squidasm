@@ -19,12 +19,12 @@ from netsquid_magic.link_layer import (
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
-from squidasm.sim.netsquid.common import AppMemory
-from squidasm.sim.netsquid.config import build_nv_qdevice, perfect_nv_config
-from squidasm.sim.netsquid.host import Host
-from squidasm.sim.netsquid.processor import NVProcessor
-from squidasm.sim.netsquid.qnos import Qnos
-from squidasm.sim.netsquid.stack import NodeStack
+from squidasm.sim.stack.common import AppMemory
+from squidasm.sim.stack.config import build_nv_qdevice, perfect_nv_config
+from squidasm.sim.stack.host import Host
+from squidasm.sim.stack.processor import NVProcessor
+from squidasm.sim.stack.qnos import Qnos
+from squidasm.sim.stack.stack import NodeStack
 
 
 class TestTwoNodes(unittest.TestCase):
