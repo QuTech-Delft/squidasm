@@ -1,7 +1,6 @@
 import inspect
 import logging
 import os
-import runpy
 import subprocess
 
 from netqasm.logging.glob import set_log_level
