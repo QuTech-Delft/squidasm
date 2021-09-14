@@ -6,11 +6,10 @@ from netqasm.sdk.classical_communication.socket import Socket
 from netsquid.components.component import Port
 
 from pydynaa import EventExpression, EventType
-
-from .context import NetSquidContext
+from squidasm.run.singlethread.context import NetSquidContext
 
 if TYPE_CHECKING:
-    from .protocols import HostProtocol
+    from squidasm.run.singlethread.protocols import HostProtocol
 
 NewClasMsgEvent: EventType = EventType(
     "NewClasMsgEvent",

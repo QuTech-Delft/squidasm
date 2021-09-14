@@ -12,9 +12,9 @@ from netsquid_magic.link_layer import (
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
-from squidasm.netsquid.config import QDeviceConfig, build_nv_qdevice
-from squidasm.netsquid.context import NetSquidContext
-from squidasm.netsquid.stack import NodeStack
+from squidasm.sim.netsquid.config import QDeviceConfig, build_nv_qdevice
+from squidasm.sim.netsquid.context import NetSquidContext
+from squidasm.sim.netsquid.stack import NodeStack
 
 
 class LinkType(Enum):

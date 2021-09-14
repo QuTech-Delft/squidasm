@@ -13,7 +13,7 @@ from netsquid.qubits.qubit import Qubit
 from netsquid_magic.sleeper import Sleeper
 
 from pydynaa import Entity, EventExpression, EventHandler, EventType
-from squidasm.logging.output import InstrLogger
+from squidasm.nqasm.output import InstrLogger
 
 T_InstrMap = Dict[ins.NetQASMInstruction, NetSquidInstruction]
 

@@ -17,18 +17,18 @@ from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
 from pydynaa import EventExpression
-from squidasm.netsquid.common import (
+from squidasm.sim.netsquid.common import (
     AppMemory,
     ComponentProtocol,
     PhysicalQuantumMemory,
     PortListener,
 )
-from squidasm.netsquid.netstack import Netstack, NetstackComponent
-from squidasm.netsquid.signals import SIGNAL_HOST_HAND_MSG, SIGNAL_PROC_HAND_MSG
+from squidasm.sim.netsquid.netstack import Netstack, NetstackComponent
+from squidasm.sim.netsquid.signals import SIGNAL_HOST_HAND_MSG, SIGNAL_PROC_HAND_MSG
 
 if TYPE_CHECKING:
-    from squidasm.netsquid.processor import ProcessorComponent
-    from squidasm.netsquid.qnos import Qnos, QnosComponent
+    from squidasm.sim.netsquid.processor import ProcessorComponent
+    from squidasm.sim.netsquid.qnos import Qnos, QnosComponent
 
 
 class HandlerComponent(Component):

@@ -9,10 +9,10 @@ from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
 
 from pydynaa import EventExpression
-from squidasm.netsquid.common import AppMemory
-from squidasm.netsquid.config import build_nv_qdevice, perfect_nv_config
-from squidasm.netsquid.host import Host
-from squidasm.netsquid.stack import NodeStack
+from squidasm.sim.netsquid.common import AppMemory
+from squidasm.sim.netsquid.config import build_nv_qdevice, perfect_nv_config
+from squidasm.sim.netsquid.host import Host
+from squidasm.sim.netsquid.stack import NodeStack
 
 
 class TestSingleNode(unittest.TestCase):

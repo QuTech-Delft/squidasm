@@ -8,11 +8,11 @@ from netqasm.sdk.shared_memory import SharedMemoryManager
 from netsquid.components import ClassicalChannel
 from netsquid.nodes.connections import DirectConnection
 
+from squidasm.nqasm.netstack import NetworkStack
 from squidasm.run.singlethread.context import NetSquidContext
 from squidasm.run.singlethread.protocols import HostProtocol, QNodeOsProtocol
 from squidasm.sim.network import reset_network
 from squidasm.sim.network.network import NetSquidNetwork
-from squidasm.sim.network.stack import NetworkStack
 
 from . import util
 

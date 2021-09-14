@@ -1,15 +1,12 @@
 from typing import Any, Dict, Generator, List, Tuple
 
-from apps.link_layer.link_layer import LinkLayerApplication
 from netqasm.logging.glob import set_log_level
 from netqasm.sdk.epr_socket import EPRType
-from qnodeos.sdk.application import ApplicationContext
 from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.netsquid.config import QDeviceConfig, perfect_nv_config
-from squidasm.netsquid.csocket import ClassicalSocket
-from squidasm.netsquid.program import Program, ProgramContext, ProgramMeta
+from squidasm.sim.netsquid.config import QDeviceConfig, perfect_nv_config
+from squidasm.sim.netsquid.program import Program, ProgramContext, ProgramMeta
 
 
 class ClientProgram(Program):
@@ -34,7 +31,6 @@ class ClientProgram(Program):
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
-        csocket: ClassicalSocket = context.csockets[self.PEER]
 
         outcomes = conn.new_array(self._num_pairs)
 
@@ -83,7 +79,6 @@ class ServerProgram(Program):
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
-        csocket: ClassicalSocket = context.csockets[self.PEER]
 
         outcomes = conn.new_array(self._num_pairs)
 

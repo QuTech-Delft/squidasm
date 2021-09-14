@@ -23,7 +23,7 @@ from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
 
 from pydynaa import EventExpression
-from squidasm.netsquid.common import (
+from squidasm.sim.netsquid.common import (
     AppMemory,
     ComponentProtocol,
     NetstackCreateRequest,
@@ -31,10 +31,10 @@ from squidasm.netsquid.common import (
     PhysicalQuantumMemory,
     PortListener,
 )
-from squidasm.netsquid.signals import SIGNAL_HAND_PROC_MSG, SIGNAL_NSTK_PROC_MSG
+from squidasm.sim.netsquid.signals import SIGNAL_HAND_PROC_MSG, SIGNAL_NSTK_PROC_MSG
 
 if TYPE_CHECKING:
-    from squidasm.netsquid.qnos import Qnos
+    from squidasm.sim.netsquid.qnos import Qnos
 
 PI = math.pi
 PI_OVER_2 = math.pi / 2
@@ -505,7 +505,7 @@ class Processor(ComponentProtocol):
                     f"for app ID {app_id}"
                 )
                 yield from self._receive_netstack_msg()
-                self._logger.debug(f"netstack wrote something")
+                self._logger.debug("netstack wrote something")
             else:
                 break
         self._flush_netstack_msgs()

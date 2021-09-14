@@ -16,7 +16,7 @@ from netsquid.components.instructions import (
 from netsquid.nodes.node import Node as NetSquidNode
 
 from pydynaa import EventExpression
-from squidasm.sim.executor.base import NetSquidExecutor
+from squidasm.nqasm.executor.base import NetSquidExecutor
 
 T_InstrMap = Dict[ins.NetQASMInstruction, NetSquidInstruction]
 

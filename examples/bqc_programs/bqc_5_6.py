@@ -6,9 +6,9 @@ from typing import Any, Dict, Generator, List, Tuple
 from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.netsquid.config import QDeviceConfig, perfect_nv_config
-from squidasm.netsquid.csocket import ClassicalSocket
-from squidasm.netsquid.program import Program, ProgramContext, ProgramMeta
+from squidasm.sim.netsquid.config import QDeviceConfig, perfect_nv_config
+from squidasm.sim.netsquid.csocket import ClassicalSocket
+from squidasm.sim.netsquid.program import Program, ProgramContext, ProgramMeta
 
 
 class ClientProgram(Program):

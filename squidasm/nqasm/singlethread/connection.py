@@ -20,15 +20,18 @@ from netqasm.sdk.connection import (
 from netqasm.sdk.shared_memory import SharedMemory
 
 from pydynaa import EventExpression
-
-from .context import NetSquidContext
-from .protocols import SUBRT_FINISHED, HostProtocol, NewResultEvent
+from squidasm.run.singlethread.context import NetSquidContext
+from squidasm.run.singlethread.protocols import (
+    SUBRT_FINISHED,
+    HostProtocol,
+    NewResultEvent,
+)
 
 if TYPE_CHECKING:
     from netqasm.sdk.compiling import SubroutineCompiler
     from netqasm.sdk.epr_socket import EPRSocket
 
-from .context import NetSquidNetworkInfo
+from squidasm.run.singlethread.context import NetSquidNetworkInfo
 
 
 class NetSquidConnection(BaseNetQASMConnection):

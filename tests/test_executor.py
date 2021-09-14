@@ -7,7 +7,7 @@ from netqasm.logging.glob import set_log_level
 from netsquid.nodes import Node
 from netsquid.protocols import NodeProtocol
 
-from squidasm.sim.executor.vanilla import VanillaNetSquidExecutor
+from squidasm.nqasm.executor.vanilla import VanillaNetSquidExecutor
 from squidasm.sim.network import QDevice
 
 

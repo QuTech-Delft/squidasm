@@ -15,13 +15,13 @@ from netqasm.sdk.classical_communication.thread_socket.socket import ThreadSocke
 from netqasm.sdk.shared_memory import SharedMemoryManager
 from netsquid.nodes.node import Node as NetSquidNode
 
-from squidasm.glob import pop_current_backend, put_current_backend
-from squidasm.interface.queues import QueueManager
+from squidasm.nqasm.netstack import NetworkStack
+from squidasm.nqasm.qnodeos import SubroutineHandler
+from squidasm.sim.glob import pop_current_backend, put_current_backend
 from squidasm.sim.network import reset_network
 from squidasm.sim.network.network import NetSquidNetwork
 from squidasm.sim.network.nv_config import NVConfig
-from squidasm.sim.network.stack import NetworkStack
-from squidasm.sim.qnodeos import SubroutineHandler
+from squidasm.sim.queues import QueueManager
 from squidasm.util.thread import as_completed
 
 _logger = get_netqasm_logger()
