@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=58", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [tool.black]
 line-length = 88
 
@@ -9,5 +13,5 @@ line_length = 88
 use_parentheses = true
 
 [tool.pytest.ini_options]
-# ignore deprecation warnings coming from NetSquid (i.e. outside of SquidASM's control)
+# ignore deprecation warnings coming from external packages using NetSquid (i.e. outside of SquidASM's control)
 filterwarnings = ["ignore::DeprecationWarning"]
