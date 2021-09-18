@@ -1,4 +1,5 @@
 click>=7.1.1,<8.0.0
+pydantic>=1.8.2
 netqasm>=0.7.0
 netsquid>=1.0.6,<2.0.0
 netsquid-magic>=11.0.0,<12.0.0
