@@ -301,9 +301,7 @@ class PhysicalQuantumMemory:
     def __init__(self, qubit_count: int) -> None:
         self._qubit_count = qubit_count
         self._allocated_ids: Set[int] = set()
-        # self._comm_qubit_ids: Set[int] = {i for i in range(qubit_count)}
-        # TODO: let all ids be comm qubit
-        self._comm_qubit_ids: Set[int] = {0}
+        self._comm_qubit_ids: Set[int] = {i for i in range(qubit_count)}
 
     @property
     def qubit_count(self) -> int:

@@ -3,7 +3,8 @@ import unittest
 import netsquid as ns
 from netqasm.backend.messages import InitNewAppMessage, OpenEPRSocketMessage
 
-from squidasm.sim.stack.config import NVQDeviceConfig, build_nv_qdevice
+from squidasm.run.stack.build import build_nv_qdevice
+from squidasm.run.stack.config import NVQDeviceConfig
 from squidasm.sim.stack.handler import Handler
 from squidasm.sim.stack.netstack import EprSocket, Netstack
 from squidasm.sim.stack.stack import NodeStack
@@ -13,7 +14,7 @@ class TestHandler(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
         qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=NVQDeviceConfig())
-        self._node = NodeStack("alice", qdevice=qdevice)
+        self._node = NodeStack("alice", qdevice_type="nv", qdevice=qdevice)
 
     @property
     def handler(self) -> Handler:

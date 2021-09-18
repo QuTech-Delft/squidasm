@@ -12,7 +12,8 @@ from netsquid_magic.link_layer import (
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
-from squidasm.sim.stack.config import NVQDeviceConfig, build_nv_qdevice
+from squidasm.run.stack.build import build_nv_qdevice
+from squidasm.run.stack.config import NVQDeviceConfig
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.stack import NodeStack
 
@@ -26,9 +27,9 @@ def setup_stacks(
     qdevice_confg: NVQDeviceConfig, link_type: LinkType
 ) -> Tuple[NodeStack, NodeStack, MagicLinkLayerProtocol]:
     client_qdevice = build_nv_qdevice("nv_qdevice_client", cfg=qdevice_confg)
-    client = NodeStack("client", qdevice=client_qdevice)
+    client = NodeStack("client", qdevice_type="nv", qdevice=client_qdevice)
     server_qdevice = build_nv_qdevice("nv_qdevice_server", cfg=qdevice_confg)
-    server = NodeStack("server", qdevice=server_qdevice)
+    server = NodeStack("server", qdevice_type="nv", qdevice=server_qdevice)
 
     client.connect_to(server)
     NetSquidContext.set_nodes({client.node.ID: "client", server.node.ID: "server"})

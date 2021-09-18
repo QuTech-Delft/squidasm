@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator
 
 from netqasm.lang.ir import BreakpointAction, BreakpointRole
 from netqasm.logging.glob import set_log_level
@@ -9,9 +9,13 @@ from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.toolbox import set_qubit_state
 
 from pydynaa import EventExpression
-from squidasm.run import stack
-from squidasm.run.stack import NVLinkConfig
-from squidasm.run.stack.config import perfect_generic_config
+from squidasm.run.stack.config import (
+    LinkConfig,
+    StackConfig,
+    StackNetworkConfig,
+    perfect_generic_config,
+)
+from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -110,26 +114,26 @@ class ReceiverProgram(Program):
 if __name__ == "__main__":
     set_log_level("INFO")
 
-    sender_stack = stack.StackConfig(
+    sender_stack = StackConfig(
         name="sender",
         qdevice_typ="generic",
         qdevice_cfg=perfect_generic_config(),
     )
-    receiver_stack = stack.StackConfig(
+    receiver_stack = StackConfig(
         name="receiver",
         qdevice_typ="generic",
         qdevice_cfg=perfect_generic_config(),
     )
-    link = stack.LinkConfig(
+    link = LinkConfig(
         stack1="sender",
         stack2="receiver",
         typ="perfect",
     )
 
-    cfg = stack.StackNetworkConfig(stacks=[sender_stack, receiver_stack], links=[link])
+    cfg = StackNetworkConfig(stacks=[sender_stack, receiver_stack], links=[link])
 
     sender_program = SenderProgram(theta=math.pi, phi=0)
     receiver_program = ReceiverProgram()
 
-    results = stack.run(cfg, {"sender": sender_program, "receiver": receiver_program})
+    results = run(cfg, {"sender": sender_program, "receiver": receiver_program})
     print(results)

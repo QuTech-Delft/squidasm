@@ -12,7 +12,8 @@ from netsquid_magic.link_layer import (
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.config import NVQDeviceConfig, build_nv_qdevice
+from squidasm.run.stack.build import build_nv_qdevice
+from squidasm.run.stack.config import NVQDeviceConfig
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 from squidasm.sim.stack.stack import NodeStack
@@ -22,7 +23,7 @@ class TestSdkSingleNode(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
         qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=NVQDeviceConfig())
-        self._node = NodeStack("alice", qdevice=qdevice)
+        self._node = NodeStack("alice", qdevice_type="nv", qdevice=qdevice)
 
         self._program: Optional[Program] = None
 
@@ -131,10 +132,12 @@ class TestSdkTwoNodes(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
         alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=NVQDeviceConfig())
-        self._alice = NodeStack("alice", qdevice=alice_qdevice, node_id=0)
+        self._alice = NodeStack(
+            "alice", qdevice_type="nv", qdevice=alice_qdevice, node_id=0
+        )
 
         bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=NVQDeviceConfig())
-        self._bob = NodeStack("bob", qdevice=bob_qdevice, node_id=1)
+        self._bob = NodeStack("bob", qdevice_type="nv", qdevice=bob_qdevice, node_id=1)
 
         self._prog_alice: Optional[Program] = None
         self._prog_bob: Optional[Program] = None

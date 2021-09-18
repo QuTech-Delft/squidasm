@@ -6,7 +6,7 @@ from typing import Any, Dict, Generator, List, Tuple
 from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.config import NVQDeviceConfig, perfect_nv_config
+from squidasm.run.stack.config import NVQDeviceConfig, perfect_nv_config
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -113,7 +113,11 @@ def run(
 
 
 def get_distribution(
-    alpha: float, theta1: float, nv_config: NVQDeviceConfig, link_type: LinkType, num: int
+    alpha: float,
+    theta1: float,
+    nv_config: NVQDeviceConfig,
+    link_type: LinkType,
+    num: int,
 ) -> None:
     _, server_results = run(alpha, theta1, nv_config, link_type, num=num)
     m2s = [result["m2"] for result in server_results]

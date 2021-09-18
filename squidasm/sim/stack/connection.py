@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Generator, List, Optional, Type
+from typing import TYPE_CHECKING, Callable, Generator, Optional, Type
 
 from netqasm.backend.messages import SubroutineMessage
 from netqasm.logging.glob import get_netqasm_logger
@@ -20,9 +19,6 @@ from pydynaa import EventExpression
 if TYPE_CHECKING:
     from netqasm.sdk.compiling import SubroutineCompiler
     from squidasm.sim.stack.host import Host
-
-from netqasm.lang.instr import NetQASMInstruction
-from netqasm.lang.operand import Operand
 
 from .context import NetSquidNetworkInfo
 

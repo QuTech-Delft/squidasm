@@ -4,23 +4,15 @@ import random
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
-import yaml
 from netqasm.logging.glob import get_netqasm_logger, set_log_level
 from netqasm.sdk.classical_communication.message import StructuredMessage
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import (
-    LinkConfig,
-    NVQDeviceConfig,
-    StackConfig,
-    StackNetworkConfig,
-    perfect_nv_config,
-)
+from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
-EOF = "EOF"
 ALL_MEASURED = "All qubits measured"
 
 
@@ -163,8 +155,6 @@ class AliceProgram(QkdProgram):
     def run(
         self, context: ProgramContext
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
-        conn = context.connection
-        epr_socket = context.epr_sockets[self.PEER]
         csocket = context.csockets[self.PEER]
 
         num_test_bits = max(num_bits // 4, 1)
@@ -227,8 +217,6 @@ class BobProgram(QkdProgram):
     def run(
         self, context: ProgramContext
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
-        conn = context.connection
-        epr_socket = context.epr_sockets[self.PEER]
         csocket = context.csockets[self.PEER]
 
         num_test_bits = max(num_bits // 4, 1)
@@ -282,7 +270,9 @@ if __name__ == "__main__":
 
     num_times = 1
 
-    cfg = StackNetworkConfig.from_file("config.yaml")
+    cfg = StackNetworkConfig.from_file(
+        os.path.join(os.getcwd(), os.path.dirname(__file__), "config.yaml")
+    )
 
     num_bits = 100
 

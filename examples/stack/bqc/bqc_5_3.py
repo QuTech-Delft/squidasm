@@ -7,7 +7,7 @@ import netsquid as ns
 from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.config import NVQDeviceConfig, perfect_nv_config
+from squidasm.run.stack.config import NVQDeviceConfig, perfect_nv_config
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 

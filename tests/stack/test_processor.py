@@ -13,8 +13,9 @@ from netsquid_magic.link_layer import (
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
+from squidasm.run.stack.build import build_nv_qdevice
+from squidasm.run.stack.config import perfect_nv_config
 from squidasm.sim.stack.common import AppMemory
-from squidasm.sim.stack.config import build_nv_qdevice, perfect_nv_config
 from squidasm.sim.stack.processor import NVProcessor
 from squidasm.sim.stack.qnos import Qnos
 from squidasm.sim.stack.stack import NodeStack
@@ -24,11 +25,13 @@ class TestProcessorTwoNodes(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
         alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=perfect_nv_config())
-        self._alice = NodeStack("alice", qdevice=alice_qdevice, node_id=0)
+        self._alice = NodeStack(
+            "alice", qdevice_type="nv", qdevice=alice_qdevice, node_id=0
+        )
         self._alice.qnos = Qnos(self._alice.qnos_comp)
 
         bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=perfect_nv_config())
-        self._bob = NodeStack("bob", qdevice=bob_qdevice, node_id=1)
+        self._bob = NodeStack("bob", qdevice_type="nv", qdevice=bob_qdevice, node_id=1)
         self._bob.qnos = Qnos(self._bob.qnos_comp)
 
         self._alice.connect_to(self._bob)
@@ -137,7 +140,9 @@ class TestProcessorSingleNode(unittest.TestCase):
         config = perfect_nv_config()
         config.num_qubits = 3
         alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=config)
-        self._alice = NodeStack("alice", qdevice=alice_qdevice, node_id=0)
+        self._alice = NodeStack(
+            "alice", qdevice_type="nv", qdevice=alice_qdevice, node_id=0
+        )
         self._alice.qnos = Qnos(self._alice.qnos_comp)
 
     def tearDown(self) -> None:

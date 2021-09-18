@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator
 
 from netqasm.lang.ir import BreakpointAction
 from netqasm.logging.glob import set_log_level
 
 from pydynaa import EventExpression
-from squidasm.run import stack
-from squidasm.run.stack import NVLinkConfig
-from squidasm.sim.stack.config import (
-    NVQDeviceConfig,
-    perfect_generic_config,
+from squidasm.run.stack.config import (
+    LinkConfig,
+    NVLinkConfig,
+    StackConfig,
+    StackNetworkConfig,
     perfect_nv_config,
 )
+from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -174,24 +175,24 @@ if __name__ == "__main__":
     num = 200
     set_log_level("DEBUG")
 
-    client = stack.StackConfig(
+    client = StackConfig(
         name="client",
         qdevice_typ="nv",
         qdevice_cfg=perfect_nv_config(),
         # qdevice_typ="generic",
         # qdevice_cfg=perfect_generic_config(),
     )
-    server = stack.StackConfig(
+    server = StackConfig(
         name="server",
-        # qdevice_typ="nv",
-        # qdevice_cfg=perfect_nv_config(),
-        qdevice_typ="generic",
-        qdevice_cfg=perfect_generic_config(),
+        qdevice_typ="nv",
+        qdevice_cfg=perfect_nv_config(),
+        # qdevice_typ="generic",
+        # qdevice_cfg=perfect_generic_config(),
     )
     nv_link_config = NVLinkConfig(
         length_A=0.01, length_B=0.01, full_cycle=0.1, cycle_time=1.0, alpha=0.9
     )
-    link = stack.LinkConfig(
+    link = LinkConfig(
         stack1="client",
         stack2="server",
         typ="nv",
@@ -199,12 +200,12 @@ if __name__ == "__main__":
         # typ="perfect",
     )
 
-    cfg = stack.StackNetworkConfig(stacks=[client, server], links=[link])
+    cfg = StackNetworkConfig(stacks=[client, server], links=[link])
 
     client_program = ClientProgram(
         alpha=0, beta=0, trap=False, dummy=-1, theta1=0.0, theta2=0.0, r1=0, r2=0
     )
     server_program = ServerProgram()
 
-    results = stack.run(cfg, {"client": client_program, "server": server_program})
+    results = run(cfg, {"client": client_program, "server": server_program})
     print(results)

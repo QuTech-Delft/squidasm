@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import netsquid as ns
 from netsquid_magic.link_layer import (

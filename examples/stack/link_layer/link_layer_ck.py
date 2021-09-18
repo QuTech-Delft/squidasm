@@ -1,18 +1,12 @@
 import logging
-from typing import Any, Dict, Generator, List, Tuple
+import os
+from typing import Any, Dict, Generator
 
-import yaml
 from netqasm.logging.glob import get_netqasm_logger, set_log_level
 from netqasm.sdk.epr_socket import EPRType
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import (
-    LinkConfig,
-    NVQDeviceConfig,
-    StackConfig,
-    StackNetworkConfig,
-    perfect_nv_config,
-)
+from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -121,8 +115,9 @@ if __name__ == "__main__":
     get_netqasm_logger().addHandler(fileHandler)
 
     num_times = 3
-
-    cfg = StackNetworkConfig.from_file("config.yaml")
+    cfg = StackNetworkConfig.from_file(
+        os.path.join(os.getcwd(), os.path.dirname(__file__), "config.yaml")
+    )
 
     num_pairs = 10
 

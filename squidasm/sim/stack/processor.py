@@ -27,7 +27,7 @@ from netsquid.components.instructions import (
 from netsquid.components.instructions import Instruction as NsInstr
 from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
-from netsquid.qubits import ketstates, qubitapi
+from netsquid.qubits import qubitapi
 
 from pydynaa import EventExpression
 from squidasm.sim.stack.common import (
@@ -216,16 +216,16 @@ class Processor(ComponentProtocol):
         self, app_id: int, instr: core.BreakpointInstruction
     ) -> None:
         if instr.action.value == 0:
-            self._logger.info(f"BREAKPOINT: no action taken")
+            self._logger.info("BREAKPOINT: no action taken")
         elif instr.action.value == 1:
-            self._logger.info(f"BREAKPOINT: dumping local state:")
+            self._logger.info("BREAKPOINT: dumping local state:")
             for i in range(self.qdevice.num_positions):
                 if self.qdevice.mem_positions[i].in_use:
                     q = self.qdevice.peek(i, skip_noise=True)
                     qstate = qubitapi.reduced_dm(q)
                     self._logger.debug(f"physical qubit {i}:\n{qstate}")
         elif instr.action.value == 2:
-            self._logger.info(f"BREAKPOINT: dumping global state:")
+            self._logger.info("BREAKPOINT: dumping global state:")
             if instr.role.value == 0:
                 self._send_netstack_msg(NetstackBreakpointCreateRequest(app_id))
                 ready = yield from self._receive_netstack_msg()
