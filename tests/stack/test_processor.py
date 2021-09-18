@@ -135,7 +135,7 @@ class TestProcessorSingleNode(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
         config = perfect_nv_config()
-        config.tot_num_qubits = 3
+        config.num_qubits = 3
         alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=config)
         self._alice = NodeStack("alice", qdevice=alice_qdevice, node_id=0)
         self._alice.qnos = Qnos(self._alice.qnos_comp)

@@ -12,7 +12,7 @@ from netsquid_magic.link_layer import (
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.config import QDeviceConfig, build_nv_qdevice
+from squidasm.sim.stack.config import NVQDeviceConfig, build_nv_qdevice
 from squidasm.sim.stack.handler import Handler
 from squidasm.sim.stack.qnos import Qnos
 from squidasm.sim.stack.stack import NodeStack
@@ -21,11 +21,11 @@ from squidasm.sim.stack.stack import NodeStack
 class TestHandler(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=QDeviceConfig())
+        alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=NVQDeviceConfig())
         self._alice = NodeStack("alice", qdevice=alice_qdevice, node_id=0)
         self._alice.qnos = Qnos(self._alice.qnos_comp)
 
-        bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=QDeviceConfig())
+        bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=NVQDeviceConfig())
         self._bob = NodeStack("bob", qdevice=bob_qdevice, node_id=1)
         self._bob.qnos = Qnos(self._bob.qnos_comp)
 

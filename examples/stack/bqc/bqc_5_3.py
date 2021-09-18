@@ -7,7 +7,7 @@ import netsquid as ns
 from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.config import QDeviceConfig, perfect_nv_config
+from squidasm.sim.stack.config import NVQDeviceConfig, perfect_nv_config
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -76,7 +76,7 @@ class ServerProgram(Program):
 
 
 def run(
-    theta1: float, nv_config: QDeviceConfig, link_type: LinkType, num: int = 1
+    theta1: float, nv_config: NVQDeviceConfig, link_type: LinkType, num: int = 1
 ) -> List[Dict[str, Any]]:
     ns.sim_reset()
     client, server, link = setup_stacks(nv_config, link_type)
@@ -91,7 +91,7 @@ def run(
 
 
 def get_distribution(
-    theta1: float, nv_config: QDeviceConfig, link_type: LinkType, num: int
+    theta1: float, nv_config: NVQDeviceConfig, link_type: LinkType, num: int
 ) -> None:
     num_zeros = run(theta1, nv_config, link_type, num)
     frac0 = round(num_zeros / num, 2)
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     get_distribution(theta1=0, nv_config=nv_config, link_type=link_type, num=num)
     get_distribution(theta1=math.pi, nv_config=nv_config, link_type=link_type, num=num)
 
-    nv_config = QDeviceConfig()  # default config
+    nv_config = NVQDeviceConfig()  # default config
     link_type = LinkType.NV
     get_distribution(theta1=0, nv_config=nv_config, link_type=link_type, num=num)
     get_distribution(theta1=math.pi, nv_config=nv_config, link_type=link_type, num=num)

@@ -1,0 +1,14 @@
+stacks:
+  - name: alice
+    qdevice_typ: generic
+    qdevice_cfg: 
+      dummy: null
+  - name: bob
+    qdevice_typ: generic
+    qdevice_cfg: 
+      dummy: null
+
+links:
+  - stack1: alice
+    stack2: bob
+    typ: perfect

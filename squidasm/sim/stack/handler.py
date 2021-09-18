@@ -90,7 +90,9 @@ class RunningApp:
 
 
 class Handler(ComponentProtocol):
-    def __init__(self, comp: HandlerComponent, qnos: Qnos) -> None:
+    def __init__(
+        self, comp: HandlerComponent, qnos: Qnos, qdevice_type: Optional[str] = "nv"
+    ) -> None:
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
         self._qnos = qnos
@@ -109,7 +111,12 @@ class Handler(ComponentProtocol):
 
         self._clear_memory: bool = True
 
-        self._flavour: Optional[flavour.Flavour] = flavour.NVFlavour()
+        if qdevice_type == "nv":
+            self._flavour: Optional[flavour.Flavour] = flavour.NVFlavour()
+        elif qdevice_type == "generic":
+            self._flavour: Optional[flavour.Flavour] = flavour.VanillaFlavour()
+        else:
+            raise ValueError
 
     @property
     def app_memories(self) -> Dict[int, AppMemory]:

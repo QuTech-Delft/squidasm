@@ -11,7 +11,7 @@ from netsquid_magic.link_layer import (
 from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.config import QDeviceConfig, build_nv_qdevice
+from squidasm.sim.stack.config import NVQDeviceConfig, build_nv_qdevice
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 from squidasm.sim.stack.stack import NodeStack
@@ -87,9 +87,9 @@ class ServerProgram(Program):
 
 
 if __name__ == "__main__":
-    alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=QDeviceConfig())
+    alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=NVQDeviceConfig())
     alice = NodeStack("alice", qdevice=alice_qdevice)
-    bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=QDeviceConfig())
+    bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=NVQDeviceConfig())
     bob = NodeStack("bob", qdevice=bob_qdevice)
 
     # link_dist = NVSingleClickMagicDistributor(

@@ -6,7 +6,7 @@ from typing import Any, Dict, Generator, List, Tuple
 from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.config import QDeviceConfig, perfect_nv_config
+from squidasm.sim.stack.config import NVQDeviceConfig, perfect_nv_config
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -163,7 +163,7 @@ def run(
     beta: float,
     theta1: float,
     theta2: float,
-    nv_config: QDeviceConfig,
+    nv_config: NVQDeviceConfig,
     link_type: LinkType,
     trap: bool = False,
     dummy: int = -1,
@@ -201,7 +201,7 @@ def computation_round(
     beta: float,
     theta1: float,
     theta2: float,
-    nv_config: QDeviceConfig,
+    nv_config: NVQDeviceConfig,
     link_type: LinkType,
     num: int,
 ) -> None:
@@ -229,7 +229,7 @@ def trap_round(
     beta: float,
     theta1: float,
     theta2: float,
-    nv_config: QDeviceConfig,
+    nv_config: NVQDeviceConfig,
     link_type: LinkType,
     dummy: int,
     num: int,
@@ -282,7 +282,7 @@ if __name__ == "__main__":
     computation_round(PI_OVER_2, -PI_OVER_2, 0, 0, cfg, link, num=num)
     computation_round(PI_OVER_2, -PI_OVER_2, PI_OVER_2, PI, cfg, link, num=num)
 
-    cfg = QDeviceConfig()
+    cfg = NVQDeviceConfig()
     link = LinkType.PERFECT
     trap_round(0, 0, 0, 0, cfg, link, dummy=1, num=num)
     trap_round(0, 0, 0, 0, cfg, link, dummy=2, num=num)
@@ -291,7 +291,7 @@ if __name__ == "__main__":
     computation_round(PI_OVER_2, -PI_OVER_2, 0, 0, cfg, link, num=num)
     computation_round(PI_OVER_2, -PI_OVER_2, PI_OVER_2, PI, cfg, link, num=num)
 
-    cfg = QDeviceConfig()
+    cfg = NVQDeviceConfig()
     link = LinkType.NV
     trap_round(0, 0, 0, 0, cfg, link, dummy=1, num=num)
     trap_round(0, 0, 0, 0, cfg, link, dummy=2, num=num)
