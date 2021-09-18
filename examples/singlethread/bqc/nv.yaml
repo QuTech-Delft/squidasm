@@ -22,4 +22,4 @@ instr_proc_time: 0
 measure: 3700
 prob_error_0: 0.05
 prob_error_1: 0.005
-tot_num_qubits: 2
+num_qubits: 2

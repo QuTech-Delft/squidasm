@@ -1,81 +1,103 @@
-from dataclasses import dataclass
-from typing import Dict
-
 import numpy as np
 from netsquid.components.instructions import (
+    INSTR_CNOT,
     INSTR_CXDIR,
     INSTR_CYDIR,
+    INSTR_CZ,
+    INSTR_H,
     INSTR_INIT,
     INSTR_MEASURE,
     INSTR_ROT_X,
     INSTR_ROT_Y,
     INSTR_ROT_Z,
+    INSTR_X,
+    INSTR_Y,
+    INSTR_Z,
 )
 from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qprocessor import PhysicalInstruction, QuantumProcessor
 from netsquid.qubits.operators import Operator
 
-
-@dataclass
-class QDeviceConfig:
-    # number of qubits per NV
-    tot_num_qubits: int = 2
-
-    # initialization error of the electron spin
-    electron_init_depolar_prob: float = 0.05
-
-    # error of the single-qubit gate
-    electron_single_qubit_depolar_prob: float = 0.0
-
-    # measurement errors (prob_error_X is the probability that outcome X is flipped to 1 - X)
-    prob_error_0: float = 0.05
-    prob_error_1: float = 0.005
-
-    # initialization error of the carbon nuclear spin
-    carbon_init_depolar_prob: float = 0.05
-
-    # error of the Z-rotation gate on the carbon nuclear spin
-    carbon_z_rot_depolar_prob: float = 0.001
-
-    # error of the native NV two-qubit gate
-    ec_gate_depolar_prob: float = 0.008
-
-    # coherence times
-    electron_T1: int = 1_000_000_000
-    electron_T2: int = 300_000_000
-    carbon_T1: int = 150_000_000_000
-    carbon_T2: int = 1_500_000_000
-
-    # gate execution times
-    carbon_init: int = 310_000
-    carbon_rot_x: int = 500_000
-    carbon_rot_y: int = 500_000
-    carbon_rot_z: int = 500_000
-    electron_init: int = 2_000
-    electron_rot_x: int = 5
-    electron_rot_y: int = 5
-    electron_rot_z: int = 5
-    ec_controlled_dir_x: int = 500_000
-    ec_controlled_dir_y: int = 500_000
-    measure: int = 3_700
+from squidasm.run.stack.config import GenericQDeviceConfig, NVQDeviceConfig
 
 
-def perfect_nv_config() -> QDeviceConfig:
-    # get default config
-    cfg = QDeviceConfig()
+def build_generic_qdevice(name: str, cfg: GenericQDeviceConfig) -> QuantumProcessor:
+    phys_instructions = []
 
-    # set all error params to 0
-    cfg.electron_init_depolar_prob = 0
-    cfg.electron_single_qubit_depolar_prob = 0
-    cfg.prob_error_0 = 0
-    cfg.prob_error_1 = 0
-    cfg.carbon_init_depolar_prob = 0
-    cfg.carbon_z_rot_depolar_prob = 0
-    cfg.ec_gate_depolar_prob = 0
-    return cfg
+    phys_instructions.append(
+        PhysicalInstruction(
+            INSTR_INIT,
+            parallel=False,
+            duration=cfg.init,
+        )
+    )
+
+    for instr, duration in zip(
+        [INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z], [cfg.rot_x, cfg.rot_y, cfg.rot_z]
+    ):
+        phys_instructions.append(
+            PhysicalInstruction(
+                instr,
+                parallel=False,
+                duration=duration,
+            )
+        )
+
+    for instr, duration in zip(
+        [INSTR_X, INSTR_Y, INSTR_Z], [cfg.rot_x, cfg.rot_y, cfg.rot_z]
+    ):
+        phys_instructions.append(
+            PhysicalInstruction(
+                instr,
+                parallel=False,
+                duration=duration,
+            )
+        )
+
+    phys_instructions.append(
+        PhysicalInstruction(
+            INSTR_H,
+            parallel=False,
+            duration=(cfg.rot_x + cfg.rot_y),
+        )
+    )
+
+    phys_instructions.append(
+        PhysicalInstruction(
+            INSTR_CNOT,
+            parallel=False,
+            duration=cfg.cnot,
+        )
+    )
+
+    phys_instructions.append(
+        PhysicalInstruction(
+            INSTR_CZ,
+            parallel=False,
+            apply_q_noise_after=True,
+            duration=cfg.cphase,
+        )
+    )
+
+    phys_instr_measure = PhysicalInstruction(
+        INSTR_MEASURE,
+        parallel=False,
+        duration=cfg.measure,
+    )
+    phys_instructions.append(phys_instr_measure)
+
+    electron_qubit_noise = T1T2NoiseModel(T1=cfg.T1, T2=cfg.T2)
+    mem_noise_models = [electron_qubit_noise] * cfg.num_qubits
+    qmem = QuantumProcessor(
+        name=name,
+        num_positions=cfg.num_qubits,
+        mem_noise_models=mem_noise_models,
+        phys_instructions=phys_instructions,
+    )
+    return qmem
 
 
-def build_nv_qdevice(name: str, cfg: QDeviceConfig) -> QuantumProcessor:
+def build_nv_qdevice(name: str, cfg: NVQDeviceConfig) -> QuantumProcessor:
 
     # noise models for single- and multi-qubit operations
     electron_init_noise = DepolarNoiseModel(
@@ -107,7 +129,7 @@ def build_nv_qdevice(name: str, cfg: QDeviceConfig) -> QuantumProcessor:
     phys_instructions = []
 
     electron_position = 0
-    carbon_positions = [pos + 1 for pos in range(cfg.tot_num_qubits - 1)]
+    carbon_positions = [pos + 1 for pos in range(cfg.num_qubits - 1)]
 
     phys_instructions.append(
         PhysicalInstruction(
@@ -211,41 +233,8 @@ def build_nv_qdevice(name: str, cfg: QDeviceConfig) -> QuantumProcessor:
     )
     qmem = QuantumProcessor(
         name=name,
-        num_positions=cfg.tot_num_qubits,
+        num_positions=cfg.num_qubits,
         mem_noise_models=mem_noise_models,
         phys_instructions=phys_instructions,
     )
     return qmem
-
-
-def parse_nv_config(cfg: Dict) -> QDeviceConfig:
-    try:
-        return QDeviceConfig(
-            tot_num_qubits=cfg["tot_num_qubits"],
-            electron_init_depolar_prob=cfg["electron_init_depolar_prob"],
-            electron_single_qubit_depolar_prob=cfg[
-                "electron_single_qubit_depolar_prob"
-            ],
-            prob_error_0=cfg["prob_error_0"],
-            prob_error_1=cfg["prob_error_1"],
-            carbon_init_depolar_prob=cfg["carbon_init_depolar_prob"],
-            carbon_z_rot_depolar_prob=cfg["carbon_z_rot_depolar_prob"],
-            ec_gate_depolar_prob=cfg["ec_gate_depolar_prob"],
-            electron_T1=cfg["electron_T1"],
-            electron_T2=cfg["electron_T2"],
-            carbon_T1=cfg["carbon_T1"],
-            carbon_T2=cfg["carbon_T2"],
-            carbon_init=cfg["carbon_init"],
-            carbon_rot_x=cfg["carbon_rot_x"],
-            carbon_rot_y=cfg["carbon_rot_y"],
-            carbon_rot_z=cfg["carbon_rot_z"],
-            electron_init=cfg["electron_init"],
-            electron_rot_x=cfg["electron_rot_x"],
-            electron_rot_y=cfg["electron_rot_y"],
-            electron_rot_z=cfg["electron_rot_z"],
-            ec_controlled_dir_x=cfg["ec_controlled_dir_x"],
-            ec_controlled_dir_y=cfg["ec_controlled_dir_y"],
-            measure=cfg["measure"],
-        )
-    except KeyError as e:
-        raise ValueError(f"Invalid NV configuration: key not found: {e}")

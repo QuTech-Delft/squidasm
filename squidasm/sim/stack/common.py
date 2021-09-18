@@ -283,29 +283,47 @@ class NetstackReceiveRequest:
     result_array_addr: int
 
 
+@dataclass
+class NetstackBreakpointCreateRequest:
+    app_id: int
+
+
+@dataclass
+class NetstackBreakpointReceiveRequest:
+    app_id: int
+
+
+class AllocError(Exception):
+    pass
+
+
 class PhysicalQuantumMemory:
     def __init__(self, qubit_count: int) -> None:
         self._qubit_count = qubit_count
         self._allocated_ids: Set[int] = set()
-        self._comm_qubit_ids: Set[int] = {0}
+        self._comm_qubit_ids: Set[int] = {i for i in range(qubit_count)}
 
     @property
     def qubit_count(self) -> int:
         return self._qubit_count
+
+    @property
+    def comm_qubit_count(self) -> int:
+        return len(self._comm_qubit_ids)
 
     def allocate(self) -> int:
         for i in range(self._qubit_count):
             if i not in self._allocated_ids:
                 self._allocated_ids.add(i)
                 return i
-        raise RuntimeError("No more qubits available")
+        raise AllocError("No more qubits available")
 
     def allocate_comm(self) -> int:
         for i in range(self._qubit_count):
             if i not in self._allocated_ids and i in self._comm_qubit_ids:
                 self._allocated_ids.add(i)
                 return i
-        raise RuntimeError("No more comm qubits available")
+        raise AllocError("No more comm qubits available")
 
     def free(self, id: int) -> None:
         self._allocated_ids.remove(id)
@@ -315,3 +333,9 @@ class PhysicalQuantumMemory:
 
     def clear(self) -> None:
         self._allocated_ids = {}
+
+
+class NVPhysicalQuantumMemory(PhysicalQuantumMemory):
+    def __init__(self, qubit_count: int) -> None:
+        super().__init__(qubit_count)
+        self._comm_qubit_ids: Set[int] = {0}

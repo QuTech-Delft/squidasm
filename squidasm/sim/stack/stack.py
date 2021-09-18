@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Dict, List, Optional
 
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Port
 from netsquid.nodes import Node
+from netsquid.nodes.network import Network
 from netsquid.protocols import Protocol
-from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
+from netsquid_magic.link_layer import (
+    MagicLinkLayerProtocol,
+    MagicLinkLayerProtocolWithSignaling,
+)
 
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent
@@ -74,6 +78,7 @@ class NodeStack(Protocol):
         self,
         name: str,
         node: Optional[ProcessingNode] = None,
+        qdevice_type: Optional[str] = "generic",
         qdevice: Optional[QuantumProcessor] = None,
         node_id: Optional[int] = None,
         use_default_components: bool = True,
@@ -89,8 +94,8 @@ class NodeStack(Protocol):
         self._qnos: Optional[Qnos]
 
         if use_default_components:
-            self._host = Host(self.host_comp)
-            self._qnos = Qnos(self.qnos_comp)
+            self._host = Host(self.host_comp, qdevice_type)
+            self._qnos = Qnos(self.qnos_comp, qdevice_type)
         else:
             self._host = None
             self._qnos = None
@@ -149,3 +154,23 @@ class NodeStack(Protocol):
         self._qnos.stop()
         self._host.stop()
         super().stop()
+
+
+class StackNetwork(Network):
+    def __init__(
+        self, stacks: Dict[str, NodeStack], links: List[MagicLinkLayerProtocol]
+    ) -> None:
+        self._stacks = stacks
+        self._links = links
+
+    @property
+    def stacks(self) -> Dict[str, NodeStack]:
+        return self._stacks
+
+    @property
+    def links(self) -> List[MagicLinkLayerProtocol]:
+        return self._links
+
+    @property
+    def qdevices(self) -> Dict[str, QuantumProcessor]:
+        return {name: stack.qdevice for name, stack in self._stacks.items()}

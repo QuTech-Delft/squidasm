@@ -19,8 +19,9 @@ from netsquid_magic.link_layer import (
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
+from squidasm.run.stack.build import build_nv_qdevice
+from squidasm.run.stack.config import perfect_nv_config
 from squidasm.sim.stack.common import AppMemory
-from squidasm.sim.stack.config import build_nv_qdevice, perfect_nv_config
 from squidasm.sim.stack.host import Host
 from squidasm.sim.stack.processor import NVProcessor
 from squidasm.sim.stack.qnos import Qnos
@@ -32,7 +33,9 @@ class TestTwoNodes(unittest.TestCase):
         ns.sim_reset()
         nv_cfg = perfect_nv_config()
         alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=nv_cfg)
-        self._alice = NodeStack("alice", qdevice=alice_qdevice, node_id=0)
+        self._alice = NodeStack(
+            "alice", qdevice_type="nv", qdevice=alice_qdevice, node_id=0
+        )
         self._alice.host = Host(self._alice.host_comp)
         self._alice.qnos = Qnos(self._alice.qnos_comp)
         self._alice.qnos.processor = NVProcessor(
@@ -42,7 +45,7 @@ class TestTwoNodes(unittest.TestCase):
         self._alice.qnos.handler.clear_memory = False
 
         bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=nv_cfg)
-        self._bob = NodeStack("bob", qdevice=bob_qdevice, node_id=1)
+        self._bob = NodeStack("bob", qdevice_type="nv", qdevice=bob_qdevice, node_id=1)
         self._bob.host = Host(self._bob.host_comp)
         self._bob.qnos = Qnos(self._bob.qnos_comp)
         self._bob.qnos.processor = NVProcessor(

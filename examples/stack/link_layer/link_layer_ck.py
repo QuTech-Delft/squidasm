@@ -1,11 +1,13 @@
-from typing import Any, Dict, Generator, List, Tuple
+import logging
+import os
+from typing import Any, Dict, Generator
 
-from netqasm.logging.glob import set_log_level
+from netqasm.logging.glob import get_netqasm_logger, set_log_level
 from netqasm.sdk.epr_socket import EPRType
-from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.config import QDeviceConfig, perfect_nv_config
+from squidasm.run.stack.config import StackNetworkConfig
+from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -105,41 +107,32 @@ class ServerProgram(Program):
         return outcomes
 
 
-def run(
-    basis: str,
-    num_pairs: int,
-    nv_config: QDeviceConfig,
-    link_type: LinkType,
-    num: int = 1,
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    client, server, link = setup_stacks(nv_config, link_type)
-
-    client.host.enqueue_program(
-        program=ClientProgram(basis=basis, num_pairs=num_pairs),
-        num_times=num,
-    )
-    server.host.enqueue_program(
-        program=ServerProgram(basis=basis, num_pairs=num_pairs), num_times=num
-    )
-
-    client_results, server_results = run_stacks(client, server, link)
-    return client_results, server_results
-
-
 if __name__ == "__main__":
-    set_log_level("INFO")
+    set_log_level("WARNING")
+    fileHandler = logging.FileHandler("{0}/{1}.log".format(".", "debug"), mode="w")
+    formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
+    fileHandler.setFormatter(formatter)
+    get_netqasm_logger().addHandler(fileHandler)
 
-    num = 1
-
-    num_pairs = 2
-    cfg = perfect_nv_config()
-    link = LinkType.PERFECT
-    client_results, server_results = run(
-        basis="Z", num_pairs=num_pairs, nv_config=cfg, link_type=link, num=num
+    num_times = 3
+    cfg = StackNetworkConfig.from_file(
+        os.path.join(os.getcwd(), os.path.dirname(__file__), "config.yaml")
     )
 
-    for i in range(num):
-        client_outcomes = [r for r in client_results[i]]
-        server_outcomes = [r for r in server_results[i]]
-        print(client_outcomes)
-        print(server_outcomes)
+    num_pairs = 10
+
+    client_program = ClientProgram(basis="Z", num_pairs=num_pairs)
+    server_program = ServerProgram(basis="Z", num_pairs=num_pairs)
+
+    client_results, server_results = run(
+        cfg, {"client": client_program, "server": server_program}, num_times
+    )
+
+    for i, (client_result, server_result) in enumerate(
+        zip(client_results, server_results)
+    ):
+        print(f"run {i}:")
+        client_outcomes = [r for r in client_result]
+        server_outcomes = [r for r in server_result]
+        print(f"client: {client_outcomes}")
+        print(f"server: {server_outcomes}")

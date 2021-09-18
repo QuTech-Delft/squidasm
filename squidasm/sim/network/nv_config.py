@@ -20,7 +20,7 @@ from netsquid.qubits.operators import Operator
 @dataclass
 class NVConfig:
     # number of qubits per NV
-    tot_num_qubits: int
+    num_qubits: int
 
     # initialization error of the electron spin
     electron_init_depolar_prob: float
@@ -68,16 +68,11 @@ class NVConfig:
     host_latency: int
 
 
-@dataclass
-class NVLinkConfig:
-    pass
-
-
 # Build a NVConfig object from a dict that is created by reading a yaml file.
 def parse_nv_config(cfg: Dict) -> NVConfig:
     try:
         return NVConfig(
-            tot_num_qubits=cfg["tot_num_qubits"],
+            num_qubits=cfg["num_qubits"],
             electron_init_depolar_prob=cfg["electron_init_depolar_prob"],
             electron_single_qubit_depolar_prob=cfg[
                 "electron_single_qubit_depolar_prob"
@@ -141,7 +136,7 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
     phys_instructions = []
 
     electron_position = 0
-    carbon_positions = [pos + 1 for pos in range(cfg.tot_num_qubits - 1)]
+    carbon_positions = [pos + 1 for pos in range(cfg.num_qubits - 1)]
 
     phys_instructions.append(
         PhysicalInstruction(
@@ -245,7 +240,7 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
     )
     qmem = QuantumProcessor(
         name=name,
-        num_positions=cfg.tot_num_qubits,
+        num_positions=cfg.num_qubits,
         mem_noise_models=mem_noise_models,
         phys_instructions=phys_instructions,
     )

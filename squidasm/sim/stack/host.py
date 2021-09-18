@@ -45,7 +45,7 @@ class HostComponent(Component):
 
 
 class Host(ComponentProtocol):
-    def __init__(self, comp: HostComponent) -> None:
+    def __init__(self, comp: HostComponent, qdevice_type: Optional[str] = "nv") -> None:
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
 
@@ -58,7 +58,12 @@ class Host(ComponentProtocol):
             PortListener(self._comp.ports["peer_in"], SIGNAL_HOST_HOST_MSG),
         )
 
-        self._compiler: Optional[Type[SubroutineCompiler]] = NVSubroutineCompiler
+        if qdevice_type == "nv":
+            self._compiler: Optional[Type[SubroutineCompiler]] = NVSubroutineCompiler
+        elif qdevice_type == "generic":
+            self._compiler: Optional[Type[SubroutineCompiler]] = None
+        else:
+            raise ValueError
 
         self._program: Optional[Program] = None
         self._num_pending: int = 0

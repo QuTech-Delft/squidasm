@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Component, Port
@@ -8,10 +8,19 @@ from netsquid.nodes import Node
 from netsquid.protocols import Protocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
-from squidasm.sim.stack.common import AppMemory, PhysicalQuantumMemory
+from squidasm.sim.stack.common import (
+    AppMemory,
+    NVPhysicalQuantumMemory,
+    PhysicalQuantumMemory,
+)
 from squidasm.sim.stack.handler import Handler, HandlerComponent
 from squidasm.sim.stack.netstack import Netstack, NetstackComponent
-from squidasm.sim.stack.processor import NVProcessor, Processor, ProcessorComponent
+from squidasm.sim.stack.processor import (
+    GenericProcessor,
+    NVProcessor,
+    Processor,
+    ProcessorComponent,
+)
 
 # TODO: make this a parameter
 NUM_QUBITS = 5
@@ -95,16 +104,22 @@ class QnosComponent(Component):
 
 
 class Qnos(Protocol):
-    def __init__(self, comp: QnosComponent) -> None:
+    def __init__(self, comp: QnosComponent, qdevice_type: Optional[str] = "nv") -> None:
         super().__init__(name=f"{comp.name}_protocol")
         self._comp = comp
 
-        self.handler = Handler(comp.handler_comp, self)
-        self.processor = NVProcessor(comp.processor_comp, self)
+        self.handler = Handler(comp.handler_comp, self, qdevice_type)
         self.netstack = Netstack(comp.netstack_comp, self)
+        if qdevice_type == "generic":
+            self.processor = GenericProcessor(comp.processor_comp, self)
+            self._physical_memory = PhysicalQuantumMemory(comp.qdevice.num_positions)
+        elif qdevice_type == "nv":
+            self.processor = NVProcessor(comp.processor_comp, self)
+            self._physical_memory = NVPhysicalQuantumMemory(comp.qdevice.num_positions)
+        else:
+            raise ValueError
 
         self._app_memories: Dict[int, AppMemory] = {}
-        self._physical_memory = PhysicalQuantumMemory(comp.qdevice.num_positions)
 
     # TODO: move this to a separate memory manager object
     def get_virt_qubit_for_phys_id(self, phys_id: int) -> Tuple[int, int]:

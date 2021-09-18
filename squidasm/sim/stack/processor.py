@@ -4,33 +4,44 @@ import math
 from typing import TYPE_CHECKING, Dict, Generator, Optional, Union
 
 import netsquid as ns
-from netqasm.lang.instr import NetQASMInstruction, core, nv
+from netqasm.lang.instr import NetQASMInstruction, core, nv, vanilla
 from netqasm.lang.operand import Register
 from netqasm.lang.subroutine import Subroutine
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Component, Port
 from netsquid.components.instructions import (
+    INSTR_CNOT,
     INSTR_CXDIR,
     INSTR_CYDIR,
+    INSTR_CZ,
+    INSTR_H,
     INSTR_INIT,
     INSTR_MEASURE,
     INSTR_ROT_X,
     INSTR_ROT_Y,
     INSTR_ROT_Z,
+    INSTR_X,
+    INSTR_Y,
+    INSTR_Z,
 )
 from netsquid.components.instructions import Instruction as NsInstr
 from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
+from netsquid.qubits import qubitapi
 
 from pydynaa import EventExpression
 from squidasm.sim.stack.common import (
+    AllocError,
     AppMemory,
     ComponentProtocol,
+    NetstackBreakpointCreateRequest,
+    NetstackBreakpointReceiveRequest,
     NetstackCreateRequest,
     NetstackReceiveRequest,
     PhysicalQuantumMemory,
     PortListener,
 )
+from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.signals import SIGNAL_HAND_PROC_MSG, SIGNAL_NSTK_PROC_MSG
 
 if TYPE_CHECKING:
@@ -86,6 +97,8 @@ class Processor(ComponentProtocol):
             "netstack",
             PortListener(self._comp.ports["nstk_in"], SIGNAL_NSTK_PROC_MSG),
         )
+
+        self.add_signal("memory free")  # TODO
 
     @property
     def app_memories(self) -> Dict[int, AppMemory]:
@@ -194,8 +207,47 @@ class Processor(ComponentProtocol):
             instr, core.ClassicalOpModInstruction
         ):
             return self._interpret_binary_classical_instr(app_id, instr)
+        elif isinstance(instr, core.BreakpointInstruction):
+            return self._interpret_breakpoint(app_id, instr)
         else:
             raise RuntimeError(f"Invalid instruction {instr}")
+
+    def _interpret_breakpoint(
+        self, app_id: int, instr: core.BreakpointInstruction
+    ) -> None:
+        if instr.action.value == 0:
+            self._logger.info("BREAKPOINT: no action taken")
+        elif instr.action.value == 1:
+            self._logger.info("BREAKPOINT: dumping local state:")
+            for i in range(self.qdevice.num_positions):
+                if self.qdevice.mem_positions[i].in_use:
+                    q = self.qdevice.peek(i, skip_noise=True)
+                    qstate = qubitapi.reduced_dm(q)
+                    self._logger.debug(f"physical qubit {i}:\n{qstate}")
+        elif instr.action.value == 2:
+            self._logger.info("BREAKPOINT: dumping global state:")
+            if instr.role.value == 0:
+                self._send_netstack_msg(NetstackBreakpointCreateRequest(app_id))
+                ready = yield from self._receive_netstack_msg()
+                assert ready == "breakpoint ready"
+
+                state = GlobalSimData.get_quantum_state()
+                self._logger.info(state)
+
+                self._send_netstack_msg("breakpoint end")
+                finished = yield from self._receive_netstack_msg()
+                assert finished == "breakpoint finished"
+            elif instr.role.value == 1:
+                self._send_netstack_msg(NetstackBreakpointReceiveRequest(app_id))
+                ready = yield from self._receive_netstack_msg()
+                assert ready == "breakpoint ready"
+                self._send_netstack_msg("breakpoint end")
+                finished = yield from self._receive_netstack_msg()
+                assert finished == "breakpoint finished"
+            else:
+                raise ValueError
+        else:
+            raise ValueError
 
     def _interpret_set(self, app_id: int, instr: core.SetInstruction) -> None:
         self._logger.debug(f"Set register {instr.reg} to {instr.imm}")
@@ -214,6 +266,7 @@ class Processor(ComponentProtocol):
         assert phys_id is not None
         app_mem.unmap_virt_id(virt_id)
         self.physical_memory.free(phys_id)
+        self.send_signal("memory free")  # TODO
         self.qdevice.mem_positions[phys_id].in_use = False
 
     def _interpret_store(self, app_id: int, instr: core.StoreInstruction) -> None:
@@ -530,6 +583,112 @@ class Processor(ComponentProtocol):
         raise NotImplementedError
 
 
+class GenericProcessor(Processor):
+    def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
+        app_mem = self.app_memories[app_id]
+
+        virt_id = app_mem.get_reg_value(instr.reg)
+        if virt_id is None:
+            raise RuntimeError(f"qubit address in register {instr.reg} is not defined")
+        self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
+
+        phys_id = self.physical_memory.allocate()
+        app_mem.map_virt_id(virt_id, phys_id)
+
+    def _interpret_init(
+        self, app_id: int, instr: core.InitInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id = app_mem.get_reg_value(instr.reg)
+        phys_id = app_mem.phys_id_for(virt_id)
+        self._logger.debug(
+            f"Performing {instr} on virtual qubit "
+            f"{virt_id} (physical ID: {phys_id})"
+        )
+        prog = QuantumProgram()
+        prog.apply(INSTR_INIT, qubit_indices=[phys_id])
+        yield self.qdevice.execute_program(prog)
+
+    def _interpret_meas(
+        self, app_id: int, instr: core.MeasInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id = app_mem.get_reg_value(instr.qreg)
+        phys_id = app_mem.phys_id_for(virt_id)
+
+        self._logger.debug(
+            f"Measuring qubit {virt_id} (physical ID: {phys_id}), "
+            f"placing the outcome in register {instr.creg}"
+        )
+
+        prog = QuantumProgram()
+        prog.apply(INSTR_MEASURE, qubit_indices=[phys_id])
+        yield self.qdevice.execute_program(prog)
+        outcome: int = prog.output["last"][0]
+        app_mem.set_reg_value(instr.creg, outcome)
+
+    def _interpret_single_qubit_instr(
+        self, app_id: int, instr: core.SingleQubitInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id = app_mem.get_reg_value(instr.qreg)
+        phys_id = app_mem.phys_id_for(virt_id)
+        if isinstance(instr, vanilla.GateXInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_X, qubit_indices=[phys_id])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.GateYInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_Y, qubit_indices=[phys_id])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.GateZInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_Z, qubit_indices=[phys_id])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.GateHInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_H, qubit_indices=[phys_id])
+            yield self.qdevice.execute_program(prog)
+        else:
+            raise RuntimeError(f"Unsupported instruction {instr}")
+
+    def _interpret_single_rotation_instr(
+        self, app_id: int, instr: nv.RotXInstruction
+    ) -> Generator[EventExpression, None, None]:
+        if isinstance(instr, vanilla.RotXInstruction):
+            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_X)
+        elif isinstance(instr, vanilla.RotYInstruction):
+            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Y)
+        elif isinstance(instr, vanilla.RotZInstruction):
+            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Z)
+        else:
+            raise RuntimeError(f"Unsupported instruction {instr}")
+
+    def _interpret_controlled_rotation_instr(
+        self, app_id: int, instr: core.ControlledRotationInstruction
+    ) -> Generator[EventExpression, None, None]:
+        raise RuntimeError(f"Unsupported instruction {instr}")
+
+    def _interpret_two_qubit_instr(
+        self, app_id: int, instr: core.SingleQubitInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id0 = app_mem.get_reg_value(instr.reg0)
+        phys_id0 = app_mem.phys_id_for(virt_id0)
+        virt_id1 = app_mem.get_reg_value(instr.reg1)
+        phys_id1 = app_mem.phys_id_for(virt_id1)
+        if isinstance(instr, vanilla.CnotInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_CNOT, qubit_indices=[phys_id0, phys_id1])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.CphaseInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_CZ, qubit_indices=[phys_id0, phys_id1])
+            yield self.qdevice.execute_program(prog)
+        else:
+            raise RuntimeError(f"Unsupported instruction {instr}")
+
+
 class NVProcessor(Processor):
     def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
         app_mem = self.app_memories[app_id]
@@ -593,38 +752,56 @@ class NVProcessor(Processor):
         virt_id = app_mem.get_reg_value(instr.qreg)
         phys_id = app_mem.phys_id_for(virt_id)
 
+        # Only the electron (phys ID 0) can be measured.
+        # Measuring any other physical qubit (i.e one of the carbons) requires
+        # freeing up the electron and moving the target qubit to the electron first.
+
         if phys_id == 0:
+            # Measuring the electron. This can be done immediately.
             outcome = yield from self._measure_electron()
             app_mem.set_reg_value(instr.creg, outcome)
         else:
+            # We want to measure a carbon.
+            # Move it to the electron first.
             if self.physical_memory.is_allocated(0):
-                new_qubit = self.physical_memory.allocate()
+                # Electron is already allocated. Try to move it to a free carbon.
+                try:
+                    new_qubit = self.physical_memory.allocate()
+                except AllocError:
+                    self._logger.error(
+                        f"Allocation error. Reason:\n"
+                        f"Measuring virtual qubit {virt_id}.\n"
+                        f"-> Measuring physical qubit {phys_id}.\n"
+                        f"-> Measuring physical qubit with ID > 0 requires "
+                        f"physical qubit 0 to be free."
+                        f"-> Physical qubit 0 is in use.\n"
+                        f"-> Trying to find free physical qubit for qubit 0.\n"
+                        f"-> No physical qubits available."
+                    )
                 yield from self._move_electron_to_carbon(new_qubit)
                 elec_app_id, elec_virt_id = self._qnos.get_virt_qubit_for_phys_id(0)
                 self._logger.warning(
                     f"moving virtual qubit {elec_virt_id} from app "
                     f"{app_id} from physical ID 0 to {new_qubit}"
                 )
+                # Update qubit ID mapping.
                 self.app_memories[elec_app_id].unmap_virt_id(elec_virt_id)
                 self.app_memories[elec_app_id].map_virt_id(elec_virt_id, new_qubit)
                 app_mem.unmap_virt_id(virt_id)
                 app_mem.map_virt_id(virt_id, 0)
                 yield from self._move_carbon_to_electron_for_measure(phys_id)
                 self.physical_memory.free(phys_id)
+                self.send_signal("memory free")  # TODO
                 self.qdevice.mem_positions[phys_id].in_use = False
                 outcome = yield from self._measure_electron()
                 app_mem.set_reg_value(instr.creg, outcome)
-                # raise RuntimeError(
-                #     f"Cannot measure virtual qubit {virt_id} "
-                #     f"(mapped to physical qubit {phys_id}) since physical "
-                #     "qubit 0 is occupied"
-                # )
             else:
                 self.physical_memory.allocate_comm()
                 app_mem.unmap_virt_id(virt_id)
                 app_mem.map_virt_id(virt_id, 0)
                 yield from self._move_carbon_to_electron_for_measure(phys_id)
                 self.physical_memory.free(phys_id)
+                self.send_signal("memory free")  # TODO
                 self.qdevice.mem_positions[phys_id].in_use = False
                 outcome = yield from self._measure_electron()
                 app_mem.set_reg_value(instr.creg, outcome)

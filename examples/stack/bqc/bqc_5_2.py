@@ -6,7 +6,7 @@ from netqasm.sdk.qubit import Qubit
 from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.config import perfect_nv_config
+from squidasm.run.stack.config import perfect_nv_config
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 

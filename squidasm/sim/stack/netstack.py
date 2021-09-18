@@ -23,8 +23,11 @@ from qlink_interface.interface import ReqRemoteStatePrep
 
 from pydynaa import EventExpression
 from squidasm.sim.stack.common import (
+    AllocError,
     AppMemory,
     ComponentProtocol,
+    NetstackBreakpointCreateRequest,
+    NetstackBreakpointReceiveRequest,
     NetstackCreateRequest,
     NetstackReceiveRequest,
     PhysicalQuantumMemory,
@@ -182,21 +185,41 @@ class Netstack(ComponentProtocol):
     def put_create_ck_request(
         self, req: NetstackCreateRequest, request: ReqCreateAndKeep
     ) -> Generator[EventExpression, None, None]:
-        phys_id = self.physical_memory.allocate_comm()
+        num_pairs = request.number
 
         self._send_peer_msg(request)
         peer_msg = yield from self._receive_peer_msg()
         self._logger.debug(f"received peer msg: {peer_msg}")
 
-        self._egp.put(request)
+        self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
+        self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
+        request.number = 1
 
-        for pair_index in range(request.number):
+        for pair_index in range(num_pairs):
+            self._logger.info(f"trying to allocate comm qubit for pair {pair_index}")
+            while True:
+                try:
+                    phys_id = self.physical_memory.allocate_comm()
+                    break
+                except AllocError:
+                    self._logger.info("no comm qubit available, waiting...")
+                    yield self.await_signal(
+                        sender=self._qnos.processor, signal_label="memory free"
+                    )  # TODO
+                    self._logger.info(
+                        "a 'free' happened, trying again to allocate comm qubit..."
+                    )
+            self._logger.info(f"putting CK request for pair {pair_index}")
+            self._egp.put(request)
+
+            self._logger.info(f"waiting for result for pair {pair_index}")
             yield self.await_signal(
                 sender=self._egp, signal_label=ResCreateAndKeep.__name__
             )
             result: ResCreateAndKeep = self._egp.get_signal_result(
                 ResCreateAndKeep.__name__, receiver=self
             )
+            self._logger.info(f"got result for pair {pair_index}: {result}")
 
             if result.bell_state == BellIndex.B00:
                 pass
@@ -217,6 +240,9 @@ class Netstack(ComponentProtocol):
             app_mem = self.app_memories[req.app_id]
             virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
             app_mem.map_virt_id(virt_id, phys_id)
+            self._logger.info(
+                f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
+            )
 
             for i in range(10):
                 value = -1
@@ -280,25 +306,47 @@ class Netstack(ComponentProtocol):
         self, req: NetstackReceiveRequest, request: ReqCreateAndKeep
     ) -> Generator[EventExpression, None, None]:
         assert isinstance(request, ReqCreateAndKeep)
-
-        phys_id = self.physical_memory.allocate_comm()
+        num_pairs = request.number
 
         self._logger.debug("sending 'ready' to peer")
         self._send_peer_msg("ready")
 
-        self._egp.put(ReqReceive(remote_node_id=req.remote_node_id))
+        self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
+        self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
+        request.number = 1
 
-        for pair_index in range(request.number):
+        for pair_index in range(num_pairs):
+            self._logger.info(f"trying to allocate comm qubit for pair {pair_index}")
+            while True:
+                try:
+                    phys_id = self.physical_memory.allocate_comm()
+                    break
+                except AllocError:
+                    self._logger.info("no comm qubit available, waiting...")
+                    yield self.await_signal(
+                        sender=self._qnos.processor, signal_label="memory free"
+                    )  # TODO
+                    self._logger.info(
+                        "a 'free' happened, trying again to allocate comm qubit..."
+                    )
+            self._logger.info(f"putting CK request for pair {pair_index}")
+            self._egp.put(ReqReceive(remote_node_id=req.remote_node_id))
+            self._logger.info(f"waiting for result for pair {pair_index}")
+
             yield self.await_signal(
                 sender=self._egp, signal_label=ResCreateAndKeep.__name__
             )
             result: ResCreateAndKeep = self._egp.get_signal_result(
                 ResCreateAndKeep.__name__, receiver=self
             )
+            self._logger.info(f"got result for pair {pair_index}: {result}")
 
             app_mem = self.app_memories[req.app_id]
             virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
             app_mem.map_virt_id(virt_id, phys_id)
+            self._logger.info(
+                f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
+            )
 
             for i in range(10):
                 value = -1
@@ -360,6 +408,41 @@ class Netstack(ComponentProtocol):
         elif isinstance(create_request, ReqMeasureDirectly):
             yield from self.put_receive_md_request(req, create_request)
 
+    def put_breakpoint_create_request(self) -> Generator[EventExpression, None, None]:
+        # synchronize with peer
+        self._send_peer_msg("breakpoint start")
+        response = yield from self._receive_peer_msg()
+        assert response == "breakpoint start"
+        # peer is now ready
+        # notify processor
+        self._send_processor_msg("breakpoint ready")
+        # wait for processor to be finished
+        processor_msg = yield from self._receive_processor_msg()
+        assert processor_msg == "breakpoint end"
+        # tell peer that breakpoint is finished
+        self._send_peer_msg("breakpoint end")
+        # wait for peer to have finsihed as well
+        response = yield from self._receive_peer_msg()
+        assert response == "breakpoint end"
+        # notify processor
+        self._send_processor_msg("breakpoint finished")
+
+    def put_breakpoint_receive_request(self) -> Generator[EventExpression, None, None]:
+        msg = yield from self._receive_peer_msg()
+        assert msg == "breakpoint start"
+        self._send_peer_msg("breakpoint start")
+        # notify processor
+        self._send_processor_msg("breakpoint ready")
+        # wait for processor to be finished
+        processor_msg = yield from self._receive_processor_msg()
+        assert processor_msg == "breakpoint end"
+        # wait for peer to be finished
+        peer_msg = yield from self._receive_peer_msg()
+        assert peer_msg == "breakpoint end"
+        self._send_peer_msg("breakpoint end")
+        # notify processor
+        self._send_processor_msg("breakpoint finished")
+
     def run(self) -> Generator[EventExpression, None, None]:
         while True:
             msg = yield from self._receive_processor_msg()
@@ -370,3 +453,9 @@ class Netstack(ComponentProtocol):
             elif isinstance(msg, NetstackReceiveRequest):
                 yield from self.put_receive_request(msg)
                 self._logger.debug("receive request done")
+            elif isinstance(msg, NetstackBreakpointCreateRequest):
+                yield from self.put_breakpoint_create_request()
+                self._logger.debug("breakpoint create request done")
+            elif isinstance(msg, NetstackBreakpointReceiveRequest):
+                yield from self.put_breakpoint_receive_request()
+                self._logger.debug("breakpoint receive request done")
