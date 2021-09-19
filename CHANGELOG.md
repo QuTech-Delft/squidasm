@@ -4,6 +4,17 @@ CHANGELOG
 Upcoming
 --------
 
+2021-09-19 (0.8.0)
+------------------
+- Package reorganization.
+- Fixed various bugs in stack simulator.
+- Made compatible with NetQASM 0.8.0.
+
+
+2021-09-10 (0.7.2)
+------------------
+- Package intallation now uses `pyproject.toml`.
+
 2021-07-14 (0.7.1)
 ------------------
 - Single-thread simulator now allows app inputs.

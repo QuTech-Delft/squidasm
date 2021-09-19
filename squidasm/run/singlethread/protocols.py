@@ -21,9 +21,9 @@ from netsquid.nodes import Node
 from netsquid.protocols import NodeProtocol, Protocol
 
 from pydynaa import EventExpression, EventType
-from squidasm.run.singlethread.csocket import NewClasMsgEvent
-from squidasm.sim.executor.nv import NVNetSquidExecutor
-from squidasm.sim.network.stack import NetworkStack
+from squidasm.nqasm.executor.nv import NVNetSquidExecutor
+from squidasm.nqasm.netstack import NetworkStack
+from squidasm.nqasm.singlethread.csocket import NewClasMsgEvent
 
 NewResultEvent: EventType = EventType(
     "NewResultEvent",

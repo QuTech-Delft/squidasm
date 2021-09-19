@@ -2,7 +2,7 @@ import numpy as np
 from netqasm.sdk.qubit import Qubit as SdkQubit
 from netsquid.qubits import qubitapi as qapi
 
-from squidasm.glob import get_running_backend
+from squidasm.sim.glob import get_running_backend
 
 
 def get_qubit_state(qubit: SdkQubit, reduced_dm: bool = True) -> np.ndarray:

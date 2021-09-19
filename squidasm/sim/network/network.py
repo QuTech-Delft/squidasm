@@ -42,7 +42,7 @@ from qlink_interface import (
 )
 
 from pydynaa import EventType
-from squidasm.glob import QubitInfo, get_running_backend
+from squidasm.sim.glob import QubitInfo, get_running_backend
 from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
 
 T_SingleQubitState = Tuple[Tuple[np.complex, np.complex]]

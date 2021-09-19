@@ -1,7 +1,6 @@
 import inspect
 import logging
 import os
-import runpy
 import subprocess
 
 from netqasm.logging.glob import set_log_level
@@ -18,19 +17,17 @@ def main():
     path_to_here = os.path.dirname(os.path.abspath(__file__))
     for root, _folders, files in os.walk(path_to_here):
         for filename in files:
-            if filename.startswith("example") and filename.endswith(".py"):
+            if (
+                filename.startswith("example") and filename.endswith(".py")
+            ) or filename == "run.py":
                 filepath = os.path.join(root, filename)
-                members = runpy.run_path(filepath)
-                if "main" in members:
-                    print(f"Running example {filepath}")
-                    result = subprocess.run(
-                        ["python3", filepath],
-                        stdout=subprocess.DEVNULL,
-                    )
-                    if result.returncode != 0:
-                        raise RuntimeError(f"Example {filepath} failed!")
-                else:
-                    print(f"The example {filepath} does not have a main function")
+                print(f"Running example {filepath}")
+                result = subprocess.run(
+                    ["python3", filepath],
+                    stdout=subprocess.DEVNULL,
+                )
+                if result.returncode != 0:
+                    raise RuntimeError(f"Example {filepath} failed!")
 
     print("All examples work!")
 
