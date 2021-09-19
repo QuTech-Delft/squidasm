@@ -4,7 +4,7 @@ This is SquidASM, a simulator based on NetSquid that can execute applications wr
 
 ## Installation
 
-To install the package you first need to install [`netqasm`](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm). SquidASM 0.7.2 is compatible with NetQASM 0.7.7.
+To install the package you first need to install [`netqasm`](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm). SquidASM 0.8 is compatible with NetQASM 0.8.
 
 Then run:
 ```sh
