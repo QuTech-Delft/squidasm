@@ -3,10 +3,15 @@ from __future__ import annotations
 from typing import Any, Dict, Generator, List
 
 from netqasm.sdk.qubit import Qubit
-from run import LinkType, run_stacks, setup_stacks
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import perfect_nv_config
+from squidasm.run.stack.config import (
+    LinkConfig,
+    StackConfig,
+    StackNetworkConfig,
+    perfect_generic_config,
+)
+from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -89,16 +94,27 @@ class ServerProgram(Program):
         return {"m1": m1, "m2": m2}
 
 
-def run(alpha: float, beta: float, num: int) -> List[Dict[str, Any]]:
-    client, server, link = setup_stacks(perfect_nv_config(), LinkType.PERFECT)
-
-    client.host.enqueue_program(ClientProgram(alpha=alpha, beta=beta), num)
-    server.host.enqueue_program(ServerProgram(), num)
-
-    _, server_results = run_stacks(client, server, link)
-    return server_results
-
-
 if __name__ == "__main__":
-    results = run(alpha=0, beta=0, num=10)
+    client_stack = StackConfig(
+        name="client",
+        qdevice_typ="generic",
+        qdevice_cfg=perfect_generic_config(),
+    )
+    server_stack = StackConfig(
+        name="server",
+        qdevice_typ="generic",
+        qdevice_cfg=perfect_generic_config(),
+    )
+    link = LinkConfig(
+        stack1="client",
+        stack2="server",
+        typ="perfect",
+    )
+
+    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
+
+    client_program = ClientProgram(alpha=0, beta=0)
+    server_program = ServerProgram()
+
+    results = run(cfg, {"client": client_program, "server": server_program})
     print(results)

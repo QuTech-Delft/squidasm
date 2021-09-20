@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING, Callable, Generator, Optional, Type
 
 from netqasm.backend.messages import SubroutineMessage
-from netqasm.logging.glob import get_netqasm_logger
 from netqasm.sdk.builder import Builder
 from netqasm.sdk.connection import (
     BaseNetQASMConnection,
@@ -19,6 +18,8 @@ from pydynaa import EventExpression
 if TYPE_CHECKING:
     from netqasm.sdk.compiling import SubroutineCompiler
     from squidasm.sim.stack.host import Host
+
+from squidasm.sim.stack.common import LogManager
 
 from .context import NetSquidNetworkInfo
 
@@ -41,7 +42,7 @@ class QnosConnection(BaseNetQASMConnection):
         self._host = host
 
         self._shared_memory = None
-        self._logger: logging.Logger = get_netqasm_logger(
+        self._logger: logging.Logger = LogManager.get_stack_logger(
             f"{self.__class__.__name__}({self.app_name})"
         )
 

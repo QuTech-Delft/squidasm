@@ -9,12 +9,17 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
     SingleClickTranslationUnit,
 )
-from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
+from netsquid_magic.magic_distributor import (
+    DoubleClickMagicDistributor,
+    PerfectStateMagicDistributor,
+)
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
+from netsquid_physlayer.heralded_connection import MiddleHeraldedConnection
 
 from squidasm.run.stack.build import build_generic_qdevice, build_nv_qdevice
 from squidasm.run.stack.config import (
     GenericQDeviceConfig,
+    HeraldedLinkConfig,
     NVLinkConfig,
     NVQDeviceConfig,
     StackNetworkConfig,
@@ -70,6 +75,16 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
                 cycle_time=link_cfg.cycle_time,
                 alpha=link_cfg.alpha,
             )
+        elif link.typ == "heralded":
+            link_cfg = link.cfg
+            if not isinstance(link_cfg, HeraldedLinkConfig):
+                link_cfg = HeraldedLinkConfig(**link.cfg)
+            connection = MiddleHeraldedConnection(
+                name="heralded_conn", **link_cfg.dict()
+            )
+            link_dist = DoubleClickMagicDistributor(
+                [stack1.node, stack2.node], connection
+            )
         else:
             raise ValueError
 
@@ -105,6 +120,11 @@ def run(
     config: StackNetworkConfig, programs: Dict[str, Program], num_times: int = 1
 ) -> List[Dict[str, Any]]:
     network = _setup_network(config)
+
+    NetSquidContext.set_nodes({})
+    for name, stack in network.stacks.items():
+        NetSquidContext.add_node(stack.node.ID, name)
+
     GlobalSimData.set_network(network)
     for name, program in programs.items():
         network.stacks[name].host.enqueue_program(program, num_times)

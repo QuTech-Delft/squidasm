@@ -3,10 +3,14 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, Generator, List, Tuple
 
-from run import LinkType, run_stacks, setup_stacks
-
 from pydynaa import EventExpression
-from squidasm.run.stack.config import NVQDeviceConfig, perfect_nv_config
+from squidasm.run.stack.config import (
+    LinkConfig,
+    StackConfig,
+    StackNetworkConfig,
+    perfect_generic_config,
+)
+from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -88,41 +92,23 @@ class ServerProgram(Program):
         return {"m2": m2}
 
 
-def run(
-    alpha: float,
-    theta1: float,
-    nv_config: NVQDeviceConfig,
-    link_type: LinkType,
-    r1: int = 0,
-    num: int = 1,
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    client, server, link = setup_stacks(nv_config, link_type)
-
-    client.host.enqueue_program(
-        program=ClientProgram(
-            alpha=alpha,
-            theta1=theta1,
-            r1=r1,
-        ),
-        num_times=num,
-    )
-    server.host.enqueue_program(program=ServerProgram(), num_times=num)
-
-    client_results, server_results = run_stacks(client, server, link)
-    return client_results, server_results
-
-
 def get_distribution(
+    cfg: StackNetworkConfig,
+    num_times: int,
     alpha: float,
     theta1: float,
-    nv_config: NVQDeviceConfig,
-    link_type: LinkType,
-    num: int,
+    r1: int = 0,
 ) -> None:
-    _, server_results = run(alpha, theta1, nv_config, link_type, num=num)
+    client_program = ClientProgram(alpha=alpha, theta1=theta1, r1=r1)
+    server_program = ServerProgram()
+
+    _, server_results = run(
+        cfg, {"client": client_program, "server": server_program}, num_times
+    )
+
     m2s = [result["m2"] for result in server_results]
     num_zeros = len([m for m in m2s if m == 0])
-    frac0 = round(num_zeros / num, 2)
+    frac0 = round(num_zeros / num_times, 2)
     frac1 = 1 - frac0
     print(f"dist (0, 1) = ({frac0}, {frac1})")
 
@@ -131,22 +117,26 @@ PI = math.pi
 PI_OVER_2 = math.pi / 2
 
 if __name__ == "__main__":
-    num = 100
+    num_times = 100
 
-    cfg = perfect_nv_config()
-    link = LinkType.PERFECT
-    get_distribution(0, 0, cfg, link, num)
-    get_distribution(math.pi, 0, cfg, link, num)
-    get_distribution(math.pi / 2, 0, cfg, link, num)
+    client_stack = StackConfig(
+        name="client",
+        qdevice_typ="generic",
+        qdevice_cfg=perfect_generic_config(),
+    )
+    server_stack = StackConfig(
+        name="server",
+        qdevice_typ="generic",
+        qdevice_cfg=perfect_generic_config(),
+    )
+    link = LinkConfig(
+        stack1="client",
+        stack2="server",
+        typ="perfect",
+    )
 
-    cfg = perfect_nv_config()
-    link = LinkType.NV
-    get_distribution(0, 0, cfg, link, num)
-    get_distribution(math.pi, 0, cfg, link, num)
-    get_distribution(math.pi / 2, 0, cfg, link, num)
+    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
 
-    cfg = NVQDeviceConfig()
-    link = LinkType.NV
-    get_distribution(0, 0, cfg, link, num)
-    get_distribution(math.pi, 0, cfg, link, num)
-    get_distribution(math.pi / 2, 0, cfg, link, num)
+    get_distribution(cfg, num_times, alpha=0, theta1=0)
+    get_distribution(cfg, num_times, alpha=PI, theta1=0)
+    get_distribution(cfg, num_times, alpha=PI_OVER_2, theta1=0)
