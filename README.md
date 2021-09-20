@@ -1,10 +1,11 @@
-# SquidASM (0.8.0)
+# SquidASM (0.8.1)
 
 This is SquidASM, a simulator based on NetSquid that can execute applications written using NetQASM.
 
 ## Installation
 
-To install the package you first need to install [`netqasm`](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm). SquidASM 0.8 is compatible with NetQASM 0.8.
+To install the package you first need to install the following package:
+- [`netqasm 0.8`](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm)
 
 Then run:
 ```sh
