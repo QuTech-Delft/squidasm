@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, Generator, List
-
-import netsquid as ns
+from typing import Any, Dict, Generator
 
 from pydynaa import EventExpression
 from squidasm.run.stack.config import (

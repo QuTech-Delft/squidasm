@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator
 
 from pydynaa import EventExpression
 from squidasm.run.stack.config import (
