@@ -4,6 +4,10 @@ CHANGELOG
 Upcoming
 --------
 
+2021-09-20 (0.8.1)
+------------------
+- Fixes in MANIFEST.in and setup.py
+
 2021-09-19 (0.8.0)
 ------------------
 - Package reorganization.
