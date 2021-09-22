@@ -28,61 +28,40 @@ def build_generic_qdevice(name: str, cfg: GenericQDeviceConfig) -> QuantumProces
         PhysicalInstruction(
             INSTR_INIT,
             parallel=False,
-            duration=cfg.init,
+            duration=cfg.init_time,
         )
     )
 
-    for instr, duration in zip(
-        [INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z], [cfg.rot_x, cfg.rot_y, cfg.rot_z]
-    ):
+    for instr in [
+        INSTR_ROT_X,
+        INSTR_ROT_Y,
+        INSTR_ROT_Z,
+        INSTR_X,
+        INSTR_Y,
+        INSTR_Z,
+        INSTR_H,
+    ]:
         phys_instructions.append(
             PhysicalInstruction(
                 instr,
                 parallel=False,
-                duration=duration,
+                duration=cfg.single_qubit_gate_time,
             )
         )
 
-    for instr, duration in zip(
-        [INSTR_X, INSTR_Y, INSTR_Z], [cfg.rot_x, cfg.rot_y, cfg.rot_z]
-    ):
+    for instr in [INSTR_CNOT, INSTR_CZ]:
         phys_instructions.append(
             PhysicalInstruction(
                 instr,
                 parallel=False,
-                duration=duration,
+                duration=cfg.two_qubit_gate_time,
             )
         )
-
-    phys_instructions.append(
-        PhysicalInstruction(
-            INSTR_H,
-            parallel=False,
-            duration=(cfg.rot_x + cfg.rot_y),
-        )
-    )
-
-    phys_instructions.append(
-        PhysicalInstruction(
-            INSTR_CNOT,
-            parallel=False,
-            duration=cfg.cnot,
-        )
-    )
-
-    phys_instructions.append(
-        PhysicalInstruction(
-            INSTR_CZ,
-            parallel=False,
-            apply_q_noise_after=True,
-            duration=cfg.cphase,
-        )
-    )
 
     phys_instr_measure = PhysicalInstruction(
         INSTR_MEASURE,
         parallel=False,
-        duration=cfg.measure,
+        duration=cfg.measure_time,
     )
     phys_instructions.append(phys_instr_measure)
 

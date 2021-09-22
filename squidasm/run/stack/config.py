@@ -13,21 +13,20 @@ def _from_file(path: str, typ: Any) -> Any:
 
 
 class GenericQDeviceConfig(BaseModel):
-    # number of qubits
+    # total number of qubits
     num_qubits: int = 2
+    # number of communication qubits
+    num_comm_qubits: int = 2
 
     # coherence times (same for each qubit)
-    T1: int = 1_000_000_000
-    T2: int = 300_000_000
+    T1: int = 10_000_000_000
+    T2: int = 1_000_000_000
 
     # gate execution times
-    init: int = 310_000
-    rot_x: int = 500_000
-    rot_y: int = 500_000
-    rot_z: int = 500_000
-    cnot: int = 500_000
-    cphase: int = 500_000
-    measure: int = 3_700
+    init_time: int = 10_000
+    single_qubit_gate_time: int = 1_000
+    two_qubit_gate_time: int = 100_000
+    measure_time: int = 10_000
 
     @classmethod
     def from_file(cls, path: str) -> GenericQDeviceConfig:
@@ -35,8 +34,8 @@ class GenericQDeviceConfig(BaseModel):
 
 
 def perfect_generic_config() -> GenericQDeviceConfig:
-    cfg = GenericQDeviceConfig()
-    return cfg
+    # default config does not have any noise
+    return GenericQDeviceConfig()
 
 
 class NVQDeviceConfig(BaseModel):
@@ -121,6 +120,21 @@ class NVLinkConfig(BaseModel):
     @classmethod
     def from_file(cls, path: str) -> NVLinkConfig:
         return _from_file(path, NVLinkConfig)
+
+
+class HeraldedLinkConfig(BaseModel):
+    length: float
+    p_loss_init: float = 0
+    p_loss_length: float = 0.25
+    speed_of_light: float = 200_000
+    dark_count_probability: float = 0
+    detector_efficiency: float = 1.0
+    visibility: float = 1.0
+    num_resolving: bool = False
+
+    @classmethod
+    def from_file(cls, path: str) -> HeraldedLinkConfig:
+        return _from_file(path, HeraldedLinkConfig)
 
 
 class LinkConfig(BaseModel):
