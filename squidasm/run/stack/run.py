@@ -10,7 +10,6 @@ from netsquid_magic.link_layer import (
     SingleClickTranslationUnit,
 )
 from netsquid_magic.magic_distributor import (
-    DepolariseMagicDistributor,
     DepolariseWithFailureMagicDistributor,
     DoubleClickMagicDistributor,
     PerfectStateMagicDistributor,

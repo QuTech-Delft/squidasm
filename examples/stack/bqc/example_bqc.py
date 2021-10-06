@@ -13,8 +13,6 @@ from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
-# from netqasm.logging.glob import set_log_level
-
 
 class ClientProgram(Program):
     PEER = "server"
@@ -241,7 +239,7 @@ def trap_round(
 
 if __name__ == "__main__":
     num_times = 1
-    LogManager.set_log_level("DEBUG")
+    LogManager.set_log_level("WARNING")
     # ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")

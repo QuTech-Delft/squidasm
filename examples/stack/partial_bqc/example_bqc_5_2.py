@@ -1,30 +1,33 @@
 from __future__ import annotations
 
-import math
 from typing import Any, Dict, Generator
+
+from netqasm.sdk.qubit import Qubit
 
 from pydynaa import EventExpression
 from squidasm.run.stack.config import (
+    GenericQDeviceConfig,
     LinkConfig,
     StackConfig,
     StackNetworkConfig,
-    perfect_generic_config,
 )
 from squidasm.run.stack.run import run
+from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
 class ClientProgram(Program):
     PEER = "server"
 
-    def __init__(self, theta1: float) -> None:
-        self._theta1 = theta1
+    def __init__(self, alpha: float, beta: float) -> None:
+        self._alpha = alpha
+        self._beta = beta
 
     @property
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="client_program",
-            parameters={"theta1": self._theta1},
+            parameters={"alpha": self._alpha, "beta": self._beta},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=2,
@@ -33,19 +36,14 @@ class ClientProgram(Program):
     def run(
         self, context: ProgramContext
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
-        conn = context.connection
-        epr_socket = context.epr_sockets[self.PEER]
+        csocket: ClassicalSocket = context.csockets[self.PEER]
 
-        epr = epr_socket.create()[0]
+        csocket.send_float(self._alpha)
+        m1 = yield from csocket.recv_int()
+        beta = -self._beta if m1 == 1 else self._beta
+        csocket.send_float(beta)
 
-        epr.rot_Z(angle=self._theta1)
-        epr.H()
-
-        p1 = epr.measure(store_array=False)
-        yield from conn.flush()
-
-        p1 = int(p1)
-        return {"p1": p1}
+        return {}
 
 
 class ServerProgram(Program):
@@ -65,46 +63,47 @@ class ServerProgram(Program):
         self, context: ProgramContext
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
         conn = context.connection
-        epr_socket = context.epr_sockets[self.PEER]
+        csocket: ClassicalSocket = context.csockets[self.PEER]
 
-        epr = epr_socket.recv()[0]
+        alpha = yield from csocket.recv_float()
 
-        epr.H()
-        m2 = epr.measure(store_array=False)
+        electron = Qubit(conn)
+        carbon = Qubit(conn)
+
+        carbon.H()
+        electron.H()
+        electron.cphase(carbon)
+
+        electron.rot_Z(angle=alpha)
+        electron.H()
+        m1 = electron.measure(store_array=False)
+        yield from conn.flush()
+        m1 = int(m1)
+
+        csocket.send_int(m1)
+
+        beta = yield from csocket.recv_float()
+
+        carbon.rot_Z(angle=beta)
+        carbon.H()
+        m2 = carbon.measure(store_array=False)
 
         yield from conn.flush()
-
         m2 = int(m2)
-        return {"m2": m2}
 
-
-def get_distribution(cfg: StackNetworkConfig, num_times: int, theta1: float) -> None:
-    client_program = ClientProgram(theta1=theta1)
-    server_program = ServerProgram()
-
-    _, server_results = run(
-        cfg, {"client": client_program, "server": server_program}, num_times
-    )
-
-    m2s = [result["m2"] for result in server_results]
-    num_zeros = len([m for m in m2s if m == 0])
-    frac0 = round(num_zeros / num_times, 2)
-    frac1 = 1 - frac0
-    print(f"theta1: {theta1} -> dist (0, 1) = ({frac0}, {frac1})")
+        return {"m1": m1, "m2": m2}
 
 
 if __name__ == "__main__":
-    num_times = 100
-
     client_stack = StackConfig(
         name="client",
         qdevice_typ="generic",
-        qdevice_cfg=perfect_generic_config(),
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     server_stack = StackConfig(
         name="server",
         qdevice_typ="generic",
-        qdevice_cfg=perfect_generic_config(),
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
         stack1="client",
@@ -114,5 +113,8 @@ if __name__ == "__main__":
 
     cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
 
-    get_distribution(cfg, num_times, theta1=0)
-    get_distribution(cfg, num_times, theta1=math.pi)
+    client_program = ClientProgram(alpha=0, beta=0)
+    server_program = ServerProgram()
+
+    results = run(cfg, {"client": client_program, "server": server_program})
+    print(results)

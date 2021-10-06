@@ -10,7 +10,7 @@ from netsquid.qubits import ketstates, qubitapi
 
 from pydynaa import EventExpression
 from squidasm.run.stack.build import build_nv_qdevice
-from squidasm.run.stack.config import perfect_nv_config
+from squidasm.run.stack.config import NVQDeviceConfig
 from squidasm.sim.stack.common import AppMemory
 from squidasm.sim.stack.host import Host
 from squidasm.sim.stack.stack import NodeStack
@@ -19,7 +19,9 @@ from squidasm.sim.stack.stack import NodeStack
 class TestSingleNode(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=perfect_nv_config())
+        qdevice = build_nv_qdevice(
+            "nv_qdevice_alice", cfg=NVQDeviceConfig.perfect_config()
+        )
         self._node = NodeStack("alice", qdevice_type="nv", qdevice=qdevice)
 
         self._host: Optional[Type[Host]] = None

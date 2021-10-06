@@ -20,7 +20,7 @@ from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
 from squidasm.run.stack.build import build_nv_qdevice
-from squidasm.run.stack.config import perfect_nv_config
+from squidasm.run.stack.config import NVQDeviceConfig
 from squidasm.sim.stack.common import AppMemory
 from squidasm.sim.stack.host import Host
 from squidasm.sim.stack.processor import NVProcessor
@@ -31,7 +31,7 @@ from squidasm.sim.stack.stack import NodeStack
 class TestTwoNodes(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        nv_cfg = perfect_nv_config()
+        nv_cfg = NVQDeviceConfig.perfect_config()
         alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=nv_cfg)
         self._alice = NodeStack(
             "alice", qdevice_type="nv", qdevice=alice_qdevice, node_id=0

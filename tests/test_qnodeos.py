@@ -27,15 +27,15 @@ def test():
 # DEFINE op h
 # DEFINE q Q0
 # DEFINE m M0
-set q! 0
-qalloc q!
-init q!
-op! q! // this is a comment
-meas q! m!
-bez m! EXIT
-x q!
+set $q 0
+qalloc $q
+init $q
+$op $q // this is a comment
+meas $q $m
+bez $m EXIT
+x $q
 EXIT:
-ret_reg m!
+ret_reg $m
 // this is also a comment
 """
     # Initialize the new application

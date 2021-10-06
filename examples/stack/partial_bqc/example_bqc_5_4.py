@@ -5,10 +5,10 @@ from typing import Any, Dict, Generator
 
 from pydynaa import EventExpression
 from squidasm.run.stack.config import (
+    GenericQDeviceConfig,
     LinkConfig,
     StackConfig,
     StackNetworkConfig,
-    perfect_generic_config,
 )
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
@@ -122,12 +122,12 @@ if __name__ == "__main__":
     client_stack = StackConfig(
         name="client",
         qdevice_typ="generic",
-        qdevice_cfg=perfect_generic_config(),
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     server_stack = StackConfig(
         name="server",
         qdevice_typ="generic",
-        qdevice_cfg=perfect_generic_config(),
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
         stack1="client",
