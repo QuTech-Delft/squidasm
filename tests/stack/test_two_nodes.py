@@ -16,7 +16,6 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
     SingleClickTranslationUnit,
 )
-from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
