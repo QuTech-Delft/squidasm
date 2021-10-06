@@ -54,6 +54,16 @@ class LogManager:
     def get_log_level(cls) -> int:
         return cls.get_stack_logger().level
 
+    @classmethod
+    def log_to_file(cls, path: str) -> None:
+        fileHandler = logging.FileHandler(path, mode="w")
+        formatter = logging.Formatter(
+            "%(levelname)s:%(simtime)s ns:%(name)s:%(message)s"
+        )
+        fileHandler.setFormatter(formatter)
+        fileHandler.addFilter(SimTimeFilter())
+        cls.get_stack_logger().addHandler(fileHandler)
+
 
 class PortListener(Protocol):
     def __init__(self, port: Port, signal_label: str) -> None:

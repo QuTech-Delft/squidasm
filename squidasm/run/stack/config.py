@@ -28,14 +28,20 @@ class GenericQDeviceConfig(BaseModel):
     two_qubit_gate_time: int = 100_000
     measure_time: int = 10_000
 
+    # noise model
+    single_qubit_gate_depolar_prob: float = 0.0
+    two_qubit_gate_depolar_prob: float = 0.01
+
     @classmethod
     def from_file(cls, path: str) -> GenericQDeviceConfig:
         return _from_file(path, GenericQDeviceConfig)
 
-
-def perfect_generic_config() -> GenericQDeviceConfig:
-    # default config does not have any noise
-    return GenericQDeviceConfig()
+    @classmethod
+    def perfect_config(cls) -> GenericQDeviceConfig:
+        cfg = GenericQDeviceConfig()
+        cfg.single_qubit_gate_depolar_prob = 0.0
+        cfg.two_qubit_gate_depolar_prob = 0.0
+        return cfg
 
 
 class NVQDeviceConfig(BaseModel):
@@ -84,20 +90,20 @@ class NVQDeviceConfig(BaseModel):
     def from_file(cls, path: str) -> NVQDeviceConfig:
         return _from_file(path, NVQDeviceConfig)
 
+    @classmethod
+    def perfect_config(cls) -> NVQDeviceConfig:
+        # get default config
+        cfg = NVQDeviceConfig()
 
-def perfect_nv_config() -> NVQDeviceConfig:
-    # get default config
-    cfg = NVQDeviceConfig()
-
-    # set all error params to 0
-    cfg.electron_init_depolar_prob = 0
-    cfg.electron_single_qubit_depolar_prob = 0
-    cfg.prob_error_0 = 0
-    cfg.prob_error_1 = 0
-    cfg.carbon_init_depolar_prob = 0
-    cfg.carbon_z_rot_depolar_prob = 0
-    cfg.ec_gate_depolar_prob = 0
-    return cfg
+        # set all error params to 0
+        cfg.electron_init_depolar_prob = 0
+        cfg.electron_single_qubit_depolar_prob = 0
+        cfg.prob_error_0 = 0
+        cfg.prob_error_1 = 0
+        cfg.carbon_init_depolar_prob = 0
+        cfg.carbon_z_rot_depolar_prob = 0
+        cfg.ec_gate_depolar_prob = 0
+        return cfg
 
 
 class StackConfig(BaseModel):
@@ -108,6 +114,24 @@ class StackConfig(BaseModel):
     @classmethod
     def from_file(cls, path: str) -> StackConfig:
         return _from_file(path, StackConfig)
+
+    @classmethod
+    def perfect_generic_config(cls, name: str) -> StackConfig:
+        return StackConfig(
+            name=name,
+            qdevice_typ="generic",
+            qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+        )
+
+
+class DepolariseLinkConfig(BaseModel):
+    fidelity: float
+    prob_success: float
+    t_cycle: float
+
+    @classmethod
+    def from_file(cls, path: str) -> DepolariseLinkConfig:
+        return _from_file(path, DepolariseLinkConfig)
 
 
 class NVLinkConfig(BaseModel):
@@ -146,6 +170,10 @@ class LinkConfig(BaseModel):
     @classmethod
     def from_file(cls, path: str) -> LinkConfig:
         return _from_file(path, LinkConfig)
+
+    @classmethod
+    def perfect_config(cls, stack1: str, stack2: str) -> LinkConfig:
+        return LinkConfig(stack1=stack1, stack2=stack2, typ="perfect", cfg=None)
 
 
 class StackNetworkConfig(BaseModel):

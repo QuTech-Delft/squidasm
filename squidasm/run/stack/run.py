@@ -10,6 +10,8 @@ from netsquid_magic.link_layer import (
     SingleClickTranslationUnit,
 )
 from netsquid_magic.magic_distributor import (
+    DepolariseMagicDistributor,
+    DepolariseWithFailureMagicDistributor,
     DoubleClickMagicDistributor,
     PerfectStateMagicDistributor,
 )
@@ -18,6 +20,7 @@ from netsquid_physlayer.heralded_connection import MiddleHeraldedConnection
 
 from squidasm.run.stack.build import build_generic_qdevice, build_nv_qdevice
 from squidasm.run.stack.config import (
+    DepolariseLinkConfig,
     GenericQDeviceConfig,
     HeraldedLinkConfig,
     NVLinkConfig,
@@ -30,9 +33,13 @@ from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.stack import NodeStack, StackNetwork
 
 
+def fidelity_to_prob_max_mixed(fid: float) -> float:
+    return (1 - fid) * 4.0 / 3.0
+
+
 def _setup_network(config: StackNetworkConfig) -> StackNetwork:
-    assert len(config.stacks) == 2
-    assert len(config.links) == 1
+    assert len(config.stacks) <= 2
+    assert len(config.links) <= 1
 
     stacks: Dict[str, NodeStack] = {}
     link_prots: List[MagicLinkLayerProtocol] = []
@@ -62,6 +69,17 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
         if link.typ == "perfect":
             link_dist = PerfectStateMagicDistributor(
                 nodes=[stack1.node, stack2.node], state_delay=1000.0
+            )
+        elif link.typ == "depolarise":
+            link_cfg = link.cfg
+            if not isinstance(link_cfg, DepolariseLinkConfig):
+                link_cfg = DepolariseLinkConfig(**link.cfg)
+            prob_max_mixed = fidelity_to_prob_max_mixed(link_cfg.fidelity)
+            link_dist = DepolariseWithFailureMagicDistributor(
+                nodes=[stack1.node, stack2.node],
+                prob_max_mixed=prob_max_mixed,
+                prob_success=link_cfg.prob_success,
+                t_cycle=link_cfg.t_cycle,
             )
         elif link.typ == "nv":
             link_cfg = link.cfg
@@ -102,8 +120,8 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
 
 
 def _run(network: StackNetwork) -> List[Dict[str, Any]]:
-    assert len(network.stacks) == 2
-    assert len(network.links) == 1
+    assert len(network.stacks) <= 2
+    assert len(network.links) <= 1
 
     for link in network.links:
         link.start()

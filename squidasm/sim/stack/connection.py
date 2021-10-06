@@ -70,7 +70,7 @@ class QnosConnection(BaseNetQASMConnection):
         self._logger.debug(f"Committing message {msg}")
         self._host.send_qnos_msg(bytes(msg))
 
-    def _commit_subroutine(
+    def commit_subroutine(
         self,
         presubroutine: PreSubroutine,
         block: bool = True,
@@ -99,7 +99,7 @@ class QnosConnection(BaseNetQASMConnection):
         if subroutine is None:
             return
 
-        yield from self._commit_subroutine(
+        yield from self.commit_subroutine(
             presubroutine=subroutine,
             block=block,
             callback=callback,

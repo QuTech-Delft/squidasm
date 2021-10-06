@@ -24,6 +24,14 @@ from squidasm.run.stack.config import GenericQDeviceConfig, NVQDeviceConfig
 def build_generic_qdevice(name: str, cfg: GenericQDeviceConfig) -> QuantumProcessor:
     phys_instructions = []
 
+    single_qubit_gate_noise = DepolarNoiseModel(
+        depolar_rate=cfg.single_qubit_gate_depolar_prob, time_independent=True
+    )
+
+    two_qubit_gate_noise = DepolarNoiseModel(
+        depolar_rate=cfg.two_qubit_gate_depolar_prob, time_independent=True
+    )
+
     phys_instructions.append(
         PhysicalInstruction(
             INSTR_INIT,
@@ -45,6 +53,8 @@ def build_generic_qdevice(name: str, cfg: GenericQDeviceConfig) -> QuantumProces
             PhysicalInstruction(
                 instr,
                 parallel=False,
+                quantum_noise_model=single_qubit_gate_noise,
+                apply_q_noise_after=True,
                 duration=cfg.single_qubit_gate_time,
             )
         )
@@ -54,6 +64,8 @@ def build_generic_qdevice(name: str, cfg: GenericQDeviceConfig) -> QuantumProces
             PhysicalInstruction(
                 instr,
                 parallel=False,
+                quantum_noise_model=two_qubit_gate_noise,
+                apply_q_noise_after=True,
                 duration=cfg.two_qubit_gate_time,
             )
         )
@@ -157,6 +169,7 @@ def build_nv_qdevice(name: str, cfg: NVQDeviceConfig) -> QuantumProcessor:
                 parallel=False,
                 topology=[electron_position],
                 quantum_noise_model=electron_single_qubit_noise,
+                apply_q_noise_after=True,
                 duration=dur,
             )
         )
