@@ -1,4 +1,4 @@
-# SquidASM (0.8.1)
+# SquidASM (0.8.2)
 
 This is SquidASM, a simulator based on NetSquid that can execute applications written using NetQASM.
 

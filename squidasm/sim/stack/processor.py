@@ -223,7 +223,9 @@ class Processor(ComponentProtocol):
                 if self.qdevice.mem_positions[i].in_use:
                     q = self.qdevice.peek(i, skip_noise=True)
                     qstate = qubitapi.reduced_dm(q)
-                    self._logger.debug(f"physical qubit {i}:\n{qstate}")
+                    self._logger.info(f"physical qubit {i}:\n{qstate}")
+
+            GlobalSimData.get_quantum_state(save=True)  # TODO: rewrite this
         elif instr.action.value == 2:
             self._logger.info("BREAKPOINT: dumping global state:")
             if instr.role.value == 0:
@@ -231,7 +233,7 @@ class Processor(ComponentProtocol):
                 ready = yield from self._receive_netstack_msg()
                 assert ready == "breakpoint ready"
 
-                state = GlobalSimData.get_quantum_state()
+                state = GlobalSimData.get_quantum_state(save=True)
                 self._logger.info(state)
 
                 self._send_netstack_msg("breakpoint end")

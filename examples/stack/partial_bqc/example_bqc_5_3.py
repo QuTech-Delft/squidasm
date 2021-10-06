@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, Generator, List
-
-import netsquid as ns
-from run import LinkType, run_stacks, setup_stacks
+from typing import Any, Dict, Generator
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import NVQDeviceConfig, perfect_nv_config
+from squidasm.run.stack.config import (
+    GenericQDeviceConfig,
+    LinkConfig,
+    StackConfig,
+    StackNetworkConfig,
+)
+from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -75,44 +78,41 @@ class ServerProgram(Program):
         return {"m2": m2}
 
 
-def run(
-    theta1: float, nv_config: NVQDeviceConfig, link_type: LinkType, num: int = 1
-) -> List[Dict[str, Any]]:
-    ns.sim_reset()
-    client, server, link = setup_stacks(nv_config, link_type)
+def get_distribution(cfg: StackNetworkConfig, num_times: int, theta1: float) -> None:
+    client_program = ClientProgram(theta1=theta1)
+    server_program = ServerProgram()
 
-    client.host.enqueue_program(ClientProgram(theta1=theta1), num)
-    server.host.enqueue_program(ServerProgram(), num)
+    _, server_results = run(
+        cfg, {"client": client_program, "server": server_program}, num_times
+    )
 
-    _, server_results = run_stacks(client, server, link)
     m2s = [result["m2"] for result in server_results]
     num_zeros = len([m for m in m2s if m == 0])
-    return num_zeros
-
-
-def get_distribution(
-    theta1: float, nv_config: NVQDeviceConfig, link_type: LinkType, num: int
-) -> None:
-    num_zeros = run(theta1, nv_config, link_type, num)
-    frac0 = round(num_zeros / num, 2)
+    frac0 = round(num_zeros / num_times, 2)
     frac1 = 1 - frac0
     print(f"theta1: {theta1} -> dist (0, 1) = ({frac0}, {frac1})")
 
 
 if __name__ == "__main__":
-    num = 100
+    num_times = 100
 
-    nv_config = perfect_nv_config()
-    link_type = LinkType.PERFECT
-    get_distribution(theta1=0, nv_config=nv_config, link_type=link_type, num=num)
-    get_distribution(theta1=math.pi, nv_config=nv_config, link_type=link_type, num=num)
+    client_stack = StackConfig(
+        name="client",
+        qdevice_typ="generic",
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+    )
+    server_stack = StackConfig(
+        name="server",
+        qdevice_typ="generic",
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+    )
+    link = LinkConfig(
+        stack1="client",
+        stack2="server",
+        typ="perfect",
+    )
 
-    nv_config = perfect_nv_config()
-    link_type = LinkType.NV
-    get_distribution(theta1=0, nv_config=nv_config, link_type=link_type, num=num)
-    get_distribution(theta1=math.pi, nv_config=nv_config, link_type=link_type, num=num)
+    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
 
-    nv_config = NVQDeviceConfig()  # default config
-    link_type = LinkType.NV
-    get_distribution(theta1=0, nv_config=nv_config, link_type=link_type, num=num)
-    get_distribution(theta1=math.pi, nv_config=nv_config, link_type=link_type, num=num)
+    get_distribution(cfg, num_times, theta1=0)
+    get_distribution(cfg, num_times, theta1=math.pi)

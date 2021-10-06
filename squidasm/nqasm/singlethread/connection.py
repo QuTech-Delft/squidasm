@@ -119,7 +119,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         )
         yield from self._wait_for_results()
 
-    def _commit_subroutine(
+    def commit_subroutine(
         self,
         presubroutine: PreSubroutine,
         block: bool = True,
@@ -152,7 +152,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         if subroutine is None:
             return
 
-        yield from self._commit_subroutine(
+        yield from self.commit_subroutine(
             presubroutine=subroutine,
             block=block,
             callback=callback,

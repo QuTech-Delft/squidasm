@@ -2,9 +2,9 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, Generator, List, Optional, Set, Tuple, Union
 
+import netsquid as ns
 from netqasm.lang import operand
 from netqasm.lang.encoding import RegisterName
-from netqasm.logging.glob import get_netqasm_logger
 from netqasm.sdk.shared_memory import Arrays, RegisterGroup, setup_registers
 from netsquid.components.component import Component, Port
 from netsquid.protocols import Protocol
@@ -12,15 +12,57 @@ from netsquid.protocols import Protocol
 from pydynaa import EventExpression
 
 
-def create_logger(name: str) -> logging.Logger:
-    logger = logging.Logger(name)
-    logger.setLevel("DEBUG")
-    formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
-    syslog = logging.StreamHandler()
-    syslog.setFormatter(formatter)
-    logger.addHandler(syslog)
-    logger.propagate = False
-    return logger
+class SimTimeFilter(logging.Filter):
+    def filter(self, record):
+        record.simtime = ns.sim_time()
+        return True
+
+
+class LogManager:
+    STACK_LOGGER = "Stack"
+    _LOGGER_HAS_BEEN_SETUP = False
+
+    @classmethod
+    def _setup_stack_logger(cls) -> None:
+        logger = logging.getLogger(cls.STACK_LOGGER)
+        formatter = logging.Formatter(
+            "%(levelname)s:%(simtime)s ns:%(name)s:%(message)s"
+        )
+        syslog = logging.StreamHandler()
+        syslog.setFormatter(formatter)
+        syslog.addFilter(SimTimeFilter())
+        logger.addHandler(syslog)
+        logger.propagate = False
+        cls._LOGGER_HAS_BEEN_SETUP = True
+
+    @classmethod
+    def get_stack_logger(cls, sub_logger: Optional[str] = None) -> logging.Logger:
+        if not cls._LOGGER_HAS_BEEN_SETUP:
+            cls._setup_stack_logger()
+        logger = logging.getLogger(cls.STACK_LOGGER)
+        if sub_logger is None:
+            return logger
+        else:
+            return logger.getChild(sub_logger)
+
+    @classmethod
+    def set_log_level(cls, level: Union[int, str]) -> None:
+        logger = cls.get_stack_logger()
+        logger.setLevel(level)
+
+    @classmethod
+    def get_log_level(cls) -> int:
+        return cls.get_stack_logger().level
+
+    @classmethod
+    def log_to_file(cls, path: str) -> None:
+        fileHandler = logging.FileHandler(path, mode="w")
+        formatter = logging.Formatter(
+            "%(levelname)s:%(simtime)s ns:%(name)s:%(message)s"
+        )
+        fileHandler.setFormatter(formatter)
+        fileHandler.addFilter(SimTimeFilter())
+        cls.get_stack_logger().addHandler(fileHandler)
 
 
 class PortListener(Protocol):
@@ -77,7 +119,7 @@ class ComponentProtocol(Protocol):
     def __init__(self, name: str, comp: Component) -> None:
         super().__init__(name)
         self._listeners: Dict[str, PortListener] = {}
-        self._logger: logging.Logger = get_netqasm_logger(
+        self._logger: logging.Logger = LogManager.get_stack_logger(
             f"{self.__class__.__name__}({comp.name})"
         )
 

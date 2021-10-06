@@ -13,30 +13,35 @@ def _from_file(path: str, typ: Any) -> Any:
 
 
 class GenericQDeviceConfig(BaseModel):
-    # number of qubits
+    # total number of qubits
     num_qubits: int = 2
+    # number of communication qubits
+    num_comm_qubits: int = 2
 
     # coherence times (same for each qubit)
-    T1: int = 1_000_000_000
-    T2: int = 300_000_000
+    T1: int = 10_000_000_000
+    T2: int = 1_000_000_000
 
     # gate execution times
-    init: int = 310_000
-    rot_x: int = 500_000
-    rot_y: int = 500_000
-    rot_z: int = 500_000
-    cnot: int = 500_000
-    cphase: int = 500_000
-    measure: int = 3_700
+    init_time: int = 10_000
+    single_qubit_gate_time: int = 1_000
+    two_qubit_gate_time: int = 100_000
+    measure_time: int = 10_000
+
+    # noise model
+    single_qubit_gate_depolar_prob: float = 0.0
+    two_qubit_gate_depolar_prob: float = 0.01
 
     @classmethod
     def from_file(cls, path: str) -> GenericQDeviceConfig:
         return _from_file(path, GenericQDeviceConfig)
 
-
-def perfect_generic_config() -> GenericQDeviceConfig:
-    cfg = GenericQDeviceConfig()
-    return cfg
+    @classmethod
+    def perfect_config(cls) -> GenericQDeviceConfig:
+        cfg = GenericQDeviceConfig()
+        cfg.single_qubit_gate_depolar_prob = 0.0
+        cfg.two_qubit_gate_depolar_prob = 0.0
+        return cfg
 
 
 class NVQDeviceConfig(BaseModel):
@@ -85,20 +90,20 @@ class NVQDeviceConfig(BaseModel):
     def from_file(cls, path: str) -> NVQDeviceConfig:
         return _from_file(path, NVQDeviceConfig)
 
+    @classmethod
+    def perfect_config(cls) -> NVQDeviceConfig:
+        # get default config
+        cfg = NVQDeviceConfig()
 
-def perfect_nv_config() -> NVQDeviceConfig:
-    # get default config
-    cfg = NVQDeviceConfig()
-
-    # set all error params to 0
-    cfg.electron_init_depolar_prob = 0
-    cfg.electron_single_qubit_depolar_prob = 0
-    cfg.prob_error_0 = 0
-    cfg.prob_error_1 = 0
-    cfg.carbon_init_depolar_prob = 0
-    cfg.carbon_z_rot_depolar_prob = 0
-    cfg.ec_gate_depolar_prob = 0
-    return cfg
+        # set all error params to 0
+        cfg.electron_init_depolar_prob = 0
+        cfg.electron_single_qubit_depolar_prob = 0
+        cfg.prob_error_0 = 0
+        cfg.prob_error_1 = 0
+        cfg.carbon_init_depolar_prob = 0
+        cfg.carbon_z_rot_depolar_prob = 0
+        cfg.ec_gate_depolar_prob = 0
+        return cfg
 
 
 class StackConfig(BaseModel):
@@ -109,6 +114,24 @@ class StackConfig(BaseModel):
     @classmethod
     def from_file(cls, path: str) -> StackConfig:
         return _from_file(path, StackConfig)
+
+    @classmethod
+    def perfect_generic_config(cls, name: str) -> StackConfig:
+        return StackConfig(
+            name=name,
+            qdevice_typ="generic",
+            qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+        )
+
+
+class DepolariseLinkConfig(BaseModel):
+    fidelity: float
+    prob_success: float
+    t_cycle: float
+
+    @classmethod
+    def from_file(cls, path: str) -> DepolariseLinkConfig:
+        return _from_file(path, DepolariseLinkConfig)
 
 
 class NVLinkConfig(BaseModel):
@@ -123,6 +146,21 @@ class NVLinkConfig(BaseModel):
         return _from_file(path, NVLinkConfig)
 
 
+class HeraldedLinkConfig(BaseModel):
+    length: float
+    p_loss_init: float = 0
+    p_loss_length: float = 0.25
+    speed_of_light: float = 200_000
+    dark_count_probability: float = 0
+    detector_efficiency: float = 1.0
+    visibility: float = 1.0
+    num_resolving: bool = False
+
+    @classmethod
+    def from_file(cls, path: str) -> HeraldedLinkConfig:
+        return _from_file(path, HeraldedLinkConfig)
+
+
 class LinkConfig(BaseModel):
     stack1: str
     stack2: str
@@ -132,6 +170,10 @@ class LinkConfig(BaseModel):
     @classmethod
     def from_file(cls, path: str) -> LinkConfig:
         return _from_file(path, LinkConfig)
+
+    @classmethod
+    def perfect_config(cls, stack1: str, stack2: str) -> LinkConfig:
+        return LinkConfig(stack1=stack1, stack2=stack2, typ="perfect", cfg=None)
 
 
 class StackNetworkConfig(BaseModel):

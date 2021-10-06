@@ -9,12 +9,19 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
     SingleClickTranslationUnit,
 )
-from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
+from netsquid_magic.magic_distributor import (
+    DepolariseWithFailureMagicDistributor,
+    DoubleClickMagicDistributor,
+    PerfectStateMagicDistributor,
+)
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
+from netsquid_physlayer.heralded_connection import MiddleHeraldedConnection
 
 from squidasm.run.stack.build import build_generic_qdevice, build_nv_qdevice
 from squidasm.run.stack.config import (
+    DepolariseLinkConfig,
     GenericQDeviceConfig,
+    HeraldedLinkConfig,
     NVLinkConfig,
     NVQDeviceConfig,
     StackNetworkConfig,
@@ -25,9 +32,13 @@ from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.stack import NodeStack, StackNetwork
 
 
+def fidelity_to_prob_max_mixed(fid: float) -> float:
+    return (1 - fid) * 4.0 / 3.0
+
+
 def _setup_network(config: StackNetworkConfig) -> StackNetwork:
-    assert len(config.stacks) == 2
-    assert len(config.links) == 1
+    assert len(config.stacks) <= 2
+    assert len(config.links) <= 1
 
     stacks: Dict[str, NodeStack] = {}
     link_prots: List[MagicLinkLayerProtocol] = []
@@ -58,6 +69,17 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
             link_dist = PerfectStateMagicDistributor(
                 nodes=[stack1.node, stack2.node], state_delay=1000.0
             )
+        elif link.typ == "depolarise":
+            link_cfg = link.cfg
+            if not isinstance(link_cfg, DepolariseLinkConfig):
+                link_cfg = DepolariseLinkConfig(**link.cfg)
+            prob_max_mixed = fidelity_to_prob_max_mixed(link_cfg.fidelity)
+            link_dist = DepolariseWithFailureMagicDistributor(
+                nodes=[stack1.node, stack2.node],
+                prob_max_mixed=prob_max_mixed,
+                prob_success=link_cfg.prob_success,
+                t_cycle=link_cfg.t_cycle,
+            )
         elif link.typ == "nv":
             link_cfg = link.cfg
             if not isinstance(link_cfg, NVLinkConfig):
@@ -69,6 +91,16 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
                 full_cycle=link_cfg.full_cycle,
                 cycle_time=link_cfg.cycle_time,
                 alpha=link_cfg.alpha,
+            )
+        elif link.typ == "heralded":
+            link_cfg = link.cfg
+            if not isinstance(link_cfg, HeraldedLinkConfig):
+                link_cfg = HeraldedLinkConfig(**link.cfg)
+            connection = MiddleHeraldedConnection(
+                name="heralded_conn", **link_cfg.dict()
+            )
+            link_dist = DoubleClickMagicDistributor(
+                [stack1.node, stack2.node], connection
             )
         else:
             raise ValueError
@@ -87,8 +119,8 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
 
 
 def _run(network: StackNetwork) -> List[Dict[str, Any]]:
-    assert len(network.stacks) == 2
-    assert len(network.links) == 1
+    assert len(network.stacks) <= 2
+    assert len(network.links) <= 1
 
     for link in network.links:
         link.start()
@@ -105,6 +137,11 @@ def run(
     config: StackNetworkConfig, programs: Dict[str, Program], num_times: int = 1
 ) -> List[Dict[str, Any]]:
     network = _setup_network(config)
+
+    NetSquidContext.set_nodes({})
+    for name, stack in network.stacks.items():
+        NetSquidContext.add_node(stack.node.ID, name)
+
     GlobalSimData.set_network(network)
     for name, program in programs.items():
         network.stacks[name].host.enqueue_program(program, num_times)

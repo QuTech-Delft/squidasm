@@ -20,6 +20,7 @@ from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2Noise
 from netsquid.components.qmemory import MemPositionBusyError
 from netsquid.nodes import Network, Node
 from netsquid.qubits import qubitapi as qapi
+from netsquid.qubits.state_sampler import StateSampler
 from netsquid.util import sim_time
 from netsquid_magic.link_layer import (
     LinkLayerService,
@@ -577,7 +578,6 @@ class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
     def __init__(self):
         super().__init__(
             func_delivery=self._delivery_func,
-            func_success_probability=self._get_success_probability,
         )
 
     @staticmethod
@@ -591,9 +591,7 @@ class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
 
         Returns
         -------
-        tuple `(states, probabilities)`
-            where `states` is a list of :obj:`~netsquid.qubits.qstate.QState`
-            objects and `probabilities` is a list of floats of the same length.
+        tuple `(state_sampler, probabilities)`
         """
         epr_state = np.array(
             [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]],
@@ -603,7 +601,15 @@ class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
             [[0.25, 0, 0, 0], [0, 0.25, 0, 0], [0, 0, 0.25, 0], [0, 0, 0, 0.25]],
             dtype=np.complex,
         )
-        return [(1 - depolar_noise) * epr_state + depolar_noise * maximally_mixed], [1]
+        return (
+            StateSampler(
+                qreprs=[
+                    (1 - depolar_noise) * epr_state + depolar_noise * maximally_mixed
+                ],
+                probabilities=[1],
+            ),
+            1,
+        )
 
     @staticmethod
     def _get_success_probability(**kwargs):

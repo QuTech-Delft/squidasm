@@ -10,10 +10,10 @@ from netqasm.sdk.toolbox import set_qubit_state
 
 from pydynaa import EventExpression
 from squidasm.run.stack.config import (
+    GenericQDeviceConfig,
     LinkConfig,
     StackConfig,
     StackNetworkConfig,
-    perfect_generic_config,
 )
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
@@ -117,12 +117,12 @@ if __name__ == "__main__":
     sender_stack = StackConfig(
         name="sender",
         qdevice_typ="generic",
-        qdevice_cfg=perfect_generic_config(),
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     receiver_stack = StackConfig(
         name="receiver",
         qdevice_typ="generic",
-        qdevice_cfg=perfect_generic_config(),
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
         stack1="sender",

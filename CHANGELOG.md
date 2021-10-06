@@ -4,6 +4,13 @@ CHANGELOG
 Upcoming
 --------
 
+2021-10-06 (0.8.2)
+------------------
+- Made compatible with NetQASM 0.8.4.
+- Improve configuration format for stack simulator.
+- Add depolarizing and heralded link types to stack simulator.
+- Added stack logger as alternative to netqasm logger.
+
 2021-09-20 (0.8.1)
 ------------------
 - Fixes in MANIFEST.in and setup.py
