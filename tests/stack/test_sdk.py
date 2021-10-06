@@ -22,7 +22,9 @@ from squidasm.sim.stack.stack import NodeStack
 class TestSdkSingleNode(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=NVQDeviceConfig())
+        qdevice = build_nv_qdevice(
+            "nv_qdevice_alice", cfg=NVQDeviceConfig.perfect_config()
+        )
         self._node = NodeStack("alice", qdevice_type="nv", qdevice=qdevice)
 
         self._program: Optional[Program] = None
@@ -131,12 +133,16 @@ class TestSdkSingleNode(unittest.TestCase):
 class TestSdkTwoNodes(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=NVQDeviceConfig())
+        alice_qdevice = build_nv_qdevice(
+            "nv_qdevice_alice", cfg=NVQDeviceConfig.perfect_config()
+        )
         self._alice = NodeStack(
             "alice", qdevice_type="nv", qdevice=alice_qdevice, node_id=0
         )
 
-        bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=NVQDeviceConfig())
+        bob_qdevice = build_nv_qdevice(
+            "nv_qdevice_bob", cfg=NVQDeviceConfig.perfect_config()
+        )
         self._bob = NodeStack("bob", qdevice_type="nv", qdevice=bob_qdevice, node_id=1)
 
         self._prog_alice: Optional[Program] = None
