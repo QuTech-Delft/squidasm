@@ -16,6 +16,7 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
     SingleClickTranslationUnit,
 )
+from netsquid_magic.magic_distributor import PerfectStateMagicDistributor
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
@@ -159,11 +160,10 @@ class TestTwoNodes(unittest.TestCase):
             print(f"q0_b:\n{q0_b.qstate.dm}")
             assert q0_a.qstate == q0_b.qstate  # check if entangled
             fid_b00 = qubitapi.fidelity([q0_a, q0_b], ketstates.b00)
-            assert fid_b00 > 0.99
-            # fid_b01 = qubitapi.fidelity([q0_a, q0_b], ketstates.b01)
-            # fid_b10 = qubitapi.fidelity([q0_a, q0_b], ketstates.b10)
-            # fid_b11 = qubitapi.fidelity([q0_a, q0_b], ketstates.b11)
-            # assert any(f > 0.99 for f in [fid_b00, fid_b01, fid_b10, fid_b11])
+            fid_b01 = qubitapi.fidelity([q0_a, q0_b], ketstates.b01)
+            fid_b10 = qubitapi.fidelity([q0_a, q0_b], ketstates.b10)
+            fid_b11 = qubitapi.fidelity([q0_a, q0_b], ketstates.b11)
+            assert any(f > 0.99 for f in [fid_b00, fid_b01, fid_b10, fid_b11])
 
         self._host_alice = AliceHost
         self._host_bob = BobHost
