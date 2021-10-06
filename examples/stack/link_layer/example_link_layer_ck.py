@@ -2,12 +2,12 @@ import logging
 import os
 from typing import Any, Dict, Generator
 
-from netqasm.logging.glob import get_netqasm_logger, set_log_level
 from netqasm.sdk.epr_socket import EPRType
 
 from pydynaa import EventExpression
 from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -108,13 +108,9 @@ class ServerProgram(Program):
 
 
 if __name__ == "__main__":
-    set_log_level("WARNING")
-    fileHandler = logging.FileHandler("{0}/{1}.log".format(".", "debug"), mode="w")
-    formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
-    fileHandler.setFormatter(formatter)
-    get_netqasm_logger().addHandler(fileHandler)
+    LogManager.set_log_level("WARNING")
 
-    num_times = 3
+    num_times = 1
     cfg = StackNetworkConfig.from_file(
         os.path.join(os.getcwd(), os.path.dirname(__file__), "config.yaml")
     )

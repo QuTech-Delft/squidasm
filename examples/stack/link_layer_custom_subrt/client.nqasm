@@ -1,0 +1,249 @@
+# NETQASM 1.0
+# APPID 0
+
+# DEFINE pair_index R1
+# DEFINE loop_index R6
+
+# DEFINE slice_start R2
+# DEFINE slice_end R4
+
+# DEFINE num_repetitions 2
+# DEFINE num_reps_times_bases 24
+
+# DEFINE num_bases 12
+# DEFINE num_bas_times_ten 120
+
+# DEFINE epr_results_60 2
+# DEFINE virt_ids_60 3
+# DEFINE epr_args_60 4
+
+# DEFINE epr_results_65 5
+# DEFINE virt_ids_65 6
+# DEFINE epr_args_65 7
+
+# DEFINE outcomes_60 0
+# DEFINE outcomes_65 1
+
+start:
+    // allocate outcome arrays for each fidelity
+    array $num_reps_times_bases @$outcomes_60
+    array $num_reps_times_bases @$outcomes_65
+
+    // allocate arrays for create_epr, per fidelity    
+    array 20 @$epr_args_60
+    array $num_bases @$virt_ids_60
+    array $num_bas_times_ten @$epr_results_60
+
+    array 20 @$epr_args_65
+    array $num_bases @$virt_ids_65
+    array $num_bas_times_ten @$epr_results_65
+
+    // store create args:
+    // @[0] = 0 -> Create and Keep type
+    // @[1] = $num_bases -> number of pairs
+
+    store 0 @$epr_args_60[0]
+    store $num_bases @$epr_args_60[1]
+
+    store 0 @$epr_args_65[0]
+    store $num_bases @$epr_args_65[1]
+
+    // use virtual ID 0 for all generated EPR qubits
+    set R0 0
+LOOP7:
+    beq R0 $num_bases LOOP_EXIT7
+    store 0 @$virt_ids_60[R0]
+    store 0 @$virt_ids_65[R0]
+    add R0 R0 1
+    jmp LOOP7
+LOOP_EXIT7:
+
+
+// main loop
+
+    set $loop_index 0
+
+main_loop_START:
+    beq $loop_index $num_repetitions main_loop_END
+
+    // Reset EPR results array,
+    // If this is not done, the second iteration of the main loop will think
+    // that EPR generattion has completed immediately since the results array 
+    // already has values (but they are still from the first iteration!).
+    set C0 0
+reset_results_array_START:
+    beq C0 $num_bas_times_ten reset_results_array_END
+    undef @$epr_results_60[C0]
+    undef @$epr_results_65[C0]
+    add C0 C0 1
+    jmp reset_results_array_START
+reset_results_array_END:
+
+    // Issue Create request (number of pairs = number of bases).
+    create_epr(1,0) $virt_ids_60 $epr_args_60 $epr_results_60
+
+// Loop over each expected pair: 
+// wait for its completion, and do local measurement.
+
+    set $pair_index 0
+wait_loop_60_START:
+    beq $pair_index $num_bases wait_loop_60_END
+
+    // calculate slice in results array to wait for
+    set $slice_start 0
+    set R3 0
+    set $slice_end 0
+    set R5 0
+LOOP:
+    beq R5 10 LOOP_EXIT
+    add $slice_start $slice_start $pair_index
+    add R5 R5 1
+    jmp LOOP
+LOOP_EXIT:
+    add R3 $pair_index 1
+    set R5 0
+LOOP1:
+    beq R5 10 LOOP_EXIT1
+    add $slice_end $slice_end R3
+    add R5 R5 1
+    jmp LOOP1
+LOOP_EXIT1:
+
+    // wait for pair to be generated
+    wait_all @$epr_results_60[$slice_start:$slice_end]
+    load Q0 @$virt_ids_60[$pair_index]
+
+    // choose basis (i.e. rotate) according to pair index
+    beq $pair_index 0 rot_X_60
+    beq $pair_index 1 rot_Y_60
+    beq $pair_index 3 rot_X_60
+    beq $pair_index 4 rot_Y_60
+    beq $pair_index 6 rot_minus_X_60
+    beq $pair_index 7 rot_minus_Y_60
+    beq $pair_index 8 rot_minus_Z_60
+    beq $pair_index 9 rot_minus_X_60
+    beq $pair_index 10 rot_minus_Y_60
+    beq $pair_index 11 rot_minus_Z_60
+    jmp rot_END_60
+
+rot_X_60:
+    rot_y Q0 3 1
+    jmp rot_END_60
+rot_Y_60:
+    rot_x Q0 1 1
+    jmp rot_END_60
+rot_minus_X_60:
+    rot_y Q0 1 1
+    jmp rot_END_60
+rot_minus_Y_60:
+    rot_x Q0 3 1
+    jmp rot_END_60
+rot_minus_Z_60:
+    rot_x Q0 1 0
+    jmp rot_END_60
+rot_END_60:
+
+    // actual measurement
+    meas Q0 M0
+    qfree Q0
+
+    // calculate index in outcomes array to store measurement result in
+    set C0 0
+    set C1 0
+    add C1 C1 $pair_index
+calc_index_60_START:
+    beq C0 $loop_index calc_index_60_END
+    add C1 C1 $num_bases
+    add C0 C0 1
+    jmp calc_index_60_START
+calc_index_60_END:
+
+    // store result in outcomes array
+    store M0 @$outcomes_60[C1]
+
+    add $pair_index $pair_index 1
+    jmp wait_loop_60_START
+wait_loop_60_END:
+
+
+// Same as above but for next fidelity value:
+
+    create_epr(1,0) $virt_ids_65 $epr_args_65 $epr_results_65
+
+    set $pair_index 0
+wait_loop_65_START:
+    beq $pair_index $num_bases wait_loop_65_END
+    set $slice_start 0
+    set R3 0
+    set $slice_end 0
+    set R5 0
+LOOP3:
+    beq R5 10 LOOP_EXIT3
+    add $slice_start $slice_start $pair_index
+    add R5 R5 1
+    jmp LOOP3
+LOOP_EXIT3:
+    add R3 $pair_index 1
+    set R5 0
+LOOP4:
+    beq R5 10 LOOP_EXIT4
+    add $slice_end $slice_end R3
+    add R5 R5 1
+    jmp LOOP4
+LOOP_EXIT4:
+    wait_all @$epr_results_65[$slice_start:$slice_end]
+    load Q0 @$virt_ids_65[$pair_index]
+
+    beq $pair_index 0 rot_X_65
+    beq $pair_index 1 rot_Y_65
+    beq $pair_index 3 rot_X_65
+    beq $pair_index 4 rot_Y_65
+    beq $pair_index 6 rot_minus_X_65
+    beq $pair_index 7 rot_minus_Y_65
+    beq $pair_index 8 rot_minus_Z_65
+    beq $pair_index 9 rot_minus_X_65
+    beq $pair_index 10 rot_minus_Y_65
+    beq $pair_index 11 rot_minus_Z_65
+    jmp rot_END_65
+
+rot_X_65:
+    rot_y Q0 3 1
+    jmp rot_END_65
+rot_Y_65:
+    rot_x Q0 1 1
+    jmp rot_END_65
+rot_minus_X_65:
+    rot_y Q0 1 1
+    jmp rot_END_65
+rot_minus_Y_65:
+    rot_x Q0 3 1
+    jmp rot_END_65
+rot_minus_Z_65:
+    rot_x Q0 1 0
+    jmp rot_END_65
+rot_END_65:
+
+    meas Q0 M0
+    qfree Q0
+
+    set C0 0
+    set C1 0
+    add C1 C1 $pair_index
+calc_index_65_START:
+    beq C0 $loop_index calc_index_65_END
+    add C1 C1 $num_bases
+    add C0 C0 1
+    jmp calc_index_65_START
+calc_index_65_END:
+
+    store M0 @$outcomes_65[C1]
+    add $pair_index $pair_index 1
+    jmp wait_loop_65_START
+wait_loop_65_END:
+
+    add $loop_index $loop_index 1
+    jmp main_loop_START
+main_loop_END:
+
+    ret_arr @$outcomes_60
+    ret_arr @$outcomes_65

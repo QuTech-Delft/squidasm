@@ -38,7 +38,7 @@ stacks:
 links:
   - stack1: client
     stack2: server
-    typ: nv
+    typ: perfect
     cfg:
       length_A: 0.01
       length_B: 0.01
