@@ -118,15 +118,13 @@ class ClientProgram(FidelityVsRateProgram):
         else:
             outcomes = self._create_outcomes_dict(context)
 
-            with context.connection.loop(self._num_repetitions) as i:
+            with context.connection.loop(self._num_repetitions):
                 for fid in MIN_FIDELITY_LIST:
 
                     def post_create(conn, q, pair):
-                        # !!!!!
-                        # TODO
-                        # !!!!
+                        # NOTE: the following is not possible at the moment:
                         # somehow use `pair` to decide basis
-                        # somehow use `i` to calculate index in array
+                        # somehow use loop index to calculate index in array
                         self._rotate_basis(q, basis="+X")
                         array_entry = outcomes[fid].get_future_index(pair)
                         q.measure(array_entry)
@@ -168,12 +166,11 @@ class ServerProgram(FidelityVsRateProgram):
         else:
             outcomes = self._create_outcomes_dict(context)
 
-            with context.connection.loop(self._num_repetitions) as i:
+            with context.connection.loop(self._num_repetitions):
                 for fid in MIN_FIDELITY_LIST:
 
                     def post_create(conn, q, pair):
                         self._rotate_basis(q, basis="+X")
-                        # key = self._to_key(fidelity=fid, basis="+X+X")
                         array_entry = outcomes[fid].get_future_index(pair)
                         q.measure(array_entry)
 

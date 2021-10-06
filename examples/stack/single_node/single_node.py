@@ -1,25 +1,15 @@
-import logging
-import os
 from typing import Any, Dict, Generator
 
-from netqasm.backend.messages import SubroutineMessage
 from netqasm.lang.parsing.text import parse_text_presubroutine
-from netqasm.sdk.epr_socket import EPRType
 from netqasm.sdk.qubit import Qubit
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import (
-    GenericQDeviceConfig,
-    LinkConfig,
-    NVQDeviceConfig,
-    StackConfig,
-    StackNetworkConfig,
-)
+from squidasm.run.stack.config import NVQDeviceConfig, StackConfig, StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
-SUBRT = f"""
+SUBRT = """
 # NETQASM 1.0
 # APPID 0
 array 1 @0
