@@ -16,7 +16,7 @@ from netqasm.lang.subroutine import Subroutine
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
-from pydynaa import EventExpression
+from pydynaa import EventExpression, EventType
 from squidasm.sim.stack.common import (
     AppMemory,
     ComponentProtocol,
@@ -227,6 +227,9 @@ class Handler(ComponentProtocol):
     def run(self) -> Generator[EventExpression, None, None]:
         while True:
             raw_host_msg = yield from self._receive_host_msg()
+            evt = EventType("IDK", "idk")
+            self._schedule_after(1e9, evt)
+            yield EventExpression(source=self, event_type=evt)
             self._logger.debug(f"received new msg from host: {raw_host_msg}")
 
             msg = deserialize_host_msg(raw_host_msg)
