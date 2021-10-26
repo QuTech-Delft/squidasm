@@ -91,7 +91,11 @@ class RunningApp:
 
 class Handler(ComponentProtocol):
     def __init__(
-        self, comp: HandlerComponent, qnos: Qnos, qdevice_type: Optional[str] = "nv"
+        self,
+        comp: HandlerComponent,
+        qnos: Qnos,
+        qdevice_type: Optional[str] = "nv",
+        host_qnos_latency: Optional[float] = None,
     ) -> None:
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
@@ -105,6 +109,8 @@ class Handler(ComponentProtocol):
             "processor",
             PortListener(self._comp.ports["proc_in"], SIGNAL_PROC_HAND_MSG),
         )
+
+        self._host_qnos_latency = host_qnos_latency
 
         self._app_counter = 0
         self._applications: Dict[int, RunningApp] = {}
@@ -133,6 +139,14 @@ class Handler(ComponentProtocol):
     @clear_memory.setter
     def clear_memory(self, value: bool) -> None:
         self._clear_memory = value
+
+    @property
+    def host_qnos_latency(self) -> float:
+        return self._host_qnos_latency
+
+    @host_qnos_latency.setter
+    def host_qnos_latency(self, value: float) -> None:
+        self._host_qnos_latency = value
 
     @property
     def flavour(self) -> Optional[flavour.Flavour]:
@@ -228,7 +242,8 @@ class Handler(ComponentProtocol):
         while True:
             raw_host_msg = yield from self._receive_host_msg()
             evt = EventType("IDK", "idk")
-            self._schedule_after(1e9, evt)
+            # self._logger.warning(f"host qnos latency: {self.host_qnos_latency}")
+            self._schedule_after(self.host_qnos_latency, evt)
             yield EventExpression(source=self, event_type=evt)
             self._logger.debug(f"received new msg from host: {raw_host_msg}")
 

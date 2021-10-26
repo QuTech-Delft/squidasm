@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, List, Optional
 
 import yaml
 from pydantic import BaseModel
@@ -106,10 +106,15 @@ class NVQDeviceConfig(BaseModel):
         return cfg
 
 
+class ClassicalNodeConfig(BaseModel):
+    host_qnos_latency: float = 1e6
+
+
 class StackConfig(BaseModel):
     name: str
     qdevice_typ: str
     qdevice_cfg: Any
+    classical_cfg: Optional[ClassicalNodeConfig]
 
     @classmethod
     def from_file(cls, path: str) -> StackConfig:

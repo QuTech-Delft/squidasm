@@ -19,6 +19,7 @@ from netsquid_physlayer.heralded_connection import MiddleHeraldedConnection
 
 from squidasm.run.stack.build import build_generic_qdevice, build_nv_qdevice
 from squidasm.run.stack.config import (
+    ClassicalNodeConfig,
     DepolariseLinkConfig,
     GenericQDeviceConfig,
     HeraldedLinkConfig,
@@ -57,6 +58,13 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
             qdevice = build_generic_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
             stack = NodeStack(cfg.name, qdevice_type="generic", qdevice=qdevice)
         NetSquidContext.add_node(stack.node.ID, cfg.name)
+
+        if cfg.classical_cfg is not None:
+            cls_cfg = cfg.classical_cfg
+            if not isinstance(cls_cfg, ClassicalNodeConfig):
+                cls_cfg = ClassicalNodeConfig(**cls_cfg)
+            stack.qnos.handler.host_qnos_latency = cls_cfg.host_qnos_latency
+
         stacks[cfg.name] = stack
 
     for (_, s1), (_, s2) in itertools.combinations(stacks.items(), 2):
