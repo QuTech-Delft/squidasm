@@ -241,10 +241,11 @@ class Handler(ComponentProtocol):
     def run(self) -> Generator[EventExpression, None, None]:
         while True:
             raw_host_msg = yield from self._receive_host_msg()
-            evt = EventType("IDK", "idk")
-            # self._logger.warning(f"host qnos latency: {self.host_qnos_latency}")
-            self._schedule_after(self.host_qnos_latency, evt)
-            yield EventExpression(source=self, event_type=evt)
+            if self.host_qnos_latency is not None:
+                evt = EventType("IDK", "idk")
+                # self._logger.warning(f"host qnos latency: {self.host_qnos_latency}")
+                self._schedule_after(self.host_qnos_latency, evt)
+                yield EventExpression(source=self, event_type=evt)
             self._logger.debug(f"received new msg from host: {raw_host_msg}")
 
             msg = deserialize_host_msg(raw_host_msg)

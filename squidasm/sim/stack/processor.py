@@ -687,6 +687,12 @@ class GenericProcessor(Processor):
             prog = QuantumProgram()
             prog.apply(INSTR_CZ, qubit_indices=[phys_id0, phys_id1])
             yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.MovInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_CNOT, qubit_indices=[phys_id0, phys_id1])
+            prog.apply(INSTR_CNOT, qubit_indices=[phys_id1, phys_id0])
+            prog.apply(INSTR_CNOT, qubit_indices=[phys_id0, phys_id1])
+            yield self.qdevice.execute_program(prog)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
 
