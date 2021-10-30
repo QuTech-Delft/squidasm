@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Generator
 from netqasm.sdk.classical_communication.message import StructuredMessage
 from netqasm.sdk.classical_communication.socket import Socket
 
-from pydynaa import EventExpression
+from pydynaa import EventExpression, EventType
 
 if TYPE_CHECKING:
     from squidasm.sim.stack.host import Host
@@ -30,7 +30,8 @@ class ClassicalSocket(Socket):
         self._host.send_peer_msg(msg)
 
     def recv(self) -> Generator[EventExpression, None, str]:
-        return (yield from self._host.receive_peer_msg())
+        result = yield from self._host.receive_peer_msg()
+        return result
 
     def send_int(self, value: int) -> None:
         self.send(str(value))

@@ -19,6 +19,7 @@ from netsquid_physlayer.heralded_connection import MiddleHeraldedConnection
 
 from squidasm.run.stack.build import build_generic_qdevice, build_nv_qdevice
 from squidasm.run.stack.config import (
+    ClassicalLinkConfig,
     ClassicalNodeConfig,
     DepolariseLinkConfig,
     GenericQDeviceConfig,
@@ -120,6 +121,13 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
         )
         stack1.assign_ll_protocol(link_prot)
         stack2.assign_ll_protocol(link_prot)
+
+        if link.classical_cfg is not None:
+            link_cfg = link.classical_cfg
+            if not isinstance(link_cfg, ClassicalLinkConfig):
+                link_cfg = ClassicalLinkConfig(**link_cfg)
+            stack1.host.peer_latency = link_cfg.latency
+            stack2.host.peer_latency = link_cfg.latency
 
         link_prots.append(link_prot)
 

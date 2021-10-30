@@ -129,6 +129,10 @@ class StackConfig(BaseModel):
         )
 
 
+class ClassicalLinkConfig(BaseModel):
+    latency: float = 100e6  # 100 ms
+
+
 class DepolariseLinkConfig(BaseModel):
     fidelity: float
     prob_success: float
@@ -171,6 +175,7 @@ class LinkConfig(BaseModel):
     stack2: str
     typ: str
     cfg: Any
+    classical_cfg: Optional[ClassicalLinkConfig]
 
     @classmethod
     def from_file(cls, path: str) -> LinkConfig:

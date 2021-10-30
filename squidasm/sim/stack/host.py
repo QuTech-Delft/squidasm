@@ -12,7 +12,7 @@ from netqasm.sdk.epr_socket import EPRSocket
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
-from pydynaa import EventExpression
+from pydynaa import EventExpression, EventType
 from squidasm.sim.stack.common import ComponentProtocol, PortListener
 from squidasm.sim.stack.connection import QnosConnection
 from squidasm.sim.stack.context import NetSquidContext
@@ -45,7 +45,12 @@ class HostComponent(Component):
 
 
 class Host(ComponentProtocol):
-    def __init__(self, comp: HostComponent, qdevice_type: Optional[str] = "nv") -> None:
+    def __init__(
+        self,
+        comp: HostComponent,
+        qdevice_type: Optional[str] = "nv",
+        peer_latency: Optional[float] = None,
+    ) -> None:
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
 
@@ -57,6 +62,8 @@ class Host(ComponentProtocol):
             "peer",
             PortListener(self._comp.ports["peer_in"], SIGNAL_HOST_HOST_MSG),
         )
+
+        self._peer_latency = peer_latency
 
         if qdevice_type == "nv":
             self._compiler: Optional[Type[SubroutineCompiler]] = NVSubroutineCompiler
@@ -77,6 +84,14 @@ class Host(ComponentProtocol):
     def compiler(self, typ: Optional[Type[SubroutineCompiler]]) -> None:
         self._compiler = typ
 
+    @property
+    def peer_latency(self) -> float:
+        return self._peer_latency
+
+    @peer_latency.setter
+    def peer_latency(self, value: float) -> None:
+        self._peer_latency = value
+
     def send_qnos_msg(self, msg: bytes) -> None:
         self._comp.qnos_out_port.tx_output(msg)
 
@@ -87,7 +102,13 @@ class Host(ComponentProtocol):
         self._comp.peer_out_port.tx_output(msg)
 
     def receive_peer_msg(self) -> Generator[EventExpression, None, str]:
-        return (yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG))
+        result = yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG)
+        if self.peer_latency is not None:
+            evt = EventType("PEER_LATENCY", "peer_latency")
+            self._logger.debug(f"peer latency: {self.peer_latency}")
+            self._schedule_after(self._peer_latency, evt)
+            yield EventExpression(source=self, event_type=evt)
+        return result
 
     def run(self) -> Generator[EventExpression, None, None]:
         while self._num_pending > 0:
