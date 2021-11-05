@@ -736,8 +736,10 @@ class NVProcessor(Processor):
         prog = QuantumProgram()
         prog.apply(INSTR_INIT, qubit_indices=[0])
         prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
+        # self._logger.warning("applying two-qubit gate")
         prog.apply(INSTR_CYDIR, qubit_indices=[0, carbon_id], angle=-PI_OVER_2)
         prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=-PI_OVER_2)
+        # self._logger.warning("applying two-qubit gate")
         prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
         prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=-PI_OVER_2)
         yield self.qdevice.execute_program(prog)
@@ -748,8 +750,10 @@ class NVProcessor(Processor):
         prog = QuantumProgram()
         prog.apply(INSTR_INIT, qubit_indices=[carbon_id])
         prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
+        # self._logger.warning("applying two-qubit gate")
         prog.apply(INSTR_CYDIR, qubit_indices=[0, carbon_id], angle=-PI_OVER_2)
         prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=-PI_OVER_2)
+        # self._logger.warning("applying two-qubit gate")
         prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
         yield self.qdevice.execute_program(prog)
 
@@ -837,6 +841,218 @@ class NVProcessor(Processor):
         if isinstance(instr, nv.ControlledRotXInstruction):
             yield from self._do_controlled_rotation(app_id, instr, INSTR_CXDIR)
         elif isinstance(instr, nv.ControlledRotYInstruction):
+            yield from self._do_controlled_rotation(app_id, instr, INSTR_CYDIR)
+        else:
+            raise RuntimeError(f"Unsupported instruction {instr}")
+
+
+class VanillaNVProcessor(NVProcessor):
+    def _measure_electron(self) -> Generator[EventExpression, None, int]:
+        prog = QuantumProgram()
+        prog.apply(INSTR_MEASURE, qubit_indices=[0])
+        yield self.qdevice.execute_program(prog)
+        outcome: int = prog.output["last"][0]
+        return outcome
+
+    def _move_carbon_to_electron_for_measure(
+        self, carbon_id: int
+    ) -> Generator[EventExpression, None, None]:
+        prog = QuantumProgram()
+        prog.apply(INSTR_INIT, qubit_indices=[0])
+        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
+        # self._logger.warning("applying two-qubit gate")
+        prog.apply(INSTR_CYDIR, qubit_indices=[0, carbon_id], angle=-PI_OVER_2)
+        prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=-PI_OVER_2)
+        # self._logger.warning("applying two-qubit gate")
+        prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
+        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=-PI_OVER_2)
+        yield self.qdevice.execute_program(prog)
+
+    def _move_electron_to_carbon(
+        self, carbon_id: int
+    ) -> Generator[EventExpression, None, None]:
+        prog = QuantumProgram()
+        prog.apply(INSTR_INIT, qubit_indices=[carbon_id])
+        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
+        # self._logger.warning("applying two-qubit gate")
+        prog.apply(INSTR_CYDIR, qubit_indices=[0, carbon_id], angle=-PI_OVER_2)
+        prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=-PI_OVER_2)
+        # self._logger.warning("applying two-qubit gate")
+        prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
+        yield self.qdevice.execute_program(prog)
+
+    def _interpret_meas(
+        self, app_id: int, instr: core.MeasInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id = app_mem.get_reg_value(instr.qreg)
+        phys_id = app_mem.phys_id_for(virt_id)
+
+        # Only the electron (phys ID 0) can be measured.
+        # Measuring any other physical qubit (i.e one of the carbons) requires
+        # freeing up the electron and moving the target qubit to the electron first.
+
+        if phys_id == 0:
+            # Measuring the electron. This can be done immediately.
+            outcome = yield from self._measure_electron()
+            app_mem.set_reg_value(instr.creg, outcome)
+        else:
+            # We want to measure a carbon.
+            # Move it to the electron first.
+            if self.physical_memory.is_allocated(0):
+                # Electron is already allocated. Try to move it to a free carbon.
+                try:
+                    new_qubit = self.physical_memory.allocate()
+                except AllocError:
+                    self._logger.error(
+                        f"Allocation error. Reason:\n"
+                        f"Measuring virtual qubit {virt_id}.\n"
+                        f"-> Measuring physical qubit {phys_id}.\n"
+                        f"-> Measuring physical qubit with ID > 0 requires "
+                        f"physical qubit 0 to be free."
+                        f"-> Physical qubit 0 is in use.\n"
+                        f"-> Trying to find free physical qubit for qubit 0.\n"
+                        f"-> No physical qubits available."
+                    )
+                yield from self._move_electron_to_carbon(new_qubit)
+                elec_app_id, elec_virt_id = self._qnos.get_virt_qubit_for_phys_id(0)
+                self._logger.warning(
+                    f"moving virtual qubit {elec_virt_id} from app "
+                    f"{app_id} from physical ID 0 to {new_qubit}"
+                )
+                # Update qubit ID mapping.
+                self.app_memories[elec_app_id].unmap_virt_id(elec_virt_id)
+                self.app_memories[elec_app_id].map_virt_id(elec_virt_id, new_qubit)
+                app_mem.unmap_virt_id(virt_id)
+                app_mem.map_virt_id(virt_id, 0)
+                yield from self._move_carbon_to_electron_for_measure(phys_id)
+                self.physical_memory.free(phys_id)
+                self.send_signal("memory free")  # TODO
+                self.qdevice.mem_positions[phys_id].in_use = False
+                outcome = yield from self._measure_electron()
+                app_mem.set_reg_value(instr.creg, outcome)
+            else:
+                self.physical_memory.allocate_comm()
+                app_mem.unmap_virt_id(virt_id)
+                app_mem.map_virt_id(virt_id, 0)
+                yield from self._move_carbon_to_electron_for_measure(phys_id)
+                self.physical_memory.free(phys_id)
+                self.send_signal("memory free")  # TODO
+                self.qdevice.mem_positions[phys_id].in_use = False
+                outcome = yield from self._measure_electron()
+                app_mem.set_reg_value(instr.creg, outcome)
+
+        self._logger.debug(
+            f"Measuring qubit {virt_id} (physical ID: {phys_id}), "
+            f"placing the outcome in register {instr.creg}"
+        )
+
+    def _interpret_single_qubit_instr(
+        self, app_id: int, instr: core.SingleQubitInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id = app_mem.get_reg_value(instr.qreg)
+        phys_id = app_mem.phys_id_for(virt_id)
+        if isinstance(instr, vanilla.GateXInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_X, qubit_indices=[phys_id])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.GateYInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_Y, qubit_indices=[phys_id])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.GateZInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_Z, qubit_indices=[phys_id])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.GateHInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_ROT_Y, qubit_indices=[phys_id], angle=PI_OVER_2)
+            prog.apply(INSTR_ROT_X, qubit_indices=[phys_id], angle=PI)
+            yield self.qdevice.execute_program(prog)
+        else:
+            raise RuntimeError(f"Unsupported instruction {instr}")
+
+    def _interpret_single_rotation_instr(
+        self, app_id: int, instr: vanilla.RotXInstruction
+    ) -> Generator[EventExpression, None, None]:
+        if isinstance(instr, vanilla.RotXInstruction):
+            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_X)
+        elif isinstance(instr, vanilla.RotYInstruction):
+            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Y)
+        elif isinstance(instr, vanilla.RotZInstruction):
+            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Z)
+        else:
+            raise RuntimeError(f"Unsupported instruction {instr}")
+
+    def _do_cnot_comm_mem(self, mem_id: int) -> Generator[EventExpression, None, None]:
+        prog = QuantumProgram()
+        # self._logger.warning("applying two-qubit gate")
+        prog.apply(INSTR_CXDIR, qubit_indices=[0, mem_id], angle=PI_OVER_2)
+        prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=-PI_OVER_2)
+        prog.apply(INSTR_ROT_X, qubit_indices=[mem_id], angle=-PI_OVER_2)
+        yield self.qdevice.execute_program(prog)
+
+    def _do_cnot_mem_comm(self, mem_id: int) -> Generator[EventExpression, None, None]:
+        prog = QuantumProgram()
+        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
+        prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+        prog.apply(INSTR_ROT_Y, qubit_indices=[mem_id], angle=PI_OVER_2)
+        # self._logger.warning("applying two-qubit gate")
+        prog.apply(INSTR_CXDIR, qubit_indices=[0, mem_id], angle=PI_OVER_2)
+        prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=-PI_OVER_2)
+        prog.apply(INSTR_ROT_X, qubit_indices=[mem_id], angle=-PI_OVER_2)
+        prog.apply(INSTR_ROT_Y, qubit_indices=[mem_id], angle=-PI_OVER_2)
+        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
+        prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+        yield self.qdevice.execute_program(prog)
+
+    def _interpret_two_qubit_instr(
+        self, app_id: int, instr: core.SingleQubitInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id0 = app_mem.get_reg_value(instr.reg0)
+        phys_id0 = app_mem.phys_id_for(virt_id0)
+        virt_id1 = app_mem.get_reg_value(instr.reg1)
+        phys_id1 = app_mem.phys_id_for(virt_id1)
+        prog = QuantumProgram()
+        if isinstance(instr, vanilla.CnotInstruction):
+            if phys_id0 == 0:
+                yield from self._do_cnot_comm_mem(phys_id1)
+            elif phys_id1 == 0:
+                yield from self._do_cnot_mem_comm(phys_id0)
+            else:
+                raise RuntimeError("storage -> storage CNOT not supported")
+        elif isinstance(instr, vanilla.CphaseInstruction):
+            prog = QuantumProgram()
+            if not (phys_id0 == 0 or phys_id1 == 0):
+                raise RuntimeError("storage -> storage CPHASE not supported")
+            c = 0
+            s = phys_id0 if phys_id0 != 0 else phys_id1
+            prog.apply(INSTR_ROT_Y, qubit_indices=[s], angle=PI_OVER_2)
+            # self._logger.warning("applying two-qubit gate")
+            prog.apply(INSTR_CXDIR, qubit_indices=[c, s], angle=PI_OVER_2)
+            prog.apply(INSTR_ROT_Z, qubit_indices=[c], angle=-PI_OVER_2)
+            prog.apply(INSTR_ROT_X, qubit_indices=[s], angle=-PI_OVER_2)
+            prog.apply(INSTR_ROT_Y, qubit_indices=[s], angle=-PI_OVER_2)
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.MovInstruction):
+            if not (phys_id0 == 0 or phys_id1 == 0):
+                raise RuntimeError("storage -> storage MOVE not supported")
+            mem_id = phys_id0 if phys_id0 != 0 else phys_id1
+            # print(f"doing move between comm and {mem_id}")
+            yield from self._do_cnot_comm_mem(mem_id)
+            yield from self._do_cnot_mem_comm(mem_id)
+            yield from self._do_cnot_comm_mem(mem_id)
+        else:
+            raise RuntimeError(f"Unsupported instruction {instr}")
+
+    def _interpret_controlled_rotation_instr(
+        self, app_id: int, instr: core.ControlledRotationInstruction
+    ) -> Generator[EventExpression, None, None]:
+        if isinstance(instr, vanilla.ControlledRotXInstruction):
+            yield from self._do_controlled_rotation(app_id, instr, INSTR_CXDIR)
+        elif isinstance(instr, vanilla.ControlledRotYInstruction):
             yield from self._do_controlled_rotation(app_id, instr, INSTR_CYDIR)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")

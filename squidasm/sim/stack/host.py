@@ -69,6 +69,8 @@ class Host(ComponentProtocol):
             self._compiler: Optional[Type[SubroutineCompiler]] = NVSubroutineCompiler
         elif qdevice_type == "generic":
             self._compiler: Optional[Type[SubroutineCompiler]] = None
+        elif qdevice_type == "nv_vanilla":
+            self._compiler: Optional[Type[SubroutineCompiler]] = None
         else:
             raise ValueError
 

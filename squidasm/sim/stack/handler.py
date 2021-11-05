@@ -121,6 +121,8 @@ class Handler(ComponentProtocol):
             self._flavour: Optional[flavour.Flavour] = flavour.NVFlavour()
         elif qdevice_type == "generic":
             self._flavour: Optional[flavour.Flavour] = flavour.VanillaFlavour()
+        elif qdevice_type == "nv_vanilla":
+            self._flavour: Optional[flavour.Flavour] = flavour.VanillaFlavour()
         else:
             raise ValueError
 

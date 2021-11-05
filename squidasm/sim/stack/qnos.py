@@ -20,6 +20,7 @@ from squidasm.sim.stack.processor import (
     NVProcessor,
     Processor,
     ProcessorComponent,
+    VanillaNVProcessor,
 )
 
 # TODO: make this a parameter
@@ -115,6 +116,9 @@ class Qnos(Protocol):
             self._physical_memory = PhysicalQuantumMemory(comp.qdevice.num_positions)
         elif qdevice_type == "nv":
             self.processor = NVProcessor(comp.processor_comp, self)
+            self._physical_memory = NVPhysicalQuantumMemory(comp.qdevice.num_positions)
+        elif qdevice_type == "nv_vanilla":
+            self.processor = VanillaNVProcessor(comp.processor_comp, self)
             self._physical_memory = NVPhysicalQuantumMemory(comp.qdevice.num_positions)
         else:
             raise ValueError

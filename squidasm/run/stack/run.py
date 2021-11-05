@@ -58,6 +58,14 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
                 qdevice_cfg = GenericQDeviceConfig(**cfg.qdevice_cfg)
             qdevice = build_generic_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
             stack = NodeStack(cfg.name, qdevice_type="generic", qdevice=qdevice)
+        elif (
+            cfg.qdevice_typ == "nv_vanilla"
+        ):  # NV processor but accepts vanilla NetQASM
+            qdevice_cfg = cfg.qdevice_cfg
+            if not isinstance(qdevice_cfg, NVQDeviceConfig):
+                qdevice_cfg = NVQDeviceConfig(**cfg.qdevice_cfg)
+            qdevice = build_nv_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
+            stack = NodeStack(cfg.name, qdevice_type="nv_vanilla", qdevice=qdevice)
         NetSquidContext.add_node(stack.node.ID, cfg.name)
 
         if cfg.classical_cfg is not None:
