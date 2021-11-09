@@ -11,12 +11,12 @@ jobs:
     - uses: actions/setup-python@master
       with:
         python-version: 3.8
-    - run: |
-        make install
-        make lint
-      env:
+    - env:
           NETSQUIDPYPI_USER: ${{ secrets.NETSQUIDPYPI_USER }}
           NETSQUIDPYPI_PWD: ${{ secrets.NETSQUIDPYPI_PWD }}
+      run: |
+        make install
+        make lint
 
   tests:
     name: Run tests  
@@ -26,12 +26,12 @@ jobs:
     - uses: actions/setup-python@master
       with:
         python-version: 3.8
-    - run: |
-        make install
-        make tests
-      env:
+    - env:
           NETSQUIDPYPI_USER: ${{ secrets.NETSQUIDPYPI_USER }}
           NETSQUIDPYPI_PWD: ${{ secrets.NETSQUIDPYPI_PWD }}
+      run: |
+        make install
+        make tests
 
   examples:
     name: Run examples
@@ -41,9 +41,9 @@ jobs:
     - uses: actions/setup-python@master
       with:
         python-version: 3.8
-    - run: |
-        make install
-        make examples
-      env:
+    - env:
           NETSQUIDPYPI_USER: ${{ secrets.NETSQUIDPYPI_USER }}
           NETSQUIDPYPI_PWD: ${{ secrets.NETSQUIDPYPI_PWD }}
+      run: |
+        make install
+        make examples
