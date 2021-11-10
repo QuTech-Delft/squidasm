@@ -4,16 +4,28 @@ This is SquidASM, a simulator based on NetSquid that can execute applications wr
 
 ## Installation
 
-To install the package you first need to install the following package:
-- [`netqasm 0.8`](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm)
+### Prerequisites
+SquidASM uses the [NetSquid](https://netsquid.org/) Python package.
+To install and use NetSquid, you need to first create an account for it.
+The username and password for this account are also needed to install `squidasm`.
+
+### From PyPI
+SquidASM is available as [a package on PyPI](https://pypi.org/project/squidasm/) and can be installed with
+```
+pip install squidasm --extra-index-url=https://{netsquid-user-name}:{netsquid-password}@pypi.netsquid.org
+```
+
+### From source
+Make sure you have installed [the latest `netqasm` version](https://pypi.org/project/netqasm/).
+
+Also, the `NETSQUIDPYPI_USER` and `NETSQUIDPYPI_PWD` environment variables should be set to your 
+user and password on the [NetSquid forum](https://forum.netsquid.org/), respectively.
 
 Then run:
 ```sh
 make install
 ```
 to install SquidASM.
-
-Note that this will try to install [NetSquid](https://netsquid.org/) if you don't have it, so for this to work, first set the environment variables `NETSQUIDPYPI_USER` and `NETSQUIDPYPI_PWD` to your user and password on the [NetSquid forum](https://forum.netsquid.org/).
 
 
 To verify the installation and run all tests and examples:

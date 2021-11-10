@@ -32,11 +32,11 @@ Upcoming
 
 2021-05-10 (0.7.0)
 ------------------
-- Compatible with `netqasm` 0.7.2, see [`netqasm` CHANGELOG](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md).
+- Compatible with `netqasm` 0.7.2, see [`netqasm` CHANGELOG](https://github.com/QuTech-Delft/netqasm/blob/develop/CHANGELOG.md).
 
 2021-02-10 (0.6.0)
 ------------------
-- Compatible with `netqasm` 0.6.0, see [`netqasm` CHANGELOG](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md).
+- Compatible with `netqasm` 0.6.0, see [`netqasm` CHANGELOG](https://github.com/QuTech-Delft/netqasm/blob/develop/CHANGELOG.md).
 
 2021-01-25 (0.5.1)
 ------------------
@@ -44,20 +44,20 @@ Upcoming
 
 2020-12-17 (0.5.0)
 ------------------
-- Using `netqasm` 0.5.0, see [`netqasm` CHANGELOG](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md).
+- Using `netqasm` 0.5.0, see [`netqasm` CHANGELOG](https://github.com/QuTech-Delft/netqasm/blob/develop/CHANGELOG.md).
 
 2020-11-20 (0.4.0)
 ------------------
-- Using `netqasm` 0.4.0, see [`netqasm` CHANGELOG](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md).
+- Using `netqasm` 0.4.0, see [`netqasm` CHANGELOG](https://github.com/QuTech-Delft/netqasm/blob/develop/CHANGELOG.md).
 
 2020-10-08 (0.3.0)
 ------------------
-- Using `netqasm` 0.2.0, see [`netqasm` CHANGELOG](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md).
+- Using `netqasm` 0.2.0, see [`netqasm` CHANGELOG](https://github.com/QuTech-Delft/netqasm/blob/develop/CHANGELOG.md).
 
 2020-09-25 (0.2.0)
 ------------------
 - CLI has now moved to `netqasm`.
-  See [changelog](https://gitlab.tudelft.nl/qinc-wehner/netqasm/netqasm/-/blob/master/CHANGELOG.md) there for details.
+  See [changelog](https://github.com/QuTech-Delft/netqasm/blob/develop/CHANGELOG.md) there for details.
 
 2020-09-23 (0.1.0)
 ------------------
