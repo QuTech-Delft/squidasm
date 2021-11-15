@@ -4,6 +4,10 @@ CHANGELOG
 Upcoming
 --------
 
+2021-11-15 (0.8.3)
+------------------
+- Use MIT license.
+
 2021-10-06 (0.8.2)
 ------------------
 - Made compatible with NetQASM 0.8.4.
