@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import os
 from typing import Any, Dict, Generator, List
 
@@ -8,15 +7,10 @@ import netsquid as ns
 from netqasm.lang.ir import BreakpointAction, BreakpointRole
 from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.toolbox import set_qubit_state
-from netsquid.qubits import ketstates, operators, qubit, qubitapi
+from netsquid.qubits import operators, qubitapi
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import (
-    GenericQDeviceConfig,
-    LinkConfig,
-    StackConfig,
-    StackNetworkConfig,
-)
+from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
@@ -154,6 +148,5 @@ if __name__ == "__main__":
 
     link.cfg["fidelity"] = 0.8
 
-    for _ in range(2):
-        fidelities = do_teleportation(cfg, num_times=10, theta=0, phi=0)
-        print(fidelities)
+    fidelities = do_teleportation(cfg, num_times=10, theta=0, phi=0)
+    print(fidelities)

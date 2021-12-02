@@ -4,6 +4,9 @@ import itertools
 from typing import Any, Dict, List
 
 import netsquid as ns
+import numpy as np
+from netsquid.qubits.ketstates import BellIndex
+from netsquid.qubits.state_sampler import StateSampler
 from netsquid_magic.link_layer import (
     MagicLinkLayerProtocol,
     MagicLinkLayerProtocolWithSignaling,
@@ -12,13 +15,16 @@ from netsquid_magic.link_layer import (
 from netsquid_magic.magic_distributor import (
     DepolariseWithFailureMagicDistributor,
     DoubleClickMagicDistributor,
+    MagicDistributor,
     PerfectStateMagicDistributor,
 )
+from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 from netsquid_physlayer.heralded_connection import MiddleHeraldedConnection
 
 from squidasm.run.stack.build import build_generic_qdevice, build_nv_qdevice
 from squidasm.run.stack.config import (
+    DepolariseAnyBellLinkConfig,
     DepolariseLinkConfig,
     GenericQDeviceConfig,
     HeraldedLinkConfig,
@@ -30,6 +36,79 @@ from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.stack import NodeStack, StackNetwork
+
+
+class DepolariseWithFailureAnyBellStateSamplerFactory(
+    HeraldedStateDeliverySamplerFactory
+):
+    def __init__(self):
+        super().__init__(func_delivery=self._delivery_func)
+
+    @staticmethod
+    def _delivery_func(prob_max_mixed, prob_success, **kwargs):
+        bell00 = np.array(
+            [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]],
+            dtype=np.complex,
+        )
+        bell01 = np.array(
+            [[0, 0, 0, 0], [0, 0.5, 0.5, 0], [0, 0.5, 0.5, 0], [0, 0, 0, 0]],
+            dtype=np.complex,
+        )
+        bell10 = np.array(
+            [[0, 0, 0, 0], [0, 0.5, -0.5, 0], [0, -0.5, 0.5, 0], [0, 0, 0, 0]],
+            dtype=np.complex,
+        )
+        bell11 = np.array(
+            [[0.5, 0, 0, -0.5], [0, 0, 0, 0], [0, 0, 0, 0], [-0.5, 0, 0, 0.5]],
+            dtype=np.complex,
+        )
+        maximally_mixed = np.array(
+            [[0.25, 0, 0, 0], [0, 0.25, 0, 0], [0, 0, 0.25, 0], [0, 0, 0, 0.25]],
+            dtype=np.complex,
+        )
+        bell00_noisy = (1 - prob_max_mixed) * bell00 + prob_max_mixed * maximally_mixed
+        bell01_noisy = (1 - prob_max_mixed) * bell01 + prob_max_mixed * maximally_mixed
+        bell10_noisy = (1 - prob_max_mixed) * bell10 + prob_max_mixed * maximally_mixed
+        bell11_noisy = (1 - prob_max_mixed) * bell11 + prob_max_mixed * maximally_mixed
+        return (
+            StateSampler(
+                qreprs=[bell00_noisy, bell01_noisy, bell10_noisy, bell11_noisy],
+                probabilities=[0.25, 0.25, 0.25, 0.25],
+                labels=[
+                    BellIndex.PHI_PLUS,
+                    BellIndex.PSI_PLUS,
+                    BellIndex.PSI_MINUS,
+                    BellIndex.PHI_MINUS,
+                ],
+            ),
+            prob_success,
+        )
+
+
+class DepolariseWithFailureAnyBellMagicDistributor(MagicDistributor):
+    def __init__(self, nodes, prob_max_mixed, prob_success, **kwargs):
+        self.prob_max_mixed = prob_max_mixed
+        self.prob_success = prob_success
+        super().__init__(
+            delivery_sampler_factory=DepolariseWithFailureAnyBellStateSamplerFactory(),
+            nodes=nodes,
+            **kwargs,
+        )
+
+    def add_delivery(self, memory_positions, **kwargs):
+        return super().add_delivery(
+            memory_positions=memory_positions,
+            prob_max_mixed=self.prob_max_mixed,
+            prob_success=self.prob_success,
+            **kwargs,
+        )
+
+    def get_bell_state(self, midpoint_outcome):
+        try:
+            status, label = midpoint_outcome
+        except ValueError:
+            raise ValueError("Unknown midpoint outcome {}".format(midpoint_outcome))
+        return label
 
 
 def fidelity_to_prob_max_mixed(fid: float) -> float:
@@ -75,6 +154,17 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
                 link_cfg = DepolariseLinkConfig(**link.cfg)
             prob_max_mixed = fidelity_to_prob_max_mixed(link_cfg.fidelity)
             link_dist = DepolariseWithFailureMagicDistributor(
+                nodes=[stack1.node, stack2.node],
+                prob_max_mixed=prob_max_mixed,
+                prob_success=link_cfg.prob_success,
+                t_cycle=link_cfg.t_cycle,
+            )
+        elif link.typ == "depolarise_any_bell":
+            link_cfg = link.cfg
+            if not isinstance(link_cfg, DepolariseAnyBellLinkConfig):
+                link_cfg = DepolariseAnyBellLinkConfig(**link.cfg)
+            prob_max_mixed = fidelity_to_prob_max_mixed(link_cfg.fidelity)
+            link_dist = DepolariseWithFailureAnyBellMagicDistributor(
                 nodes=[stack1.node, stack2.node],
                 prob_max_mixed=prob_max_mixed,
                 prob_success=link_cfg.prob_success,

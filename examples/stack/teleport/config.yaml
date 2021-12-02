@@ -25,15 +25,13 @@ stacks:
       host_qnos_latency: 1e5
   
 link_cfg: &link_cfg
-  length_A: 0.01
-  length_B: 0.01
-  full_cycle: 1e6
-  cycle_time: 1e3
-  alpha: 0.9
+  fidelity: 0.8
+  prob_success: 0.01
+  t_cycle: 1.e+6
 
 links:
   - stack1: sender
     stack2: receiver
-    typ: nv
+    typ: depolarise_any_bell
     cfg:
       <<: *link_cfg
