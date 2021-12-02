@@ -1,5 +1,5 @@
 qdevice_cfg: &qdevice_cfg
-  num_qubits: 2
+  num_qubits: 3
   num_comm_qubits: 1
   T1: 1.e+10
   T2: 1.e+9
@@ -12,26 +12,28 @@ qdevice_cfg: &qdevice_cfg
 
 stacks:
   - name: sender
-    qdevice_typ: generic
+    qdevice_typ: nv
     qdevice_cfg: 
       <<: *qdevice_cfg
     classical_cfg:
       host_qnos_latency: 1e5
   - name: receiver
-    qdevice_typ: generic
+    qdevice_typ: nv
     qdevice_cfg: 
       <<: *qdevice_cfg
     classical_cfg:
       host_qnos_latency: 1e5
   
 link_cfg: &link_cfg
-  fidelity: 0.8
-  prob_success: 0.01
-  t_cycle: 1.e+6
+  length_A: 0.01
+  length_B: 0.01
+  full_cycle: 1e6
+  cycle_time: 1e3
+  alpha: 0.9
 
 links:
   - stack1: sender
     stack2: receiver
-    typ: depolarise
+    typ: nv
     cfg:
       <<: *link_cfg

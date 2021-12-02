@@ -154,5 +154,6 @@ if __name__ == "__main__":
 
     link.cfg["fidelity"] = 0.8
 
-    fidelities = do_teleportation(cfg, num_times=10, theta=0, phi=0)
-    print(fidelities)
+    for _ in range(2):
+        fidelities = do_teleportation(cfg, num_times=10, theta=0, phi=0)
+        print(fidelities)
