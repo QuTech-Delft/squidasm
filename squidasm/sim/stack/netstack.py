@@ -336,27 +336,22 @@ class Netstack(ComponentProtocol):
                 ResCreateAndKeep.__name__, receiver=self
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
-            self._logger.warning(f"got result for pair {pair_index}: {result}")
 
             # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
             if result.bell_state == BellIndex.B00:
-                self._logger.warning("B00")
                 pass
             elif result.bell_state == BellIndex.B01:
                 prog = QuantumProgram()
                 prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-                self._logger.warning("B01")
                 yield self.qdevice.execute_program(prog)
             elif result.bell_state == BellIndex.B10:
                 prog = QuantumProgram()
                 prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-                self._logger.warning("B10")
                 yield self.qdevice.execute_program(prog)
             elif result.bell_state == BellIndex.B11:
                 prog = QuantumProgram()
                 prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
                 prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-                self._logger.warning("B11")
                 yield self.qdevice.execute_program(prog)
 
             virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
