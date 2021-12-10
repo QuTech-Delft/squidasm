@@ -71,7 +71,10 @@ The code is divided into the following modules:
 
 
 ## License and patent
-A patent application has been filed which covers parts of the software in this repository. We allow for non-commercial and academic use but if you want to explore a commercial market, please contact us for a license agreement.
+A patent application (NL 2029673) has been filed which covers parts of the
+software in this repository. We allow for non-commercial and academic use but if
+you want to explore a commercial market, please contact us for a license
+agreement.
 
 
 ## Development
