@@ -1,0 +1,11 @@
+# NETQASM 1.0
+# APPID 0
+
+set Q0 0
+rot_z Q0 3 1
+set Q0 0
+h Q0
+set Q0 0
+meas Q0 M0
+qfree Q0
+ret_reg M0

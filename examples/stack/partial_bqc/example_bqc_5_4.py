@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import math
+import os
+import time
 from typing import Any, Dict, Generator
+
+from netqasm.lang.parsing.text import parse_text_presubroutine
 
 from pydynaa import EventExpression
 from squidasm.run.stack.config import (
@@ -11,8 +15,16 @@ from squidasm.run.stack.config import (
     StackNetworkConfig,
 )
 from squidasm.run.stack.run import run
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
+
+server_subrt_path = os.path.join(os.path.dirname(__file__), "server_5_4.nqasm")
+with open(server_subrt_path) as f:
+    server_subrt_text = f.read()
+SERVER_SUBRT = parse_text_presubroutine(server_subrt_text)
+
+USE_CUSTOM_SUBROUTINES = False
 
 
 class ClientProgram(Program):
@@ -81,15 +93,33 @@ class ServerProgram(Program):
         yield from conn.flush()
 
         delta1 = yield from csocket.recv_float()
+        start = time.time() * 1e6
 
-        epr.rot_Z(angle=delta1)
-        epr.H()
-        m2 = epr.measure(store_array=False)
+        if USE_CUSTOM_SUBROUTINES:
+            SERVER_SUBRT.app_id = conn.app_id
+            # print(SERVER_SUBRT.commands[1].operands)
+            SERVER_SUBRT.commands[1].operands[1] = 3
+            SERVER_SUBRT.commands[1].operands[2] = 1
+            # for i in range(int(1e4)):
+            #     pass
+            end = time.time() * 1e6
+            yield from conn.commit_subroutine(SERVER_SUBRT)
+            m2 = 0
+        else:
+            epr.rot_Z(angle=delta1)
+            epr.H()
+            m2 = epr.measure(store_array=False)
 
-        yield from conn.flush()
-        m2 = int(m2)
+            # for i in range(int(1e4)):
+            #     pass
+            end = time.time() * 1e6
 
-        return {"m2": m2}
+            yield from conn.flush()
+            m2 = int(m2)
+
+        duration = end - start
+
+        return {"m2": m2, "duration": duration}
 
 
 def get_distribution(
@@ -106,17 +136,25 @@ def get_distribution(
         cfg, {"client": client_program, "server": server_program}, num_times
     )
 
-    m2s = [result["m2"] for result in server_results]
-    num_zeros = len([m for m in m2s if m == 0])
-    frac0 = round(num_zeros / num_times, 2)
-    frac1 = 1 - frac0
-    print(f"dist (0, 1) = ({frac0}, {frac1})")
+    durations = [result["duration"] for result in server_results]
+    # print(durations)
+
+    mean = round(sum(durations) / len(durations), 3)
+    variance = sum((d - mean) * (d - mean) for d in durations) / len(durations)
+    std_deviation = math.sqrt(variance)
+    std_error = round(std_deviation / math.sqrt(len(durations)), 3)
+
+    max_dur = max(durations)
+    min_dur = min(durations)
+
+    print(f"{mean}, {std_error} (max: {max_dur}, min: {min_dur})")
 
 
 PI = math.pi
 PI_OVER_2 = math.pi / 2
 
-if __name__ == "__main__":
+
+def main():
     num_times = 100
 
     client_stack = StackConfig(
@@ -137,6 +175,11 @@ if __name__ == "__main__":
 
     cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
 
-    get_distribution(cfg, num_times, alpha=0, theta1=0)
-    get_distribution(cfg, num_times, alpha=PI, theta1=0)
-    get_distribution(cfg, num_times, alpha=PI_OVER_2, theta1=0)
+    get_distribution(cfg, num_times, alpha=PI_OVER_2, theta1=-PI)
+
+
+if __name__ == "__main__":
+    USE_CUSTOM_SUBROUTINES = False
+    main()
+    USE_CUSTOM_SUBROUTINES = True
+    main()
