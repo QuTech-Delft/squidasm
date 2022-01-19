@@ -1,0 +1,22 @@
+         27 function calls (26 primitive calls) in 0.000 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.000    0.000 example_bqc_5_4.py:73(rot_Z_wrapper)
+        1    0.000    0.000    0.000    0.000 qubit.py:288(rot_Z)
+      2/1    0.000    0.000    0.000    0.000 builder.py:365(add_single_qubit_rotation_commands)
+        1    0.000    0.000    0.000    0.000 state_prep.py:30(get_angle_spec_from_float)
+        1    0.000    0.000    0.000    0.000 builder.py:403(_get_set_qubit_reg_commands)
+        1    0.000    0.000    0.000    0.000 builder.py:228(add_pending_commands)
+        1    0.000    0.000    0.000    0.000 <string>:2(__init__)
+        2    0.000    0.000    0.000    0.000 builder.py:235(add_pending_command)
+        2    0.000    0.000    0.000    0.000 ir.py:148(__post_init__)
+        6    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        3    0.000    0.000    0.000    0.000 log.py:38(get_line)
+        1    0.000    0.000    0.000    0.000 state_prep.py:64(<listcomp>)
+        3    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 qubit.py:88(qubit_id)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+
+
