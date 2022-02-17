@@ -4,7 +4,6 @@ from typing import Any, Dict, Generator
 
 from netqasm.lang.parsing.text import parse_text_presubroutine
 from netqasm.sdk import Qubit
-from netqasm.sdk.epr_socket import EPRType
 from netqasm.sdk.futures import Array
 
 from pydynaa import EventExpression
@@ -129,9 +128,8 @@ class ClientProgram(FidelityVsRateProgram):
                         array_entry = outcomes[fid].get_future_index(pair)
                         q.measure(array_entry)
 
-                    context.epr_sockets[self.PEER].create(
+                    context.epr_sockets[self.PEER].create_keep(
                         number=len(self._bases),
-                        tp=EPRType.K,
                         sequential=True,
                         post_routine=post_create,
                     )
@@ -174,9 +172,8 @@ class ServerProgram(FidelityVsRateProgram):
                         array_entry = outcomes[fid].get_future_index(pair)
                         q.measure(array_entry)
 
-                    context.epr_sockets[self.PEER].recv(
+                    context.epr_sockets[self.PEER].recv_keep(
                         number=len(self._bases),
-                        tp=EPRType.K,
                         sequential=True,
                         post_routine=post_create,
                     )

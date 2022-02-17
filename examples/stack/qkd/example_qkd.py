@@ -57,9 +57,9 @@ class QkdProgram(Program):
 
         for i in range(self._num_bits):
             if create:
-                q = epr_socket.create(1)[0]
+                q = epr_socket.create_keep(1)[0]
             else:
-                q = epr_socket.recv(1)[0]
+                q = epr_socket.recv_keep(1)[0]
             if bases[i] == 1:
                 q.H()
             m = q.measure()

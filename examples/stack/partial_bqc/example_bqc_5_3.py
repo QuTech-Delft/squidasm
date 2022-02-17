@@ -36,7 +36,7 @@ class ClientProgram(Program):
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
 
-        epr = epr_socket.create()[0]
+        epr = epr_socket.create_keep()[0]
 
         epr.rot_Z(angle=self._theta1)
         epr.H()
@@ -67,7 +67,7 @@ class ServerProgram(Program):
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
 
-        epr = epr_socket.recv()[0]
+        epr = epr_socket.recv_keep()[0]
 
         epr.H()
         m2 = epr.measure(store_array=False)

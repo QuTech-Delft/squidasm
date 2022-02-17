@@ -10,6 +10,7 @@ from netqasm.backend.messages import (
     SubroutineMessage,
 )
 from netqasm.logging.glob import get_netqasm_logger
+from netqasm.sdk.build_types import GenericHardwareConfig, HardwareConfig
 from netqasm.sdk.builder import Builder
 from netqasm.sdk.connection import (
     BaseNetQASMConnection,
@@ -39,6 +40,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         self,
         app_name: str,
         max_qubits: int = 5,
+        hardware_config: Optional[HardwareConfig] = None,
         epr_sockets: Optional[List[EPRSocket]] = None,
         compiler: Optional[Type[SubroutineCompiler]] = None,
         **kwargs,
@@ -62,10 +64,13 @@ class NetSquidConnection(BaseNetQASMConnection):
             f"{self.__class__.__name__}({self.app_name})"
         )
 
+        if hardware_config is None:
+            hardware_config = GenericHardwareConfig(max_qubits)
+
         self._builder = Builder(
             connection=self,
             app_id=self._app_id,
-            max_qubits=max_qubits,
+            hardware_config=hardware_config,
             compiler=compiler,
         )
 
@@ -132,7 +137,7 @@ class NetSquidConnection(BaseNetQASMConnection):
 
         self._logger.debug(f"Flushing presubroutine:\n{presubroutine}")
 
-        subroutine = self._builder._pre_process_subroutine(presubroutine)
+        subroutine = self._builder.subrt_compile_subroutine(presubroutine)
         self._logger.info(f"Flushing compiled subroutine:\n{subroutine}")
 
         self._commit_message(
@@ -148,7 +153,7 @@ class NetSquidConnection(BaseNetQASMConnection):
     def flush(
         self, block: bool = True, callback: Optional[Callable] = None
     ) -> Generator[EventExpression, None, None]:
-        subroutine = self._builder._pop_pending_subroutine()
+        subroutine = self._builder.subrt_pop_pending_subroutine()
         if subroutine is None:
             return
 

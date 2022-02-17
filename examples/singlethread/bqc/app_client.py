@@ -63,7 +63,7 @@ def main(
 
     with client:
         # Create EPR pair
-        epr1 = epr_socket.create()[0]
+        epr1 = epr_socket.create_keep()[0]
 
         # RSP
         if trap and dummy == 2:
@@ -76,7 +76,7 @@ def main(
         p2 = p2 if not app_config["debug"] else 0
 
         # Create EPR pair
-        epr2 = epr_socket.create()[0]
+        epr2 = epr_socket.create_keep()[0]
 
         # RSP
         if trap and dummy == 1:

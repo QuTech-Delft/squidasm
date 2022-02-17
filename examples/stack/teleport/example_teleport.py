@@ -4,7 +4,6 @@ import math
 from typing import Any, Dict, Generator
 
 from netqasm.lang.ir import BreakpointAction, BreakpointRole
-from netqasm.logging.glob import set_log_level
 from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.toolbox import set_qubit_state
 
@@ -54,7 +53,7 @@ class SenderProgram(Program):
         q = Qubit(conn)
         set_qubit_state(q, self._phi, self._theta)
 
-        e = epr_socket.create()[0]
+        e = epr_socket.create_keep()[0]
         conn.insert_breakpoint(
             BreakpointAction.DUMP_GLOBAL_STATE, BreakpointRole.CREATE
         )
@@ -93,7 +92,7 @@ class ReceiverProgram(Program):
         epr_socket = context.epr_sockets[self.PEER]
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
-        e = epr_socket.recv()[0]
+        e = epr_socket.recv_keep()[0]
         conn.insert_breakpoint(
             BreakpointAction.DUMP_GLOBAL_STATE, BreakpointRole.RECEIVE
         )
@@ -112,7 +111,7 @@ class ReceiverProgram(Program):
 
 
 if __name__ == "__main__":
-    set_log_level("INFO")
+    # set_log_level("INFO")
 
     sender_stack = StackConfig(
         name="sender",

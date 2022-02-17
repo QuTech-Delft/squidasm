@@ -38,9 +38,9 @@ def main(
 
     with server:
         # Create EPR Pair
-        epr1 = epr_socket.recv()[0]
+        epr1 = epr_socket.recv_keep()[0]
 
-        epr2 = epr_socket.recv()[0]
+        epr2 = epr_socket.recv_keep()[0]
 
         epr2.cphase(epr1)
         server.flush()

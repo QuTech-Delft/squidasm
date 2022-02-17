@@ -1,0 +1,31 @@
+qdevice_cfg: &qdevice_cfg
+  num_qubits: 2
+  num_comm_qubits: 2
+  T1: 1.e+12
+  T2: 1.e+12
+  init_time: 1.e+1
+  single_qubit_gate_time: 1.e+1
+  two_qubit_gate_time: 1.e+1
+  measurement_time: 1.e+1
+
+stacks:
+  - name: client
+    qdevice_typ: nv
+    qdevice_cfg: 
+      <<: *qdevice_cfg
+  - name: server
+    qdevice_typ: nv
+    qdevice_cfg: 
+      <<: *qdevice_cfg
+  
+link_cfg: &link_cfg
+  fidelity: 1.0
+  prob_success: 1.0
+  t_cycle: 1e1
+
+links:
+  - stack1: client
+    stack2: server
+    typ: depolarise
+    cfg:
+      <<: *link_cfg

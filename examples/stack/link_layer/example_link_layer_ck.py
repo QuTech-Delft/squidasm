@@ -1,8 +1,6 @@
 import os
 from typing import Any, Dict, Generator
 
-from netqasm.sdk.epr_socket import EPRType
-
 from pydynaa import EventExpression
 from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
@@ -45,9 +43,8 @@ class ClientProgram(Program):
             q.measure(array_entry)
 
         # Create EPR pair
-        epr_socket.create(
+        epr_socket.create_keep(
             number=self._num_pairs,
-            tp=EPRType.K,
             sequential=True,
             post_routine=post_create,
         )
@@ -93,9 +90,8 @@ class ServerProgram(Program):
             q.measure(array_entry)
 
         # Create EPR pair
-        epr_socket.recv(
+        epr_socket.recv_keep(
             number=self._num_pairs,
-            tp=EPRType.K,
             sequential=True,
             post_routine=post_create,
         )
