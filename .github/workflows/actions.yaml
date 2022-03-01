@@ -17,9 +17,9 @@ jobs:
       run: |
         make install
         make lint
-      - uses: actions/checkout@master
+      - uses: actions/checkout@develop
         with:
-          repoistory: QuTech-Delft/netqasm
+          repository: QuTech-Delft/netqasm
         run: make install
 
   tests:
