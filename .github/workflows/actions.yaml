@@ -8,11 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-      with:
-        repository: QuTech-Delft/netqasm
-        ref: develop
-    - run: make install
-    - uses: actions/checkout@master
     - uses: actions/setup-python@master
       with:
         python-version: 3.8
