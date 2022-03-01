@@ -7,9 +7,10 @@ jobs:
     name: Run linter  
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@develop
+    - uses: actions/checkout@master
       with:
         repository: QuTech-Delft/netqasm
+        ref: develop
     - run: make install
     - uses: actions/checkout@master
     - uses: actions/setup-python@master
