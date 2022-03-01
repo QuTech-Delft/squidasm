@@ -42,7 +42,11 @@ from squidasm.sim.stack.common import (
     PortListener,
 )
 from squidasm.sim.stack.globals import GlobalSimData
-from squidasm.sim.stack.signals import SIGNAL_HAND_PROC_MSG, SIGNAL_NSTK_PROC_MSG
+from squidasm.sim.stack.signals import (
+    SIGNAL_HAND_PROC_MSG,
+    SIGNAL_MEMORY_FREED,
+    SIGNAL_NSTK_PROC_MSG,
+)
 
 if TYPE_CHECKING:
     from squidasm.sim.stack.qnos import Qnos
@@ -60,7 +64,7 @@ class ProcessorComponent(Component):
      - the netstack component of this QNodeOS
      - the handler compmonent of this QNodeOS
 
-    This is a static container for processor-related component and ports.
+    This is a static container for processor-related components and ports.
     Behavior of a QNodeOS processor is modeled in the `Processor` class,
     which is a subclass of `Protocol`.
     """
@@ -100,6 +104,12 @@ class Processor(ComponentProtocol):
     """NetSquid protocol representing a QNodeOS processor."""
 
     def __init__(self, comp: ProcessorComponent, qnos: Qnos) -> None:
+        """Processor protocol constructor. Typically created indirectly through
+        constructing a `Qnos` instance.
+
+        :param comp: NetSquid component representing the processor
+        :param qnos: `Qnos` protocol that owns this protocol
+        """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
         self._qnos = qnos
@@ -113,18 +123,21 @@ class Processor(ComponentProtocol):
             PortListener(self._comp.ports["nstk_in"], SIGNAL_NSTK_PROC_MSG),
         )
 
-        self.add_signal("memory free")  # TODO
+        self.add_signal(SIGNAL_MEMORY_FREED)
 
     @property
     def app_memories(self) -> Dict[int, AppMemory]:
+        """Get a dictionary of app IDs to application memories."""
         return self._qnos.app_memories
 
     @property
     def physical_memory(self) -> PhysicalQuantumMemory:
+        """Get the physical quantum memory object."""
         return self._qnos.physical_memory
 
     @property
     def qdevice(self) -> QuantumProcessor:
+        """Get the NetSquid `QuantumProcessor` object of this node."""
         return self._comp.qdevice
 
     def _send_handler_msg(self, msg: str) -> None:
@@ -143,6 +156,7 @@ class Processor(ComponentProtocol):
         self._listeners["netstack"].buffer.clear()
 
     def run(self) -> Generator[EventExpression, None, None]:
+        """Run this protocol. Automatically called by NetSquid during simulation."""
         while True:
             subroutine = yield from self._receive_handler_msg()
             # assert isinstance(subroutine, Subroutine)
@@ -155,6 +169,7 @@ class Processor(ComponentProtocol):
     def execute_subroutine(
         self, subroutine: Subroutine
     ) -> Generator[EventExpression, None, None]:
+        """Execute a NetQASM subroutine on this processor."""
         app_id = subroutine.app_id
         assert app_id in self.app_memories
         app_mem = self.app_memories[app_id]
@@ -291,7 +306,7 @@ class Processor(ComponentProtocol):
         assert phys_id is not None
         app_mem.unmap_virt_id(virt_id)
         self.physical_memory.free(phys_id)
-        self.send_signal("memory free")  # TODO
+        self.send_signal(SIGNAL_MEMORY_FREED)
         self.qdevice.mem_positions[phys_id].in_use = False
 
     def _interpret_store(self, app_id: int, instr: core.StoreInstruction) -> None:
@@ -608,6 +623,8 @@ class Processor(ComponentProtocol):
 
 
 class GenericProcessor(Processor):
+    """A `Processor` for nodes with a generic quantum hardware."""
+
     def _interpret_init(
         self, app_id: int, instr: core.InitInstruction
     ) -> Generator[EventExpression, None, None]:
@@ -703,6 +720,8 @@ class GenericProcessor(Processor):
 
 
 class NVProcessor(Processor):
+    """A `Processor` for nodes with a NV hardware."""
+
     def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
         app_mem = self.app_memories[app_id]
 
@@ -808,7 +827,7 @@ class NVProcessor(Processor):
                 app_mem.map_virt_id(virt_id, 0)
                 yield from self._move_carbon_to_electron_for_measure(phys_id)
                 self.physical_memory.free(phys_id)
-                self.send_signal("memory free")  # TODO
+                self.send_signal(SIGNAL_MEMORY_FREED)
                 self.qdevice.mem_positions[phys_id].in_use = False
                 outcome = yield from self._measure_electron()
                 app_mem.set_reg_value(instr.creg, outcome)
@@ -818,7 +837,7 @@ class NVProcessor(Processor):
                 app_mem.map_virt_id(virt_id, 0)
                 yield from self._move_carbon_to_electron_for_measure(phys_id)
                 self.physical_memory.free(phys_id)
-                self.send_signal("memory free")  # TODO
+                self.send_signal(SIGNAL_MEMORY_FREED)
                 self.qdevice.mem_positions[phys_id].in_use = False
                 outcome = yield from self._measure_electron()
                 app_mem.set_reg_value(instr.creg, outcome)

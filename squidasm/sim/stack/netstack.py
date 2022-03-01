@@ -5,6 +5,16 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, Generator, List, Optional
 
 import netsquid as ns
+from netqasm.sdk.build_epr import (
+    SER_CREATE_IDX_NUMBER,
+    SER_CREATE_IDX_TYPE,
+    SER_RESPONSE_KEEP_IDX_BELL_STATE,
+    SER_RESPONSE_KEEP_IDX_GOODNESS,
+    SER_RESPONSE_KEEP_LEN,
+    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_BASIS,
+    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_OUTCOME,
+    SER_RESPONSE_MEASURE_LEN,
+)
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Component, Port
 from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z
@@ -35,7 +45,11 @@ from squidasm.sim.stack.common import (
     PortListener,
 )
 from squidasm.sim.stack.egp import EgpProtocol
-from squidasm.sim.stack.signals import SIGNAL_PEER_NSTK_MSG, SIGNAL_PROC_NSTK_MSG
+from squidasm.sim.stack.signals import (
+    SIGNAL_MEMORY_FREED,
+    SIGNAL_PEER_NSTK_MSG,
+    SIGNAL_PROC_NSTK_MSG,
+)
 
 if TYPE_CHECKING:
     from squidasm.sim.stack.qnos import Qnos
@@ -45,6 +59,20 @@ PI_OVER_2 = math.pi / 2
 
 
 class NetstackComponent(Component):
+    """NetSquid component representing the network stack in QNodeOS.
+
+    Subcomponent of a QnosComponent.
+
+    Has communications ports with
+     - the processor component of this QNodeOS
+     - the netstack compmonent of the remote node
+        NOTE: at this moment only a single other node is supported in the network
+
+    This is a static container for network-stack-related components and ports.
+    Behavior of a QNodeOS network stack is modeled in the `NetStack` class,
+    which is a subclass of `Protocol`.
+    """
+
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_netstack")
         self._node = node
@@ -74,12 +102,26 @@ class NetstackComponent(Component):
 
 @dataclass
 class EprSocket:
+    """EPR Socket. Allows for EPR pair generation with a single remote node.
+
+    Multiple EPR Sockets may be created for a single pair of nodes. These
+    sockets have a different ID, and may e.g be used for EPR generation requests
+    with different parameters."""
+
     socket_id: int
     remote_id: int
 
 
 class Netstack(ComponentProtocol):
+    """NetSquid protocol representing the QNodeOS network stack."""
+
     def __init__(self, comp: NetstackComponent, qnos: Qnos) -> None:
+        """Network stack protocol constructor. Typically created indirectly through
+        constructing a `Qnos` instance.
+
+        :param comp: NetSquid component representing the network stack
+        :param qnos: `Qnos` protocol that owns this protocol
+        """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
         self._qnos = qnos
@@ -97,31 +139,56 @@ class Netstack(ComponentProtocol):
         self._epr_sockets: Dict[int, List[EprSocket]] = {}  # app ID -> [socket]
 
     def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
+        """Set the magic link layer protocol that this network stack uses to produce
+        entangled pairs with the remote node.
+
+        :param prot: link layer protocol instance
+        """
         self._egp = EgpProtocol(self._comp.node, prot)
 
     def open_epr_socket(self, app_id: int, socket_id: int, remote_node_id: int) -> None:
+        """Create a new EPR socket with the specified remote node.
+
+        :param app_id: ID of the application that creates this EPR socket
+        :param socket_id: ID of the socket
+        :param remote_node_id: ID of the remote node
+        """
         if app_id not in self._epr_sockets:
             self._epr_sockets[app_id] = []
         self._epr_sockets[app_id].append(EprSocket(socket_id, remote_node_id))
 
     def _send_processor_msg(self, msg: str) -> None:
+        """Send a message to the processor."""
         self._comp.processor_out_port.tx_output(msg)
 
     def _receive_processor_msg(self) -> Generator[EventExpression, None, str]:
+        """Receive a message from the processor. Block until there is at least one
+        message."""
         return (yield from self._receive_msg("processor", SIGNAL_PROC_NSTK_MSG))
 
     def _send_peer_msg(self, msg: str) -> None:
+        """Send a message to the network stack of the other node.
+
+        NOTE: for now we assume there is only one other node, which is 'the' peer."""
         self._comp.peer_out_port.tx_output(msg)
 
     def _receive_peer_msg(self) -> Generator[EventExpression, None, str]:
+        """Receive a message from the network stack of the other node. Block until
+        there is at least one message.
+
+        NOTE: for now we assume there is only one other node, which is 'the' peer."""
         return (yield from self._receive_msg("peer", SIGNAL_PEER_NSTK_MSG))
 
     def start(self) -> None:
+        """Start this protocol. The NetSquid simulator will call and yield on the
+        `run` method. Also start the underlying EGP protocol."""
         super().start()
         if self._egp:
             self._egp.start()
 
     def stop(self) -> None:
+        """Stop this protocol. The NetSquid simulator will stop calling `run`.
+        Also stop the underlying EGP protocol."""
         if self._egp:
             self._egp.stop()
         super().stop()
@@ -132,11 +199,19 @@ class Netstack(ComponentProtocol):
         return app_mem.get_array(array_addr)
 
     def _construct_request(self, remote_id: int, args: List[int]) -> ReqCreateBase:
-        typ = args[0]
+        """Construct a link layer request from application request info.
+
+        :param remote_id: ID of remote node
+        :param args: NetQASM array elements from the arguments array specified by the
+            application
+        :return: link layer request object
+        """
+        typ = args[SER_CREATE_IDX_TYPE]
         assert typ is not None
-        num_pairs = args[1]
+        num_pairs = args[SER_CREATE_IDX_NUMBER]
         assert num_pairs is not None
 
+        # TODO
         MINIMUM_FIDELITY = 0.99
 
         if typ == 0:
@@ -176,6 +251,13 @@ class Netstack(ComponentProtocol):
     def find_epr_socket(
         self, app_id: int, sck_id: int, rem_id: int
     ) -> Optional[EprSocket]:
+        """Get a specific EPR socket or None if it does not exist.
+
+        :param app_id: app ID
+        :param sck_id: EPR socket ID
+        :param rem_id: remote node ID
+        :return: the corresponding EPR socket or None if it does not exist
+        """
         if app_id not in self._epr_sockets:
             return None
         for sck in self._epr_sockets[app_id]:
@@ -183,14 +265,34 @@ class Netstack(ComponentProtocol):
                 return sck
         return None
 
-    def put_create_ck_request(
+    def handle_create_ck_request(
         self, req: NetstackCreateRequest, request: ReqCreateAndKeep
     ) -> Generator[EventExpression, None, None]:
-        num_pairs = request.number
+        """Handle a Create and Keep request as the initiator/creator, until all
+        pairs have been created.
 
-        self._send_peer_msg(request)
-        peer_msg = yield from self._receive_peer_msg()
-        self._logger.debug(f"received peer msg: {peer_msg}")
+        This method uses the EGP protocol to create and measure EPR pairs with
+        the remote node. It will fully complete the request before returning. If
+        the pair created by the EGP protocol is another Bell state than Phi+,
+        local gates are applied to do a correction, such that the final
+        delivered pair is always Phi+.
+
+        The method can however yield (i.e. give control back to the simulator
+        scheduler) in the following cases: - no communication qubit is
+        available; this method will resume when a
+          SIGNAL_MEMORY_FREED is given (currently only the processor can do
+          this)
+        - when waiting for the EGP protocol to produce the next pair; this
+          method resumes when the pair is delivered
+        - a Bell correction gate is applied
+
+        This method does not return anything. This method has the side effect
+        that NetQASM array value are written to.
+
+        :param req: application request info (app ID and NetQASM array IDs)
+        :param request: link layer request object
+        """
+        num_pairs = request.number
 
         app_mem = self.app_memories[req.app_id]
         qubit_ids = app_mem.get_array(req.qubit_array_addr)
@@ -210,24 +312,32 @@ class Netstack(ComponentProtocol):
                     break
                 except AllocError:
                     self._logger.info("no comm qubit available, waiting...")
+
+                    # Wait for a signal indicating the communication qubit might be free
+                    # again.
                     yield self.await_signal(
-                        sender=self._qnos.processor, signal_label="memory free"
-                    )  # TODO
+                        sender=self._qnos.processor, signal_label=SIGNAL_MEMORY_FREED
+                    )
                     self._logger.info(
                         "a 'free' happened, trying again to allocate comm qubit..."
                     )
+
+            # Put the request to the EGP.
             self._logger.info(f"putting CK request for pair {pair_index}")
             self._egp.put(request)
 
+            # Wait for a signal from the EGP.
             self._logger.info(f"waiting for result for pair {pair_index}")
             yield self.await_signal(
                 sender=self._egp, signal_label=ResCreateAndKeep.__name__
             )
+            # Get the EGP's result.
             result: ResCreateAndKeep = self._egp.get_signal_result(
                 ResCreateAndKeep.__name__, receiver=self
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
 
+            # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
             if result.bell_state == BellIndex.B00:
                 pass
             elif result.bell_state == BellIndex.B01:
@@ -253,74 +363,170 @@ class Netstack(ComponentProtocol):
             gen_duration_ns_float = ns.sim_time() - start_time
             gen_duration_us_int = int(gen_duration_ns_float / 1000)
             self._logger.info(f"gen duration (us): {gen_duration_us_int}")
-            for i in range(10):
+
+            # Length of response array slice for a single pair.
+            slice_len = SER_RESPONSE_KEEP_LEN
+
+            # Populate results array.
+            for i in range(slice_len):
+                # Write -1 to unused array elements.
                 value = -1
-                if i == 7:
+
+                # Write corresponding result value to the other array elements.
+                if i == SER_RESPONSE_KEEP_IDX_GOODNESS:
                     value = gen_duration_us_int
-                if i == 9:
+                if i == SER_RESPONSE_KEEP_IDX_BELL_STATE:
                     value = result.bell_state
-                arr_index = 10 * pair_index + i
+
+                # Calculate array element location.
+                arr_index = slice_len * pair_index + i
+
                 app_mem.set_array_value(req.result_array_addr, arr_index, value)
             self._logger.debug(
-                f"wrote to @{req.result_array_addr}[{10 * pair_index}:"
-                f"{10 * pair_index + 10}] for app ID {req.app_id}"
+                f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
+                f"{slice_len * pair_index + slice_len}] for app ID {req.app_id}"
             )
             self._send_processor_msg("wrote to array")
 
-    def put_create_md_request(
+    def handle_create_md_request(
         self, req: NetstackCreateRequest, request: ReqMeasureDirectly
     ) -> Generator[EventExpression, None, None]:
-        phys_id = self.physical_memory.allocate_comm()
+        """Handle a Create and Measure request as the initiator/creator, until all
+        pairs have been created and measured.
 
-        self._send_peer_msg(request)
-        peer_msg = yield from self._receive_peer_msg()
-        self._logger.info(f"received peer msg: {peer_msg}")
+        This method uses the EGP protocol to create EPR pairs with the remote node.
+        It will fully complete the request before returning.
 
+        No Bell state corrections are done. This means that application code should
+        use the result information to check, for each pair, the generated Bell state
+        and possibly post-process the measurement outcomes.
+
+        The method can yield (i.e. give control back to the simulator scheduler) in
+        the following cases:
+        - no communication qubit is available; this method will resume when a
+          SIGNAL_MEMORY_FREED is given (currently only the processor can do this)
+        - when waiting for the EGP protocol to produce the next pair; this method
+          resumes when the pair is delivered
+
+        This method does not return anything.
+        This method has the side effect that NetQASM array value are written to.
+
+        :param req: application request info (app ID and NetQASM array IDs)
+        :param request: link layer request object
+        """
+
+        # Put the reqeust to the EGP.
         self._egp.put(request)
-        yield self.await_signal(
-            sender=self._egp, signal_label=ResMeasureDirectly.__name__
-        )
-        result: ResMeasureDirectly = self._egp.get_signal_result(
-            ResMeasureDirectly.__name__, receiver=self
-        )
-        self._logger.debug(f"bell index: {result.bell_state}")
-        self.physical_memory.free(phys_id)
+
+        results: List[ResMeasureDirectly] = []
+
+        # Wait for all pairs to be created. For each pair, the EGP sends a separate
+        # signal that is awaited here. Only after the last pair, we write the results
+        # to the array. This is done since the whole request (i.e. all pairs) is
+        # expected to finish in a short time anyway. However, writing results for a
+        # pair as soon as they are done may be implemented in the future.
+        for _ in range(request.number):
+            phys_id = self.physical_memory.allocate_comm()
+
+            yield self.await_signal(
+                sender=self._egp, signal_label=ResMeasureDirectly.__name__
+            )
+            result: ResMeasureDirectly = self._egp.get_signal_result(
+                ResMeasureDirectly.__name__, receiver=self
+            )
+            self._logger.debug(f"bell index: {result.bell_state}")
+            results.append(result)
+            self.physical_memory.free(phys_id)
 
         app_mem = self.app_memories[req.app_id]
-        for i in range(10):
-            value = -1
-            if i == 2:
-                value = result.measurement_outcome
-            elif i == 3:
-                value = result.measurement_basis.value
-            elif i == 9:
-                value = result.bell_state.value
-            app_mem.set_array_value(req.result_array_addr, i, value)
+
+        # Length of response array slice for a single pair.
+        slice_len = SER_RESPONSE_MEASURE_LEN
+
+        # Populate results array.
+        for pair_index in range(request.number):
+            result = results[pair_index]
+
+            for i in range(slice_len):
+                # Write -1 to unused array elements.
+                value = -1
+
+                # Write corresponding result value to the other array elements.
+                if i == SER_RESPONSE_MEASURE_IDX_MEASUREMENT_OUTCOME:
+                    value = result.measurement_outcome
+                elif i == SER_RESPONSE_MEASURE_IDX_MEASUREMENT_BASIS:
+                    value = result.measurement_basis.value
+                elif i == SER_RESPONSE_KEEP_IDX_BELL_STATE:
+                    value = result.bell_state.value
+
+                # Calculate array element location.
+                arr_index = slice_len * pair_index + i
+
+                app_mem.set_array_value(req.result_array_addr, arr_index, value)
 
         self._send_processor_msg("wrote to array")
 
-    def put_create_request(
+    def handle_create_request(
         self, req: NetstackCreateRequest
     ) -> Generator[EventExpression, None, None]:
+        """Issue a request to create entanglement with a remote node.
+
+        :param req: request info
+        """
+
+        # EPR socket should exist.
         assert (
             self.find_epr_socket(req.app_id, req.epr_socket_id, req.remote_node_id)
             is not None
         )
-        args = self._read_request_args_array(req.app_id, req.arg_array_addr)
-        request = self._construct_request(req.remote_node_id, args)
-        if isinstance(request, ReqCreateAndKeep):
-            yield from self.put_create_ck_request(req, request)
-        elif isinstance(request, ReqMeasureDirectly):
-            yield from self.put_create_md_request(req, request)
 
-    def put_receive_ck_request(
+        # Read request parameters from the corresponding NetQASM array.
+        args = self._read_request_args_array(req.app_id, req.arg_array_addr)
+
+        # Create the link layer request object.
+        request = self._construct_request(req.remote_node_id, args)
+
+        # Send it to the receiver node and wait for an acknowledgement.
+        self._send_peer_msg(request)
+        peer_msg = yield from self._receive_peer_msg()
+        self._logger.debug(f"received peer msg: {peer_msg}")
+
+        # Handle the request.
+        if isinstance(request, ReqCreateAndKeep):
+            yield from self.handle_create_ck_request(req, request)
+        elif isinstance(request, ReqMeasureDirectly):
+            yield from self.handle_create_md_request(req, request)
+
+    def handle_receive_ck_request(
         self, req: NetstackReceiveRequest, request: ReqCreateAndKeep
     ) -> Generator[EventExpression, None, None]:
-        assert isinstance(request, ReqCreateAndKeep)
-        num_pairs = request.number
+        """Handle a Create and Keep request as the receiver, until all pairs have
+        been created.
 
-        self._logger.debug("sending 'ready' to peer")
-        self._send_peer_msg("ready")
+        This method uses the EGP protocol to create EPR pairs with the remote
+        node. It will fully complete the request before returning.
+
+        If the pair created by the EGP protocol is another Bell state than Phi+,
+        it is assumed that the *other* node applies local gates such that the
+        final delivered pair is always Phi+.
+
+        The method can yield (i.e. give control back to the simulator scheduler)
+        in the following cases: - no communication qubit is available; this
+        method will resume when a
+          SIGNAL_MEMORY_FREED is given (currently only the processor can do
+          this)
+        - when waiting for the EGP protocol to produce the next pair; this
+          method resumes when the pair is delivered
+
+        This method does not return anything. This method has the side effect
+        that NetQASM array value are written to.
+
+        :param req: application request info (app ID and NetQASM array IDs)
+        :param request: link layer request object
+        """
+        assert isinstance(request, ReqCreateAndKeep)
+
+        num_pairs = request.number
 
         self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
         self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
@@ -336,19 +542,26 @@ class Netstack(ComponentProtocol):
                     break
                 except AllocError:
                     self._logger.info("no comm qubit available, waiting...")
+
+                    # Wait for a signal indicating the communication qubit might be free
+                    # again.
                     yield self.await_signal(
-                        sender=self._qnos.processor, signal_label="memory free"
-                    )  # TODO
+                        sender=self._qnos.processor, signal_label=SIGNAL_MEMORY_FREED
+                    )
                     self._logger.info(
                         "a 'free' happened, trying again to allocate comm qubit..."
                     )
+
+            # Put the request to the EGP.
             self._logger.info(f"putting CK request for pair {pair_index}")
             self._egp.put(ReqReceive(remote_node_id=req.remote_node_id))
             self._logger.info(f"waiting for result for pair {pair_index}")
 
+            # Wait for a signal from the EGP.
             yield self.await_signal(
                 sender=self._egp, signal_label=ResCreateAndKeep.__name__
             )
+            # Get the EGP's result.
             result: ResCreateAndKeep = self._egp.get_signal_result(
                 ResCreateAndKeep.__name__, receiver=self
             )
@@ -364,116 +577,204 @@ class Netstack(ComponentProtocol):
             gen_duration_ns_float = ns.sim_time() - start_time
             gen_duration_us_int = int(gen_duration_ns_float / 1000)
             self._logger.info(f"gen duration (us): {gen_duration_us_int}")
-            for i in range(10):
+
+            # Length of response array slice for a single pair.
+            slice_len = SER_RESPONSE_KEEP_LEN
+
+            for i in range(slice_len):
+                # Write -1 to unused array elements.
                 value = -1
-                if i == 7:
+
+                # Write corresponding result value to the other array elements.
+                if i == SER_RESPONSE_KEEP_IDX_GOODNESS:
                     value = gen_duration_us_int
-                if i == 9:
+                if i == SER_RESPONSE_KEEP_IDX_BELL_STATE:
                     value = result.bell_state.value
-                arr_index = 10 * pair_index + i
+
+                # Calculate array element location.
+                arr_index = slice_len * pair_index + i
+
                 app_mem.set_array_value(req.result_array_addr, arr_index, value)
             self._logger.debug(
-                f"wrote to @{req.result_array_addr}[{10 * pair_index}:"
-                f"{10 * pair_index + 10}] for app ID {req.app_id}"
+                f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
+                f"{slice_len * pair_index + slice_len}] for app ID {req.app_id}"
             )
             self._send_processor_msg("wrote to array")
 
-    def put_receive_md_request(
+    def handle_receive_md_request(
         self, req: NetstackReceiveRequest, request: ReqMeasureDirectly
     ) -> Generator[EventExpression, None, None]:
+        """Handle a Create and Measure request as the receiver, until all
+        pairs have been created and measured.
+
+        This method uses the EGP protocol to create EPR pairs with the remote node.
+        It will fully complete the request before returning.
+
+        No Bell state corrections are done. This means that application code should
+        use the result information to check, for each pair, the generated Bell state
+        and possibly post-process the measurement outcomes.
+
+        The method can yield (i.e. give control back to the simulator scheduler)
+        in the following cases: - no communication qubit is available; this
+        method will resume when a
+          SIGNAL_MEMORY_FREED is given (currently only the processor can do
+          this)
+        - when waiting for the EGP protocol to produce the next pair; this
+          method resumes when the pair is delivered
+
+        This method does not return anything. This method has the side effect
+        that NetQASM array value are written to.
+
+        :param req: application request info (app ID and NetQASM array IDs)
+        :param request: link layer request object
+        """
         assert isinstance(request, ReqMeasureDirectly)
 
-        phys_id = self.physical_memory.allocate_comm()
-
         self._egp.put(ReqReceive(remote_node_id=req.remote_node_id))
-        self._logger.debug("sending 'ready' to peer")
-        self._send_peer_msg("ready")
 
-        yield self.await_signal(
-            sender=self._egp, signal_label=ResMeasureDirectly.__name__
-        )
-        result: ResMeasureDirectly = self._egp.get_signal_result(
-            ResMeasureDirectly.__name__, receiver=self
-        )
+        results: List[ResMeasureDirectly] = []
 
-        self.physical_memory.free(phys_id)
+        for _ in range(request.number):
+            phys_id = self.physical_memory.allocate_comm()
+
+            yield self.await_signal(
+                sender=self._egp, signal_label=ResMeasureDirectly.__name__
+            )
+            result: ResMeasureDirectly = self._egp.get_signal_result(
+                ResMeasureDirectly.__name__, receiver=self
+            )
+            results.append(result)
+
+            self.physical_memory.free(phys_id)
 
         app_mem = self.app_memories[req.app_id]
-        for i in range(10):
-            value = -1
-            if i == 2:
-                value = result.measurement_outcome
-            elif i == 3:
-                value = result.measurement_basis.value
-            elif i == 9:
-                value = result.bell_state.value
-            app_mem.set_array_value(req.result_array_addr, i, value)
 
-        self._send_processor_msg("wrote to array")
+        # Length of response array slice for a single pair.
+        slice_len = SER_RESPONSE_MEASURE_LEN
 
-    def put_receive_request(
+        # Populate results array.
+        for pair_index in range(request.number):
+            result = results[pair_index]
+
+            for i in range(slice_len):
+                # Write -1 to unused array elements.
+                value = -1
+
+                # Write corresponding result value to the other array elements.
+                if i == SER_RESPONSE_MEASURE_IDX_MEASUREMENT_OUTCOME:
+                    value = result.measurement_outcome
+                elif i == SER_RESPONSE_MEASURE_IDX_MEASUREMENT_BASIS:
+                    value = result.measurement_basis.value
+                elif i == SER_RESPONSE_KEEP_IDX_BELL_STATE:
+                    value = result.bell_state.value
+
+                # Calculate array element location.
+                arr_index = slice_len * pair_index + i
+
+                app_mem.set_array_value(req.result_array_addr, arr_index, value)
+
+            self._send_processor_msg("wrote to array")
+
+    def handle_receive_request(
         self, req: NetstackReceiveRequest
     ) -> Generator[EventExpression, None, None]:
+        """Issue a request to receive entanglement from a remote node.
+
+        :param req: request info
+        """
+
+        # EPR socket should exist.
         assert (
             self.find_epr_socket(req.app_id, req.epr_socket_id, req.remote_node_id)
             is not None
         )
 
+        # Wait for the network stack in the remote node to get the corresponding
+        # 'create' request from its local application and send it to us.
+        # NOTE: we do not check if the request from the other node matches our own
+        # request. Also, we simply block until synchronizing with the other node,
+        # and then fully handle the request. There is no support for queueing
+        # and/or interleaving multiple different requests.
         create_request = yield from self._receive_peer_msg()
         self._logger.debug(f"received {create_request} from peer")
-        if isinstance(create_request, ReqCreateAndKeep):
-            yield from self.put_receive_ck_request(req, create_request)
-        elif isinstance(create_request, ReqMeasureDirectly):
-            yield from self.put_receive_md_request(req, create_request)
 
-    def put_breakpoint_create_request(self) -> Generator[EventExpression, None, None]:
-        # synchronize with peer
+        # Acknowledge to the remote node that we received the request and we will
+        # start handling it.
+        self._logger.debug("sending 'ready' to peer")
+        self._send_peer_msg("ready")
+
+        # Handle the request, based on the type that we now know because of the
+        # other node.
+        if isinstance(create_request, ReqCreateAndKeep):
+            yield from self.handle_receive_ck_request(req, create_request)
+        elif isinstance(create_request, ReqMeasureDirectly):
+            yield from self.handle_receive_md_request(req, create_request)
+
+    def handle_breakpoint_create_request(
+        self,
+    ) -> Generator[EventExpression, None, None]:
+        # Synchronize with the remote node.
         self._send_peer_msg("breakpoint start")
         response = yield from self._receive_peer_msg()
         assert response == "breakpoint start"
-        # peer is now ready
-        # notify processor
+
+        # Remote node is now ready. Notify the processor.
         self._send_processor_msg("breakpoint ready")
-        # wait for processor to be finished
+
+        # Wait for the processor to finish handling the breakpoint.
         processor_msg = yield from self._receive_processor_msg()
         assert processor_msg == "breakpoint end"
-        # tell peer that breakpoint is finished
+
+        # Tell the remote node that the breakpoint has finished.
         self._send_peer_msg("breakpoint end")
-        # wait for peer to have finsihed as well
+
+        # Wait for the remote node to have finsihed as well.
         response = yield from self._receive_peer_msg()
         assert response == "breakpoint end"
-        # notify processor
+
+        # Notify the processor that we are done.
         self._send_processor_msg("breakpoint finished")
 
-    def put_breakpoint_receive_request(self) -> Generator[EventExpression, None, None]:
+    def handle_breakpoint_receive_request(
+        self,
+    ) -> Generator[EventExpression, None, None]:
+        # Synchronize with the remote node.
         msg = yield from self._receive_peer_msg()
         assert msg == "breakpoint start"
         self._send_peer_msg("breakpoint start")
-        # notify processor
+
+        # Notify the processor we are ready to handle the breakpoint.
         self._send_processor_msg("breakpoint ready")
-        # wait for processor to be finished
+
+        # Wait for the processor to finish handling the breakpoint.
         processor_msg = yield from self._receive_processor_msg()
         assert processor_msg == "breakpoint end"
-        # wait for peer to be finished
+
+        # Wait for the remote node to finish and tell it we are finished as well.
         peer_msg = yield from self._receive_peer_msg()
         assert peer_msg == "breakpoint end"
         self._send_peer_msg("breakpoint end")
-        # notify processor
+
+        # Notify the processor that we are done.
         self._send_processor_msg("breakpoint finished")
 
     def run(self) -> Generator[EventExpression, None, None]:
+        # Loop forever acting on messages from the processor.
         while True:
+            # Wait for a new message.
             msg = yield from self._receive_processor_msg()
             self._logger.debug(f"received new msg from processor: {msg}")
+
+            # Handle it.
             if isinstance(msg, NetstackCreateRequest):
-                yield from self.put_create_request(msg)
+                yield from self.handle_create_request(msg)
                 self._logger.debug("create request done")
             elif isinstance(msg, NetstackReceiveRequest):
-                yield from self.put_receive_request(msg)
+                yield from self.handle_receive_request(msg)
                 self._logger.debug("receive request done")
             elif isinstance(msg, NetstackBreakpointCreateRequest):
-                yield from self.put_breakpoint_create_request()
+                yield from self.handle_breakpoint_create_request()
                 self._logger.debug("breakpoint create request done")
             elif isinstance(msg, NetstackBreakpointReceiveRequest):
-                yield from self.put_breakpoint_receive_request()
+                yield from self.handle_breakpoint_receive_request()
                 self._logger.debug("breakpoint receive request done")

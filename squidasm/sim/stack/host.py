@@ -22,6 +22,14 @@ from squidasm.sim.stack.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MS
 
 
 class HostComponent(Component):
+    """NetSquid compmonent representing a Host.
+
+    Subcomponent of a ProcessingNode.
+
+    This is a static container for Host-related components and ports. Behavior
+    of a Host is modeled in the `Host` class, which is a subclass of `Protocol`.
+    """
+
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_host")
         self.add_ports(["qnos_in", "qnos_out"])
@@ -45,7 +53,14 @@ class HostComponent(Component):
 
 
 class Host(ComponentProtocol):
+    """NetSquid protocol representing a Host."""
+
     def __init__(self, comp: HostComponent, qdevice_type: Optional[str] = "nv") -> None:
+        """Qnos protocol constructor.
+
+        :param comp: NetSquid component representing the Host
+        :param qdevice_type: hardware type of the QDevice of this node
+        """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
 
@@ -65,8 +80,13 @@ class Host(ComponentProtocol):
         else:
             raise ValueError
 
+        # Program that is currently being executed.
         self._program: Optional[Program] = None
+
+        # Number of times the current program still needs to be run.
         self._num_pending: int = 0
+
+        # Results of program runs so far.
         self._program_results: List[Dict[str, Any]] = []
 
     @property
@@ -90,18 +110,24 @@ class Host(ComponentProtocol):
         return (yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG))
 
     def run(self) -> Generator[EventExpression, None, None]:
+        """Run this protocol. Automatically called by NetSquid during simulation."""
+
+        # Run a single program as many times as requested.
         while self._num_pending > 0:
             self._logger.info(f"num pending: {self._num_pending}")
             self._num_pending -= 1
 
             assert self._program is not None
             prog_meta = self._program.meta
+
+            # Register the new program (called 'application' by QNodeOS) with QNodeOS.
             self.send_qnos_msg(
                 bytes(InitNewAppMessage(max_qubits=prog_meta.max_qubits))
             )
             app_id = yield from self.receive_qnos_msg()
             self._logger.debug(f"got app id from qnos: {app_id}")
 
+            # Set up the Connection object to be used by the program SDK code.
             conn = QnosConnection(
                 self,
                 app_id,
@@ -110,6 +136,7 @@ class Host(ComponentProtocol):
                 compiler=self._compiler,
             )
 
+            # Create EPR sockets that can be used by the program SDK code.
             epr_sockets: Dict[int, EPRSocket] = {}
             for i, remote_name in enumerate(prog_meta.epr_sockets):
                 remote_id = None
@@ -122,6 +149,7 @@ class Host(ComponentProtocol):
                 epr_sockets[remote_name] = EPRSocket(remote_name, i)
                 epr_sockets[remote_name].conn = conn
 
+            # Create classical sockets that can be used by the program SDK code.
             classical_sockets: Dict[int, ClassicalSocket] = {}
             for i, remote_name in enumerate(prog_meta.csockets):
                 remote_id = None
@@ -141,11 +169,17 @@ class Host(ComponentProtocol):
                 app_id=app_id,
             )
 
+            # Run the program by evaluating its run() method.
             result = yield from self._program.run(context)
             self._program_results.append(result)
+
+            # Tell QNodeOS the program has finished.
             self.send_qnos_msg(bytes(StopAppMessage(app_id)))
 
     def enqueue_program(self, program: Program, num_times: int = 1):
+        """Queue a program to be run the given number of times.
+        
+        NOTE: At the moment, only a single program can be queued at a time."""
         self._program = program
         self._num_pending = num_times
 

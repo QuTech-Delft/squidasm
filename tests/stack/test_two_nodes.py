@@ -42,7 +42,7 @@ class TestTwoNodes(unittest.TestCase):
             self._alice.qnos_comp.processor_comp, self._alice.qnos
         )
         # don't clear app memory so we can inspect it
-        self._alice.qnos.handler.clear_memory = False
+        self._alice.qnos.handler.should_clear_memory = False
 
         bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=nv_cfg)
         self._bob = NodeStack("bob", qdevice_type="nv", qdevice=bob_qdevice, node_id=1)
@@ -52,7 +52,7 @@ class TestTwoNodes(unittest.TestCase):
             self._bob.qnos_comp.processor_comp, self._bob.qnos
         )
         # don't clear app memory so we can inspect it
-        self._bob.qnos.handler.clear_memory = False
+        self._bob.qnos.handler.should_clear_memory = False
 
         self._host_alice: Optional[Type[Host]] = None
         self._host_bob: Optional[Type[Host]] = None

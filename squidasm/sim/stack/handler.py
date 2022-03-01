@@ -32,6 +32,24 @@ if TYPE_CHECKING:
 
 
 class HandlerComponent(Component):
+    """NetSquid component representing a QNodeOS handler.
+
+    Subcomponent of a QnosComponent.
+
+    The "QnodeOS handler" represents the combination of the following components
+    within QNodeOS:
+     - interface with the Host
+     - scheduler
+
+    Has communications ports with
+     - the processor component of this QNodeOS
+     - the Host component on this node
+
+    This is a static container for handler-related components and ports.
+    Behavior of a QNodeOS handler is modeled in the `Handler` class,
+    which is a subclass of `Protocol`.
+    """
+
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_handler")
         self._node = node
@@ -90,9 +108,17 @@ class RunningApp:
 
 
 class Handler(ComponentProtocol):
+    """NetSquid protocol representing a QNodeOS handler."""
+
     def __init__(
         self, comp: HandlerComponent, qnos: Qnos, qdevice_type: Optional[str] = "nv"
     ) -> None:
+        """Processor handler constructor. Typically created indirectly through
+        constructing a `Qnos` instance.
+
+        :param comp: NetSquid component representing the handler
+        :param qnos: `Qnos` protocol that owns this protocol
+        """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
         self._qnos = qnos
@@ -106,11 +132,18 @@ class Handler(ComponentProtocol):
             PortListener(self._comp.ports["proc_in"], SIGNAL_PROC_HAND_MSG),
         )
 
+        # Number of applications that were handled so far. Used as a unique ID for
+        # the next application.
         self._app_counter = 0
+
+        # Currently active (running or waiting) applications.
         self._applications: Dict[int, RunningApp] = {}
 
-        self._clear_memory: bool = True
+        # Whether the quantum memory for applications should be reset when the
+        # application finishes.
+        self._should_clear_memory: bool = True
 
+        # Set the expected flavour such that Host messages are deserialized correctly.
         if qdevice_type == "nv":
             self._flavour: Optional[flavour.Flavour] = flavour.NVFlavour()
         elif qdevice_type == "generic":
@@ -127,12 +160,12 @@ class Handler(ComponentProtocol):
         return self._qnos.physical_memory
 
     @property
-    def clear_memory(self) -> bool:
-        return self._clear_memory
+    def should_clear_memory(self) -> bool:
+        return self._should_clear_memory
 
-    @clear_memory.setter
-    def clear_memory(self, value: bool) -> None:
-        self._clear_memory = value
+    @should_clear_memory.setter
+    def should_clear_memory(self, value: bool) -> None:
+        self._should_clear_memory = value
 
     @property
     def flavour(self) -> Optional[flavour.Flavour]:
@@ -195,7 +228,7 @@ class Handler(ComponentProtocol):
 
     def stop_application(self, app_id: int) -> None:
         self._logger.debug(f"stopping application with ID {app_id}")
-        if self.clear_memory:
+        if self.should_clear_memory:
             self._logger.debug(f"clearing qubits for application with ID {app_id}")
             self.clear_application(app_id)
             self._applications.pop(app_id)
@@ -205,6 +238,11 @@ class Handler(ComponentProtocol):
     def assign_processor(
         self, app_id: int, subroutine: Subroutine
     ) -> Generator[EventExpression, None, AppMemory]:
+        """Tell the processor to execute a subroutine and wait for it to finish.
+
+        :param app_id: ID of the application this subroutine is for
+        :param subroutine: the subroutine to execute
+        """
         self._send_processor_msg(subroutine)
         result = yield from self._receive_processor_msg()
         assert result == "subroutine done"
@@ -213,6 +251,7 @@ class Handler(ComponentProtocol):
         return app_mem
 
     def msg_from_host(self, msg: Message) -> None:
+        """Handle a deserialized message from the Host."""
         if isinstance(msg, InitNewAppMessage):
             app_id = self.init_new_app(msg.max_qubits)
             self._send_host_msg(app_id)
@@ -225,16 +264,23 @@ class Handler(ComponentProtocol):
             self.stop_application(msg.app_id)
 
     def run(self) -> Generator[EventExpression, None, None]:
+        """Run this protocol. Automatically called by NetSquid during simulation."""
+
+        # Loop forever acting on messages from the Host.
         while True:
+            # Wait for a new message from the Host.
             raw_host_msg = yield from self._receive_host_msg()
             self._logger.debug(f"received new msg from host: {raw_host_msg}")
-
             msg = deserialize_host_msg(raw_host_msg)
+
+            # Handle the message. This updates the handler's state and may e.g.
+            # add a pending subroutine for an application.
             self.msg_from_host(msg)
 
+            # Get the next application that needs work.
             app = self._next_app()
             if app is not None:
-                # flush all pending subroutines for this app
+                # Flush all pending subroutines for this app.
                 while True:
                     subrt = app.next_subroutine()
                     if subrt is None:
