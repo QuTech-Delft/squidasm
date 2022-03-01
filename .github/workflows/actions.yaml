@@ -3,19 +3,14 @@ name: General check
 on: push
 
 jobs:
-  install-netqasm:
-    name: Install netqasm from source
+  lint:
+    name: Run linter  
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@develop
       with:
         repository: QuTech-Delft/netqasm
-      run: make install
-
-  lint:
-    name: Run linter  
-    runs-on: ubuntu-latest
-    steps:
+    - run: make install
     - uses: actions/checkout@master
     - uses: actions/setup-python@master
       with:
