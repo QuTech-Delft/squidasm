@@ -13,12 +13,12 @@ from netqasm.sdk.qubit import Qubit
 from pydynaa import EventExpression
 from squidasm.run.stack.config import NVQDeviceConfig, StackNetworkConfig
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.common import LogManager, SubroutineAbortedError
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
-# BQC example with a `min_fidelity_all_at_end` constraint on the entangled pairs.
 MAX_TRIES = 1000
+MAX_TRIES_ABORT = 1000
 
 
 class ClientProgram(Program):
@@ -34,6 +34,7 @@ class ClientProgram(Program):
         theta2: float,
         r1: int,
         r2: int,
+        use_fidelity_contraint: bool = False,
     ):
         self._alpha = alpha
         self._beta = beta
@@ -43,6 +44,7 @@ class ClientProgram(Program):
         self._theta2 = theta2
         self._r1 = r1
         self._r2 = r2
+        self._use_fidelity_constraint = use_fidelity_contraint
 
     @property
     def meta(self) -> ProgramMeta:
@@ -57,6 +59,7 @@ class ClientProgram(Program):
                 "theta2": self._theta2,
                 "r1": self._r1,
                 "r2": self._r2,
+                "use_fidelity_constraint": self._use_fidelity_constraint,
             },
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
@@ -86,15 +89,33 @@ class ClientProgram(Program):
                     q.H()
             q.measure(future=outcomes.get_future_index(index))
 
-        epr_socket.create_keep(
-            2,
-            sequential=True,
-            post_routine=post_create,
-            min_fidelity_all_at_end=80,
-            max_tries=MAX_TRIES,
-        )
-
-        yield from conn.flush()
+        if self._use_fidelity_constraint:
+            epr_socket.create_keep(
+                2,
+                sequential=True,
+                post_routine=post_create,
+                min_fidelity_all_at_end=80,
+                max_tries=MAX_TRIES,
+            )
+            yield from conn.flush()
+        else:
+            max_tries = MAX_TRIES_ABORT
+            for count in range(max_tries):
+                try:
+                    epr_socket.create_keep(
+                        2, sequential=True, post_routine=post_create, max_time=10_000
+                    )
+                    yield from conn.flush()
+                except SubroutineAbortedError:
+                    if count == max_tries - 1:
+                        raise RuntimeError(f"failed {max_tries} times, aborting.")
+                    else:
+                        conn.builder._reset()
+                        conn.builder._mem_mgr.inactivate_qubits()
+                        continue  # try again
+                else:  # subroutine successfully executed
+                    print(f"succeeded after {count + 1} times")
+                    break
 
         p1 = int(outcomes.get_future_index(1))
         p2 = int(outcomes.get_future_index(0))
@@ -122,11 +143,14 @@ class ClientProgram(Program):
 class ServerProgram(Program):
     PEER = "client"
 
+    def __init__(self, use_fidelity_contraint: bool = False) -> None:
+        self._use_fidelity_constraint = use_fidelity_contraint
+
     @property
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="server_program",
-            parameters={},
+            parameters={"use_fidelity_constraint": self._use_fidelity_constraint},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=2,
@@ -139,15 +163,31 @@ class ServerProgram(Program):
         epr_socket = context.epr_sockets[self.PEER]
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
-        # Create EPR Pair
-        epr1, epr2 = epr_socket.recv_keep(
-            2,
-            min_fidelity_all_at_end=80,
-            max_tries=MAX_TRIES,
-        )
-        epr2.cphase(epr1)
+        if self._use_fidelity_constraint:
+            epr1, epr2 = epr_socket.recv_keep(
+                2,
+                min_fidelity_all_at_end=80,
+                max_tries=MAX_TRIES,
+            )
+            epr2.cphase(epr1)
 
-        yield from conn.flush()
+            yield from conn.flush()
+        else:
+            max_tries = MAX_TRIES_ABORT
+            for count in range(max_tries):
+                try:
+                    epr1, epr2 = epr_socket.recv_keep(2)
+                    epr2.cphase(epr1)
+                    yield from conn.flush()
+                except SubroutineAbortedError:
+                    if count == max_tries - 1:
+                        raise RuntimeError(f"failed {max_tries} times, aborting.")
+                    else:
+                        conn.builder._reset()
+                        conn.builder._mem_mgr.inactivate_qubits()
+                        continue  # try again
+                else:  # subroutine successfully executed
+                    break
 
         delta1 = yield from csocket.recv_float()
 
@@ -215,6 +255,7 @@ def trap_round(
     theta1: float = 0.0,
     theta2: float = 0.0,
     dummy: int = 1,
+    use_fidelity_constraint: bool = False,
 ) -> None:
     client_program = ClientProgram(
         alpha=alpha,
@@ -225,8 +266,9 @@ def trap_round(
         theta2=theta2,
         r1=0,
         r2=0,
+        use_fidelity_contraint=use_fidelity_constraint,
     )
-    server_program = ServerProgram()
+    server_program = ServerProgram(use_fidelity_contraint=use_fidelity_constraint)
 
     client_results, server_results = run(
         cfg, {"client": client_program, "server": server_program}, num_times=num_times
@@ -248,19 +290,28 @@ def trap_round(
 
 
 if __name__ == "__main__":
-    # num_times = 50
-    # LogManager.set_log_level("WARNING")
+    num_times = 100
+    LogManager.set_log_level("WARNING")
 
-    num_times = 1
-    LogManager.set_log_level("DEBUG")
+    # num_times = 1
+    # LogManager.set_log_level("DEBUG")
 
-    LogManager.log_to_file("dump_bqc_nv_constraint.log")
+    dump_file = os.path.join(os.path.dirname(__file__), "dump_bqc_nv_constraint.log")
+    LogManager.log_to_file(dump_file)
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config_nv.yaml")
     cfg = StackNetworkConfig.from_file(cfg_file)
-    # cfg.stacks[0].qdevice_cfg = NVQDeviceConfig.perfect_config()
-    # cfg.stacks[1].qdevice_cfg = NVQDeviceConfig.perfect_config()
+    cfg.stacks[0].qdevice_cfg = NVQDeviceConfig.perfect_config()
+    cfg.stacks[1].qdevice_cfg = NVQDeviceConfig.perfect_config()
 
     # computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
-    trap_round(cfg=cfg, num_times=num_times, dummy=2)
+
+    use_fidelity_constraint = False
+
+    trap_round(
+        cfg=cfg,
+        num_times=num_times,
+        dummy=2,
+        use_fidelity_constraint=use_fidelity_constraint,
+    )

@@ -4,10 +4,6 @@ qdevice_cfg: &qdevice_cfg
   electron_T2: 1.e+12
   carbon_T1: 10.e+6
   carbon_T2: 10.e+6
-  init_time: 1.e+1
-  single_qubit_gate_time: 1.e+1
-  two_qubit_gate_time: 1.e+1
-  measurement_time: 1.e+1
 
 stacks:
   - name: client
@@ -23,8 +19,7 @@ stacks:
   
 link_cfg: &link_cfg
   fidelity: 0.75
-  # prob_success: 5.e-5  # 1 / 20_000
-  prob_success: 1
+  prob_success: 5.e-5  # 1 / 20_000
   t_cycle: 5.e+3
 
 links:

@@ -53,24 +53,16 @@ class HandlerComponent(Component):
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_handler")
         self._node = node
-        self.add_ports(["proc_out", "proc_in"])
-        self.add_ports(["host_out", "host_in"])
+        self.add_ports(["proc"])
+        self.add_ports(["host"])
 
     @property
-    def processor_in_port(self) -> Port:
-        return self.ports["proc_in"]
+    def processor_port(self) -> Port:
+        return self.ports["proc"]
 
     @property
-    def processor_out_port(self) -> Port:
-        return self.ports["proc_out"]
-
-    @property
-    def host_in_port(self) -> Port:
-        return self.ports["host_in"]
-
-    @property
-    def host_out_port(self) -> Port:
-        return self.ports["host_out"]
+    def host_port(self) -> Port:
+        return self.ports["host"]
 
     @property
     def node(self) -> Node:
@@ -125,11 +117,11 @@ class Handler(ComponentProtocol):
 
         self.add_listener(
             "host",
-            PortListener(self._comp.ports["host_in"], SIGNAL_HOST_HAND_MSG),
+            PortListener(self._comp.ports["host"], SIGNAL_HOST_HAND_MSG),
         )
         self.add_listener(
             "processor",
-            PortListener(self._comp.ports["proc_in"], SIGNAL_PROC_HAND_MSG),
+            PortListener(self._comp.ports["proc"], SIGNAL_PROC_HAND_MSG),
         )
 
         # Number of applications that were handled so far. Used as a unique ID for
@@ -176,13 +168,13 @@ class Handler(ComponentProtocol):
         self._flavour = flavour
 
     def _send_host_msg(self, msg: Any) -> None:
-        self._comp.host_out_port.tx_output(msg)
+        self._comp.host_port.tx_output(msg)
 
     def _receive_host_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("host", SIGNAL_HOST_HAND_MSG))
 
     def _send_processor_msg(self, msg: str) -> None:
-        self._comp.processor_out_port.tx_output(msg)
+        self._comp.processor_port.tx_output(msg)
 
     def _receive_processor_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("processor", SIGNAL_PROC_HAND_MSG))
@@ -208,9 +200,11 @@ class Handler(ComponentProtocol):
         self._logger.debug(f"registered app with ID {app_id}")
         return app_id
 
-    def open_epr_socket(self, app_id: int, socket_id: int, remote_id: int) -> None:
+    def open_epr_socket(
+        self, app_id: int, socket_id: int, remote_id: int, min_fidelity: int = 0
+    ) -> None:
         self._logger.debug(f"Opening EPR socket ({socket_id}, {remote_id})")
-        self.netstack.open_epr_socket(app_id, socket_id, remote_id)
+        self.netstack.open_epr_socket(app_id, socket_id, remote_id, min_fidelity)
 
     def add_subroutine(self, app_id: int, subroutine: Subroutine) -> None:
         self._applications[app_id].add_subroutine(subroutine)
@@ -219,12 +213,16 @@ class Handler(ComponentProtocol):
         # return deser_subroutine(msg.subroutine, flavour=flavour.NVFlavour())
         return deser_subroutine(msg.subroutine, flavour=self._flavour)
 
-    def clear_application(self, app_id: int) -> None:
+    def clear_application(self, app_id: int, remove_app: bool = True) -> None:
         for virt_id, phys_id in self.app_memories[app_id].qubit_mapping.items():
             self.app_memories[app_id].unmap_virt_id(virt_id)
             if phys_id is not None:
                 self.physical_memory.free(phys_id)
-        self.app_memories.pop(app_id)
+                # TODO
+                self.qnos.processor.qdevice.mem_positions[phys_id].in_use = False
+        # TODO comment
+        if remove_app:
+            self.app_memories.pop(app_id)
 
     def stop_application(self, app_id: int) -> None:
         self._logger.debug(f"stopping application with ID {app_id}")
@@ -237,7 +235,7 @@ class Handler(ComponentProtocol):
 
     def assign_processor(
         self, app_id: int, subroutine: Subroutine
-    ) -> Generator[EventExpression, None, AppMemory]:
+    ) -> Generator[EventExpression, None, Optional[AppMemory]]:
         """Tell the processor to execute a subroutine and wait for it to finish.
 
         :param app_id: ID of the application this subroutine is for
@@ -245,10 +243,15 @@ class Handler(ComponentProtocol):
         """
         self._send_processor_msg(subroutine)
         result = yield from self._receive_processor_msg()
-        assert result == "subroutine done"
-        self._logger.debug(f"result: {result}")
-        app_mem = self.app_memories[app_id]
-        return app_mem
+        if result == "subroutine done":
+            self._logger.debug(f"result: {result}")
+            app_mem = self.app_memories[app_id]
+            return app_mem
+        else:
+            # TODO
+            assert result == "timeout"
+            self.clear_application(app_id, remove_app=False)
+            return None  # error
 
     def msg_from_host(self, msg: Message) -> None:
         """Handle a deserialized message from the Host."""
@@ -256,7 +259,9 @@ class Handler(ComponentProtocol):
             app_id = self.init_new_app(msg.max_qubits)
             self._send_host_msg(app_id)
         elif isinstance(msg, OpenEPRSocketMessage):
-            self.open_epr_socket(msg.app_id, msg.epr_socket_id, msg.remote_node_id)
+            self.open_epr_socket(
+                msg.app_id, msg.epr_socket_id, msg.remote_node_id, msg.min_fidelity
+            )
         elif isinstance(msg, SubroutineMessage):
             subroutine = self._deserialize_subroutine(msg)
             self.add_subroutine(subroutine.app_id, subroutine)
@@ -286,4 +291,8 @@ class Handler(ComponentProtocol):
                     if subrt is None:
                         break
                     app_mem = yield from self.assign_processor(app.id, subrt)
-                    self._send_host_msg(app_mem)
+                    # TODO
+                    if app_mem is not None:  # success
+                        self._send_host_msg(app_mem)
+                    else:
+                        self._send_host_msg("abort")

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from netqasm.sdk.transpile import SubroutineTranspiler
     from squidasm.sim.stack.host import Host
 
-from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.common import LogManager, SubroutineAbortedError
 
 from .context import NetSquidNetworkInfo
 
@@ -105,7 +105,11 @@ class QnosConnection(BaseNetQASMConnection):
         )
 
         result = yield from self._host.receive_qnos_msg()
-        self._shared_memory = result
+        # TODO
+        if result == "abort":
+            raise SubroutineAbortedError
+        else:
+            self._shared_memory = result
 
     def flush(
         self, block: bool = True, callback: Optional[Callable] = None

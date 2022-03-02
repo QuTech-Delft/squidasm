@@ -6,7 +6,9 @@ import netsquid as ns
 from netqasm.lang import operand
 from netqasm.lang.encoding import RegisterName
 from netqasm.sdk.shared_memory import Arrays, RegisterGroup, setup_registers
+from netsquid.components.channel import Channel
 from netsquid.components.component import Component, Port
+from netsquid.nodes.connections import DirectConnection
 from netsquid.protocols import Protocol
 
 from pydynaa import EventExpression
@@ -391,3 +393,14 @@ class NVPhysicalQuantumMemory(PhysicalQuantumMemory):
     def __init__(self, qubit_count: int) -> None:
         super().__init__(qubit_count)
         self._comm_qubit_ids: Set[int] = {0}
+
+
+class DelayedClassicalConnection(DirectConnection):
+    def __init__(self, name: str, delay: float) -> None:
+        chan1 = Channel(f"chan_1_{name}", delay=delay)
+        chan2 = Channel(f"chan_2_{name}", delay=delay)
+        super().__init__(name, channel_AtoB=chan1, channel_BtoA=chan2)
+
+
+class SubroutineAbortedError(RuntimeError):
+    pass
