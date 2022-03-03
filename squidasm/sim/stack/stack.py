@@ -204,7 +204,7 @@ class NodeStack(Protocol):
 
 
 class StackNetwork(Network):
-    """A network of `NodeStack`s connected by links, which are 
+    """A network of `NodeStack`s connected by links, which are
     `MagicLinkLayerProtocol`s."""
 
     def __init__(

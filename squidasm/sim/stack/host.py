@@ -178,7 +178,7 @@ class Host(ComponentProtocol):
 
     def enqueue_program(self, program: Program, num_times: int = 1):
         """Queue a program to be run the given number of times.
-        
+
         NOTE: At the moment, only a single program can be queued at a time."""
         self._program = program
         self._num_pending = num_times
