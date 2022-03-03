@@ -4,7 +4,7 @@ import os
 from typing import Any, Dict, Generator, List
 
 import netsquid as ns
-from netqasm.lang.ir import BreakpointAction, BreakpointRole
+from netqasm.lang.ir import BreakpointAction
 from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.toolbox import set_qubit_state
 from netsquid.qubits import operators, qubitapi
