@@ -309,9 +309,13 @@ if __name__ == "__main__":
 
     use_fidelity_constraint = False
 
+    start = ns.sim_time()
+
     trap_round(
         cfg=cfg,
         num_times=num_times,
         dummy=2,
         use_fidelity_constraint=use_fidelity_constraint,
     )
+
+    print(f"simulated time: {ns.sim_time() - start}")
