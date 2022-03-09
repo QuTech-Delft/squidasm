@@ -327,7 +327,7 @@ class Netstack(ComponentProtocol):
         # Magic link layer protocol does not allow timeouts at this moment,
         # so we handle them manually below.
         max_time = request.max_time  # save original value
-        print(f"request.max_time: {request.max_time}")
+        # print(f"request.max_time: {request.max_time}")
         if request.max_time is not None:
             request.max_time = 0
 
@@ -390,17 +390,18 @@ class Netstack(ComponentProtocol):
             )
 
             gen_duration_ns_float = ns.sim_time() - start_time
+            # self._logger.warning(f"gen duration (ns): {gen_duration_ns_float}")
             gen_duration_us_int = int(gen_duration_ns_float / 1000)
-            self._logger.info(f"gen duration (us): {gen_duration_us_int}")
+            self._logger.warning(f"gen duration (us): {gen_duration_us_int}")
             # TODO comment
             self._send_peer_msg(gen_duration_us_int)
             self._send_peer_msg(max_time)
 
             timeout = False
 
-            self._logger.info(f"max_time = {request.max_time}")
+            self._logger.info(f"max_time = {max_time}")
             if max_time != 0 and gen_duration_us_int > max_time:
-                self._logger.warning(
+                self._logger.info(
                     f"EPR generation took {gen_duration_us_int} us "
                     f"but max time was {max_time} us"
                 )
@@ -631,7 +632,7 @@ class Netstack(ComponentProtocol):
             timeout = False
 
             if max_time != 0 and gen_duration_us_int > max_time:
-                self._logger.warning(
+                self._logger.info(
                     f"EPR generation took {gen_duration_us_int} us "
                     f"but max time was {max_time} us"
                 )

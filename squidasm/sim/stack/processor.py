@@ -531,6 +531,7 @@ class Processor(ComponentProtocol, Entity):
         self, app_id: int, instr: core.CreateEPRInstruction
     ) -> None:
         # self._logger.warning("create_epr")
+        GlobalSimData.record_custom_event("EPR attempt")
         app_mem = self.app_memories[app_id]
         remote_node_id = app_mem.get_reg_value(instr.remote_node_id)
         epr_socket_id = app_mem.get_reg_value(instr.epr_socket_id)

@@ -27,8 +27,8 @@ link_cfg: &link_cfg
   fidelity: 1
   # prob_success: 5.e-5  # 1 / 20_000
   # prob_success: 2.e-4  # 1 / 5_000
-  prob_success: 1
-  # prob_success: 0.0005
+  # prob_success: 1
+  prob_success: 0.0005
   t_cycle: 5.e+3
 
 links:
