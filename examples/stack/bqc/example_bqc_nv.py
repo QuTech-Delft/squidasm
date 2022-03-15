@@ -238,9 +238,6 @@ if __name__ == "__main__":
     num_times = 100
     LogManager.set_log_level("WARNING")
 
-    # num_times = 1
-    # LogManager.set_log_level("INFO")
-
     LogManager.log_to_file("example_bqc_nv.log")
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
