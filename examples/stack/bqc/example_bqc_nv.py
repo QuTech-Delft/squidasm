@@ -4,10 +4,14 @@ import math
 import os
 from typing import Any, Dict, Generator
 
+import netsquid as ns
 from netqasm.lang.ir import BreakpointAction
+from netqasm.sdk.connection import BaseNetQASMConnection
+from netqasm.sdk.futures import Future, RegFuture
+from netqasm.sdk.qubit import Qubit
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import StackNetworkConfig
+from squidasm.run.stack.config import NVQDeviceConfig, StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
@@ -63,34 +67,28 @@ class ClientProgram(Program):
         epr_socket = context.epr_sockets[self.PEER]
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
-        # Create EPR pair
-        epr1 = epr_socket.create_keep()[0]
+        p1: Future
+        p2: Future
+        outcomes = conn.new_array(length=2)
 
-        # RSP
-        if self._trap and self._dummy == 2:
-            # remotely-prepare a dummy state
-            p2 = epr1.measure(store_array=False)
-        else:
-            epr1.rot_Z(angle=self._theta2)
-            epr1.H()
-            p2 = epr1.measure(store_array=False)
+        def post_create(_: BaseNetQASMConnection, q: Qubit, index: RegFuture):
+            with index.if_eq(0):
+                if not (self._trap and self._dummy == 2):
+                    q.rot_Z(angle=self._theta2)
+                    q.H()
 
-        # Create EPR pair
-        epr2 = epr_socket.create_keep()[0]
+            with index.if_eq(1):
+                if not (self._trap and self._dummy == 1):
+                    q.rot_Z(angle=self._theta1)
+                    q.H()
+            q.measure(future=outcomes.get_future_index(index))
 
-        # RSP
-        if self._trap and self._dummy == 1:
-            # remotely-prepare a dummy state
-            p1 = epr2.measure(store_array=False)
-        else:
-            epr2.rot_Z(angle=self._theta1)
-            epr2.H()
-            p1 = epr2.measure(store_array=False)
+        epr_socket.create_keep(2, sequential=True, post_routine=post_create)
 
         yield from conn.flush()
 
-        p1 = int(p1)
-        p2 = int(p2)
+        p1 = int(outcomes.get_future_index(1))
+        p2 = int(outcomes.get_future_index(0))
 
         if self._trap and self._dummy == 2:
             delta1 = -self._theta1 + (p1 + self._r1) * math.pi
@@ -133,8 +131,7 @@ class ServerProgram(Program):
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
         # Create EPR Pair
-        epr1 = epr_socket.recv_keep()[0]
-        epr2 = epr_socket.recv_keep()[0]
+        epr1, epr2 = epr_socket.recv_keep(2)
         epr2.cphase(epr1)
 
         yield from conn.flush()
@@ -238,13 +235,16 @@ def trap_round(
 
 
 if __name__ == "__main__":
-    num_times = 1
+    num_times = 100
     LogManager.set_log_level("WARNING")
-    LogManager.log_to_file("example_bqc.log")
-    # ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
-    cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")
+    LogManager.log_to_file("example_bqc_nv.log")
+    ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
+
+    cfg_file = os.path.join(os.path.dirname(__file__), "config_nv.yaml")
     cfg = StackNetworkConfig.from_file(cfg_file)
+    cfg.stacks[0].qdevice_cfg = NVQDeviceConfig.perfect_config()
+    cfg.stacks[1].qdevice_cfg = NVQDeviceConfig.perfect_config()
 
-    computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
-    trap_round(cfg, num_times, dummy=1)
+    # computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
+    trap_round(cfg=cfg, num_times=num_times, dummy=2)

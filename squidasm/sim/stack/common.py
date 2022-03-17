@@ -354,6 +354,7 @@ class PhysicalQuantumMemory:
         return len(self._comm_qubit_ids)
 
     def allocate(self) -> int:
+        """Allocate a qubit (communcation or memory)."""
         for i in range(self._qubit_count):
             if i not in self._allocated_ids:
                 self._allocated_ids.add(i)
@@ -361,11 +362,20 @@ class PhysicalQuantumMemory:
         raise AllocError("No more qubits available")
 
     def allocate_comm(self) -> int:
+        """Allocate a communication qubit."""
         for i in range(self._qubit_count):
             if i not in self._allocated_ids and i in self._comm_qubit_ids:
                 self._allocated_ids.add(i)
                 return i
         raise AllocError("No more comm qubits available")
+
+    def allocate_mem(self) -> int:
+        """Allocate a memory qubit."""
+        for i in range(self._qubit_count):
+            if i not in self._allocated_ids and i not in self._comm_qubit_ids:
+                self._allocated_ids.add(i)
+                return i
+        raise AllocError("No more mem qubits available")
 
     def free(self, id: int) -> None:
         self._allocated_ids.remove(id)

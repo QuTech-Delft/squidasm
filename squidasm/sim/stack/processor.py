@@ -52,6 +52,19 @@ PI_OVER_2 = math.pi / 2
 
 
 class ProcessorComponent(Component):
+    """NetSquid component representing a QNodeOS processor.
+
+    Subcomponent of a QnosComponent.
+
+    Has communications ports with
+     - the netstack component of this QNodeOS
+     - the handler compmonent of this QNodeOS
+
+    This is a static container for processor-related component and ports.
+    Behavior of a QNodeOS processor is modeled in the `Processor` class,
+    which is a subclass of `Protocol`.
+    """
+
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_processor")
         self._node = node
@@ -84,6 +97,8 @@ class ProcessorComponent(Component):
 
 
 class Processor(ComponentProtocol):
+    """NetSquid protocol representing a QNodeOS processor."""
+
     def __init__(self, comp: ProcessorComponent, qnos: Qnos) -> None:
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
@@ -256,7 +271,15 @@ class Processor(ComponentProtocol):
         self.app_memories[app_id].set_reg_value(instr.reg, instr.imm.value)
 
     def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
-        raise NotImplementedError
+        app_mem = self.app_memories[app_id]
+
+        virt_id = app_mem.get_reg_value(instr.reg)
+        if virt_id is None:
+            raise RuntimeError(f"qubit address in register {instr.reg} is not defined")
+        self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
+
+        phys_id = self.physical_memory.allocate()
+        app_mem.map_virt_id(virt_id, phys_id)
 
     def _interpret_qfree(self, app_id: int, instr: core.QFreeInstruction) -> None:
         app_mem = self.app_memories[app_id]
@@ -454,7 +477,6 @@ class Processor(ComponentProtocol):
             f"{virt_id0} and {virt_id1} (physical IDs: {phys_id0} and {phys_id1})"
         )
         prog = QuantumProgram()
-        # self._logger.warning(f"applying {ns_instr}")
         prog.apply(ns_instr, qubit_indices=[phys_id0, phys_id1], angle=angle)
         yield self.qdevice.execute_program(prog)
 
@@ -586,17 +608,6 @@ class Processor(ComponentProtocol):
 
 
 class GenericProcessor(Processor):
-    def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
-        app_mem = self.app_memories[app_id]
-
-        virt_id = app_mem.get_reg_value(instr.reg)
-        if virt_id is None:
-            raise RuntimeError(f"qubit address in register {instr.reg} is not defined")
-        self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
-
-        phys_id = self.physical_memory.allocate()
-        app_mem.map_virt_id(virt_id, phys_id)
-
     def _interpret_init(
         self, app_id: int, instr: core.InitInstruction
     ) -> Generator[EventExpression, None, None]:
@@ -700,7 +711,11 @@ class NVProcessor(Processor):
             raise RuntimeError(f"qubit address in register {instr.reg} is not defined")
         self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
 
-        phys_id = self.physical_memory.allocate()
+        # Virtual ID > 0 corresponds to memory qubits
+        if virt_id > 0:
+            phys_id = self.physical_memory.allocate_mem()
+        else:
+            phys_id = self.physical_memory.allocate_comm()
         app_mem.map_virt_id(virt_id, phys_id)
 
     def _interpret_init(

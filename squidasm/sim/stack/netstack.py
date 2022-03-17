@@ -4,6 +4,7 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, Generator, List, Optional
 
+import netsquid as ns
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Component, Port
 from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z
@@ -191,9 +192,15 @@ class Netstack(ComponentProtocol):
         peer_msg = yield from self._receive_peer_msg()
         self._logger.debug(f"received peer msg: {peer_msg}")
 
+        app_mem = self.app_memories[req.app_id]
+        qubit_ids = app_mem.get_array(req.qubit_array_addr)
+
         self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
+        self._logger.info(f"qubit IDs specified by application: {qubit_ids}")
         self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
         request.number = 1
+
+        start_time = ns.sim_time()
 
         for pair_index in range(num_pairs):
             self._logger.info(f"trying to allocate comm qubit for pair {pair_index}")
@@ -237,15 +244,19 @@ class Netstack(ComponentProtocol):
                 prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
                 yield self.qdevice.execute_program(prog)
 
-            app_mem = self.app_memories[req.app_id]
             virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
             app_mem.map_virt_id(virt_id, phys_id)
             self._logger.info(
                 f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
             )
 
+            gen_duration_ns_float = ns.sim_time() - start_time
+            gen_duration_us_int = int(gen_duration_ns_float / 1000)
+            self._logger.info(f"gen duration (us): {gen_duration_us_int}")
             for i in range(10):
                 value = -1
+                if i == 7:
+                    value = gen_duration_us_int
                 if i == 9:
                     value = result.bell_state
                 arr_index = 10 * pair_index + i
@@ -315,6 +326,8 @@ class Netstack(ComponentProtocol):
         self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
         request.number = 1
 
+        start_time = ns.sim_time()
+
         for pair_index in range(num_pairs):
             self._logger.info(f"trying to allocate comm qubit for pair {pair_index}")
             while True:
@@ -348,8 +361,13 @@ class Netstack(ComponentProtocol):
                 f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
             )
 
+            gen_duration_ns_float = ns.sim_time() - start_time
+            gen_duration_us_int = int(gen_duration_ns_float / 1000)
+            self._logger.info(f"gen duration (us): {gen_duration_us_int}")
             for i in range(10):
                 value = -1
+                if i == 7:
+                    value = gen_duration_us_int
                 if i == 9:
                     value = result.bell_state.value
                 arr_index = 10 * pair_index + i

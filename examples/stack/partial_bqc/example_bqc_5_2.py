@@ -12,6 +12,7 @@ from squidasm.run.stack.config import (
     StackNetworkConfig,
 )
 from squidasm.run.stack.run import run
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -95,6 +96,8 @@ class ServerProgram(Program):
 
 
 if __name__ == "__main__":
+    LogManager.log_to_file("example_bqc_5_2.log")
+
     client_stack = StackConfig(
         name="client",
         qdevice_typ="generic",

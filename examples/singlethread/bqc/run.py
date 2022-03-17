@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 from netqasm.logging.glob import set_log_level
@@ -17,7 +18,8 @@ def main():
     network_cfg = default_network_config(
         ["server", "client"], hardware=QuantumHardware.NV
     )  # NOTE the order in which node names are given determines their node IDs
-    nv_cfg = nv_cfg_from_file("examples/singlethread/bqc/nv.yaml")
+    cfg_file = os.path.join(os.path.dirname(__file__), "nv.yaml")
+    nv_cfg = nv_cfg_from_file(cfg_file)
     network = NetSquidNetwork(network_cfg, nv_cfg)
 
     NetSquidContext.set_nodes({0: "server", 1: "client"})
