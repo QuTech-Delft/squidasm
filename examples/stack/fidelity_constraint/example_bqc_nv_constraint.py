@@ -17,6 +17,8 @@ from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
+# BQC example with a `min_fidelity_all_at_end` constraint on the entangled pairs.
+
 
 class ClientProgram(Program):
     PEER = "server"
@@ -243,9 +245,6 @@ def trap_round(
 if __name__ == "__main__":
     num_times = 50
     LogManager.set_log_level("WARNING")
-
-    # num_times = 1
-    # LogManager.set_log_level("INFO")
 
     LogManager.log_to_file("dump_bqc_nv_constraint.log")
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)

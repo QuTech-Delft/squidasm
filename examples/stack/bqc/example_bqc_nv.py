@@ -17,6 +17,7 @@ from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
+# BQC application run on NV hardware.
 
 class ClientProgram(Program):
     PEER = "server"

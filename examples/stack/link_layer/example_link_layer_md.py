@@ -7,6 +7,8 @@ from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
+# Example of two nodes creating and directly measuring EPR pairs.
+
 
 class ClientProgram(Program):
     PEER = "server"
@@ -73,7 +75,6 @@ class ServerProgram(Program):
 
 
 if __name__ == "__main__":
-    # LogManager.set_log_level("WARNING")
     LogManager.set_log_level("DEBUG")
 
     num_times = 1

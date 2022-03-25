@@ -13,6 +13,9 @@ from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
+# Example Blind Quantum Computation application.
+# See the README.md for the computation that is performed.
+
 
 class ClientProgram(Program):
     PEER = "server"
