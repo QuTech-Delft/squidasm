@@ -42,6 +42,7 @@ class DepolariseWithFailureAnyBellStateSamplerFactory(
     HeraldedStateDeliverySamplerFactory
 ):
     """State sampler that samples any of the 4 Bell states with equal probablity."""
+
     def __init__(self):
         super().__init__(func_delivery=self._delivery_func)
 
