@@ -41,6 +41,7 @@ from squidasm.sim.stack.stack import NodeStack, StackNetwork
 class DepolariseWithFailureAnyBellStateSamplerFactory(
     HeraldedStateDeliverySamplerFactory
 ):
+    """State sampler that samples any of the 4 Bell states with equal probablity."""
     def __init__(self):
         super().__init__(func_delivery=self._delivery_func)
 
@@ -86,6 +87,8 @@ class DepolariseWithFailureAnyBellStateSamplerFactory(
 
 
 class DepolariseWithFailureAnyBellMagicDistributor(MagicDistributor):
+    """Distributor that creates any of the 4 Bell states with equal probablity."""
+
     def __init__(self, nodes, prob_max_mixed, prob_success, **kwargs):
         self.prob_max_mixed = prob_max_mixed
         self.prob_success = prob_success
