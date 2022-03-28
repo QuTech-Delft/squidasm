@@ -6,3 +6,5 @@ SIGNAL_PROC_HAND_MSG = "EvProcHandMsg"
 SIGNAL_PROC_NSTK_MSG = "EvProcNstkMsg"
 SIGNAL_NSTK_PROC_MSG = "EvNstkProcMsg"
 SIGNAL_PEER_NSTK_MSG = "EvPeerNstkMsg"
+
+SIGNAL_MEMORY_FREED = "EvMemoryFreed"

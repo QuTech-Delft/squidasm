@@ -119,15 +119,25 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
 
 
 def _run(network: StackNetwork) -> List[Dict[str, Any]]:
+    """Run the protocols of a network and programs running in that network.
+
+    NOTE: For now, only two nodes and a single link are supported.
+
+    :param network: `StackNetwork` representing the nodes and links
+    :return: final results of the programs
+    """
     assert len(network.stacks) <= 2
     assert len(network.links) <= 1
 
+    # Start the link protocols.
     for link in network.links:
         link.start()
 
+    # Start the node protocols.
     for _, stack in network.stacks.items():
         stack.start()
 
+    # Start the NetSquid simulation.
     ns.sim_run()
 
     return [stack.host.get_results() for _, stack in network.stacks.items()]
@@ -136,6 +146,13 @@ def _run(network: StackNetwork) -> List[Dict[str, Any]]:
 def run(
     config: StackNetworkConfig, programs: Dict[str, Program], num_times: int = 1
 ) -> List[Dict[str, Any]]:
+    """Run programs on a network specified by a network configuration.
+
+    :param config: configuration of the network
+    :param programs: dictionary of node names to programs
+    :param num_times: numbers of times to run the programs, defaults to 1
+    :return: program results
+    """
     network = _setup_network(config)
 
     NetSquidContext.set_nodes({})

@@ -17,12 +17,31 @@ from squidasm.sim.stack.qnos import Qnos, QnosComponent
 
 
 class ProcessingNode(Node):
+    """NetSquid component representing a quantum network node containing a software
+    stack consisting of Host, QNodeOS and QDevice.
+
+    This component has two subcomponents: a QnosComponent and a HostComponent.
+
+    Has communications ports between
+     - the Host component on this node and the Host component on the peer node
+     - the QNodeOS component on this node and the QNodeOS component on the peer node
+
+    For now, it is assumed there is only a single other nodes in the network,
+    which is "the" peer.
+
+    This is a static container for components and ports.
+    Behavior of the node is modeled in the `NodeStack` class, which is a subclass
+    of `Protocol`.
+    """
+
     def __init__(
         self,
         name: str,
         qdevice: QuantumProcessor,
         node_id: Optional[int] = None,
     ) -> None:
+        """ProcessingNode constructor. Typically created indirectly through
+        constructing a `NodeStack`."""
         super().__init__(name, ID=node_id)
         self.qmemory = qdevice
 
@@ -74,6 +93,13 @@ class ProcessingNode(Node):
 
 
 class NodeStack(Protocol):
+    """NetSquid protocol representing a node with a software stack.
+
+    The software stack consists of a Host, QNodeOS and a QDevice.
+    The Host and QNodeOS are each represented by separate subprotocols.
+    The QDevice is handled/modeled as part of the QNodeOS protocol.
+    """
+
     def __init__(
         self,
         name: str,
@@ -83,6 +109,21 @@ class NodeStack(Protocol):
         node_id: Optional[int] = None,
         use_default_components: bool = True,
     ) -> None:
+        """NodeStack constructor.
+
+        :param name: name of this node
+        :param node: an existing ProcessingNode object containing the static
+            components or None. If None, a ProcessingNode is automatically
+            created.
+        :param qdevice_type: hardware type of the QDevice, defaults to "generic"
+        :param qdevice: NetSquid `QuantumProcessor` representing the QDevice,
+            defaults to None. If None, a QuantumProcessor is created
+            automatically.
+        :param node_id: ID to use for the internal NetSquid node object
+        :param use_default_components: whether to automatically create NetSquid
+            components for the Host and QNodeOS, defaults to True. If False,
+            this allows for manually creating and adding these components.
+        """
         super().__init__(name=f"{name}")
         if node:
             self._node = node
@@ -90,17 +131,21 @@ class NodeStack(Protocol):
             assert qdevice is not None
             self._node = ProcessingNode(name, qdevice, node_id)
 
-        self._host: Optional[Host]
-        self._qnos: Optional[Qnos]
+        self._host: Optional[Host] = None
+        self._qnos: Optional[Qnos] = None
 
+        # Create internal components.
+        # If `use_default_components` is False, these components must be manually
+        # created and added to this NodeStack.
         if use_default_components:
             self._host = Host(self.host_comp, qdevice_type)
             self._qnos = Qnos(self.qnos_comp, qdevice_type)
-        else:
-            self._host = None
-            self._qnos = None
 
     def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
+        """Set the link layer protocol to use for entanglement generation.
+
+        The same link layer protocol object is used by both nodes sharing a link in
+        the network."""
         self.qnos.assign_ll_protocol(prot)
 
     @property
@@ -136,6 +181,8 @@ class NodeStack(Protocol):
         self._qnos = qnos
 
     def connect_to(self, other: NodeStack) -> None:
+        """Create connections between ports of this NodeStack and those of
+        another NodeStack."""
         self.node.host_peer_out_port.connect(other.node.host_peer_in_port)
         self.node.host_peer_in_port.connect(other.node.host_peer_out_port)
         self.node.qnos_peer_out_port.connect(other.node.qnos_peer_in_port)
@@ -157,9 +204,19 @@ class NodeStack(Protocol):
 
 
 class StackNetwork(Network):
+    """A network of `NodeStack`s connected by links, which are
+    `MagicLinkLayerProtocol`s."""
+
     def __init__(
         self, stacks: Dict[str, NodeStack], links: List[MagicLinkLayerProtocol]
     ) -> None:
+        """StackNetwork constructor.
+
+        :param stacks: dictionary of node name to `NodeStack` object representing
+        that node
+        :param links: list of link layer protocol objects. Each object internally
+        contains the IDs of the two nodes that this link connects
+        """
         self._stacks = stacks
         self._links = links
 

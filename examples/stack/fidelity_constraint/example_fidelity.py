@@ -12,6 +12,8 @@ from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
+# Example of using a `min_fidelity_all_at_end` constraint on the entangled pairs.
+
 
 class ClientProgram(Program):
     PEER = "server"

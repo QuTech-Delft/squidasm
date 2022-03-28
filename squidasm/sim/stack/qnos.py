@@ -27,6 +27,15 @@ NUM_QUBITS = 5
 
 
 class QnosComponent(Component):
+    """NetSquid component representing a QNodeOS instance.
+
+    Subcomponent of a ProcessingNode.
+
+    This is a static container for QNodeOS-related components and ports.
+    Behavior of a QNodeOS instance is modeled in the `Qnos` class,
+    which is a subclass of `Protocol`.
+    """
+
     def __init__(self, node: Node) -> None:
         super().__init__(name=f"{node.name}_qnos")
         self._node = node
@@ -104,10 +113,18 @@ class QnosComponent(Component):
 
 
 class Qnos(Protocol):
+    """NetSquid protocol representing a QNodeOS instance."""
+
     def __init__(self, comp: QnosComponent, qdevice_type: Optional[str] = "nv") -> None:
+        """Qnos protocol constructor.
+
+        :param comp: NetSquid component representing the QNodeOS instance
+        :param qdevice_type: hardware type of the QDevice of this node
+        """
         super().__init__(name=f"{comp.name}_protocol")
         self._comp = comp
 
+        # Create internal protocols.
         self.handler = Handler(comp.handler_comp, self, qdevice_type)
         self.netstack = Netstack(comp.netstack_comp, self)
         if qdevice_type == "generic":
@@ -119,7 +136,9 @@ class Qnos(Protocol):
         else:
             raise ValueError
 
-        self._app_memories: Dict[int, AppMemory] = {}
+        # Classical memories that are shared (virtually) with the Host.
+        # Each application has its own `AppMemory`, identified by the application ID.
+        self._app_memories: Dict[int, AppMemory] = {}  # app ID -> app memory
 
     # TODO: move this to a separate memory manager object
     def get_virt_qubit_for_phys_id(self, phys_id: int) -> Tuple[int, int]:

@@ -78,25 +78,25 @@ class PortListener(Protocol):
 
     def run(self) -> Generator[EventExpression, None, None]:
         while True:
-            # wait for an event saying that there is new input
+            # Wait for an event saying that there is new input.
             yield self.await_port_input(self._port)
 
             counter = 0
-            # read all inputs and count them
+            # Read all inputs and count them.
             while True:
                 input = self._port.rx_input()
                 if input is None:
                     break
                 self._buffer += input.items
                 counter += 1
-            # if there are n inputs, there have been n events, but we yielded only
+            # If there are n inputs, there have been n events, but we yielded only
             # on one of them so far. "Flush" these n-1 additional events:
             while counter > 1:
                 yield self.await_port_input(self._port)
                 counter -= 1
 
-            # only after having yielded on all current events, we can schedule a
-            # notification event, so that its reactor can handle all inputs at once
+            # Only after having yielded on all current events, we can schedule a
+            # notification event, so that its reactor can handle all inputs at once.
             self.send_signal(self._signal_label)
 
 
