@@ -530,7 +530,6 @@ class Netstack(ComponentProtocol):
 
         self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
         self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
-        request.number = 1
 
         start_time = ns.sim_time()
 
