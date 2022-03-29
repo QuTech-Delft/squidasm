@@ -4,7 +4,7 @@ import math
 import os
 from typing import Any, Dict, Generator
 
-from netqasm.lang.operand import Immediate, Template
+from netqasm.lang.operand import Template
 from netqasm.sdk.toolbox.state_prep import get_angle_spec_from_float
 
 from pydynaa import EventExpression
