@@ -2,7 +2,7 @@ import os
 from math import pi
 from typing import Any, Dict, Generator
 
-from netqasm.lang.parsing.text import parse_text_presubroutine
+from netqasm.lang.parsing.text import parse_text_protosubroutine
 from netqasm.sdk import Qubit
 from netqasm.sdk.futures import Array
 
@@ -20,12 +20,12 @@ from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 client_subrt_path = os.path.join(os.path.dirname(__file__), "client.nqasm")
 with open(client_subrt_path) as f:
     client_subrt_text = f.read()
-CLIENT_SUBRT = parse_text_presubroutine(client_subrt_text)
+CLIENT_SUBRT = parse_text_protosubroutine(client_subrt_text)
 
 server_subrt_path = os.path.join(os.path.dirname(__file__), "server.nqasm")
 with open(server_subrt_path) as f:
     server_subrt_text = f.read()
-SERVER_SUBRT = parse_text_presubroutine(server_subrt_text)
+SERVER_SUBRT = parse_text_protosubroutine(server_subrt_text)
 
 MIN_FIDELITY_LIST = [60, 65]
 
@@ -109,7 +109,7 @@ class ClientProgram(FidelityVsRateProgram):
         self, context: ProgramContext
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
         if USE_CUSTOM_SUBROUTINES:
-            yield from context.connection.commit_subroutine(CLIENT_SUBRT)
+            yield from context.connection.commit_protosubroutine(CLIENT_SUBRT)
             return {
                 "fidelity 60": context.connection.shared_memory.get_array(0),
                 "fidelity 65": context.connection.shared_memory.get_array(1),
@@ -156,7 +156,7 @@ class ServerProgram(FidelityVsRateProgram):
         self, context: ProgramContext
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
         if USE_CUSTOM_SUBROUTINES:
-            yield from context.connection.commit_subroutine(SERVER_SUBRT)
+            yield from context.connection.commit_protosubroutine(SERVER_SUBRT)
             return {
                 "fidelity 60": context.connection.shared_memory.get_array(0),
                 "fidelity 65": context.connection.shared_memory.get_array(1),

@@ -1,7 +1,7 @@
 import math
 
 from netqasm.sdk import EPRSocket
-from netqasm.sdk.compiling import NVSubroutineCompiler
+from netqasm.sdk.transpile import NVSubroutineTranspiler
 from netqasm.sdk.connection import DebugConnection
 from netqasm.sdk.external import NetQASMConnection, Socket
 
@@ -44,7 +44,7 @@ def main(
         "app_name": "client",
         "log_config": None,
         "epr_sockets": [epr_socket],
-        "compiler": NVSubroutineCompiler,
+        "compiler": NVSubroutineTranspiler,
         "return_arrays": False,
     }
 

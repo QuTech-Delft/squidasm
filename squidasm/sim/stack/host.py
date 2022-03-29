@@ -7,7 +7,7 @@ from netqasm.backend.messages import (
     OpenEPRSocketMessage,
     StopAppMessage,
 )
-from netqasm.sdk.compiling import NVSubroutineCompiler, SubroutineCompiler
+from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
 from netqasm.sdk.epr_socket import EPRSocket
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
@@ -74,9 +74,11 @@ class Host(ComponentProtocol):
         )
 
         if qdevice_type == "nv":
-            self._compiler: Optional[Type[SubroutineCompiler]] = NVSubroutineCompiler
+            self._compiler: Optional[
+                Type[SubroutineTranspiler]
+            ] = NVSubroutineTranspiler
         elif qdevice_type == "generic":
-            self._compiler: Optional[Type[SubroutineCompiler]] = None
+            self._compiler: Optional[Type[SubroutineTranspiler]] = None
         else:
             raise ValueError
 
@@ -90,11 +92,11 @@ class Host(ComponentProtocol):
         self._program_results: List[Dict[str, Any]] = []
 
     @property
-    def compiler(self) -> Optional[Type[SubroutineCompiler]]:
+    def compiler(self) -> Optional[Type[SubroutineTranspiler]]:
         return self._compiler
 
     @compiler.setter
-    def compiler(self, typ: Optional[Type[SubroutineCompiler]]) -> None:
+    def compiler(self, typ: Optional[Type[SubroutineTranspiler]]) -> None:
         self._compiler = typ
 
     def send_qnos_msg(self, msg: bytes) -> None:

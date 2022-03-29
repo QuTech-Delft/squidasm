@@ -174,8 +174,8 @@ class Processor(ComponentProtocol):
         assert app_id in self.app_memories
         app_mem = self.app_memories[app_id]
         app_mem.set_prog_counter(0)
-        while app_mem.prog_counter < len(subroutine.commands):
-            instr = subroutine.commands[app_mem.prog_counter]
+        while app_mem.prog_counter < len(subroutine.instructions):
+            instr = subroutine.instructions[app_mem.prog_counter]
             self._logger.debug(
                 f"{ns.sim_time()} interpreting instruction {instr} at line {app_mem.prog_counter}"
             )
