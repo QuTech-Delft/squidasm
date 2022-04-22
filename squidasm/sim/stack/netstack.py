@@ -336,6 +336,7 @@ class Netstack(ComponentProtocol):
                 ResCreateAndKeep.__name__, receiver=self
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
+            self._logger.info(f"bell state: {result.bell_state}")
 
             # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
             if result.bell_state == BellIndex.B00:

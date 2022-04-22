@@ -40,7 +40,7 @@ class GlobalSimData:
                     [q] = qdevice.peek(i, skip_noise=True)
                     qubits[name][i] = q
                     if save:
-                        states[name][i] = qubitapi.reduced_dm(q)
+                        states[name][i] = q.qstate.qrepr.reduced_dm()
         if save:
             cls._BREAKPOINT_STATES.append(states)
         return qubits
