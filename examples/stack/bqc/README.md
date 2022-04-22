@@ -11,6 +11,7 @@ git clone https://github.com/QuTech-Delft/netqasm
 cd netqasm
 git checkout qne-hardware
 make install
+cd ..
 ```
 
 Then, clone the squidasm repostitory and checkout the `qne-hardware` branch:
