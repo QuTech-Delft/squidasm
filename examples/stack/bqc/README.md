@@ -4,10 +4,13 @@ To run the code, a specific version of the `netqasm` and `squidasm` packages are
 To install NetSquid, an account is needed. See the NetSquid website how this is done.
 
 ### Installation
-First install `netqasm` version 0.9.1:
+First install the `qne-hardware` branch of `netqasm`:
 
 ```
-pip install netqasm==0.9.1
+git clone https://github.com/QuTech-Delft/netqasm
+cd netqasm
+git checkout qne-hardware
+make install
 ```
 
 Then, clone the squidasm repostitory and checkout the `qne-hardware` branch:

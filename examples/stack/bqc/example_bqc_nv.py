@@ -244,8 +244,6 @@ if __name__ == "__main__":
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config_nv.yaml")
     cfg = StackNetworkConfig.from_file(cfg_file)
-    cfg.stacks[0].qdevice_cfg = NVQDeviceConfig.perfect_config()
-    cfg.stacks[1].qdevice_cfg = NVQDeviceConfig.perfect_config()
 
     # computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
     trap_round(cfg=cfg, num_times=num_times, dummy=2)
