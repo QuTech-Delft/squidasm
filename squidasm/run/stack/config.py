@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, Dict, List, Optional
 
 import yaml
 from pydantic import BaseModel
@@ -79,9 +79,9 @@ class NVQDeviceConfig(BaseModel):
     carbon_rot_y: int = 500_000
     carbon_rot_z: int = 500_000
     electron_init: int = 2_000
-    electron_rot_x: int = 5
-    electron_rot_y: int = 5
-    electron_rot_z: int = 5
+    electron_rot_x: int = 5_000
+    electron_rot_y: int = 5_000
+    electron_rot_z: int = 5_000
     ec_controlled_dir_x: int = 500_000
     ec_controlled_dir_y: int = 500_000
     measure: int = 3_700
@@ -133,17 +133,46 @@ class DepolariseLinkConfig(BaseModel):
     def from_file(cls, path: str) -> DepolariseLinkConfig:
         return _from_file(path, DepolariseLinkConfig)  # type: ignore
 
+    @classmethod
+    def perfect_config(cls) -> DepolariseLinkConfig:
+        return DepolariseLinkConfig(fidelity=1, prob_success=1, t_cycle=1e1)
+
 
 class NVLinkConfig(BaseModel):
+    cycle_time: float
+    alpha_A: float
+    alpha_B: float
     length_A: float
     length_B: float
-    full_cycle: float
-    cycle_time: float
-    alpha: float
+    p_loss_init_A: Optional[float]
+    p_loss_length_A: Optional[float]
+    speed_of_light_A: Optional[float]
+    p_loss_init_B: Optional[float]
+    p_loss_length_B: Optional[float]
+    speed_of_light_B: Optional[float]
+    dark_count_probability: Optional[float]
+    detector_efficiency: Optional[float]
+    visibility: Optional[float]
+    num_resolving: Optional[bool]
+    std_electron_electron_phase_drift: Optional[float]
+    coherent_phase: Optional[float]
+    p_double_exc: Optional[float]
+    p_fail_class_corr: Optional[float]
 
     @classmethod
     def from_file(cls, path: str) -> NVLinkConfig:
         return _from_file(path, NVLinkConfig)  # type: ignore
+
+    @classmethod
+    def perfect_config(cls) -> NVLinkConfig:
+        return NVLinkConfig(
+            prob_success=1,
+            cycle_time=1,
+            alpha_A=0.1,
+            alpha_B=0.1,
+            length_A=0.001,
+            length_B=0.001,
+        )
 
 
 class HeraldedLinkConfig(BaseModel):

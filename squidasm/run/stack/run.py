@@ -8,6 +8,7 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocol,
     MagicLinkLayerProtocolWithSignaling,
     SingleClickTranslationUnit,
+    TranslationUnit,
 )
 from netsquid_magic.magic_distributor import (
     DepolariseWithFailureMagicDistributor,
@@ -30,6 +31,14 @@ from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.stack import NodeStack, StackNetwork
+
+
+class EmptyTranslationUnit(TranslationUnit):
+    def __call__(self, request, **fixed_parameters):
+        return self.request_to_parameters(request, **fixed_parameters)
+
+    def request_to_parameters(self, request, **fixed_parameters):
+        return {}
 
 
 def fidelity_to_prob_max_mixed(fid: float) -> float:
@@ -86,12 +95,27 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
                 link_cfg = NVLinkConfig(**link.cfg)
             link_dist = NVSingleClickMagicDistributor(
                 nodes=[stack1.node, stack2.node],
+                cycle_time=42,
                 length_A=link_cfg.length_A,
                 length_B=link_cfg.length_B,
-                full_cycle=link_cfg.full_cycle,
-                cycle_time=link_cfg.cycle_time,
-                alpha=link_cfg.alpha,
+                p_loss_init_A=link_cfg.p_loss_init_A,
+                p_loss_length_A=link_cfg.p_loss_length_A,
+                speed_of_light_A=link_cfg.speed_of_light_A,
+                p_loss_init_B=link_cfg.p_loss_init_B,
+                p_loss_length_B=link_cfg.p_loss_length_B,
+                speed_of_light_B=link_cfg.speed_of_light_B,
+                dark_count_probability=link_cfg.dark_count_probability,
+                detector_efficiency=link_cfg.detector_efficiency,
+                visibility=link_cfg.visibility,
+                num_resolving=link_cfg.num_resolving,
+                std_electron_electron_phase_drift=link_cfg.std_electron_electron_phase_drift,
+                coherent_phase=link_cfg.coherent_phase,
+                p_double_exc=link_cfg.p_double_exc,
+                p_fail_class_corr=link_cfg.p_fail_class_corr,
             )
+            # link_dist.fixed_delivery_parameters[0]["cycle_time"] = 1337
+            link_dist.fixed_delivery_parameters[0]["alpha_A"] = link_cfg.alpha_A
+            link_dist.fixed_delivery_parameters[0]["alpha_B"] = link_cfg.alpha_B
         elif link.typ == "heralded":
             link_cfg = link.cfg
             if not isinstance(link_cfg, HeraldedLinkConfig):
@@ -108,7 +132,8 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
         link_prot = MagicLinkLayerProtocolWithSignaling(
             nodes=[stack1.node, stack2.node],
             magic_distributor=link_dist,
-            translation_unit=SingleClickTranslationUnit(),
+            # translation_unit=SingleClickTranslationUnit(),
+            translation_unit=EmptyTranslationUnit(),
         )
         stack1.assign_ll_protocol(link_prot)
         stack2.assign_ll_protocol(link_prot)

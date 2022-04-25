@@ -1,17 +1,14 @@
+
 ## Prerequisites
 To run the code, a specific version of the `netqasm` and `squidasm` packages are needed.
 `squidasm` relies on [NetSquid](https://netsquid.org/).
 To install NetSquid, an account is needed. See the NetSquid website how this is done.
 
 ### Installation
-First install the `qne-hardware` branch of `netqasm`:
+First install `netqasm` version 0.9.1:
 
 ```
-git clone https://github.com/QuTech-Delft/netqasm
-cd netqasm
-git checkout qne-hardware
-make install
-cd ..
+pip install netqasm==0.9.1
 ```
 
 Then, clone the squidasm repostitory and checkout the `qne-hardware` branch:
@@ -69,31 +66,17 @@ Red values are computed by the client and sent to the server.
 - `m1`: uniformly random
 - `m2`: outcome of **EC**. Expected statistics depend on alpha and beta.
 
-## Trap rounds
-In a trap round, the angles are computed differently by the server.
-The client randomly chooses which of the remotely prepared qubits is a *dummy*.
-
-If *dummy = 1*:
-![](fig/trap_dummy_1.png)
-
-If *dummy = 2*:
-![](fig/trap_dummy_2.png)
-
-
-## Evaluation
-The most important metric of success for the BQC application is the *error rate*. 
-This is computed as the fraction of times a trap round fails.
-
 
 ## Simulation scripts
-`examples/stack/bqc` contains some BQC application code file and some configuration files. `example_bqc_nv.py` is the full BQC application, including trap rounds and
+Examples of simulation code are in the `examples/stack` directory. The `examples/stack/qne_bqc` directory in there can be used to do simulations for the QNE parameter estimation.
+It contains BQC application code file and some configuration files. `example_bqc_nv.py` is the full BQC application, including trap rounds and
 computation of the error rate. Simply running the file with
 
 ```
-python examples/stack/bqc/example_bqc_nv.py
+python examples/stack/qne_bqc/example_bqc_nv.py
 ```
 will run the simulation. The data it produces is simply printed or ignored.
 One can simply add code to e.g. store the data to a file or to create plots from them.
 
 The `config_nv.yaml` file contains configuration parameters for the hardware of the nodes and the entanglement link.
-**NOTE: currently the NV entanglement generation parameters are not simulated in much detail. We are working to integrate this entanglement distributor https://docs.netsquid.org/snippets/netsquid-nv/modules/magic_distributor.html#netsquid_nv.magic_distributor.NVSingleClickMagicDistributor which allows to much more accurately specify the hardware.**
+Check https://docs.netsquid.org/snippets/netsquid-nv/modules/magic_distributor.html#netsquid_nv.magic_distributor.NVSingleClickMagicDistributor for information about the link parameters, and the comments in the `config_nv.yaml` file itself for the node parameters.
