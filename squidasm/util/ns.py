@@ -59,7 +59,7 @@ def partial_transpose(
     ncols = mat.shape[1]
     assert nrows == ncols, "Not a square matrix ({nrows} != {ncols})"
     exponent = int(np.log(nrows) / np.log(dim))
-    assert dim ** exponent == nrows, f"Number of rows ({nrows}) not a power of {dim}"
+    assert dim**exponent == nrows, f"Number of rows ({nrows}) not a power of {dim}"
     if size_b is None:
         n = m = exponent // 2
         assert n + m == exponent, (
@@ -73,8 +73,8 @@ def partial_transpose(
         ), f"Number of rows ({nrows}) not {dim}^x where x is divisible by {size_b}"
 
     # Extract all dim^m x dim^m sub matrices
-    N = dim ** n
-    M = dim ** m
+    N = dim**n
+    M = dim**m
     submats = [[None] * N for _ in range(N)]
     for j, k in product(range(N), repeat=2):
         # Transpose each submatrix

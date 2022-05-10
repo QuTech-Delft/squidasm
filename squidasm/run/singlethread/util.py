@@ -33,11 +33,11 @@ def modify_and_import(module_name, package):
             epr_socket_name = epr_result.group(1)
         if socket_name is None and epr_socket_name is None:
             continue
-        if re.search(fr"{socket_name}\.recv\(\)", line) and not re.search(
-            fr"{epr_socket_name}\.recv\(\)", line
+        if re.search(rf"{socket_name}\.recv\(\)", line) and not re.search(
+            rf"{epr_socket_name}\.recv\(\)", line
         ):
             new_line = re.sub(
-                fr"{socket_name}.recv\(\)", f"(yield from {socket_name}.recv())", line
+                rf"{socket_name}.recv\(\)", f"(yield from {socket_name}.recv())", line
             )
             new_lines[-1] = new_line
 
