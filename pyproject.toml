@@ -3,6 +3,7 @@ requires = ["setuptools>=62", "wheel", "setuptools_scm>=6.4"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+local_scheme = "no-local-version" # exclude "+<hash>" from version name so we can upload to Test PyPI
 
 [tool.black]
 line-length = 88
