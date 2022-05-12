@@ -1,5 +1,3 @@
-from netqasm.lang.parsing.text import parse_text_subroutine
-
 from squidasm.run.stack import lhrprogram as lp
 from squidasm.run.stack.config import (
     GenericQDeviceConfig,
@@ -19,7 +17,7 @@ send_cmsg(my_value)
 received_value = recv_cmsg()
 new_value = assign_cval() : 3
 my_value = add_cval_c(new_value, new_value)
-run_subroutine(vec<my_value>) : 
+run_subroutine(vec<my_value>) :
     return M0 -> m
   NETQASM_START
     set Q0 0
@@ -38,7 +36,7 @@ def test_run():
     program_text = """
 new_value = assign_cval() : 8
 my_value = add_cval_c(new_value, new_value)
-run_subroutine(vec<my_value>) : 
+run_subroutine(vec<my_value>) :
     return M0 -> m
   NETQASM_START
     set Q0 0
@@ -103,7 +101,7 @@ return_result(value)
 
 def test_run_two_nodes_epr():
     program_text_client = """
-run_subroutine(vec<>) : 
+run_subroutine(vec<>) :
     return M0 -> m
   NETQASM_START
     set R0 0
@@ -141,7 +139,7 @@ return_result(m)
     )
 
     program_text_server = """
-run_subroutine(vec<>) : 
+run_subroutine(vec<>) :
     return M0 -> m
   NETQASM_START
     set R0 0

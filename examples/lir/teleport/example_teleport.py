@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import math
-import re
-from pipes import Template
-from typing import Any, Dict, Generator, List, Tuple
+from typing import List
 
 from netqasm.lang.operand import Template
 from netqasm.sdk.qubit import Qubit

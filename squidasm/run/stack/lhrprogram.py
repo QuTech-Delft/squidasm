@@ -1,6 +1,5 @@
 import abc
-from multiprocessing.sharedctypes import Value
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.operand import Template
@@ -320,8 +319,8 @@ class EndOfTextException(Exception):
 class LhrParser:
     def __init__(self, text: str) -> None:
         self._text = text
-        lines = [l.strip() for l in text.split("\n")]
-        self._lines = [l for l in lines if len(l) > 0]
+        lines = [line.strip() for line in text.split("\n")]
+        self._lines = [line for line in lines if len(line) > 0]
         self._lineno: int = 0
 
     def _next_line(self) -> None:

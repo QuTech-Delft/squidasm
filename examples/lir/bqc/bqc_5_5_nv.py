@@ -1,23 +1,13 @@
 from __future__ import annotations
 
 import math
-import os
-import re
-from pipes import Template
-from typing import Any, Dict, Generator, List, Tuple
+from typing import List
 
-from netqasm.lang.ir import BreakpointAction, BreakpointRole
-from netqasm.lang.operand import Register, RegisterName, Template
-from netqasm.lang.subroutine import Subroutine
-from netqasm.sdk.connection import DebugConnection
-from netqasm.sdk.epr_socket import EPRSocket
+from netqasm.lang.operand import Template
 from netqasm.sdk.qubit import Qubit
-from netqasm.sdk.toolbox import set_qubit_state
 
-from pydynaa import EventExpression
 from squidasm.run.stack import lhrprogram as lp
 from squidasm.run.stack.config import (
-    GenericQDeviceConfig,
     LinkConfig,
     NVQDeviceConfig,
     StackConfig,
@@ -25,9 +15,7 @@ from squidasm.run.stack.config import (
 )
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
-from squidasm.sim.stack.connection import QnosConnection
-from squidasm.sim.stack.csocket import ClassicalSocket
-from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
+from squidasm.sim.stack.program import ProgramContext, ProgramMeta
 
 
 class ClientProgram(lp.SdkProgram):
@@ -63,7 +51,6 @@ class ClientProgram(lp.SdkProgram):
     def compile(self, context: ProgramContext) -> lp.LhrProgram:
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
-        csocket: ClassicalSocket = context.csockets[self.PEER]
 
         epr = epr_socket.create_keep()[0]
 
@@ -123,7 +110,6 @@ class ServerProgram(lp.SdkProgram):
     def compile(self, context: ProgramContext) -> lp.LhrProgram:
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
-        csocket: ClassicalSocket = context.csockets[self.PEER]
 
         # Create EPR Pair
         epr = epr_socket.recv_keep()[0]
