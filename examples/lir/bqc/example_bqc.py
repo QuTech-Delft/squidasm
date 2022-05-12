@@ -2,22 +2,33 @@ from __future__ import annotations
 
 import math
 import os
-from typing import Any, Dict, Generator
+import re
+from pipes import Template
+from typing import Any, Dict, Generator, List, Tuple
 
-from netqasm.lang.ir import BreakpointAction
+from netqasm.lang.ir import BreakpointAction, BreakpointRole
+from netqasm.lang.operand import Template
+from netqasm.lang.subroutine import Subroutine
+from netqasm.sdk.connection import DebugConnection
+from netqasm.sdk.epr_socket import EPRSocket
+from netqasm.sdk.qubit import Qubit
+from netqasm.sdk.toolbox import set_qubit_state
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import StackNetworkConfig
+from squidasm.run.stack import lhrprogram as lp
+from squidasm.run.stack.config import (
+    GenericQDeviceConfig,
+    LinkConfig,
+    StackConfig,
+    StackNetworkConfig,
+)
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.connection import QnosConnection
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
-# Example Blind Quantum Computation application.
-# See the README.md for the computation that is performed.
 
-
-class ClientProgram(Program):
+class ClientProgram(lp.LirProgram):
     PEER = "server"
 
     def __init__(
@@ -40,6 +51,8 @@ class ClientProgram(Program):
         self._r1 = r1
         self._r2 = r2
 
+        super().__init__([], {})
+
     @property
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
@@ -59,9 +72,7 @@ class ClientProgram(Program):
             max_qubits=2,
         )
 
-    def run(
-        self, context: ProgramContext
-    ) -> Generator[EventExpression, None, Dict[str, Any]]:
+    def compile(self, context: ProgramContext) -> None:
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
         csocket: ClassicalSocket = context.csockets[self.PEER]
@@ -90,33 +101,61 @@ class ClientProgram(Program):
             epr2.H()
             p1 = epr2.measure(store_array=False)
 
-        yield from conn.flush()
+        subrt = conn.compile()
+        subroutines = {"subrt": subrt}
 
-        p1 = int(p1)
-        p2 = int(p2)
+        instrs: List[lp.ClassicalLirOp] = []
+        instrs.append(lp.RunSubroutineOp("subrt"))
+        instrs.append(lp.AssignCValueOp("p1", p1))
+        instrs.append(lp.AssignCValueOp("p2", p2))
 
         if self._trap and self._dummy == 2:
-            delta1 = -self._theta1 + (p1 + self._r1) * math.pi
+            delta1 = -self._theta1 + self._r1 * math.pi
         else:
-            delta1 = self._alpha - self._theta1 + (p1 + self._r1) * math.pi
-        csocket.send_float(delta1)
+            delta1 = self._alpha - self._theta1 + self._r1 * math.pi
+        delta1_discrete = delta1 / (math.pi / 16)
 
-        m1 = yield from csocket.recv_int()
+        instrs.append(lp.AssignCValueOp("delta1", delta1_discrete))
+        instrs.append(lp.MultiplyConstantCValueOp("p1", "p1", 16))
+        instrs.append(lp.AddCValueOp("delta1", "delta1", "p1"))
+        instrs.append(lp.SendCMsgOp("delta1"))
+
+        instrs.append(lp.ReceiveCMsgOp("m1"))
+
         if self._trap and self._dummy == 1:
-            delta2 = -self._theta2 + (p2 + self._r2) * math.pi
+            delta2 = -self._theta2 + self._r2 * math.pi
+            delta2_discrete = delta2 / (math.pi / 16)
+            instrs.append(lp.AssignCValueOp("delta2", delta2_discrete))
         else:
-            delta2 = (
-                math.pow(-1, (m1 + self._r1)) * self._beta
-                - self._theta2
-                + (p2 + self._r2) * math.pi
+            beta = math.pow(-1, self._r1) * self._beta
+            beta_discrete = beta / (math.pi / 16)
+            instrs.append(lp.AssignCValueOp("beta", beta_discrete))
+            instrs.append(
+                lp.BitConditionalMultiplyConstantCValueOp(
+                    result="beta", value0="beta", value1=16, cond="m1"
+                )
             )
-        csocket.send_float(delta2)
+            delta2 = self._theta2 + self._r2 * math.pi
+            delta2_discrete = delta2 / (math.pi / 16)
+            instrs.append(lp.AssignCValueOp("delta2", delta2_discrete))
+            instrs.append(lp.AddCValueOp("delta2", "delta2", "beta"))
 
-        return {"p1": p1, "p2": p2}
+        instrs.append(lp.MultiplyConstantCValueOp("p2", "p2", 16))
+        instrs.append(lp.AddCValueOp("delta2", "delta2", "p2"))
+        instrs.append(lp.SendCMsgOp("delta2"))
+
+        instrs.append(lp.ReturnResultOp("p1"))
+        instrs.append(lp.ReturnResultOp("p2"))
+
+        self.instructions = instrs
+        self.subroutines = subroutines
 
 
-class ServerProgram(Program):
+class ServerProgram(lp.LirProgram):
     PEER = "client"
+
+    def __init__(self) -> None:
+        super().__init__([], {})
 
     @property
     def meta(self) -> ProgramMeta:
@@ -128,9 +167,7 @@ class ServerProgram(Program):
             max_qubits=2,
         )
 
-    def run(
-        self, context: ProgramContext
-    ) -> Generator[EventExpression, None, Dict[str, Any]]:
+    def compile(self, context: ProgramContext) -> None:
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
         csocket: ClassicalSocket = context.csockets[self.PEER]
@@ -140,29 +177,40 @@ class ServerProgram(Program):
         epr2 = epr_socket.recv_keep()[0]
         epr2.cphase(epr1)
 
-        yield from conn.flush()
+        subrt1 = conn.compile()
+        subroutines = {"subrt1": subrt1}
 
-        delta1 = yield from csocket.recv_float()
+        instrs: List[lp.ClassicalLirOp] = []
+        instrs.append(lp.RunSubroutineOp("subrt1"))
 
-        epr2.rot_Z(angle=delta1)
+        instrs.append(lp.ReceiveCMsgOp("delta1"))
+
+        epr2.rot_Z(n=Template("delta1"), d=4)
         epr2.H()
         m1 = epr2.measure(store_array=False)
-        yield from conn.flush()
 
-        m1 = int(m1)
+        subrt2 = conn.compile()
+        subroutines["subrt2"] = subrt2
 
-        csocket.send_int(m1)
+        instrs.append(lp.RunSubroutineOp("subrt2"))
+        instrs.append(lp.AssignCValueOp("m1", m1))
+        instrs.append(lp.SendCMsgOp("m1"))
 
-        delta2 = yield from csocket.recv_float()
+        instrs.append(lp.ReceiveCMsgOp("delta2"))
 
-        epr1.rot_Z(angle=delta2)
+        epr1.rot_Z(n=Template("delta2"), d=4)
         epr1.H()
-        conn.insert_breakpoint(BreakpointAction.DUMP_LOCAL_STATE)
         m2 = epr1.measure(store_array=False)
-        yield from conn.flush()
+        subrt3 = conn.compile()
+        subroutines["subrt3"] = subrt3
 
-        m2 = int(m2)
-        return {"m1": m1, "m2": m2}
+        instrs.append(lp.RunSubroutineOp("subrt3"))
+        instrs.append(lp.AssignCValueOp("m2", m2))
+        instrs.append(lp.ReturnResultOp("m1"))
+        instrs.append(lp.ReturnResultOp("m2"))
+
+        self.instructions = instrs
+        self.subroutines = subroutines
 
 
 PI = math.pi
@@ -242,12 +290,24 @@ def trap_round(
 
 if __name__ == "__main__":
     num_times = 1
-    LogManager.set_log_level("INFO")
-    LogManager.log_to_file("example_bqc.log")
-    # ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
-    cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")
-    cfg = StackNetworkConfig.from_file(cfg_file)
+    sender_stack = StackConfig(
+        name="client",
+        qdevice_typ="generic",
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+    )
+    receiver_stack = StackConfig(
+        name="server",
+        qdevice_typ="generic",
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+    )
+    link = LinkConfig(
+        stack1="client",
+        stack2="server",
+        typ="perfect",
+    )
 
-    computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
+    cfg = StackNetworkConfig(stacks=[sender_stack, receiver_stack], links=[link])
+
+    # computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
     trap_round(cfg, num_times, dummy=1)
