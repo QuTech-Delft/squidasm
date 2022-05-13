@@ -12,7 +12,6 @@ from squidasm.run.stack.config import (
     StackNetworkConfig,
 )
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
