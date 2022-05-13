@@ -4,9 +4,9 @@ from threading import Thread
 from typing import TYPE_CHECKING, Callable, List, Optional, Type
 
 from netqasm.lang.instr.flavour import NVFlavour
-from netqasm.sdk.transpile import NVSubroutineTranspiler
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.network import NetworkInfo
+from netqasm.sdk.transpile import NVSubroutineTranspiler
 
 from squidasm.sim.glob import (
     get_node_id,
@@ -18,9 +18,9 @@ from squidasm.sim.glob import (
 from squidasm.sim.queues import QueueManager
 
 if TYPE_CHECKING:
-    from netqasm.sdk.transpile import SubroutineTranspiler
     from netqasm.sdk.config import LogConfig
     from netqasm.sdk.epr_socket import EPRSocket
+    from netqasm.sdk.transpile import SubroutineTranspiler
 
     from squidasm.sim.queues import TaskQueue
 

@@ -1,9 +1,9 @@
 import math
 
 from netqasm.sdk import EPRSocket
-from netqasm.sdk.transpile import NVSubroutineTranspiler
 from netqasm.sdk.connection import DebugConnection
 from netqasm.sdk.external import NetQASMConnection, Socket
+from netqasm.sdk.transpile import NVSubroutineTranspiler
 
 
 def main(

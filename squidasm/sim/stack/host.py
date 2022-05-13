@@ -7,8 +7,8 @@ from netqasm.backend.messages import (
     OpenEPRSocketMessage,
     StopAppMessage,
 )
-from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
 from netqasm.sdk.epr_socket import EPRSocket
+from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
