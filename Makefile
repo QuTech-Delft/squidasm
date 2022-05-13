@@ -60,7 +60,7 @@ install: _check_variables
 	@$(PYTHON3) -m pip install -e . ${PIP_FLAGS}
 
 install-tests: _check_variables
-	@$(PYTHON3) -m pip install -e .[tests]
+	@$(PYTHON3) -m pip install -e .[tests] ${PIP_FLAGS}
 
 verify: clean test-deps python-deps lint tests examples _verified
 
