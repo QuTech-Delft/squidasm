@@ -9,11 +9,12 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
     SingleClickTranslationUnit,
 )
-from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
+from netsquid_magic.magic_distributor import DepolariseWithFailureMagicDistributor
 
 from pydynaa import EventExpression
 from squidasm.run.stack.build import build_nv_qdevice
 from squidasm.run.stack.config import NVQDeviceConfig
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 from squidasm.sim.stack.stack import NodeStack
@@ -33,6 +34,7 @@ class TestSdkSingleNode(unittest.TestCase):
         assert self._program is not None
         self._node.host.enqueue_program(self._program, 1)
         self._node.start()
+        LogManager.set_log_level("INFO")
         ns.sim_run()
         if self._check_qmem:
             self._check_qmem(self._node.qdevice)
@@ -151,14 +153,10 @@ class TestSdkTwoNodes(unittest.TestCase):
     def tearDown(self) -> None:
         assert self._prog_alice is not None
         assert self._prog_bob is not None
-        # link_dist = PerfectStateMagicDistributor(
-        #     nodes=[self._alice.node, self._bob.node]
-        # )
-        link_dist = NVSingleClickMagicDistributor(
+        link_dist = DepolariseWithFailureMagicDistributor(
             nodes=[self._alice.node, self._bob.node],
-            length_A=0.001,
-            length_B=0.001,
-            full_cycle=0.001,
+            prob_max_mixed=0.1,
+            prob_success=0.5,
             t_cycle=10,
         )
         link_prot = MagicLinkLayerProtocolWithSignaling(
@@ -208,14 +206,14 @@ class TestSdkTwoNodes(unittest.TestCase):
                 msg = yield from csocket.recv()
                 print(f"got message from bob: {msg}")
 
-                q = Qubit(conn)
-                q.X()
-                m = q.measure()
-                yield from conn.flush()
+                # q = Qubit(conn)
+                # q.X()
+                # m = q.measure()
+                # yield from conn.flush()
 
-                print(f"m = {m}")
+                # print(f"m = {m}")
 
-                q = epr_socket.create()[0]
+                q = epr_socket.create_keep()[0]
                 epr_outcome = q.measure()
                 yield from conn.flush()
                 print(f"epr_outcome = {epr_outcome}")
@@ -240,16 +238,16 @@ class TestSdkTwoNodes(unittest.TestCase):
 
                 csocket.send("hello")
 
-                q = Qubit(conn)
-                q.X()
-                m = q.measure()
-                print(f"time before measuring: {ns.sim_time()}")
-                yield from conn.flush()
-                print(f"time after measuring: {ns.sim_time()}")
+                # q = Qubit(conn)
+                # q.X()
+                # m = q.measure()
+                # print(f"time before measuring: {ns.sim_time()}")
+                # yield from conn.flush()
+                # print(f"time after measuring: {ns.sim_time()}")
 
-                print(f"m = {m}")
+                # print(f"m = {m}")
 
-                q = epr_socket.recv()[0]
+                q = epr_socket.recv_keep()[0]
                 epr_outcome = q.measure()
                 yield from conn.flush()
                 print(f"epr_outcome = {epr_outcome}")
