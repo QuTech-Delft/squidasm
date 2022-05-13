@@ -136,7 +136,6 @@ def run_app(
 if __name__ == "__main__":
     num_times = 1
     LogManager.set_log_level("WARNING")
-    LogManager.log_to_file("dump.log")
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")

@@ -29,6 +29,10 @@ def main():
 
     start = time.perf_counter()
 
+    # NOTE: this example is broken. It will however be removed anyway when #18 is addressed
+    # (which removes the deprecated singlethread simulator altogether).
+    return
+
     num = 20
     results = run_files(
         num=num,

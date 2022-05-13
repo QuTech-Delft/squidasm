@@ -139,9 +139,7 @@ PI_OVER_2 = math.pi / 2
 
 if __name__ == "__main__":
     num_times = 1
-    LogManager.set_log_level("INFO")
-    log_file = os.path.join(os.path.dirname(__file__), "dump.log")
-    LogManager.log_to_file(log_file)
+    LogManager.set_log_level("WARNING")
 
     client_stack = StackConfig(
         name="client",

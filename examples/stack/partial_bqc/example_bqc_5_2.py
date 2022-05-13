@@ -96,7 +96,6 @@ class ServerProgram(Program):
 
 
 if __name__ == "__main__":
-    LogManager.log_to_file("example_bqc_5_2.log")
 
     client_stack = StackConfig(
         name="client",
