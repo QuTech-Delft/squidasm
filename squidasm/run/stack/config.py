@@ -34,7 +34,7 @@ class GenericQDeviceConfig(BaseModel):
 
     @classmethod
     def from_file(cls, path: str) -> GenericQDeviceConfig:
-        return _from_file(path, GenericQDeviceConfig)
+        return _from_file(path, GenericQDeviceConfig)  # type: ignore
 
     @classmethod
     def perfect_config(cls) -> GenericQDeviceConfig:
@@ -88,7 +88,7 @@ class NVQDeviceConfig(BaseModel):
 
     @classmethod
     def from_file(cls, path: str) -> NVQDeviceConfig:
-        return _from_file(path, NVQDeviceConfig)
+        return _from_file(path, NVQDeviceConfig)  # type: ignore
 
     @classmethod
     def perfect_config(cls) -> NVQDeviceConfig:
@@ -113,7 +113,7 @@ class StackConfig(BaseModel):
 
     @classmethod
     def from_file(cls, path: str) -> StackConfig:
-        return _from_file(path, StackConfig)
+        return _from_file(path, StackConfig)  # type: ignore
 
     @classmethod
     def perfect_generic_config(cls, name: str) -> StackConfig:
@@ -131,7 +131,7 @@ class DepolariseLinkConfig(BaseModel):
 
     @classmethod
     def from_file(cls, path: str) -> DepolariseLinkConfig:
-        return _from_file(path, DepolariseLinkConfig)
+        return _from_file(path, DepolariseLinkConfig)  # type: ignore
 
 
 class NVLinkConfig(BaseModel):
@@ -143,7 +143,7 @@ class NVLinkConfig(BaseModel):
 
     @classmethod
     def from_file(cls, path: str) -> NVLinkConfig:
-        return _from_file(path, NVLinkConfig)
+        return _from_file(path, NVLinkConfig)  # type: ignore
 
 
 class HeraldedLinkConfig(BaseModel):
@@ -158,7 +158,7 @@ class HeraldedLinkConfig(BaseModel):
 
     @classmethod
     def from_file(cls, path: str) -> HeraldedLinkConfig:
-        return _from_file(path, HeraldedLinkConfig)
+        return _from_file(path, HeraldedLinkConfig)  # type: ignore
 
 
 class LinkConfig(BaseModel):
@@ -169,7 +169,7 @@ class LinkConfig(BaseModel):
 
     @classmethod
     def from_file(cls, path: str) -> LinkConfig:
-        return _from_file(path, LinkConfig)
+        return _from_file(path, LinkConfig)  # type: ignore
 
     @classmethod
     def perfect_config(cls, stack1: str, stack2: str) -> LinkConfig:
@@ -182,4 +182,4 @@ class StackNetworkConfig(BaseModel):
 
     @classmethod
     def from_file(cls, path: str) -> StackNetworkConfig:
-        return _from_file(path, StackNetworkConfig)
+        return _from_file(path, StackNetworkConfig)  # type: ignore

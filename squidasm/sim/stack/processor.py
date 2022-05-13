@@ -501,7 +501,7 @@ class Processor(ComponentProtocol):
         raise NotImplementedError
 
     def _get_rotation_angle_from_operands(self, n: int, d: int) -> float:
-        return float(n * PI / (2 ** d))
+        return float(n * PI / (2**d))
 
     def _interpret_meas(
         self, app_id: int, instr: core.MeasInstruction

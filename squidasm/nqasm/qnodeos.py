@@ -13,9 +13,9 @@ from netsquid.protocols import NodeProtocol
 from netsquid_magic.sleeper import Sleeper
 
 from pydynaa import EventExpression, EventType
-from squidasm.sim.queues import QueueManager, TaskQueue
 from squidasm.nqasm.executor.nv import NVNetSquidExecutor
 from squidasm.nqasm.executor.vanilla import VanillaNetSquidExecutor
+from squidasm.sim.queues import QueueManager, TaskQueue
 
 # TODO how to know which are wait events?
 _WAIT_EVENT_NAMES: List[str] = ["ANY_EVENT", "LOOP", "WAIT"]
