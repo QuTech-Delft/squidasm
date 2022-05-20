@@ -246,7 +246,6 @@ if __name__ == "__main__":
     num_times = 50
     LogManager.set_log_level("WARNING")
 
-    LogManager.log_to_file("dump_bqc_nv_constraint.log")
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config_nv.yaml")

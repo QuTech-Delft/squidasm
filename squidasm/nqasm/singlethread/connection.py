@@ -15,7 +15,7 @@ from netqasm.sdk.builder import Builder
 from netqasm.sdk.connection import (
     BaseNetQASMConnection,
     NetworkInfo,
-    PreSubroutine,
+    ProtoSubroutine,
     T_Message,
 )
 from netqasm.sdk.shared_memory import SharedMemory
@@ -29,7 +29,7 @@ from squidasm.run.singlethread.protocols import (
 )
 
 if TYPE_CHECKING:
-    from netqasm.sdk.compiling import SubroutineCompiler
+    from netqasm.sdk.transpile import SubroutineTranspiler
     from netqasm.sdk.epr_socket import EPRSocket
 
 from squidasm.run.singlethread.context import NetSquidNetworkInfo
@@ -42,7 +42,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         max_qubits: int = 5,
         hardware_config: Optional[HardwareConfig] = None,
         epr_sockets: Optional[List[EPRSocket]] = None,
-        compiler: Optional[Type[SubroutineCompiler]] = None,
+        compiler: Optional[Type[SubroutineTranspiler]] = None,
         **kwargs,
     ) -> None:
         self._app_name = app_name
@@ -124,9 +124,9 @@ class NetSquidConnection(BaseNetQASMConnection):
         )
         yield from self._wait_for_results()
 
-    def commit_subroutine(
+    def commit_protosubroutine(
         self,
-        presubroutine: PreSubroutine,
+        protosubroutine: ProtoSubroutine,
         block: bool = True,
         callback: Optional[Callable] = None,
     ) -> Generator[EventExpression, None, None]:
@@ -135,9 +135,9 @@ class NetSquidConnection(BaseNetQASMConnection):
                 yield from self._commit_open_epr_socket(sck)
                 self._epr_sck_status[sck] = True
 
-        self._logger.debug(f"Flushing presubroutine:\n{presubroutine}")
+        self._logger.debug(f"Flushing protosubroutine:\n{protosubroutine}")
 
-        subroutine = self._builder.subrt_compile_subroutine(presubroutine)
+        subroutine = self._builder.subrt_compile_subroutine(protosubroutine)
         self._logger.info(f"Flushing compiled subroutine:\n{subroutine}")
 
         self._commit_message(
@@ -157,8 +157,8 @@ class NetSquidConnection(BaseNetQASMConnection):
         if subroutine is None:
             return
 
-        yield from self.commit_subroutine(
-            presubroutine=subroutine,
+        yield from self.commit_protosubroutine(
+            protosubroutine=subroutine,
             block=block,
             callback=callback,
         )

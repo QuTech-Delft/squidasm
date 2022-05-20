@@ -174,8 +174,8 @@ class Processor(ComponentProtocol):
         assert app_id in self.app_memories
         app_mem = self.app_memories[app_id]
         app_mem.set_prog_counter(0)
-        while app_mem.prog_counter < len(subroutine.commands):
-            instr = subroutine.commands[app_mem.prog_counter]
+        while app_mem.prog_counter < len(subroutine.instructions):
+            instr = subroutine.instructions[app_mem.prog_counter]
             self._logger.debug(
                 f"{ns.sim_time()} interpreting instruction {instr} at line {app_mem.prog_counter}"
             )
@@ -501,7 +501,7 @@ class Processor(ComponentProtocol):
         raise NotImplementedError
 
     def _get_rotation_angle_from_operands(self, n: int, d: int) -> float:
-        return float(n * PI / (2 ** d))
+        return float(n * PI / (2**d))
 
     def _interpret_meas(
         self, app_id: int, instr: core.MeasInstruction

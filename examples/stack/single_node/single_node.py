@@ -1,6 +1,6 @@
 from typing import Any, Dict, Generator
 
-from netqasm.lang.parsing.text import parse_text_presubroutine
+from netqasm.lang.parsing.text import parse_text_protosubroutine
 from netqasm.sdk.qubit import Qubit
 
 from pydynaa import EventExpression
@@ -43,8 +43,8 @@ class ClientProgram(Program):
         q = Qubit(conn)
         m = q.measure()
         # yield from conn.flush()
-        subrt = parse_text_presubroutine(SUBRT)
-        yield from conn.commit_subroutine(subrt)
+        subrt = parse_text_protosubroutine(SUBRT)
+        yield from conn.commit_protosubroutine(subrt)
 
         return {"m": int(m)}
 

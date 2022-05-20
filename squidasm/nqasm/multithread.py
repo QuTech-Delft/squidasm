@@ -4,9 +4,9 @@ from threading import Thread
 from typing import TYPE_CHECKING, Callable, List, Optional, Type
 
 from netqasm.lang.instr.flavour import NVFlavour
-from netqasm.sdk.compiling import NVSubroutineCompiler
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.network import NetworkInfo
+from netqasm.sdk.transpile import NVSubroutineTranspiler
 
 from squidasm.sim.glob import (
     get_node_id,
@@ -18,9 +18,9 @@ from squidasm.sim.glob import (
 from squidasm.sim.queues import QueueManager
 
 if TYPE_CHECKING:
-    from netqasm.sdk.compiling import SubroutineCompiler
     from netqasm.sdk.config import LogConfig
     from netqasm.sdk.epr_socket import EPRSocket
+    from netqasm.sdk.transpile import SubroutineTranspiler
 
     from squidasm.sim.queues import TaskQueue
 
@@ -33,7 +33,7 @@ class NetSquidConnection(BaseNetQASMConnection):
         max_qubits: int = 5,
         log_config: LogConfig = None,
         epr_sockets: Optional[List[EPRSocket]] = None,
-        compiler: Optional[Type[SubroutineCompiler]] = None,
+        compiler: Optional[Type[SubroutineTranspiler]] = None,
         return_arrays: bool = True,
         **kwargs,
     ) -> None:
@@ -48,7 +48,7 @@ class NetSquidConnection(BaseNetQASMConnection):
             subroutine_handler = backend.subroutine_handlers[node_name]
             flavour = subroutine_handler.flavour
             if isinstance(flavour, NVFlavour):
-                compiler = NVSubroutineCompiler
+                compiler = NVSubroutineTranspiler
 
         super().__init__(
             app_name=app_name,

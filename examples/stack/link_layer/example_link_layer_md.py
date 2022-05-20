@@ -75,7 +75,7 @@ class ServerProgram(Program):
 
 
 if __name__ == "__main__":
-    LogManager.set_log_level("DEBUG")
+    LogManager.set_log_level("WARNING")
 
     num_times = 1
     cfg = StackNetworkConfig.from_file(
