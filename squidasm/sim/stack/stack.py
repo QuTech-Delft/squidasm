@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 from netsquid.components import QuantumProcessor
+from netsquid.components.channel import Channel
 from netsquid.components.component import Port
 from netsquid.nodes import Node
+from netsquid.nodes.connections import DirectConnection
 from netsquid.nodes.network import Network
 from netsquid.protocols import Protocol
 from netsquid_magic.link_layer import (
@@ -12,6 +14,7 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
 )
 
+from squidasm.sim.stack.common import DelayedClassicalConnection
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent
 
@@ -39,6 +42,7 @@ class ProcessingNode(Node):
         name: str,
         qdevice: QuantumProcessor,
         node_id: Optional[int] = None,
+        host_qnos_latency: float = 0.0,
     ) -> None:
         """ProcessingNode constructor. Typically created indirectly through
         constructing a `NodeStack`."""
@@ -51,17 +55,23 @@ class ProcessingNode(Node):
         host_comp = HostComponent(self)
         self.add_subcomponent(host_comp, "host")
 
-        self.host_comp.ports["qnos_out"].connect(self.qnos_comp.ports["host_in"])
-        self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])
+        host_qnos_connection = DelayedClassicalConnection(
+            f"host_qnos_{self.name}", host_qnos_latency
+        )
+        self.add_subcomponent(host_qnos_connection, "host_qnos_connection")
+
+        self.host_comp.qnos_port.connect(host_qnos_connection.port_A)
+        self.qnos_comp.host_port.connect(host_qnos_connection.port_B)
 
         # Ports for communicating with other nodes
-        self.add_ports(["qnos_peer_out", "qnos_peer_in"])
-        self.add_ports(["host_peer_out", "host_peer_in"])
+        self.add_ports(["qnos_peer"])
+        self.add_ports(["host_peer"])
 
-        self.qnos_comp.peer_out_port.forward_output(self.qnos_peer_out_port)
-        self.qnos_peer_in_port.forward_input(self.qnos_comp.peer_in_port)
-        self.host_comp.peer_out_port.forward_output(self.host_peer_out_port)
-        self.host_peer_in_port.forward_input(self.host_comp.peer_in_port)
+        self.qnos_comp.peer_port.forward_output(self.qnos_peer_port)
+        self.qnos_peer_port.forward_input(self.qnos_comp.peer_port)
+
+        self.host_comp.peer_port.forward_output(self.host_peer_port)
+        self.host_peer_port.forward_input(self.host_comp.peer_port)
 
     @property
     def qnos_comp(self) -> QnosComponent:
@@ -76,20 +86,12 @@ class ProcessingNode(Node):
         return self.qmemory
 
     @property
-    def host_peer_in_port(self) -> Port:
-        return self.ports["host_peer_in"]
+    def host_peer_port(self) -> Port:
+        return self.ports["host_peer"]
 
     @property
-    def host_peer_out_port(self) -> Port:
-        return self.ports["host_peer_out"]
-
-    @property
-    def qnos_peer_in_port(self) -> Port:
-        return self.ports["qnos_peer_in"]
-
-    @property
-    def qnos_peer_out_port(self) -> Port:
-        return self.ports["qnos_peer_out"]
+    def qnos_peer_port(self) -> Port:
+        return self.ports["qnos_peer"]
 
 
 class NodeStack(Protocol):
@@ -107,6 +109,8 @@ class NodeStack(Protocol):
         qdevice_type: Optional[str] = "generic",
         qdevice: Optional[QuantumProcessor] = None,
         node_id: Optional[int] = None,
+        host_qnos_latency: float = 0.0,
+        instr_latency: float = 0.0,
         use_default_components: bool = True,
     ) -> None:
         """NodeStack constructor.
@@ -129,7 +133,7 @@ class NodeStack(Protocol):
             self._node = node
         else:
             assert qdevice is not None
-            self._node = ProcessingNode(name, qdevice, node_id)
+            self._node = ProcessingNode(name, qdevice, node_id, host_qnos_latency)
 
         self._host: Optional[Host] = None
         self._qnos: Optional[Qnos] = None
@@ -139,7 +143,7 @@ class NodeStack(Protocol):
         # created and added to this NodeStack.
         if use_default_components:
             self._host = Host(self.host_comp, qdevice_type)
-            self._qnos = Qnos(self.qnos_comp, qdevice_type)
+            self._qnos = Qnos(self.qnos_comp, qdevice_type, instr_latency)
 
     def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
         """Set the link layer protocol to use for entanglement generation.
@@ -180,13 +184,26 @@ class NodeStack(Protocol):
     def qnos(self, qnos: Qnos) -> None:
         self._qnos = qnos
 
-    def connect_to(self, other: NodeStack) -> None:
+    def connect_to(
+        self,
+        other: NodeStack,
+        host_host_delay: float = 1e6,
+        qnos_qnos_delay: float = 1e6,
+    ) -> None:
         """Create connections between ports of this NodeStack and those of
         another NodeStack."""
-        self.node.host_peer_out_port.connect(other.node.host_peer_in_port)
-        self.node.host_peer_in_port.connect(other.node.host_peer_out_port)
-        self.node.qnos_peer_out_port.connect(other.node.qnos_peer_in_port)
-        self.node.qnos_peer_in_port.connect(other.node.qnos_peer_out_port)
+
+        host_host_connection = DelayedClassicalConnection(
+            f"host_host_{self.node.name}_{other.node.name}", host_host_delay
+        )
+        self.node.host_peer_port.connect(host_host_connection.port_A)
+        other.node.host_peer_port.connect(host_host_connection.port_B)
+
+        qnos_qnos_connection = DelayedClassicalConnection(
+            f"qnos_qnos_{self.node.name}_{other.node.name}", qnos_qnos_delay
+        )
+        self.node.qnos_peer_port.connect(qnos_qnos_connection.port_A)
+        other.node.qnos_peer_port.connect(qnos_qnos_connection.port_B)
 
     def start(self) -> None:
         assert self._host is not None

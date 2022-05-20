@@ -1,0 +1,30 @@
+qdevice_cfg: &qdevice_cfg
+  num_qubits: 2
+  electron_T1: 1.e+12
+  electron_T2: 1.e+12
+  carbon_T1: 10.e+6
+  carbon_T2: 10.e+6
+
+stacks:
+  - name: client
+    qdevice_typ: nv
+    qdevice_cfg: 
+      <<: *qdevice_cfg
+    host_qnos_latency: 1e6
+  - name: server
+    qdevice_typ: nv
+    qdevice_cfg: 
+      <<: *qdevice_cfg
+    host_qnos_latency: 1e6
+  
+link_cfg: &link_cfg
+  fidelity: 0.75
+  prob_success: 5.e-5  # 1 / 20_000
+  t_cycle: 5.e+3
+
+links:
+  - stack1: client
+    stack2: server
+    typ: depolarise
+    cfg:
+      <<: *link_cfg

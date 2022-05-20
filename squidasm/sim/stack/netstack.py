@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Dict, Generator, List, Optional
 
 import netsquid as ns
 from netqasm.sdk.build_epr import (
+    SER_CREATE_IDX_MAX_TIME,
     SER_CREATE_IDX_NUMBER,
     SER_CREATE_IDX_TYPE,
     SER_RESPONSE_KEEP_IDX_BELL_STATE,
@@ -76,31 +77,22 @@ class NetstackComponent(Component):
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_netstack")
         self._node = node
-        self.add_ports(["proc_out", "proc_in"])
-        self.add_ports(["peer_out", "peer_in"])
+        self.add_ports(["proc"])
+        self.add_ports(["peer"])
 
     @property
-    def processor_in_port(self) -> Port:
-        return self.ports["proc_in"]
+    def processor_port(self) -> Port:
+        return self.ports["proc"]
 
     @property
-    def processor_out_port(self) -> Port:
-        return self.ports["proc_out"]
-
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
-
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
+    def peer_port(self) -> Port:
+        return self.ports["peer"]
 
     @property
     def node(self) -> Node:
         return self._node
 
 
-@dataclass
 class EprSocket:
     """EPR Socket. Allows for EPR pair generation with a single remote node.
 
@@ -108,8 +100,22 @@ class EprSocket:
     sockets have a different ID, and may e.g be used for EPR generation requests
     with different parameters."""
 
-    socket_id: int
-    remote_id: int
+    def __init__(self, socket_id: int, remote_id: int, min_fidelity: int = 0) -> None:
+        self._socket_id = socket_id
+        self._remote_id = remote_id
+        self._min_fidelity = min_fidelity
+
+    @property
+    def socket_id(self) -> int:
+        return self._socket_id
+
+    @property
+    def remote_id(self) -> int:
+        return self._remote_id
+
+    @property
+    def min_fidelity(self) -> int:
+        return self._min_fidelity
 
 
 class Netstack(ComponentProtocol):
@@ -128,11 +134,11 @@ class Netstack(ComponentProtocol):
 
         self.add_listener(
             "processor",
-            PortListener(self._comp.processor_in_port, SIGNAL_PROC_NSTK_MSG),
+            PortListener(self._comp.processor_port, SIGNAL_PROC_NSTK_MSG),
         )
         self.add_listener(
             "peer",
-            PortListener(self._comp.peer_in_port, SIGNAL_PEER_NSTK_MSG),
+            PortListener(self._comp.peer_port, SIGNAL_PEER_NSTK_MSG),
         )
 
         self._egp: Optional[EgpProtocol] = None
@@ -146,7 +152,9 @@ class Netstack(ComponentProtocol):
         """
         self._egp = EgpProtocol(self._comp.node, prot)
 
-    def open_epr_socket(self, app_id: int, socket_id: int, remote_node_id: int) -> None:
+    def open_epr_socket(
+        self, app_id: int, socket_id: int, remote_node_id: int, min_fidelity: int = 0
+    ) -> None:
         """Create a new EPR socket with the specified remote node.
 
         :param app_id: ID of the application that creates this EPR socket
@@ -155,11 +163,13 @@ class Netstack(ComponentProtocol):
         """
         if app_id not in self._epr_sockets:
             self._epr_sockets[app_id] = []
-        self._epr_sockets[app_id].append(EprSocket(socket_id, remote_node_id))
+        self._epr_sockets[app_id].append(
+            EprSocket(socket_id, remote_node_id, min_fidelity)
+        )
 
     def _send_processor_msg(self, msg: str) -> None:
         """Send a message to the processor."""
-        self._comp.processor_out_port.tx_output(msg)
+        self._comp.processor_port.tx_output(msg)
 
     def _receive_processor_msg(self) -> Generator[EventExpression, None, str]:
         """Receive a message from the processor. Block until there is at least one
@@ -170,7 +180,7 @@ class Netstack(ComponentProtocol):
         """Send a message to the network stack of the other node.
 
         NOTE: for now we assume there is only one other node, which is 'the' peer."""
-        self._comp.peer_out_port.tx_output(msg)
+        self._comp.peer_port.tx_output(msg)
 
     def _receive_peer_msg(self) -> Generator[EventExpression, None, str]:
         """Receive a message from the network stack of the other node. Block until
@@ -198,7 +208,9 @@ class Netstack(ComponentProtocol):
         app_mem.get_array(array_addr)
         return app_mem.get_array(array_addr)
 
-    def _construct_request(self, remote_id: int, args: List[int]) -> ReqCreateBase:
+    def _construct_request(
+        self, request: NetstackCreateRequest, args: List[int]
+    ) -> ReqCreateBase:
         """Construct a link layer request from application request info.
 
         :param remote_id: ID of remote node
@@ -210,27 +222,37 @@ class Netstack(ComponentProtocol):
         assert typ is not None
         num_pairs = args[SER_CREATE_IDX_NUMBER]
         assert num_pairs is not None
+        max_time = args[SER_CREATE_IDX_MAX_TIME]
 
-        # TODO
-        MINIMUM_FIDELITY = 0.99
+        # Magic link layer needs max_time to be an integer
+        if max_time is None:
+            max_time = 0
+
+        epr_socket = self.find_epr_socket(
+            request.app_id, request.epr_socket_id, request.remote_node_id
+        )
+        assert epr_socket is not None
 
         if typ == 0:
             request = ReqCreateAndKeep(
-                remote_node_id=remote_id,
+                remote_node_id=request.remote_node_id,
                 number=num_pairs,
-                minimum_fidelity=MINIMUM_FIDELITY,
+                minimum_fidelity=epr_socket.min_fidelity,
+                max_time=max_time,
             )
         elif typ == 1:
             request = ReqMeasureDirectly(
-                remote_node_id=remote_id,
+                remote_node_id=request.remote_node_id,
                 number=num_pairs,
-                minimum_fidelity=MINIMUM_FIDELITY,
+                minimum_fidelity=epr_socket.min_fidelity,
+                max_time=max_time,
             )
         elif typ == 2:
             request = ReqRemoteStatePrep(
-                remote_node_id=remote_id,
+                remote_node_id=request.remote_node_id,
                 number=num_pairs,
-                minimum_fidelity=MINIMUM_FIDELITY,
+                minimum_fidelity=epr_socket.min_fidelity,
+                max_time=max_time,
             )
         else:
             raise ValueError(f"Unsupported create type {typ}")
@@ -302,6 +324,13 @@ class Netstack(ComponentProtocol):
         self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
         request.number = 1
 
+        # Magic link layer protocol does not allow timeouts at this moment,
+        # so we handle them manually below.
+        max_time = request.max_time  # save original value
+        # print(f"request.max_time: {request.max_time}")
+        if request.max_time is not None:
+            request.max_time = 0
+
         start_time = ns.sim_time()
 
         for pair_index in range(num_pairs):
@@ -361,8 +390,22 @@ class Netstack(ComponentProtocol):
             )
 
             gen_duration_ns_float = ns.sim_time() - start_time
+            # self._logger.warning(f"gen duration (ns): {gen_duration_ns_float}")
             gen_duration_us_int = int(gen_duration_ns_float / 1000)
-            self._logger.info(f"gen duration (us): {gen_duration_us_int}")
+            self._logger.warning(f"gen duration (us): {gen_duration_us_int}")
+            # TODO comment
+            self._send_peer_msg(gen_duration_us_int)
+            self._send_peer_msg(max_time)
+
+            timeout = False
+
+            self._logger.info(f"max_time = {max_time}")
+            if max_time != 0 and gen_duration_us_int > max_time:
+                self._logger.info(
+                    f"EPR generation took {gen_duration_us_int} us "
+                    f"but max time was {max_time} us"
+                )
+                timeout = True
 
             # Length of response array slice for a single pair.
             slice_len = SER_RESPONSE_KEEP_LEN
@@ -386,7 +429,13 @@ class Netstack(ComponentProtocol):
                 f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
                 f"{slice_len * pair_index + slice_len}] for app ID {req.app_id}"
             )
-            self._send_processor_msg("wrote to array")
+
+            # TODO
+            # ONLY trigger abort due to timeout at last pair
+            if timeout and pair_index == num_pairs - 1:
+                self._send_processor_msg("timeout")
+            else:
+                self._send_processor_msg("wrote to array")
 
     def handle_create_md_request(
         self, req: NetstackCreateRequest, request: ReqMeasureDirectly
@@ -484,7 +533,7 @@ class Netstack(ComponentProtocol):
         args = self._read_request_args_array(req.app_id, req.arg_array_addr)
 
         # Create the link layer request object.
-        request = self._construct_request(req.remote_node_id, args)
+        request = self._construct_request(req, args)
 
         # Send it to the receiver node and wait for an acknowledgement.
         self._send_peer_msg(request)
@@ -573,9 +622,21 @@ class Netstack(ComponentProtocol):
                 f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
             )
 
-            gen_duration_ns_float = ns.sim_time() - start_time
-            gen_duration_us_int = int(gen_duration_ns_float / 1000)
-            self._logger.info(f"gen duration (us): {gen_duration_us_int}")
+            # gen_duration_ns_float = ns.sim_time() - start_time
+            # gen_duration_us_int = int(gen_duration_ns_float / 1000)
+
+            # TODO comment
+            gen_duration_us_int = yield from self._receive_peer_msg()
+            max_time = yield from self._receive_peer_msg()
+
+            timeout = False
+
+            if max_time != 0 and gen_duration_us_int > max_time:
+                self._logger.info(
+                    f"EPR generation took {gen_duration_us_int} us "
+                    f"but max time was {max_time} us"
+                )
+                timeout = True
 
             # Length of response array slice for a single pair.
             slice_len = SER_RESPONSE_KEEP_LEN
@@ -598,7 +659,12 @@ class Netstack(ComponentProtocol):
                 f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
                 f"{slice_len * pair_index + slice_len}] for app ID {req.app_id}"
             )
-            self._send_processor_msg("wrote to array")
+
+            # ONLY trigger abort due to timeout at last pair
+            if timeout and pair_index == num_pairs - 1:
+                self._send_processor_msg("timeout")
+            else:
+                self._send_processor_msg("wrote to array")
 
     def handle_receive_md_request(
         self, req: NetstackReceiveRequest, request: ReqMeasureDirectly

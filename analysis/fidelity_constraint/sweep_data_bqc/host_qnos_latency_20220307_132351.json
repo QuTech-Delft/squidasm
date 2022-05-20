@@ -1,0 +1,204 @@
+{
+    "nqasm_retry": {
+        "1000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 28479400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 1.0,
+                "std_error": 0.0
+            }
+        },
+        "2000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 34224400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 1.0,
+                "std_error": 0.0
+            }
+        },
+        "3000000": {
+            "error_rate": 1.0,
+            "duration": {
+                "mean": 107224400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 2.0,
+                "std_error": 0.0
+            }
+        },
+        "4000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 40204400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 1.0,
+                "std_error": 0.0
+            }
+        },
+        "5000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 54094400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 1.0,
+                "std_error": 0.0
+            }
+        },
+        "6000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 55014400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 1.0,
+                "std_error": 0.0
+            }
+        },
+        "7000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 64864400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 1.0,
+                "std_error": 0.0
+            }
+        },
+        "8000000": {
+            "error_rate": 1.0,
+            "duration": {
+                "mean": 77409400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 1.0,
+                "std_error": 0.0
+            }
+        },
+        "9000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 73459400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 1.0,
+                "std_error": 0.0
+            }
+        }
+    },
+    "host_retry": {
+        "1000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 132144400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 5.0,
+                "std_error": 0.0
+            }
+        },
+        "2000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 89354400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 4.0,
+                "std_error": 0.0
+            }
+        },
+        "3000000": {
+            "error_rate": 1.0,
+            "duration": {
+                "mean": 94609400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 3.0,
+                "std_error": 0.0
+            }
+        },
+        "4000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 82724400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 3.0,
+                "std_error": 0.0
+            }
+        },
+        "5000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 36844400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 1.0,
+                "std_error": 0.0
+            }
+        },
+        "6000000": {
+            "error_rate": 1.0,
+            "duration": {
+                "mean": 193999400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 5.0,
+                "std_error": 0.0
+            }
+        },
+        "7000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 210154400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 5.0,
+                "std_error": 0.0
+            }
+        },
+        "8000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 133564400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 3.0,
+                "std_error": 0.0
+            }
+        },
+        "9000000": {
+            "error_rate": 0.0,
+            "duration": {
+                "mean": 198339400.0,
+                "std_error": 0.0
+            },
+            "attempt_coutn": {
+                "mean": 5.0,
+                "std_error": 0.0
+            }
+        }
+    }
+}

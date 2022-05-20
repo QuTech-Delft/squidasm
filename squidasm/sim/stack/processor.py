@@ -29,7 +29,7 @@ from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
 from netsquid.qubits import qubitapi
 
-from pydynaa import EventExpression
+from pydynaa import Entity, EventExpression, EventType
 from squidasm.sim.stack.common import (
     AllocError,
     AppMemory,
@@ -54,6 +54,11 @@ if TYPE_CHECKING:
 PI = math.pi
 PI_OVER_2 = math.pi / 2
 
+INSTR_LATENCY_EVENT: EventType = EventType(
+    "INSTR_LATENCY_EVENT",
+    "end of waiting time that represents instruction processing latency",
+)
+
 
 class ProcessorComponent(Component):
     """NetSquid component representing a QNodeOS processor.
@@ -72,24 +77,16 @@ class ProcessorComponent(Component):
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_processor")
         self._node = node
-        self.add_ports(["nstk_out", "nstk_in"])
-        self.add_ports(["hand_out", "hand_in"])
+        self.add_ports(["nstk"])
+        self.add_ports(["hand"])
 
     @property
-    def netstack_in_port(self) -> Port:
-        return self.ports["nstk_in"]
+    def netstack_port(self) -> Port:
+        return self.ports["nstk"]
 
     @property
-    def netstack_out_port(self) -> Port:
-        return self.ports["nstk_out"]
-
-    @property
-    def handler_in_port(self) -> Port:
-        return self.ports["hand_in"]
-
-    @property
-    def handler_out_port(self) -> Port:
-        return self.ports["hand_out"]
+    def handler_port(self) -> Port:
+        return self.ports["hand"]
 
     @property
     def qdevice(self) -> QuantumProcessor:
@@ -100,27 +97,31 @@ class ProcessorComponent(Component):
         return self._node
 
 
-class Processor(ComponentProtocol):
+class Processor(ComponentProtocol, Entity):
     """NetSquid protocol representing a QNodeOS processor."""
 
-    def __init__(self, comp: ProcessorComponent, qnos: Qnos) -> None:
+    def __init__(
+        self, comp: ProcessorComponent, qnos: Qnos, instr_latency: float = 0.0
+    ) -> None:
         """Processor protocol constructor. Typically created indirectly through
         constructing a `Qnos` instance.
 
         :param comp: NetSquid component representing the processor
         :param qnos: `Qnos` protocol that owns this protocol
+        :param instr_latency: amount of time (ns) it takes to execute one instruction
         """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
         self._qnos = qnos
+        self._instr_latency = instr_latency
 
         self.add_listener(
             "handler",
-            PortListener(self._comp.ports["hand_in"], SIGNAL_HAND_PROC_MSG),
+            PortListener(self._comp.ports["hand"], SIGNAL_HAND_PROC_MSG),
         )
         self.add_listener(
             "netstack",
-            PortListener(self._comp.ports["nstk_in"], SIGNAL_NSTK_PROC_MSG),
+            PortListener(self._comp.ports["nstk"], SIGNAL_NSTK_PROC_MSG),
         )
 
         self.add_signal(SIGNAL_MEMORY_FREED)
@@ -140,14 +141,19 @@ class Processor(ComponentProtocol):
         """Get the NetSquid `QuantumProcessor` object of this node."""
         return self._comp.qdevice
 
+    @property
+    def instr_latency(self) -> float:
+        """Get the instruction execution latency."""
+        return self._instr_latency
+
     def _send_handler_msg(self, msg: str) -> None:
-        self._comp.handler_out_port.tx_output(msg)
+        self._comp.handler_port.tx_output(msg)
 
     def _receive_handler_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("handler", SIGNAL_HAND_PROC_MSG))
 
     def _send_netstack_msg(self, msg: str) -> None:
-        self._comp.netstack_out_port.tx_output(msg)
+        self._comp.netstack_port.tx_output(msg)
 
     def _receive_netstack_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("netstack", SIGNAL_NSTK_PROC_MSG))
@@ -162,9 +168,13 @@ class Processor(ComponentProtocol):
             # assert isinstance(subroutine, Subroutine)
             self._logger.debug(f"received new subroutine from handler: {subroutine}")
 
-            yield from self.execute_subroutine(subroutine)
+            result = yield from self.execute_subroutine(subroutine)
 
-            self._send_handler_msg("subroutine done")
+            # TODO
+            if result == "timeout":
+                self._send_handler_msg("timeout")
+            else:
+                self._send_handler_msg("subroutine done")
 
     def execute_subroutine(
         self, subroutine: Subroutine
@@ -186,10 +196,15 @@ class Processor(ComponentProtocol):
                 or isinstance(instr, core.BranchBinaryInstruction)
             ):
                 self._interpret_branch_instr(app_id, instr)
+                yield from self._add_instruction_latency()
             else:
                 generator = self._interpret_instruction(app_id, instr)
                 if generator:
-                    yield from generator
+                    result = yield from generator
+                    # TODO
+                    if result == "timeout":
+                        return "timeout"
+                yield from self._add_instruction_latency()
                 app_mem.increment_prog_counter()
 
     def _interpret_instruction(
@@ -241,6 +256,10 @@ class Processor(ComponentProtocol):
             return self._interpret_breakpoint(app_id, instr)
         else:
             raise RuntimeError(f"Invalid instruction {instr}")
+
+    def _add_instruction_latency(self) -> Generator[EventExpression, None, None]:
+        self._schedule_after(self.instr_latency, INSTR_LATENCY_EVENT)
+        yield EventExpression(source=self, event_type=INSTR_LATENCY_EVENT)
 
     def _interpret_breakpoint(
         self, app_id: int, instr: core.BreakpointInstruction
@@ -511,6 +530,8 @@ class Processor(ComponentProtocol):
     def _interpret_create_epr(
         self, app_id: int, instr: core.CreateEPRInstruction
     ) -> None:
+        # self._logger.warning("create_epr")
+        GlobalSimData.record_custom_event("EPR attempt")
         app_mem = self.app_memories[app_id]
         remote_node_id = app_mem.get_reg_value(instr.remote_node_id)
         epr_socket_id = app_mem.get_reg_value(instr.epr_socket_id)
@@ -596,8 +617,13 @@ class Processor(ComponentProtocol):
                     f"waiting for netstack to write to @{addr}[{start}:{end}] "
                     f"for app ID {app_id}"
                 )
-                yield from self._receive_netstack_msg()
-                self._logger.debug("netstack wrote something")
+                response = yield from self._receive_netstack_msg()
+                if response == "wrote to array":
+                    self._logger.debug("netstack wrote something")
+                else:
+                    assert response == "timeout"
+                    # TODO
+                    return "timeout"
             else:
                 break
         self._flush_netstack_msgs()

@@ -32,24 +32,16 @@ class HostComponent(Component):
 
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_host")
-        self.add_ports(["qnos_in", "qnos_out"])
-        self.add_ports(["peer_in", "peer_out"])
+        self.add_ports(["qnos"])
+        self.add_ports(["peer"])
 
     @property
-    def qnos_in_port(self) -> Port:
-        return self.ports["qnos_in"]
+    def qnos_port(self) -> Port:
+        return self.ports["qnos"]
 
     @property
-    def qnos_out_port(self) -> Port:
-        return self.ports["qnos_out"]
-
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
-
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
+    def peer_port(self) -> Port:
+        return self.ports["peer"]
 
 
 class Host(ComponentProtocol):
@@ -66,11 +58,11 @@ class Host(ComponentProtocol):
 
         self.add_listener(
             "qnos",
-            PortListener(self._comp.ports["qnos_in"], SIGNAL_HAND_HOST_MSG),
+            PortListener(self._comp.ports["qnos"], SIGNAL_HAND_HOST_MSG),
         )
         self.add_listener(
             "peer",
-            PortListener(self._comp.ports["peer_in"], SIGNAL_HOST_HOST_MSG),
+            PortListener(self._comp.ports["peer"], SIGNAL_HOST_HOST_MSG),
         )
 
         if qdevice_type == "nv":
@@ -100,13 +92,13 @@ class Host(ComponentProtocol):
         self._compiler = typ
 
     def send_qnos_msg(self, msg: bytes) -> None:
-        self._comp.qnos_out_port.tx_output(msg)
+        self._comp.qnos_port.tx_output(msg)
 
     def receive_qnos_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("qnos", SIGNAL_HAND_HOST_MSG))
 
     def send_peer_msg(self, msg: str) -> None:
-        self._comp.peer_out_port.tx_output(msg)
+        self._comp.peer_port.tx_output(msg)
 
     def receive_peer_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG))
@@ -116,7 +108,7 @@ class Host(ComponentProtocol):
 
         # Run a single program as many times as requested.
         while self._num_pending > 0:
-            self._logger.info(f"num pending: {self._num_pending}")
+            self._logger.warning(f"num pending: {self._num_pending}")
             self._num_pending -= 1
 
             assert self._program is not None

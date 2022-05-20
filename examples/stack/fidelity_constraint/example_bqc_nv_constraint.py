@@ -18,6 +18,7 @@ from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 # BQC example with a `min_fidelity_all_at_end` constraint on the entangled pairs.
+MAX_TRIES = 1000
 
 
 class ClientProgram(Program):
@@ -90,7 +91,7 @@ class ClientProgram(Program):
             sequential=True,
             post_routine=post_create,
             min_fidelity_all_at_end=80,
-            max_tries=100,
+            max_tries=MAX_TRIES,
         )
 
         yield from conn.flush()
@@ -139,7 +140,11 @@ class ServerProgram(Program):
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
         # Create EPR Pair
-        epr1, epr2 = epr_socket.recv_keep(2, min_fidelity_all_at_end=80, max_tries=100)
+        epr1, epr2 = epr_socket.recv_keep(
+            2,
+            min_fidelity_all_at_end=80,
+            max_tries=MAX_TRIES,
+        )
         epr2.cphase(epr1)
 
         yield from conn.flush()
@@ -243,15 +248,19 @@ def trap_round(
 
 
 if __name__ == "__main__":
-    num_times = 50
-    LogManager.set_log_level("WARNING")
+    # num_times = 50
+    # LogManager.set_log_level("WARNING")
 
+    num_times = 1
+    LogManager.set_log_level("DEBUG")
+
+    LogManager.log_to_file("dump_bqc_nv_constraint.log")
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config_nv.yaml")
     cfg = StackNetworkConfig.from_file(cfg_file)
-    cfg.stacks[0].qdevice_cfg = NVQDeviceConfig.perfect_config()
-    cfg.stacks[1].qdevice_cfg = NVQDeviceConfig.perfect_config()
+    # cfg.stacks[0].qdevice_cfg = NVQDeviceConfig.perfect_config()
+    # cfg.stacks[1].qdevice_cfg = NVQDeviceConfig.perfect_config()
 
-    computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
-    # trap_round(cfg=cfg, num_times=num_times, dummy=2)
+    # computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
+    trap_round(cfg=cfg, num_times=num_times, dummy=2)
