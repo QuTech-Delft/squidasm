@@ -1,8 +1,13 @@
 CHANGELOG
 =========
 
-Upcoming
---------
+2022-05-23 (0.9.0)
+------------------
+- Made compatible with NetQASM 0.11.
+
+2022-04-07 (0.8.4)
+------------------
+- Updated versions of dependencies to prevent installation conflicts.
 
 2021-11-15 (0.8.3)
 ------------------

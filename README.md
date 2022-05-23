@@ -12,21 +12,28 @@ The username and password for this account are also needed to install `squidasm`
 ### From PyPI
 SquidASM is available as [a package on PyPI](https://pypi.org/project/squidasm/) and can be installed with
 ```
-pip install squidasm --extra-index-url=https://{netsquid-user-name}:{netsquid-password}@pypi.netsquid.org
+pip install squidasm --extra-index-url=https://pypi.netsquid.org
 ```
+
+This will prompt for your NetSquid account name and password.
 
 ### From source
-Make sure you have installed [the latest `netqasm` version](https://pypi.org/project/netqasm/).
+Clone this repository and make an editable install with
 
-Also, the `NETSQUIDPYPI_USER` and `NETSQUIDPYPI_PWD` environment variables should be set to your 
-user and password on the [NetSquid forum](https://forum.netsquid.org/), respectively.
-
-Then run:
-```sh
-make install
 ```
-to install SquidASM.
+pip install -e . --extra-index-url=https://pypi.netsquid.org
+```
+which will prompts for your NetSquid account name and password.
 
+Additionally, you may want to install the extra `dev` packackes, so you can run the tests and linter:
+
+```
+pip install -e .[dev] --extra-index-url=https://pypi.netsquid.org
+```
+
+You can also use the `make install` and `make install-dev` Makefile commands.
+These commands require you to have the `NETSQUIDPYPI_USER` and
+`NETSQUIDPYPI_PWD` environment variables set to your NetSquid username and password respectively.
 
 To verify the installation and run all tests and examples:
 ```sh
