@@ -15,7 +15,7 @@ jobs:
           NETSQUIDPYPI_USER: ${{ secrets.NETSQUIDPYPI_USER }}
           NETSQUIDPYPI_PWD: ${{ secrets.NETSQUIDPYPI_PWD }}
       run: |
-        make install-tests
+        make install-dev
         make lint
 
   tests:
@@ -30,7 +30,7 @@ jobs:
           NETSQUIDPYPI_USER: ${{ secrets.NETSQUIDPYPI_USER }}
           NETSQUIDPYPI_PWD: ${{ secrets.NETSQUIDPYPI_PWD }}
       run: |
-        make install-tests
+        make install-dev
         make tests
 
   examples:
