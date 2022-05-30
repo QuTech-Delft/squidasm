@@ -1,0 +1,99 @@
+run_subroutine(vec<>) : 
+        NETQASM_START
+        set C0 0
+        set C1 1
+        set C10 10
+        array C10 @0
+        array C1 @1
+        store C0 @1[C0]
+        set R5 0
+        set R6 0
+        set R7 1
+        set R8 0
+        recv_epr C0 C0 C1 C0
+        set R0 0
+LABEL7:
+        set R5 1
+        beq R0 R5 LABEL1
+        set R1 0
+        set R2 0
+        set R3 0
+        set R4 0
+LABEL6:
+        set R5 10
+        beq R4 R5 LABEL5
+        add R1 R1 R0
+        set R5 1
+        add R4 R4 R5
+        jmp LABEL6
+LABEL5:
+        set R5 1
+        add R2 R0 R5
+        set R4 0
+LABEL4:
+        set R5 10
+        beq R4 R5 LABEL3
+        add R3 R3 R2
+        set R5 1
+        add R4 R4 R5
+        jmp LABEL4
+LABEL3:
+        wait_all @0[R1:R3]
+        set R5 0
+        beq R0 R5 LABEL2
+        set R5 0
+        sub R1 R5 R0
+        rot_y C0 8 4
+        crot_y C0 R1 24 4
+        rot_x C0 24 4
+        crot_x C0 R1 8 4
+        qfree C0
+LABEL2:
+        set R5 1
+        add R0 R0 R5
+        jmp LABEL7
+LABEL1:
+        qalloc C1
+        init C1
+        rot_y C1 8 4
+        rot_x C1 16 4
+        rot_y C1 8 4
+        crot_x C0 C1 8 4
+        rot_z C0 24 4
+        rot_x C1 24 4
+        rot_y C1 24 4
+        ret_arr @0
+        ret_arr @1
+        NETQASM_END
+
+delta1 = recv_cmsg()
+
+run_subroutine(vec<delta1>) : 
+    return M0 -> m1
+        NETQASM_START
+        set Q0 0
+        rot_z Q0 {delta1} 4
+        rot_y Q0 8 4
+        rot_x Q0 16 4
+        meas Q0 M0
+        qfree Q0
+        ret_reg M0
+        NETQASM_END
+
+send_cmsg(m1)
+delta2 = recv_cmsg()
+
+run_subroutine(vec<delta2>) : 
+    return M0 -> m2
+    NETQASM_START
+    set Q1 1
+    rot_z Q1 {delta2} 4
+    rot_y Q1 8 4
+    rot_x Q1 16 4
+    meas Q1 M0
+    qfree Q1
+    ret_reg M0
+    NETQASM_END
+
+return_result(m1)
+return_result(m2)
