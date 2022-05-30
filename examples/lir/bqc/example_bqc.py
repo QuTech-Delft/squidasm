@@ -5,7 +5,7 @@ from typing import List
 
 from netqasm.lang.operand import Template
 
-from squidasm.run.stack import lhrprogram as lp
+from squidasm.run.qoala import lhr as lp
 from squidasm.run.stack.config import (
     GenericQDeviceConfig,
     LinkConfig,
@@ -16,7 +16,7 @@ from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import ProgramContext, ProgramMeta
 
 
-class ClientProgram(lp.LirProgram):
+class ClientProgram(lp.LhrProgram):
     PEER = "server"
 
     def __init__(
@@ -91,7 +91,7 @@ class ClientProgram(lp.LirProgram):
         subrt = conn.compile()
         subroutines = {"subrt": subrt}
 
-        instrs: List[lp.ClassicalLirOp] = []
+        instrs: List[lp.ClassicalLhrOp] = []
         instrs.append(lp.RunSubroutineOp("subrt"))
         instrs.append(lp.AssignCValueOp("p1", p1))
         instrs.append(lp.AssignCValueOp("p2", p2))
@@ -138,7 +138,7 @@ class ClientProgram(lp.LirProgram):
         self.subroutines = subroutines
 
 
-class ServerProgram(lp.LirProgram):
+class ServerProgram(lp.LhrProgram):
     PEER = "client"
 
     def __init__(self) -> None:
@@ -166,7 +166,7 @@ class ServerProgram(lp.LirProgram):
         subrt1 = conn.compile()
         subroutines = {"subrt1": subrt1}
 
-        instrs: List[lp.ClassicalLirOp] = []
+        instrs: List[lp.ClassicalLhrOp] = []
         instrs.append(lp.RunSubroutineOp("subrt1"))
 
         instrs.append(lp.ReceiveCMsgOp("delta1"))

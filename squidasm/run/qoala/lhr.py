@@ -1,6 +1,9 @@
 import abc
+from dataclasses import dataclass
+from enum import Enum, auto
 from typing import Dict, List, Optional, Union
 
+from netqasm.lang.instr import NetQASMInstruction
 from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.operand import Template
 from netqasm.lang.parsing.text import parse_text_subroutine
@@ -10,6 +13,27 @@ from netqasm.sdk.futures import Future
 from squidasm.sim.stack.program import ProgramContext, ProgramMeta
 
 LhrValue = Union[int, Template, Future]
+
+
+class LhrInstructionType(Enum):
+    CC = 0
+    CL = auto()
+    QC = auto()
+    QL = auto()
+
+
+@dataclass
+class LhrInstructionSignature:
+    typ: LhrInstructionType
+    duration: int = 0
+
+
+class StaticLhrProgramInfo:
+    pass
+
+
+class DynamicLhrProgramInfo:
+    pass
 
 
 class LhrAttribute:
@@ -129,6 +153,7 @@ class ClassicalLhrOp:
 
 class SendCMsgOp(ClassicalLhrOp):
     OP_NAME = "send_cmsg"
+    TYP = LhrInstructionType.CC
 
     def __init__(self, value: str) -> None:
         super().__init__(arguments=[value])
@@ -143,6 +168,7 @@ class SendCMsgOp(ClassicalLhrOp):
 
 class ReceiveCMsgOp(ClassicalLhrOp):
     OP_NAME = "recv_cmsg"
+    TYP = LhrInstructionType.CC
 
     def __init__(self, result: str) -> None:
         super().__init__(results=[result])
@@ -157,6 +183,7 @@ class ReceiveCMsgOp(ClassicalLhrOp):
 
 class AddCValueOp(ClassicalLhrOp):
     OP_NAME = "add_cval_c"
+    TYP = LhrInstructionType.CL
 
     def __init__(self, result: str, value0: str, value1: str) -> None:
         super().__init__(arguments=[value0, value1], results=[result])
@@ -171,6 +198,7 @@ class AddCValueOp(ClassicalLhrOp):
 
 class MultiplyConstantCValueOp(ClassicalLhrOp):
     OP_NAME = "mult_const"
+    TYP = LhrInstructionType.CL
 
     def __init__(self, result: str, value0: str, value1: LhrAttribute) -> None:
         super().__init__(arguments=[value0, value1], results=[result])
@@ -185,6 +213,7 @@ class MultiplyConstantCValueOp(ClassicalLhrOp):
 
 class BitConditionalMultiplyConstantCValueOp(ClassicalLhrOp):
     OP_NAME = "bcond_mult_const"
+    TYP = LhrInstructionType.CL
 
     def __init__(
         self, result: str, value0: str, value1: LhrAttribute, cond: str
@@ -201,6 +230,7 @@ class BitConditionalMultiplyConstantCValueOp(ClassicalLhrOp):
 
 class AssignCValueOp(ClassicalLhrOp):
     OP_NAME = "assign_cval"
+    TYP = LhrInstructionType.CL
 
     def __init__(self, result: str, value: LhrValue) -> None:
         super().__init__(results=[result], attributes=[value])
@@ -215,6 +245,7 @@ class AssignCValueOp(ClassicalLhrOp):
 
 class RunSubroutineOp(ClassicalLhrOp):
     OP_NAME = "run_subroutine"
+    TYP = LhrInstructionType.CL
 
     def __init__(self, values: LhrVector, subrt: LhrSubroutine) -> None:
         super().__init__(arguments=[values], attributes=[subrt])
@@ -227,12 +258,17 @@ class RunSubroutineOp(ClassicalLhrOp):
         assert attr is not None
         return cls(args[0], attr)
 
+    @property
+    def subroutine(self) -> LhrSubroutine:
+        return self.attributes[0]
+
     def __str__(self) -> str:
         return super().__str__()
 
 
 class ReturnResultOp(ClassicalLhrOp):
     OP_NAME = "return_result"
+    TYP = LhrInstructionType.CL
 
     def __init__(self, value: str) -> None:
         super().__init__(arguments=[value])
@@ -245,7 +281,7 @@ class ReturnResultOp(ClassicalLhrOp):
         return cls(args[0])
 
 
-LIR_OP_NAMES = {
+LHR_OP_NAMES = {
     cls.OP_NAME: cls
     for cls in [
         SendCMsgOp,
@@ -258,6 +294,13 @@ LIR_OP_NAMES = {
         ReturnResultOp,
     ]
 }
+
+
+def netqasm_instr_to_type(instr: NetQASMInstruction) -> LhrInstructionType:
+    if instr.mnemonic in ["create_epr", "recv_epr"]:
+        return LhrInstructionType.QC
+    else:
+        return LhrInstructionType.QL
 
 
 class LhrProgram:
@@ -288,6 +331,18 @@ class LhrProgram:
     @instructions.setter
     def instructions(self, new_instrs) -> None:
         self._instructions = new_instrs
+
+    def get_instr_signatures(self) -> List[LhrInstructionSignature]:
+        sigs: List[LhrInstructionSignature] = []
+        for instr in self.instructions:
+            if isinstance(instr, RunSubroutineOp):
+                subrt = instr.subroutine
+                for nq_instr in subrt.subroutine.instructions:
+                    typ = netqasm_instr_to_type(nq_instr)
+                    sigs.append(typ)
+            else:
+                sigs.append(instr.TYP)
+        return sigs
 
     @property
     def subroutines(self) -> Dict[str, Subroutine]:
@@ -328,7 +383,7 @@ class LhrParser:
         if self._lineno >= len(self._lines):
             raise EndOfTextException
 
-    def _parse_lir(self) -> ClassicalLhrOp:
+    def _parse_lhr(self) -> ClassicalLhrOp:
         line = self._lines[self._lineno]
 
         assign_parts = [x.strip() for x in line.split("=")]
@@ -367,7 +422,7 @@ class LhrParser:
                 if len(vec_values_str) == 0:
                     vec_values = []
                 else:
-                    vec_values = [x.strip() for x in vec_values_str.split(",")]
+                    vec_values = [x.strip() for x in vec_values_str.split(";")]
                 return LhrVector(vec_values)
             return arg
 
@@ -375,8 +430,8 @@ class LhrParser:
 
         # print(f"result = {result}, op = {op}, args = {args}, attr = {attr}")
 
-        lir_op = LIR_OP_NAMES[op].from_generic_args(result, args, attr)
-        return lir_op
+        lhr_op = LHR_OP_NAMES[op].from_generic_args(result, args, attr)
+        return lhr_op
 
     def _read_line(self) -> str:
         self._next_line()
@@ -412,7 +467,7 @@ class LhrParser:
 
         try:
             while True:
-                instr = self._parse_lir()
+                instr = self._parse_lhr()
                 if isinstance(instr, RunSubroutineOp):
                     subrt = self._parse_subroutine()
                     instr = RunSubroutineOp(instr.arguments[0], subrt)
@@ -463,3 +518,5 @@ if __name__ == "__main__":
 
     print("\nto text and parsed back:")
     print(parsed_program)
+
+    print(parsed_program.get_instr_signatures())

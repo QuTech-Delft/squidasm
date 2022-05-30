@@ -1,4 +1,4 @@
-from squidasm.run.stack import lhrprogram as lp
+from squidasm.run.qoala import lhr as lp
 from squidasm.run.stack.config import (
     GenericQDeviceConfig,
     LinkConfig,
@@ -101,7 +101,9 @@ return_result(value)
 
 def test_run_two_nodes_epr():
     program_text_client = """
-run_subroutine(vec<>) :
+remote_id = assign_cval() : 1
+epr_sck_id = assign_cval() : 0
+run_subroutine(vec<remote_id; epr_sck_id>) :
     return M0 -> m
   NETQASM_START
     set R0 0
@@ -109,13 +111,15 @@ run_subroutine(vec<>) :
     set R2 2
     set R3 20
     set R10 10
+    set C0 {remote_id}
+    set C1 {epr_sck_id}
     array R10 @0
     array R1 @1
     array R3 @2
     store R0 @1[R0]
     store R0 @2[R0]
     store R1 @2[R1]
-    create_epr R1 R0 R1 R2 R0
+    create_epr C0 C1 R1 R2 R0
     wait_all @0[R0:R10]
     set Q0 0
     meas Q0 M0
@@ -185,6 +189,6 @@ return_result(m)
 if __name__ == "__main__":
     LogManager.set_log_level("DEBUG")
     # test_parse()
-    test_run()
+    # test_run()
     # test_run_two_nodes_classical()
-    # test_run_two_nodes_epr()
+    test_run_two_nodes_epr()

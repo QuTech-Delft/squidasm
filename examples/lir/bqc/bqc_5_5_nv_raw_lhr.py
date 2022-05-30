@@ -4,7 +4,7 @@ import math
 import os
 from typing import List
 
-from squidasm.run.stack import lhrprogram as lp
+from squidasm.run.qoala import lhr as lp
 from squidasm.run.stack.config import (
     LinkConfig,
     NVQDeviceConfig,
@@ -60,7 +60,7 @@ class ClientProgram(lp.SdkProgram):
         subroutines = {"subrt": subrt}
 
         lhr_subrt = lp.LhrSubroutine(subrt, return_map={"p1": lp.LhrSharedMemLoc("M0")})
-        instrs: List[lp.ClassicalLirOp] = []
+        instrs: List[lp.ClassicalLhrOp] = []
         instrs.append(lp.RunSubroutineOp(lp.LhrVector([]), lhr_subrt))
         # instrs.append(lp.AssignCValueOp("p1", p1))
 

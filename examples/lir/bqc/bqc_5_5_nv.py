@@ -6,7 +6,7 @@ from typing import List
 from netqasm.lang.operand import Template
 from netqasm.sdk.qubit import Qubit
 
-from squidasm.run.stack import lhrprogram as lp
+from squidasm.run.qoala import lhr as lp
 from squidasm.run.stack.config import (
     LinkConfig,
     NVQDeviceConfig,
@@ -62,7 +62,7 @@ class ClientProgram(lp.SdkProgram):
         subroutines = {"subrt": subrt}
 
         lhr_subrt = lp.LhrSubroutine(subrt, return_map={"p1": lp.LhrSharedMemLoc("M0")})
-        instrs: List[lp.ClassicalLirOp] = []
+        instrs: List[lp.ClassicalLhrOp] = []
         instrs.append(lp.RunSubroutineOp(lp.LhrVector([]), lhr_subrt))
         instrs.append(lp.AssignCValueOp("p1", p1))
 
@@ -121,7 +121,7 @@ class ServerProgram(lp.SdkProgram):
         subrt1 = conn.compile()
         subroutines = {"subrt1": subrt1}
 
-        instrs: List[lp.ClassicalLirOp] = []
+        instrs: List[lp.ClassicalLhrOp] = []
         lhr_subrt1 = lp.LhrSubroutine(subrt1, return_map={})
         instrs.append(lp.RunSubroutineOp(lp.LhrVector([]), lhr_subrt1))
 
