@@ -2,18 +2,17 @@ import unittest
 from typing import Generator, Optional, Type
 
 import netsquid as ns
+import pytest
 from netqasm.lang.parsing import parse_text_subroutine
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocolWithSignaling,
-    SingleClickTranslationUnit,
-)
+from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
 from squidasm.run.stack.build import build_nv_qdevice
 from squidasm.run.stack.config import NVQDeviceConfig
+from squidasm.run.stack.run import EmptyTranslationUnit
 from squidasm.sim.stack.handler import Handler
 from squidasm.sim.stack.qnos import Qnos
 from squidasm.sim.stack.stack import NodeStack
@@ -38,13 +37,14 @@ class TestHandler(unittest.TestCase):
             nodes=[self._alice.node, self._bob.node],
             length_A=0.001,
             length_B=0.001,
-            full_cycle=0.001,
-            t_cycle=10,
+            cycle_time=10,
         )
+        self._link_dist.fixed_delivery_parameters[0]["alpha_A"] = 1e-3
+        self._link_dist.fixed_delivery_parameters[0]["alpha_B"] = 1e-3
         self._link_prot = MagicLinkLayerProtocolWithSignaling(
             nodes=[self._alice.node, self._bob.node],
             magic_distributor=self._link_dist,
-            translation_unit=SingleClickTranslationUnit(),
+            translation_unit=EmptyTranslationUnit(),
         )
 
         self._alice.assign_ll_protocol(self._link_prot)
@@ -66,6 +66,7 @@ class TestHandler(unittest.TestCase):
         if self._check_cmem:
             self._check_cmem(self._alice.qnos.app_memories, self._bob.qnos.app_memories)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_entangle_ck(self):
         SUBRT_1 = """
         # NETQASM 1.0

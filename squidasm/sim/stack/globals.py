@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
-from netsquid.qubits import qubitapi
 from netsquid.qubits.qubit import Qubit
 
 if TYPE_CHECKING:

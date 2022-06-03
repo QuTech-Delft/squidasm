@@ -1,17 +1,10 @@
 
 ## Prerequisites
-To run the code, a specific version of the `netqasm` and `squidasm` packages are needed.
 `squidasm` relies on [NetSquid](https://netsquid.org/).
 To install NetSquid, an account is needed. See the NetSquid website how this is done.
 
 ### Installation
-First install `netqasm` version 0.9.1:
-
-```
-pip install netqasm==0.9.1
-```
-
-Then, clone the squidasm repostitory and checkout the `qne-hardware` branch:
+Clone the squidasm repostitory and checkout the `qne-hardware` branch:
 ```
 git clone https://github.com/QuTech-Delft/squidasm
 cd squidasm
@@ -27,7 +20,7 @@ export NETSQUIDPYPI_PWD=<password>
 
 Install `squidasm`:
 ```
-make install
+make install-tests
 ```
 
 After installation, the simulations can be run as described below.

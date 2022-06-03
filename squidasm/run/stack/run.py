@@ -41,6 +41,20 @@ class EmptyTranslationUnit(TranslationUnit):
         return {}
 
 
+class NVMagicDistributor(NVSingleClickMagicDistributor):
+    def get_bell_state(self, midpoint_outcome):
+        try:
+            status, label = midpoint_outcome
+        except ValueError:
+            raise ValueError("Unknown midpoint outcome {}".format(midpoint_outcome))
+        if status != "success":
+            raise ValueError("Unknown midpoint outcome {}".format(midpoint_outcome))
+        return label
+
+    def _read_bright_state_parameter_from_nodes(self):
+        return {}
+
+
 def fidelity_to_prob_max_mixed(fid: float) -> float:
     return (1 - fid) * 4.0 / 3.0
 
@@ -93,9 +107,10 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
             link_cfg = link.cfg
             if not isinstance(link_cfg, NVLinkConfig):
                 link_cfg = NVLinkConfig(**link.cfg)
-            link_dist = NVSingleClickMagicDistributor(
+            # link_dist = NVSingleClickMagicDistributor(
+            link_dist = NVMagicDistributor(
                 nodes=[stack1.node, stack2.node],
-                cycle_time=42,
+                cycle_time=link_cfg.cycle_time,
                 length_A=link_cfg.length_A,
                 length_B=link_cfg.length_B,
                 p_loss_init_A=link_cfg.p_loss_init_A,
@@ -129,11 +144,15 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
         else:
             raise ValueError
 
+        if link.typ == "nv":
+            translation_unit = EmptyTranslationUnit()
+        else:
+            translation_unit = SingleClickTranslationUnit()
+
         link_prot = MagicLinkLayerProtocolWithSignaling(
             nodes=[stack1.node, stack2.node],
             magic_distributor=link_dist,
-            # translation_unit=SingleClickTranslationUnit(),
-            translation_unit=EmptyTranslationUnit(),
+            translation_unit=translation_unit,
         )
         stack1.assign_ll_protocol(link_prot)
         stack2.assign_ll_protocol(link_prot)

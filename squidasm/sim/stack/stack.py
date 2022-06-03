@@ -108,6 +108,7 @@ class NodeStack(Protocol):
         qdevice: Optional[QuantumProcessor] = None,
         node_id: Optional[int] = None,
         use_default_components: bool = True,
+        qnos_corrects_bell_states: bool = False,
     ) -> None:
         """NodeStack constructor.
 
@@ -139,7 +140,7 @@ class NodeStack(Protocol):
         # created and added to this NodeStack.
         if use_default_components:
             self._host = Host(self.host_comp, qdevice_type)
-            self._qnos = Qnos(self.qnos_comp, qdevice_type)
+            self._qnos = Qnos(self.qnos_comp, qdevice_type, qnos_corrects_bell_states)
 
     def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
         """Set the link layer protocol to use for entanglement generation.

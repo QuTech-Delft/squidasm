@@ -2,14 +2,11 @@ from __future__ import annotations
 
 import math
 import os
-from re import T
 from typing import Any, Dict, Generator
 
 import netsquid as ns
+import numpy as np
 from netqasm.lang.ir import BreakpointAction, BreakpointRole
-from netqasm.sdk.connection import BaseNetQASMConnection
-from netqasm.sdk.futures import Future, RegFuture
-from netqasm.sdk.qubit import Qubit
 from netsquid.qubits import ketstates, qubitapi
 
 from pydynaa import EventExpression
@@ -22,11 +19,8 @@ from squidasm.run.stack.config import (
 )
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
-from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-
-# BQC application run on NV hardware.
 
 
 class ClientProgram(Program):
@@ -76,7 +70,6 @@ class ClientProgram(Program):
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
-        csocket: ClassicalSocket = context.csockets[self.PEER]
 
         epr = epr_socket.create_keep(1)[0]
         conn.insert_breakpoint(
@@ -91,7 +84,8 @@ class ClientProgram(Program):
             for j in range(4):
                 if abs(epr_state[i][j] < 1e-5):
                     epr_state[i][j] = 0
-        print(epr_state)
+        print("\n")
+        print(np.around(epr_state, 4))
         q0, q1 = qubitapi.create_qubits(2)
         qubitapi.assign_qstate([q0, q1], epr_state)
         fid = qubitapi.fidelity([q0, q1], ketstates.b00, squared=True)
@@ -118,7 +112,6 @@ class ServerProgram(Program):
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
-        csocket: ClassicalSocket = context.csockets[self.PEER]
 
         epr = epr_socket.recv_keep(1)[0]
         conn.insert_breakpoint(
@@ -170,7 +163,7 @@ if __name__ == "__main__":
     LogManager.set_log_level("WARNING")
 
     cwd = os.path.dirname(__file__)
-    log_file = os.path.join(cwd, "qne_bqc.log")
+    log_file = os.path.join(cwd, "qne_epr.log")
 
     LogManager.log_to_file(log_file)
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)

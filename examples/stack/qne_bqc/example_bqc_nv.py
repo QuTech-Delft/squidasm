@@ -11,14 +11,7 @@ from netqasm.sdk.futures import Future, RegFuture
 from netqasm.sdk.qubit import Qubit
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import (
-    DepolariseLinkConfig,
-    LinkConfig,
-    NVLinkConfig,
-    NVQDeviceConfig,
-    StackConfig,
-    StackNetworkConfig,
-)
+from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
@@ -244,7 +237,7 @@ def trap_round(
 
 
 if __name__ == "__main__":
-    num_times = 20
+    num_times = 100
     LogManager.set_log_level("WARNING")
 
     cwd = os.path.dirname(__file__)

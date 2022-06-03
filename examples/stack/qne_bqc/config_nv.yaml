@@ -21,6 +21,10 @@ qdevice_cfg: &qdevice_cfg
   # error of the native NV two-qubit gate
   ec_gate_depolar_prob: 0.008
 
+  # delta_w and tau_decay
+  delta_w: 0
+  tau_decay: 1.0
+
   # coherence times
   electron_T1: 1_000_000_000
   electron_T2: 300_000_000

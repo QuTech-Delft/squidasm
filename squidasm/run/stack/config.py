@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 import yaml
 from pydantic import BaseModel
@@ -66,6 +66,10 @@ class NVQDeviceConfig(BaseModel):
 
     # error of the native NV two-qubit gate
     ec_gate_depolar_prob: float = 0.008
+
+    # delta_w and tau_decay
+    delta_w: float = 0
+    tau_decay: float = 1.0
 
     # coherence times
     electron_T1: int = 1_000_000_000
