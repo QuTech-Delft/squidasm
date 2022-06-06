@@ -240,9 +240,13 @@ if __name__ == "__main__":
     num_times = 100
     LogManager.set_log_level("WARNING")
 
+    cwd = os.path.dirname(__file__)
+    log_file = os.path.join(cwd, "qne_bqc.log")
+
+    LogManager.log_to_file(log_file)
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
-    cfg_file = os.path.join(os.path.dirname(__file__), "config_nv.yaml")
+    cfg_file = os.path.join(cwd, "config_nv.yaml")
     cfg = StackNetworkConfig.from_file(cfg_file)
 
     # computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)

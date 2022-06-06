@@ -229,4 +229,6 @@ def build_nv_qdevice(name: str, cfg: NVQDeviceConfig) -> QuantumProcessor:
         mem_noise_models=mem_noise_models,
         phys_instructions=phys_instructions,
     )
+    qmem.add_property("delta_w", cfg.delta_w)
+    qmem.add_property("tau_decay", cfg.tau_decay)
     return qmem

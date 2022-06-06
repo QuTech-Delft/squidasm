@@ -1,0 +1,83 @@
+qdevice_cfg: &qdevice_cfg
+  # number of qubits per NV
+  num_qubits: 2
+
+  # initialization error of the electron spin
+  electron_init_depolar_prob: 0.05
+
+  # error of the single-qubit gate
+  electron_single_qubit_depolar_prob: 0.0
+
+  # measurement errors (prob_error_X is the probability that outcome X is flipped to 1 - X)
+  prob_error_0: 0.05
+  prob_error_1: 0.005
+
+  # initialization error of the carbon nuclear spin
+  carbon_init_depolar_prob: 0.05
+
+  # error of the Z-rotation gate on the carbon nuclear spin
+  carbon_z_rot_depolar_prob: 0.001
+
+  # error of the native NV two-qubit gate
+  ec_gate_depolar_prob: 0.008
+
+  # delta_w and tau_decay
+  delta_w: 0
+  tau_decay: 1.0
+
+  # coherence times
+  electron_T1: 1_000_000_000
+  electron_T2: 300_000_000
+  carbon_T1: 150_000_000_000
+  carbon_T2: 1_500_000_000
+
+  # gate execution times
+  carbon_init: 310_000
+  carbon_rot_x: 500_000
+  carbon_rot_y: 500_000
+  carbon_rot_z: 500_000
+  electron_init: 2_000
+  electron_rot_x: 5_000
+  electron_rot_y: 5_000
+  electron_rot_z: 5_000
+  ec_controlled_dir_x: 500_000
+  ec_controlled_dir_y: 500_000
+  measure: 3_700
+
+stacks:
+  - name: client
+    qdevice_typ: nv
+    qdevice_cfg: 
+      <<: *qdevice_cfg
+  - name: server
+    qdevice_typ: nv
+    qdevice_cfg: 
+      <<: *qdevice_cfg
+  
+link_cfg: &link_cfg
+  cycle_time: 5_000
+  alpha_A: 0.1
+  alpha_B: 0.1
+  length_A: 0.005
+  length_B: 0.005
+  p_loss_init_A: null
+  p_loss_length_A: null
+  speed_of_light_A: null
+  p_loss_init_B: null
+  p_loss_length_B: null
+  speed_of_light_B: null
+  dark_count_probability: null
+  detector_efficiency: null
+  visibility: null
+  num_resolving: null
+  std_electron_electron_phase_drift: null
+  coherent_phase: null
+  p_double_exc: null
+  p_fail_class_corr: null
+
+links:
+  - stack1: client
+    stack2: server
+    typ: nv
+    cfg:
+      <<: *link_cfg

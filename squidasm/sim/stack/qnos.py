@@ -115,7 +115,12 @@ class QnosComponent(Component):
 class Qnos(Protocol):
     """NetSquid protocol representing a QNodeOS instance."""
 
-    def __init__(self, comp: QnosComponent, qdevice_type: Optional[str] = "nv") -> None:
+    def __init__(
+        self,
+        comp: QnosComponent,
+        qdevice_type: Optional[str] = "nv",
+        correct_bell_states: bool = False,
+    ) -> None:
         """Qnos protocol constructor.
 
         :param comp: NetSquid component representing the QNodeOS instance
@@ -126,7 +131,7 @@ class Qnos(Protocol):
 
         # Create internal protocols.
         self.handler = Handler(comp.handler_comp, self, qdevice_type)
-        self.netstack = Netstack(comp.netstack_comp, self)
+        self.netstack = Netstack(comp.netstack_comp, self, correct_bell_states)
         if qdevice_type == "generic":
             self.processor = GenericProcessor(comp.processor_comp, self)
             self._physical_memory = PhysicalQuantumMemory(comp.qdevice.num_positions)

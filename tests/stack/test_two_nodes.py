@@ -2,6 +2,7 @@ import unittest
 from typing import Dict, Generator, Optional, Type
 
 import netsquid as ns
+import pytest
 from netqasm.backend.messages import (
     InitNewAppMessage,
     OpenEPRSocketMessage,
@@ -12,15 +13,13 @@ from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.parsing import parse_text_subroutine
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocolWithSignaling,
-    SingleClickTranslationUnit,
-)
+from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
 from pydynaa import EventExpression
 from squidasm.run.stack.build import build_nv_qdevice
 from squidasm.run.stack.config import NVQDeviceConfig
+from squidasm.run.stack.run import EmptyTranslationUnit
 from squidasm.sim.stack.common import AppMemory
 from squidasm.sim.stack.host import Host
 from squidasm.sim.stack.processor import NVProcessor
@@ -34,10 +33,13 @@ class TestTwoNodes(unittest.TestCase):
         nv_cfg = NVQDeviceConfig.perfect_config()
         alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=nv_cfg)
         self._alice = NodeStack(
-            "alice", qdevice_type="nv", qdevice=alice_qdevice, node_id=0
+            "alice",
+            qdevice_type="nv",
+            qdevice=alice_qdevice,
+            node_id=0,
         )
         self._alice.host = Host(self._alice.host_comp)
-        self._alice.qnos = Qnos(self._alice.qnos_comp)
+        self._alice.qnos = Qnos(self._alice.qnos_comp, correct_bell_states=True)
         self._alice.qnos.processor = NVProcessor(
             self._alice.qnos_comp.processor_comp, self._alice.qnos
         )
@@ -45,9 +47,14 @@ class TestTwoNodes(unittest.TestCase):
         self._alice.qnos.handler.should_clear_memory = False
 
         bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=nv_cfg)
-        self._bob = NodeStack("bob", qdevice_type="nv", qdevice=bob_qdevice, node_id=1)
+        self._bob = NodeStack(
+            "bob",
+            qdevice_type="nv",
+            qdevice=bob_qdevice,
+            node_id=1,
+        )
         self._bob.host = Host(self._bob.host_comp)
-        self._bob.qnos = Qnos(self._bob.qnos_comp)
+        self._bob.qnos = Qnos(self._bob.qnos_comp, correct_bell_states=True)
         self._bob.qnos.processor = NVProcessor(
             self._bob.qnos_comp.processor_comp, self._bob.qnos
         )
@@ -63,13 +70,14 @@ class TestTwoNodes(unittest.TestCase):
             nodes=[self._alice.node, self._bob.node],
             length_A=0.001,
             length_B=0.001,
-            full_cycle=0.001,
-            t_cycle=10,
+            cycle_time=10,
         )
+        self._link_dist.fixed_delivery_parameters[0]["alpha_A"] = 1e-3
+        self._link_dist.fixed_delivery_parameters[0]["alpha_B"] = 1e-3
         self._link_prot = MagicLinkLayerProtocolWithSignaling(
             nodes=[self._alice.node, self._bob.node],
             magic_distributor=self._link_dist,
-            translation_unit=SingleClickTranslationUnit(),
+            translation_unit=EmptyTranslationUnit(),
         )
 
         self._alice.assign_ll_protocol(self._link_prot)
@@ -91,6 +99,7 @@ class TestTwoNodes(unittest.TestCase):
         if self._check_cmem:
             self._check_cmem(self._alice.qnos.app_memories, self._bob.qnos.app_memories)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_entangle_ck(self):
         SUBRT_1 = """
         # NETQASM 1.0
@@ -169,6 +178,7 @@ class TestTwoNodes(unittest.TestCase):
         self._check_qmem = check_qmem
         self._check_cmem = None
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_entangle_ck_with_measure(self):
         SUBRT_1 = """
         # NETQASM 1.0
@@ -298,6 +308,7 @@ class TestTwoNodes(unittest.TestCase):
         self._check_qmem = None
         self._check_cmem = check_cmem
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_entangle_md(self):
         SUBRT_1 = """
         # NETQASM 1.0
@@ -389,6 +400,7 @@ class TestTwoNodes(unittest.TestCase):
         self._check_qmem = None
         self._check_cmem = check_cmem
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_entangle_md_with_wait(self):
         SUBRT_1 = """
         # NETQASM 1.0
@@ -490,6 +502,7 @@ class TestTwoNodes(unittest.TestCase):
         self._check_qmem = None
         self._check_cmem = check_cmem
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_entangle_ck_with_post_routine(self):
         SUBRT_1 = """
         # NETQASM 1.0

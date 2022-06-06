@@ -13,7 +13,6 @@ from squidasm.run.stack.config import (
     StackConfig,
     StackNetworkConfig,
 )
-from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -186,8 +185,8 @@ class ServerProgram(FidelityVsRateProgram):
 
 
 if __name__ == "__main__":
-    LogManager.set_log_level("WARNING")
-    # LogManager.log_to_file(os.path.join(os.path.dirname(__file__), "debug.log"))
+    LogManager.set_log_level("DEBUG")
+    LogManager.log_to_file(os.path.join(os.path.dirname(__file__), "debug.log"))
 
     num_times = 1
 
@@ -208,6 +207,6 @@ if __name__ == "__main__":
     client_program = ClientProgram(num_repetitions=2)
     server_program = ServerProgram(num_repetitions=2)
 
-    results = run(cfg, {"client": client_program, "server": server_program}, num_times)
+    # results = run(cfg, {"client": client_program, "server": server_program}, num_times)
 
-    print(results)
+    # print(results)

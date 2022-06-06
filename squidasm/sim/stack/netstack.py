@@ -115,7 +115,9 @@ class EprSocket:
 class Netstack(ComponentProtocol):
     """NetSquid protocol representing the QNodeOS network stack."""
 
-    def __init__(self, comp: NetstackComponent, qnos: Qnos) -> None:
+    def __init__(
+        self, comp: NetstackComponent, qnos: Qnos, correct_bell_states: bool = False
+    ) -> None:
         """Network stack protocol constructor. Typically created indirectly through
         constructing a `Qnos` instance.
 
@@ -125,6 +127,8 @@ class Netstack(ComponentProtocol):
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
         self._qnos = qnos
+
+        self._correct_bell_states = correct_bell_states
 
         self.add_listener(
             "processor",
@@ -336,23 +340,25 @@ class Netstack(ComponentProtocol):
                 ResCreateAndKeep.__name__, receiver=self
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
+            self._logger.info(f"bell state: {result.bell_state}")
 
-            # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
-            if result.bell_state == BellIndex.B00:
-                pass
-            elif result.bell_state == BellIndex.B01:
-                prog = QuantumProgram()
-                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-                yield self.qdevice.execute_program(prog)
-            elif result.bell_state == BellIndex.B10:
-                prog = QuantumProgram()
-                prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-                yield self.qdevice.execute_program(prog)
-            elif result.bell_state == BellIndex.B11:
-                prog = QuantumProgram()
-                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-                prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-                yield self.qdevice.execute_program(prog)
+            if self._correct_bell_states:
+                # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
+                if result.bell_state == BellIndex.B00:
+                    pass
+                elif result.bell_state == BellIndex.B01:
+                    prog = QuantumProgram()
+                    prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+                    yield self.qdevice.execute_program(prog)
+                elif result.bell_state == BellIndex.B10:
+                    prog = QuantumProgram()
+                    prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
+                    yield self.qdevice.execute_program(prog)
+                elif result.bell_state == BellIndex.B11:
+                    prog = QuantumProgram()
+                    prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+                    prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
+                    yield self.qdevice.execute_program(prog)
 
             virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
             app_mem.map_virt_id(virt_id, phys_id)
