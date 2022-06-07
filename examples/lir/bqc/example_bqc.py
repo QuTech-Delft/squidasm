@@ -5,7 +5,7 @@ from typing import List
 
 from netqasm.lang.operand import Template
 
-from squidasm.run.qoala import lhr as lp
+from squidasm.qoala.lang import lhr as lp
 from squidasm.run.stack.config import (
     GenericQDeviceConfig,
     LinkConfig,

@@ -12,8 +12,8 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
 )
 
-from squidasm.sim.stack.host import Host, HostComponent
-from squidasm.sim.stack.qnos import Qnos, QnosComponent
+from squidasm.qoala.sim.host import Host, HostComponent
+from squidasm.qoala.sim.qnos import Qnos, QnosComponent
 
 
 class ProcessingNode(Node):

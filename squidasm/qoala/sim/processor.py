@@ -30,7 +30,7 @@ from netsquid.nodes import Node
 from netsquid.qubits import qubitapi
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.common import (
+from squidasm.qoala.sim.common import (
     AllocError,
     AppMemory,
     ComponentProtocol,
@@ -41,15 +41,15 @@ from squidasm.sim.stack.common import (
     PhysicalQuantumMemory,
     PortListener,
 )
-from squidasm.sim.stack.globals import GlobalSimData
-from squidasm.sim.stack.signals import (
+from squidasm.qoala.sim.globals import GlobalSimData
+from squidasm.qoala.sim.signals import (
     SIGNAL_HAND_PROC_MSG,
     SIGNAL_MEMORY_FREED,
     SIGNAL_NSTK_PROC_MSG,
 )
 
 if TYPE_CHECKING:
-    from squidasm.sim.stack.qnos import Qnos
+    from squidasm.qoala.sim.qnos import Qnos
 
 PI = math.pi
 PI_OVER_2 = math.pi / 2

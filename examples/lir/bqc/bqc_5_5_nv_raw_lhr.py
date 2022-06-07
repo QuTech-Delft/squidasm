@@ -4,7 +4,7 @@ import math
 import os
 from typing import List
 
-from squidasm.run.qoala import lhr as lp
+from squidasm.qoala.lang import lhr as lp
 from squidasm.run.stack.config import (
     LinkConfig,
     NVQDeviceConfig,

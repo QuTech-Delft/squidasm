@@ -19,11 +19,11 @@ from pydynaa import EventExpression
 
 if TYPE_CHECKING:
     from netqasm.sdk.transpile import SubroutineTranspiler
-    from squidasm.sim.stack.host import Host
+    from squidasm.qoala.sim.host import Host
 
-from squidasm.sim.stack.common import LogManager
+from squidasm.qoala.sim.common import LogManager
 
-from .context import NetSquidNetworkInfo
+from ..runtime.context import NetSquidNetworkInfo
 
 
 class QnosConnection(BaseNetQASMConnection):

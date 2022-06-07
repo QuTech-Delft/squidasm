@@ -8,14 +8,14 @@ from netsquid.nodes import Node
 from netsquid.protocols import Protocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
-from squidasm.sim.stack.common import (
+from squidasm.qoala.sim.common import (
     AppMemory,
     NVPhysicalQuantumMemory,
     PhysicalQuantumMemory,
 )
-from squidasm.sim.stack.handler import Handler, HandlerComponent
-from squidasm.sim.stack.netstack import Netstack, NetstackComponent
-from squidasm.sim.stack.processor import (
+from squidasm.qoala.sim.handler import Handler, HandlerComponent
+from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
+from squidasm.qoala.sim.processor import (
     GenericProcessor,
     NVProcessor,
     Processor,

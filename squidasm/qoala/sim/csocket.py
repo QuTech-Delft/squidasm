@@ -8,7 +8,7 @@ from netqasm.sdk.classical_communication.socket import Socket
 from pydynaa import EventExpression
 
 if TYPE_CHECKING:
-    from squidasm.sim.stack.host import Host
+    from squidasm.qoala.sim.host import Host
 
 
 class ClassicalSocket(Socket):

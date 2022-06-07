@@ -7,7 +7,7 @@ from netsquid.qubits import qubitapi
 from netsquid.qubits.qubit import Qubit
 
 if TYPE_CHECKING:
-    from squidasm.sim.stack.stack import StackNetwork
+    from squidasm.qoala.sim.stack import StackNetwork
 
 T_QubitData = Dict[str, Dict[int, Qubit]]
 T_StateData = Dict[str, Dict[int, np.ndarray]]

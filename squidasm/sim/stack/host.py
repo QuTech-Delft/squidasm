@@ -16,7 +16,7 @@ from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
 from pydynaa import EventExpression
-from squidasm.run.qoala import lhr
+from squidasm.qoala.lang import lhr
 from squidasm.sim.stack.common import ComponentProtocol, LogManager, PortListener
 from squidasm.sim.stack.connection import QnosConnection
 from squidasm.sim.stack.context import NetSquidContext

@@ -16,13 +16,13 @@ from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
 from pydynaa import EventExpression
-from squidasm.run.qoala import lhr
-from squidasm.sim.stack.common import ComponentProtocol, LogManager, PortListener
-from squidasm.sim.stack.connection import QnosConnection
-from squidasm.sim.stack.context import NetSquidContext
-from squidasm.sim.stack.csocket import ClassicalSocket
-from squidasm.sim.stack.program import Program, ProgramContext
-from squidasm.sim.stack.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
+from squidasm.qoala.lang import lhr
+from squidasm.qoala.runtime.context import NetSquidContext
+from squidasm.qoala.runtime.program import Program, ProgramContext
+from squidasm.qoala.sim.common import ComponentProtocol, LogManager, PortListener
+from squidasm.qoala.sim.connection import QnosConnection
+from squidasm.qoala.sim.csocket import ClassicalSocket
+from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
 
 
 class LhrProcess:

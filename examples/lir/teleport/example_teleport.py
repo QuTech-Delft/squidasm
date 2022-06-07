@@ -7,7 +7,7 @@ from netqasm.lang.operand import Template
 from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.toolbox import set_qubit_state
 
-from squidasm.run.qoala import lhr as lp
+from squidasm.qoala.lang import lhr as lp
 from squidasm.run.stack.config import (
     GenericQDeviceConfig,
     LinkConfig,

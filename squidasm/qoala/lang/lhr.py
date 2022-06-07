@@ -10,7 +10,7 @@ from netqasm.lang.parsing.text import parse_text_subroutine
 from netqasm.lang.subroutine import Subroutine
 from netqasm.sdk.futures import Future
 
-from squidasm.sim.stack.program import ProgramContext, ProgramMeta
+from squidasm.qoala.runtime.program import ProgramContext, ProgramMeta
 
 LhrValue = Union[int, Template, Future]
 
