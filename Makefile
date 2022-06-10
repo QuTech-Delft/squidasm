@@ -11,8 +11,6 @@ help:
 	@echo "tests             Runs the tests."
 	@echo "examples          Runs the examples and makes sure they work."
 	@echo "lint              Runs the linter."
-	@echo "test-deps         Installs the requirements needed for running tests and linter."
-	@echo "python-deps       Installs the requirements needed for using the package."
 	@echo "docs              Creates the html documentation"
 	@echo "clean             Removes all .pyc files."
 
@@ -59,12 +57,12 @@ docs html:
 install: _check_variables
 	@$(PYTHON3) -m pip install -e . ${PIP_FLAGS}
 
-install-tests: _check_variables
-	@$(PYTHON3) -m pip install -e .[tests] ${PIP_FLAGS}
+install-dev: _check_variables
+	@$(PYTHON3) -m pip install -e .[dev] ${PIP_FLAGS}
 
-verify: clean test-deps python-deps lint tests examples _verified
+verify: clean lint tests examples _verified
 
 _verified:
 	@echo "Everything works!"
 
-.PHONY: clean lint test-deps python-deps tests verify install examples docs
+.PHONY: clean lint tests verify install examples docs
