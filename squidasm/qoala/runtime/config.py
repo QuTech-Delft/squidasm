@@ -79,9 +79,9 @@ class NVQDeviceConfig(BaseModel):
     carbon_rot_y: int = 500_000
     carbon_rot_z: int = 500_000
     electron_init: int = 2_000
-    electron_rot_x: int = 5
-    electron_rot_y: int = 5
-    electron_rot_z: int = 5
+    electron_rot_x: int = 5_000
+    electron_rot_y: int = 5_000
+    electron_rot_z: int = 5_000
     ec_controlled_dir_x: int = 500_000
     ec_controlled_dir_y: int = 500_000
     measure: int = 3_700
@@ -110,6 +110,8 @@ class StackConfig(BaseModel):
     name: str
     qdevice_typ: str
     qdevice_cfg: Any
+    host_qnos_latency: float = 0.0
+    instr_latency: float = 0.0
 
     @classmethod
     def from_file(cls, path: str) -> StackConfig:
@@ -121,6 +123,8 @@ class StackConfig(BaseModel):
             name=name,
             qdevice_typ="generic",
             qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+            host_qnos_latency=0.0,
+            instr_latency=0.0,
         )
 
 
@@ -166,6 +170,8 @@ class LinkConfig(BaseModel):
     stack2: str
     typ: str
     cfg: Any
+    host_host_latency: float = 0.0
+    qnos_qnos_latency: float = 0.0
 
     @classmethod
     def from_file(cls, path: str) -> LinkConfig:
@@ -173,7 +179,14 @@ class LinkConfig(BaseModel):
 
     @classmethod
     def perfect_config(cls, stack1: str, stack2: str) -> LinkConfig:
-        return LinkConfig(stack1=stack1, stack2=stack2, typ="perfect", cfg=None)
+        return LinkConfig(
+            stack1=stack1,
+            stack2=stack2,
+            typ="perfect",
+            cfg=None,
+            host_host_latency=0.0,
+            qnos_qnos_latency=0.0,
+        )
 
 
 class StackNetworkConfig(BaseModel):

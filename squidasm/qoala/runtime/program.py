@@ -6,6 +6,8 @@ from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
 
+from squidasm.qoala.lang.lhr import LhrProgram
+
 
 class ProgramContext:
     def __init__(
@@ -53,3 +55,11 @@ class Program(abc.ABC):
 
     def run(self, context: ProgramContext) -> Dict[str, Any]:
         raise NotImplementedError
+
+
+@dataclass
+class ProgramInstance:
+    program: LhrProgram
+    inputs: Dict[str, Any]
+    num_iterations: int
+    deadline: float

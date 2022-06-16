@@ -8,11 +8,10 @@ from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.operand import Template
 from netqasm.lang.parsing.text import parse_text_subroutine
 from netqasm.lang.subroutine import Subroutine
-from netqasm.sdk.futures import Future
 
 from squidasm.qoala.runtime.program import ProgramContext, ProgramMeta
 
-LhrValue = Union[int, Template, Future]
+LhrValue = Union[int, Template]
 
 
 class LhrInstructionType(Enum):
@@ -477,15 +476,6 @@ class LhrParser:
             pass
 
         return LhrProgram(instructions, subroutines)
-
-
-class SdkProgram(abc.ABC):
-    @property
-    def meta(self) -> ProgramMeta:
-        raise NotImplementedError
-
-    def compile(self, context: ProgramContext) -> LhrProgram:
-        raise NotImplementedError
 
 
 if __name__ == "__main__":

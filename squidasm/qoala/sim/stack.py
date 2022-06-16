@@ -12,6 +12,7 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
 )
 
+from squidasm.qoala.runtime.environment import GlobalEnvironment
 from squidasm.qoala.sim.host import Host, HostComponent
 from squidasm.qoala.sim.qnos import Qnos, QnosComponent
 
@@ -103,6 +104,7 @@ class NodeStack(Protocol):
     def __init__(
         self,
         name: str,
+        global_env: Optional[GlobalEnvironment] = None,
         node: Optional[ProcessingNode] = None,
         qdevice_type: Optional[str] = "generic",
         qdevice: Optional[QuantumProcessor] = None,
@@ -131,6 +133,8 @@ class NodeStack(Protocol):
             assert qdevice is not None
             self._node = ProcessingNode(name, qdevice, node_id)
 
+        self._global_env = global_env
+
         self._host: Optional[Host] = None
         self._qnos: Optional[Qnos] = None
 
@@ -138,7 +142,7 @@ class NodeStack(Protocol):
         # If `use_default_components` is False, these components must be manually
         # created and added to this NodeStack.
         if use_default_components:
-            self._host = Host(self.host_comp, qdevice_type)
+            self._host = Host(self.host_comp, global_env, qdevice_type)
             self._qnos = Qnos(self.qnos_comp, qdevice_type)
 
     def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:

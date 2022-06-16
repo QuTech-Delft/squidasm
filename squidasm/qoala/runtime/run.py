@@ -25,7 +25,8 @@ from squidasm.qoala.runtime.config import (
     NVQDeviceConfig,
     StackNetworkConfig,
 )
-from squidasm.qoala.runtime.context import NetSquidContext
+from squidasm.qoala.runtime.context import NetSquidContext, NetSquidNetworkInfo
+from squidasm.qoala.runtime.environment import GlobalEnvironment, GlobalNodeInfo
 from squidasm.qoala.runtime.program import Program
 from squidasm.qoala.sim.build import build_generic_qdevice, build_nv_qdevice
 from squidasm.qoala.sim.globals import GlobalSimData
@@ -36,7 +37,7 @@ def fidelity_to_prob_max_mixed(fid: float) -> float:
     return (1 - fid) * 4.0 / 3.0
 
 
-def _setup_network(config: StackNetworkConfig) -> StackNetwork:
+def _setup_network(config: StackNetworkConfig, rte: GlobalEnvironment) -> StackNetwork:
     assert len(config.stacks) <= 2
     assert len(config.links) <= 1
 
@@ -56,7 +57,11 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
                 qdevice_cfg = GenericQDeviceConfig(**cfg.qdevice_cfg)
             qdevice = build_generic_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
             stack = NodeStack(cfg.name, qdevice_type="generic", qdevice=qdevice)
-        NetSquidContext.add_node(stack.node.ID, cfg.name)
+
+        # TODO !!!
+        # get HW info from config
+        node_info = GlobalNodeInfo(cfg.name, 2, 1, 0, 0, 0, 0)
+        rte.add_node(stack.node.ID, node_info)
         stacks[cfg.name] = stack
 
     for (_, s1), (_, s2) in itertools.combinations(stacks.items(), 2):
@@ -153,11 +158,22 @@ def run(
     :param num_times: numbers of times to run the programs, defaults to 1
     :return: program results
     """
-    network = _setup_network(config)
+    # Create global runtime environment.
+    rte = GlobalEnvironment()
 
-    NetSquidContext.set_nodes({})
-    for name, stack in network.stacks.items():
-        NetSquidContext.add_node(stack.node.ID, name)
+    # Build the network. Info about created nodes will be added to the runtime environment.
+    network = _setup_network(config, rte)
+
+    # Add info about constructed nodes to runtime environment.
+    # rte.set_nodes({})
+    # for name, stack in network.stacks.items():
+    #     # TODO !!!
+    #     # get HW info from config
+    #     node_info = GlobalNodeInfo(name, 2, 1, 0, 0, 0, 0)
+    #     rte.add_node(stack.node.ID, node_info)
+
+    # TODO: rewrite
+    NetSquidNetworkInfo._global_env = rte
 
     GlobalSimData.set_network(network)
     for name, program in programs.items():
