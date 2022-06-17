@@ -1,7 +1,7 @@
 import abc
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from netqasm.lang.instr import NetQASMInstruction
 from netqasm.lang.instr.flavour import NVFlavour
@@ -9,9 +9,16 @@ from netqasm.lang.operand import Template
 from netqasm.lang.parsing.text import parse_text_subroutine
 from netqasm.lang.subroutine import Subroutine
 
-from squidasm.qoala.runtime.program import ProgramContext, ProgramMeta
-
 LhrValue = Union[int, Template]
+
+
+@dataclass
+class ProgramMeta:
+    name: str
+    parameters: Dict[str, Any]
+    csockets: List[str]
+    epr_sockets: List[str]
+    max_qubits: int
 
 
 class LhrInstructionType(Enum):
@@ -361,9 +368,6 @@ class LhrProgram:
 
         # return "\n".join("  " + i for i in instrs)
         return "\n".join("  " + str(i) for i in self.instructions)
-
-    def compile(self, context: ProgramContext) -> None:
-        raise NotImplementedError
 
 
 class EndOfTextException(Exception):

@@ -57,8 +57,7 @@ class LhrProcess:
             compiler=self._host._compiler,
         )
 
-        # Create EPR sockets that can be used by the program SDK code.
-        epr_sockets: Dict[int, EPRSocket] = {}
+        # Open the EPR sockets required by the program.
         for i, remote_name in enumerate(prog_meta.epr_sockets):
             remote_id = None
 
@@ -72,8 +71,6 @@ class LhrProcess:
             self._host.send_qnos_msg(
                 bytes(OpenEPRSocketMessage(self._app_id, i, remote_id))
             )
-            epr_sockets[remote_name] = EPRSocket(remote_name, i)
-            epr_sockets[remote_name].conn = conn
 
         # Create classical sockets that can be used by the program SDK code.
         classical_sockets: Dict[int, ClassicalSocket] = {}
@@ -94,7 +91,6 @@ class LhrProcess:
         self._context = ProgramContext(
             netqasm_connection=conn,
             csockets=classical_sockets,
-            epr_sockets=epr_sockets,
             app_id=self._app_id,
         )
 
