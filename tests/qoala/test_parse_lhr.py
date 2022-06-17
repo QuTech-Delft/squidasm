@@ -1,11 +1,12 @@
 from squidasm.qoala.lang import lhr as lp
-from squidasm.run.stack.config import (
+from squidasm.qoala.runtime.config import (
     GenericQDeviceConfig,
     LinkConfig,
     StackConfig,
     StackNetworkConfig,
 )
-from squidasm.run.stack.run import run
+from squidasm.qoala.runtime.program import ProgramInstance
+from squidasm.qoala.runtime.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import ProgramMeta
 
@@ -59,8 +60,10 @@ return_result(m)
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
 
+    prog_instance = ProgramInstance(parsed_program, {}, 1, 0.0)
+
     cfg = StackNetworkConfig(stacks=[sender_stack], links=[])
-    result = run(cfg, programs={"client": parsed_program})
+    result = run(cfg, programs={"client": prog_instance})
     print(result)
 
 
@@ -94,8 +97,13 @@ return_result(value)
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
 
+    prog_server_instance = ProgramInstance(program_server, {}, 1, 0.0)
+    prog_client_instance = ProgramInstance(program_client, {}, 1, 0.0)
+
     cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[])
-    result = run(cfg, programs={"client": program_client, "server": program_server})
+    result = run(
+        cfg, programs={"client": prog_client_instance, "server": prog_server_instance}
+    )
     print(result)
 
 
@@ -181,14 +189,19 @@ return_result(m)
         typ="perfect",
     )
 
+    prog_server_instance = ProgramInstance(program_server, {}, 1, 0.0)
+    prog_client_instance = ProgramInstance(program_client, {}, 1, 0.0)
+
     cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
-    result = run(cfg, programs={"client": program_client, "server": program_server})
+    result = run(
+        cfg, programs={"client": prog_client_instance, "server": prog_server_instance}
+    )
     print(result)
 
 
 if __name__ == "__main__":
     LogManager.set_log_level("DEBUG")
-    # test_parse()
-    # test_run()
-    # test_run_two_nodes_classical()
+    test_parse()
+    test_run()
+    test_run_two_nodes_classical()
     test_run_two_nodes_epr()

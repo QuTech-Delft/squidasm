@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from squidasm.qoala.runtime.config import (
     GenericQDeviceConfig,
     LinkConfig,
     NVQDeviceConfig,
 )
+from squidasm.qoala.runtime.program import ProgramInstance
 
 
 @dataclass
@@ -93,6 +94,11 @@ class GlobalEnvironment:
     def get_nodes(self) -> Dict[int, GlobalNodeInfo]:
         return self._nodes
 
+    def get_node_id(self, name: str) -> int:
+        for id, node in self._nodes.items():
+            if node.name == name:
+                return id
+
     def set_nodes(self, nodes: Dict[int, GlobalNodeInfo]) -> None:
         self._nodes = nodes
 
@@ -116,11 +122,21 @@ class LocalEnvironment:
         # node ID of self
         self._node_id: int = node_id
 
+        self._programs: List[ProgramInstance] = []
+        self._csockets: List[str] = []
+        self._epr_sockets: List[str] = []
+
     def get_global_env(self) -> GlobalEnvironment:
         return self._global_env
 
     def get_node_id(self) -> int:
         return self._node_id
+
+    def register_program(self, program: ProgramInstance) -> None:
+        self._programs.append(program)
+
+    def open_epr_socket(self) -> None:
+        pass
 
 
 class ProgramEnvironment:

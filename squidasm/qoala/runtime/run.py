@@ -25,9 +25,9 @@ from squidasm.qoala.runtime.config import (
     NVQDeviceConfig,
     StackNetworkConfig,
 )
-from squidasm.qoala.runtime.context import NetSquidContext, NetSquidNetworkInfo
+from squidasm.qoala.runtime.context import NetSquidNetworkInfo
 from squidasm.qoala.runtime.environment import GlobalEnvironment, GlobalNodeInfo
-from squidasm.qoala.runtime.program import Program
+from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.sim.build import build_generic_qdevice, build_nv_qdevice
 from squidasm.qoala.sim.globals import GlobalSimData
 from squidasm.qoala.sim.stack import NodeStack, StackNetwork
@@ -44,24 +44,37 @@ def _setup_network(config: StackNetworkConfig, rte: GlobalEnvironment) -> StackN
     stacks: Dict[str, NodeStack] = {}
     link_prots: List[MagicLinkLayerProtocol] = []
 
-    for cfg in config.stacks:
+    for node_id, cfg in enumerate(config.stacks):
+        # TODO !!!
+        # get HW info from config
+        node_info = GlobalNodeInfo(cfg.name, 2, 1, 0, 0, 0, 0)
+        rte.add_node(node_id, node_info)
+
         if cfg.qdevice_typ == "nv":
             qdevice_cfg = cfg.qdevice_cfg
             if not isinstance(qdevice_cfg, NVQDeviceConfig):
                 qdevice_cfg = NVQDeviceConfig(**cfg.qdevice_cfg)
             qdevice = build_nv_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
-            stack = NodeStack(cfg.name, qdevice_type="nv", qdevice=qdevice)
+            stack = NodeStack(
+                cfg.name,
+                global_env=rte,
+                qdevice_type="nv",
+                qdevice=qdevice,
+                node_id=node_id,
+            )
         elif cfg.qdevice_typ == "generic":
             qdevice_cfg = cfg.qdevice_cfg
             if not isinstance(qdevice_cfg, GenericQDeviceConfig):
                 qdevice_cfg = GenericQDeviceConfig(**cfg.qdevice_cfg)
             qdevice = build_generic_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
-            stack = NodeStack(cfg.name, qdevice_type="generic", qdevice=qdevice)
+            stack = NodeStack(
+                cfg.name,
+                global_env=rte,
+                qdevice_type="generic",
+                qdevice=qdevice,
+                node_id=node_id,
+            )
 
-        # TODO !!!
-        # get HW info from config
-        node_info = GlobalNodeInfo(cfg.name, 2, 1, 0, 0, 0, 0)
-        rte.add_node(stack.node.ID, node_info)
         stacks[cfg.name] = stack
 
     for (_, s1), (_, s2) in itertools.combinations(stacks.items(), 2):
@@ -149,7 +162,7 @@ def _run(network: StackNetwork) -> List[Dict[str, Any]]:
 
 
 def run(
-    config: StackNetworkConfig, programs: Dict[str, Program], num_times: int = 1
+    config: StackNetworkConfig, programs: Dict[str, ProgramInstance], num_times: int = 1
 ) -> List[Dict[str, Any]]:
     """Run programs on a network specified by a network configuration.
 
@@ -164,20 +177,14 @@ def run(
     # Build the network. Info about created nodes will be added to the runtime environment.
     network = _setup_network(config, rte)
 
-    # Add info about constructed nodes to runtime environment.
-    # rte.set_nodes({})
-    # for name, stack in network.stacks.items():
-    #     # TODO !!!
-    #     # get HW info from config
-    #     node_info = GlobalNodeInfo(name, 2, 1, 0, 0, 0, 0)
-    #     rte.add_node(stack.node.ID, node_info)
-
     # TODO: rewrite
     NetSquidNetworkInfo._global_env = rte
 
     GlobalSimData.set_network(network)
+
     for name, program in programs.items():
-        network.stacks[name].host.enqueue_program(program, num_times)
+        network.stacks[name]._local_env.register_program(program)
+        network.stacks[name].install_environment()
 
     results = _run(network)
     return results

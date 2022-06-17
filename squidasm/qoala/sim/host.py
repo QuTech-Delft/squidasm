@@ -1,34 +1,53 @@
 from __future__ import annotations
 
 import logging
-from distutils.filelist import glob_to_re
 from typing import Any, Dict, Generator, List, Optional, Type
 
-from netqasm.backend.messages import (
-    InitNewAppMessage,
-    OpenEPRSocketMessage,
-    StopAppMessage,
-)
+from netqasm.backend.messages import StopAppMessage
 from netqasm.lang.operand import Register
 from netqasm.lang.parsing.text import NetQASMSyntaxError, parse_register
-from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
 from pydynaa import EventExpression
 from squidasm.qoala.lang import lhr
-from squidasm.qoala.runtime.context import NetSquidContext
-from squidasm.qoala.runtime.environment import GlobalEnvironment
-from squidasm.qoala.runtime.program import Program, ProgramContext
+from squidasm.qoala.runtime.environment import LocalEnvironment
+from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.sim.common import ComponentProtocol, LogManager, PortListener
 from squidasm.qoala.sim.connection import QnosConnection
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
 
 
+class ProgramContext:
+    def __init__(
+        self,
+        conn: QnosConnection,
+        csockets: Dict[str, ClassicalSocket],
+        app_id: int,
+    ):
+        self._conn = conn
+        self._csockets = csockets
+        self._app_id = app_id
+
+    @property
+    def conn(self) -> QnosConnection:
+        return self._conn
+
+    @property
+    def csockets(self) -> Dict[str, ClassicalSocket]:
+        return self._csockets
+
+    @property
+    def app_id(self) -> int:
+        return self._app_id
+
+
 class LhrProcess:
-    def __init__(self, host: Host, program: lhr.LhrProgram) -> None:
+    def __init__(
+        self, host: Host, program: ProgramInstance, context: ProgramContext
+    ) -> None:
         self._host = host
         self._name = f"{host._comp.name}_Lhr"
         self._logger: logging.Logger = LogManager.get_stack_logger(
@@ -37,81 +56,16 @@ class LhrProcess:
         self._program = program
         self._program_results: List[Dict[str, Any]] = []
 
-    def setup(self) -> Generator[EventExpression, None, None]:
-        program = self._program
-        prog_meta = program.meta
-
-        # Register the new program (called 'application' by QNodeOS) with QNodeOS.
-        self._host.send_qnos_msg(
-            bytes(InitNewAppMessage(max_qubits=prog_meta.max_qubits))
-        )
-        self._app_id = yield from self._host.receive_qnos_msg()
-        self._logger.debug(f"got app id from qnos: {self._app_id}")
-
-        # Set up the connection with QNodeOS.
-        conn = QnosConnection(
-            host=self._host,
-            app_id=self._app_id,
-            app_name=prog_meta.name,
-            max_qubits=prog_meta.max_qubits,
-            compiler=self._host._compiler,
-        )
-
-        # Open the EPR sockets required by the program.
-        for i, remote_name in enumerate(prog_meta.epr_sockets):
-            remote_id = None
-
-            # TODO: rewrite
-            nodes = self._host._global_env.get_nodes()
-            for id, info in nodes.items():
-                if info.name == remote_name:
-                    remote_id = id
-
-            assert remote_id is not None
-            self._host.send_qnos_msg(
-                bytes(OpenEPRSocketMessage(self._app_id, i, remote_id))
-            )
-
-        # Create classical sockets that can be used by the program SDK code.
-        classical_sockets: Dict[int, ClassicalSocket] = {}
-        for i, remote_name in enumerate(prog_meta.csockets):
-            remote_id = None
-
-            # TODO: rewrite
-            nodes = self._host._global_env.get_nodes()
-            for id, info in nodes.items():
-                if info.name == remote_name:
-                    remote_id = id
-
-            assert remote_id is not None
-            classical_sockets[remote_name] = ClassicalSocket(
-                self._host, prog_meta.name, remote_name
-            )
-
-        self._context = ProgramContext(
-            netqasm_connection=conn,
-            csockets=classical_sockets,
-            app_id=self._app_id,
-        )
-
-        self._memory: Dict[str, Any] = {}
-
-    def run(self, num_times: int) -> Generator[EventExpression, None, None]:
-        for _ in range(num_times):
-            yield from self.setup()
-            result = yield from self.execute_program()
-            self._program_results.append(result)
-            self._host.send_qnos_msg(bytes(StopAppMessage(self._app_id)))
-
-    def run_with_context(
-        self, context: ProgramContext, num_times: int
-    ) -> Generator[EventExpression, None, None]:
-        self._memory: Dict[str, Any] = {}
         self._context = context
+
+        self._memory: Dict[str, Any] = {}
+
+    def run(self, num_times: int = 1) -> Generator[EventExpression, None, None]:
         for _ in range(num_times):
             result = yield from self.execute_program()
             self._program_results.append(result)
-            self._host.send_qnos_msg(bytes(StopAppMessage(context.app_id)))
+            self._host.send_qnos_msg(bytes(StopAppMessage(self._context.app_id)))
+        return self._program_results
 
     @property
     def context(self) -> ProgramContext:
@@ -128,11 +82,11 @@ class LhrProcess:
     def execute_program(self) -> Generator[EventExpression, None, Dict[str, Any]]:
         context = self._context
         memory = self._memory
-        program = self._program
+        program = self._program.program
 
-        csockets = list(context.csockets.values())
+        csockets = list(self._context.csockets.values())
         csck = csockets[0] if len(csockets) > 0 else None
-        conn = context.connection
+        conn = context.conn
 
         results: Dict[str, Any] = {}
 
@@ -178,7 +132,7 @@ class LhrProcess:
                 self._logger.warning(
                     f"instantiating subroutine with values {arg_values}"
                 )
-                subrt.instantiate(conn.app_id, arg_values)
+                subrt.instantiate(context.app_id, arg_values)
 
                 yield from conn.commit_subroutine(subrt)
 
@@ -237,7 +191,7 @@ class Host(ComponentProtocol):
     def __init__(
         self,
         comp: HostComponent,
-        global_env: GlobalEnvironment,
+        local_env: LocalEnvironment,
         qdevice_type: Optional[str] = "nv",
     ) -> None:
         """Qnos protocol constructor.
@@ -248,7 +202,7 @@ class Host(ComponentProtocol):
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
 
-        self._global_env = global_env
+        self._local_env = local_env
 
         self.add_listener(
             "qnos",
@@ -268,8 +222,13 @@ class Host(ComponentProtocol):
         else:
             raise ValueError
 
-        # Program that is currently being executed.
-        self._program: Optional[lhr.LhrProgram] = None
+        # Programs that need to be executed.
+        self._programs: Dict[int, ProgramInstance] = {}
+        self._program_counter: int = 0
+
+        self._connections: Dict[int, QnosConnection] = {}
+
+        self._csockets: Dict[int, Dict[str, ClassicalSocket]] = {}
 
         # Number of times the current program still needs to be run.
         self._num_pending: int = 0
@@ -285,6 +244,10 @@ class Host(ComponentProtocol):
     def compiler(self, typ: Optional[Type[SubroutineTranspiler]]) -> None:
         self._compiler = typ
 
+    @property
+    def local_env(self) -> LocalEnvironment:
+        return self._local_env
+
     def send_qnos_msg(self, msg: bytes) -> None:
         self._comp.qnos_out_port.tx_output(msg)
 
@@ -298,31 +261,53 @@ class Host(ComponentProtocol):
         return (yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG))
 
     def run_lhr_program(
-        self, program: lhr.LhrProgram, num_times: int
+        self, program: ProgramInstance, context: ProgramContext
     ) -> Generator[EventExpression, None, None]:
         self._logger.warning(f"Creating LHR process for program:\n{program}")
-        process = LhrProcess(self, program)
-        result = yield from process.run(num_times)
+        process = LhrProcess(self, program, context)
+        result = yield from process.run()
         return result
 
     def run(self) -> Generator[EventExpression, None, None]:
         """Run this protocol. Automatically called by NetSquid during simulation."""
 
         # Run a single program as many times as requested.
-        while self._num_pending > 0:
-            self._logger.info(f"num pending: {self._num_pending}")
-            self._num_pending -= 1
+        programs = list(self._programs.items())
+        if len(programs) == 0:
+            return
 
-            assert self._program is not None
+        app_id, program = programs[0]
 
-            yield from self.run_lhr_program(self._program, 1)
+        context = ProgramContext(
+            conn=self._connections[app_id],
+            csockets=self._csockets[app_id],
+            app_id=app_id,
+        )
 
-    def enqueue_program(self, program: Program, num_times: int = 1):
-        """Queue a program to be run the given number of times.
+        result = yield from self.run_lhr_program(program, context)
+        self._program_results.append(result)
 
-        NOTE: At the moment, only a single program can be queued at a time."""
-        self._program = program
-        self._num_pending = num_times
+    def init_new_program(self, program: ProgramInstance) -> int:
+        app_id = self._program_counter
+        self._program_counter += 1
+        self._programs[app_id] = program
+
+        conn = QnosConnection(
+            host=self,
+            app_id=app_id,
+            app_name=program.program.meta.name,
+            max_qubits=program.program.meta.max_qubits,
+            compiler=self._compiler,
+        )
+        self._connections[app_id] = conn
+
+        self._csockets[app_id] = {}
+
+        return app_id
+
+    def open_csocket(self, app_id: int, remote_name: str) -> None:
+        assert app_id in self._csockets
+        self._csockets[app_id][remote_name] = ClassicalSocket(self, remote_name)
 
     def get_results(self) -> List[Dict[str, Any]]:
         return self._program_results

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Generator
 
 from netqasm.sdk.classical_communication.message import StructuredMessage
-from netqasm.sdk.classical_communication.socket import Socket
 
 from pydynaa import EventExpression
 
@@ -11,19 +10,10 @@ if TYPE_CHECKING:
     from squidasm.qoala.sim.host import Host
 
 
-class ClassicalSocket(Socket):
-    def __init__(
-        self,
-        host: Host,
-        app_name: str,
-        remote_app_name: str,
-        socket_id: int = 0,
-    ):
-        """Socket used to communicate classical data between applications."""
-        super().__init__(
-            app_name=app_name, remote_app_name=remote_app_name, socket_id=socket_id
-        )
+class ClassicalSocket:
+    def __init__(self, host: Host, remote_name: str):
         self._host = host
+        self._remote_name = remote_name
 
     def send(self, msg: str) -> None:
         """Sends a message to the remote node."""

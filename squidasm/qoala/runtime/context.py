@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict
-
 from netqasm.sdk.network import NetworkInfo
 
 from squidasm.qoala.runtime.environment import GlobalEnvironment
-
-if TYPE_CHECKING:
-    from squidasm.qoala.sim.host import Host
 
 
 class NetSquidNetworkInfo(NetworkInfo):

@@ -200,8 +200,7 @@ class Handler(ComponentProtocol):
             return app
         return None
 
-    def init_new_app(self, max_qubits: int) -> int:
-        app_id = self._app_counter
+    def init_new_app(self, app_id: int) -> int:
         self._app_counter += 1
         self.app_memories[app_id] = AppMemory(app_id, self.physical_memory.qubit_count)
         self._applications[app_id] = RunningApp(app_id)

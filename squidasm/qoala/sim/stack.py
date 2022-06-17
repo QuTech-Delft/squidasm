@@ -12,7 +12,7 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
 )
 
-from squidasm.qoala.runtime.environment import GlobalEnvironment
+from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
 from squidasm.qoala.sim.host import Host, HostComponent
 from squidasm.qoala.sim.qnos import Qnos, QnosComponent
 
@@ -134,6 +134,7 @@ class NodeStack(Protocol):
             self._node = ProcessingNode(name, qdevice, node_id)
 
         self._global_env = global_env
+        self._local_env = LocalEnvironment(global_env, global_env.get_node_id(name))
 
         self._host: Optional[Host] = None
         self._qnos: Optional[Qnos] = None
@@ -142,8 +143,38 @@ class NodeStack(Protocol):
         # If `use_default_components` is False, these components must be manually
         # created and added to this NodeStack.
         if use_default_components:
-            self._host = Host(self.host_comp, global_env, qdevice_type)
+            self._host = Host(self.host_comp, self._local_env, qdevice_type)
             self._qnos = Qnos(self.qnos_comp, qdevice_type)
+
+    def install_environment(self) -> None:
+        for instance in self._local_env._programs:
+            app_id = self._host.init_new_program(instance)
+            self._qnos.handler.init_new_app(app_id)
+
+            # Open the EPR sockets required by the program.
+            for i, remote_name in enumerate(instance.program.meta.epr_sockets):
+                remote_id = None
+
+                # TODO: rewrite
+                nodes = self._global_env.get_nodes()
+                for id, info in nodes.items():
+                    if info.name == remote_name:
+                        remote_id = id
+
+                assert remote_id is not None
+                self._qnos.handler.open_epr_socket(app_id, i, remote_id)
+
+            for i, remote_name in enumerate(instance.program.meta.csockets):
+                remote_id = None
+
+                # TODO: rewrite
+                nodes = self._global_env.get_nodes()
+                for id, info in nodes.items():
+                    if info.name == remote_name:
+                        remote_id = id
+
+                assert remote_id is not None
+                self._host.open_csocket(app_id, remote_name)
 
     def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
         """Set the link layer protocol to use for entanglement generation.

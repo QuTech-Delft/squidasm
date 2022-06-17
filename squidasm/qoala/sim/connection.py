@@ -4,15 +4,11 @@ import logging
 from typing import TYPE_CHECKING, Callable, Generator, Optional, Type
 
 from netqasm.backend.messages import SubroutineMessage
+from netqasm.lang.ir import ProtoSubroutine
 from netqasm.lang.subroutine import Subroutine
 from netqasm.sdk.build_types import GenericHardwareConfig, HardwareConfig
 from netqasm.sdk.builder import Builder
-from netqasm.sdk.connection import (
-    BaseNetQASMConnection,
-    NetworkInfo,
-    ProtoSubroutine,
-    T_Message,
-)
+from netqasm.sdk.connection import T_Message
 from netqasm.sdk.shared_memory import SharedMemory
 
 from pydynaa import EventExpression
@@ -23,10 +19,8 @@ if TYPE_CHECKING:
 
 from squidasm.qoala.sim.common import LogManager
 
-from ..runtime.context import NetSquidNetworkInfo
 
-
-class QnosConnection(BaseNetQASMConnection):
+class QnosConnection:
     def __init__(
         self,
         host: Host,
@@ -46,7 +40,7 @@ class QnosConnection(BaseNetQASMConnection):
 
         self._shared_memory = None
         self._logger: logging.Logger = LogManager.get_stack_logger(
-            f"{self.__class__.__name__}({self.app_name})"
+            f"{self.__class__.__name__}({self._app_name})"
         )
 
         if hardware_config is None:
@@ -62,12 +56,6 @@ class QnosConnection(BaseNetQASMConnection):
     @property
     def shared_memory(self) -> SharedMemory:
         return self._shared_memory
-
-    def __enter__(self) -> QnosConnection:
-        pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.flush()
 
     def _commit_message(
         self, msg: T_Message, block: bool = True, callback: Optional[Callable] = None
@@ -124,6 +112,3 @@ class QnosConnection(BaseNetQASMConnection):
         self, raw_msg: bytes, block: bool = True, callback: Optional[Callable] = None
     ) -> None:
         pass
-
-    def _get_network_info(self) -> Type[NetworkInfo]:
-        return NetSquidNetworkInfo
