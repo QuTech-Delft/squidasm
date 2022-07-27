@@ -13,14 +13,14 @@ from netsquid.nodes import Node
 from pydynaa import EventExpression
 from squidasm.qoala.lang import lhr
 from squidasm.qoala.runtime.environment import LocalEnvironment
-from squidasm.qoala.runtime.program import ProgramInstance
+from squidasm.qoala.runtime.program import ProgramContext, ProgramInstance, SdkProgram
 from squidasm.qoala.sim.common import ComponentProtocol, LogManager, PortListener
 from squidasm.qoala.sim.connection import QnosConnection
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
 
 
-class ProgramContext:
+class HostProgramContext(ProgramContext):
     def __init__(
         self,
         conn: QnosConnection,
@@ -46,7 +46,7 @@ class ProgramContext:
 
 class LhrProcess:
     def __init__(
-        self, host: Host, program: ProgramInstance, context: ProgramContext
+        self, host: Host, program: ProgramInstance, context: HostProgramContext
     ) -> None:
         self._host = host
         self._name = f"{host._comp.name}_Lhr"
@@ -68,7 +68,7 @@ class LhrProcess:
         return self._program_results
 
     @property
-    def context(self) -> ProgramContext:
+    def context(self) -> HostProgramContext:
         return self._context
 
     @property
@@ -76,7 +76,7 @@ class LhrProcess:
         return self._memory
 
     @property
-    def program(self) -> ProgramContext:
+    def program(self) -> ProgramInstance:
         return self._program
 
     def execute_program(self) -> Generator[EventExpression, None, Dict[str, Any]]:
@@ -87,6 +87,9 @@ class LhrProcess:
         csockets = list(self._context.csockets.values())
         csck = csockets[0] if len(csockets) > 0 else None
         conn = context.conn
+
+        for name, value in self._program.inputs.items():
+            memory[name] = value
 
         results: Dict[str, Any] = {}
 
@@ -102,19 +105,21 @@ class LhrProcess:
                 memory[instr.results[0]] = msg
                 self._logger.info(f"received msg {msg}")
             elif isinstance(instr, lhr.AddCValueOp):
-                arg0 = memory[instr.arguments[0]]
-                arg1 = memory[instr.arguments[1]]
+                arg0 = int(memory[instr.arguments[0]])
+                arg1 = int(memory[instr.arguments[1]])
                 memory[instr.results[0]] = arg0 + arg1
             elif isinstance(instr, lhr.MultiplyConstantCValueOp):
                 arg0 = memory[instr.arguments[0]]
-                arg1 = instr.arguments[1]
+                arg1 = int(instr.arguments[1])
                 memory[instr.results[0]] = arg0 * arg1
             elif isinstance(instr, lhr.BitConditionalMultiplyConstantCValueOp):
                 arg0 = memory[instr.arguments[0]]
-                arg1 = instr.arguments[1]
+                arg1 = int(instr.arguments[1])
                 cond = memory[instr.arguments[2]]
                 if cond == 1:
                     memory[instr.results[0]] = arg0 * arg1
+                else:
+                    memory[instr.results[0]] = arg0
             elif isinstance(instr, lhr.AssignCValueOp):
                 value = instr.attributes[0]
                 # if isinstance(value, str) and value.startswith("RegFuture__"):
@@ -261,7 +266,7 @@ class Host(ComponentProtocol):
         return (yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG))
 
     def run_lhr_program(
-        self, program: ProgramInstance, context: ProgramContext
+        self, program: ProgramInstance, context: HostProgramContext
     ) -> Generator[EventExpression, None, None]:
         self._logger.warning(f"Creating LHR process for program:\n{program}")
         process = LhrProcess(self, program, context)
@@ -276,16 +281,19 @@ class Host(ComponentProtocol):
         if len(programs) == 0:
             return
 
-        app_id, program = programs[0]
+        app_id, prog_instance = programs[0]
 
-        context = ProgramContext(
+        context = HostProgramContext(
             conn=self._connections[app_id],
             csockets=self._csockets[app_id],
             app_id=app_id,
         )
 
-        result = yield from self.run_lhr_program(program, context)
-        self._program_results.append(result)
+        if isinstance(prog_instance.program, SdkProgram):
+            prog_instance.program = prog_instance.program.compile(context)
+        assert isinstance(prog_instance.program, lhr.LhrProgram)
+
+        yield from self.run_lhr_program(prog_instance, context)
 
     def init_new_program(self, program: ProgramInstance) -> int:
         app_id = self._program_counter

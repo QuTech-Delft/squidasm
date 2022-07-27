@@ -184,6 +184,8 @@ def run(
 
     for name, program in programs.items():
         network.stacks[name]._local_env.register_program(program)
+
+    for name in programs.keys():
         network.stacks[name].install_environment()
 
     results = _run(network)
