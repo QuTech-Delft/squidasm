@@ -1,0 +1,25 @@
+<mxfile host="65bd71144e" modified="2022-05-30T20:08:45.706Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.67.2 Chrome/98.0.4758.141 Electron/17.4.1 Safari/537.36" version="18.1.3" etag="K6Xvv3PzEKHL3UQDRb61" type="embed">
+    <diagram id="Lh-l3bPOJCr5je4iq_PR" name="Page-1">
+        <mxGraphModel dx="780" dy="790" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="4" value="defines&lt;br&gt;(only in sim)" style="edgeStyle=none;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="2" target="3">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="Config" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="620" y="260" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="provides" style="edgeStyle=none;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="3" target="5">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="HW/SW&lt;br&gt;stack" style="whiteSpace=wrap;html=1;aspect=fixed;" vertex="1" parent="1">
+                    <mxGeometry x="440" y="250" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="Stack Info" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="300" y="230" width="70" height="120" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

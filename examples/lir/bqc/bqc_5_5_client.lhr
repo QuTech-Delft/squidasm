@@ -1,0 +1,41 @@
+delta1_discrete = assign_cval() : 1
+delta2_discrete = assign_cval() : 1
+
+run_subroutine(vec<theta_discrete>) : 
+    return M0 -> p1
+  NETQASM_START
+    set C0 0
+    set C1 1
+    set C2 2
+    set C10 10
+    set C11 20
+    array C10 @0
+    array C1 @1
+    store C0 @1[C0]
+    array C11 @2
+    store C0 @2[C0]
+    store C1 @2[C1]
+    set R5 0
+    set R6 0
+    set R7 1
+    set R8 0
+    create_epr C1 C0 C1 C2 C0
+    wait_all @0[C0:C11]
+    set Q0 0
+    rot_z Q0 {theta_discrete} 4
+    rot_y Q0 8 4
+    rot_x Q0 16 4
+    meas Q0 M0
+    qfree Q0
+    ret_reg M0
+  NETQASM_END
+
+p1 = mult_const(p1, 16)
+delta1 = add_cval_c(delta1_discrete, p1)
+send_cmsg(delta1)
+m1 = recv_cmsg()
+
+delta2 = bcond_mult_const(delta2_discrete, -1, m1)
+send_cmsg(delta2)
+
+return_result(p1)
