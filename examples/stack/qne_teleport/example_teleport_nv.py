@@ -178,6 +178,11 @@ if __name__ == "__main__":
     cfg_file = os.path.join(cwd, "config_nv.yaml")
     cfg = StackNetworkConfig.from_file(cfg_file)
 
+    # State to be teleported is defined by phi and theta.
+    # Starting from |0>, the state is rotated around the Y-axis by phi,
+    # and rotated around the Z-axis by theta.
+    # E.g. theta=pi/2 and phi=pi results in the |-> (negative X) state.
+
     do_teleportation(cfg, num_times, phi=0, theta=0)
     do_teleportation(cfg, num_times, phi=PI, theta=0)
     do_teleportation(cfg, num_times, phi=0, theta=PI_OVER_2)
