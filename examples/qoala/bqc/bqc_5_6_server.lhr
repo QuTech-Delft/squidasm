@@ -1,0 +1,47 @@
+run_subroutine(vec<>) : 
+    NETQASM_START
+      array 10 @0
+      array 1 @1
+      store 0 @1[0]
+      array 10 @2
+      array 1 @3
+      store 1 @3[0]
+      recv_epr(0,0) 1 0
+      wait_all @0[0:10]
+      recv_epr(0,0) 3 2
+      wait_all @2[0:10]
+      set Q0 1
+      set Q1 0
+      cphase Q0 Q1
+    NETQASM_END
+
+delta1 = recv_cmsg()
+
+run_subroutine(vec<delta1>) : 
+  return M0 -> m1
+    NETQASM_START
+      set Q0 0
+      rot_z Q0 {delta1} 4
+      h Q0
+      meas Q0 M0
+      qfree Q0
+      ret_reg M0
+    NETQASM_END
+
+send_cmsg(m1)
+delta2 = recv_cmsg()
+
+run_subroutine(vec<delta2>) : 
+    return M0 -> m2
+    NETQASM_START
+    set Q1 1
+    rot_z Q1 {delta2} 4
+    h Q1
+    breakpoint 1 0
+    meas Q1 M0
+    qfree Q1
+    ret_reg M0
+    NETQASM_END
+
+return_result(m1)
+return_result(m2)

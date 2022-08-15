@@ -1,0 +1,50 @@
+run_subroutine(vec<theta1; theta2>) : 
+    return M0 -> p2
+    return M1 -> p1
+  NETQASM_START
+    array 10 @0
+    array 1 @1
+    store 0 @1[0]
+    array 20 @2
+    store 0 @2[0]
+    store 1 @2[1]
+    array 10 @3
+    array 1 @4
+    store 0 @4[0]
+    array 20 @5
+    store 0 @5[0]
+    store 1 @5[1]
+    create_epr(1,0) 1 2 0
+    wait_all @0[0:10]
+    set Q0 0
+    rot_z Q0 {theta2} 4
+    h Q0
+    set Q0 0
+    meas Q0 M0
+    qfree Q0
+    create_epr(1,0) 4 5 3
+    wait_all @3[0:10]
+    set Q0 0
+    rot_z Q0 {theta1} 4
+    h Q0
+    set Q0 0
+    meas Q0 M1
+    qfree Q0
+  NETQASM_END
+
+x = mult_const(p1, 16)
+minus_theta1 = mult_const(theta1, -1)
+delta1 = add_cval_c(minus_theta1, x)
+delta1 = add_cval_c(delta1, alpha)
+send_cmsg(delta1)
+m1 = recv_cmsg()
+
+y = mult_const(p2, 16)
+minus_theta2 = mult_const(theta2, -1)
+beta = bcond_mult_const(beta, -1, m1)
+delta2 = add_cval_c(beta, minus_theta2)
+delta2 = add_cval_c(delta2, y)
+send_cmsg(delta2)
+
+return_result(p1)
+return_result(p2)

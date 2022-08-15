@@ -134,9 +134,7 @@ class LhrProcess:
 
                 arg_values = {arg: memory[arg] for arg in args}
 
-                self._logger.warning(
-                    f"instantiating subroutine with values {arg_values}"
-                )
+                self._logger.info(f"instantiating subroutine with values {arg_values}")
                 subrt.instantiate(context.app_id, arg_values)
 
                 yield from conn.commit_subroutine(subrt)
@@ -268,9 +266,10 @@ class Host(ComponentProtocol):
     def run_lhr_program(
         self, program: ProgramInstance, context: HostProgramContext
     ) -> Generator[EventExpression, None, None]:
-        self._logger.warning(f"Creating LHR process for program:\n{program}")
+        self._logger.info(f"Creating LHR process for program:\n{program}")
         process = LhrProcess(self, program, context)
         result = yield from process.run()
+        self._program_results.append(result)
         return result
 
     def run(self) -> Generator[EventExpression, None, None]:

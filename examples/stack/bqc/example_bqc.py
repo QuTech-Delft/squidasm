@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import math
 import os
+from cmath import exp
 from typing import Any, Dict, Generator
 
 from netqasm.lang.ir import BreakpointAction
 
 from pydynaa import EventExpression
-from squidasm.run.stack.config import StackNetworkConfig
+from squidasm.run.stack.config import (
+    GenericQDeviceConfig,
+    LinkConfig,
+    StackConfig,
+    StackNetworkConfig,
+)
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
@@ -67,49 +73,35 @@ class ClientProgram(Program):
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
         # Create EPR pair
-        epr1 = epr_socket.create_keep()[0]
+        epr1 = epr_socket.create_keep(expect_phi_plus=False)[0]
 
         # RSP
-        if self._trap and self._dummy == 2:
-            # remotely-prepare a dummy state
-            p2 = epr1.measure(store_array=False)
-        else:
-            epr1.rot_Z(angle=self._theta2)
-            epr1.H()
-            p2 = epr1.measure(store_array=False)
+        epr1.rot_Z(angle=self._theta2)
+        epr1.H()
+        p2 = epr1.measure(store_array=False)
 
         # Create EPR pair
-        epr2 = epr_socket.create_keep()[0]
+        epr2 = epr_socket.create_keep(expect_phi_plus=False)[0]
 
         # RSP
-        if self._trap and self._dummy == 1:
-            # remotely-prepare a dummy state
-            p1 = epr2.measure(store_array=False)
-        else:
-            epr2.rot_Z(angle=self._theta1)
-            epr2.H()
-            p1 = epr2.measure(store_array=False)
+        epr2.rot_Z(angle=self._theta1)
+        epr2.H()
+        p1 = epr2.measure(store_array=False)
 
         yield from conn.flush()
 
         p1 = int(p1)
         p2 = int(p2)
 
-        if self._trap and self._dummy == 2:
-            delta1 = -self._theta1 + (p1 + self._r1) * math.pi
-        else:
-            delta1 = self._alpha - self._theta1 + (p1 + self._r1) * math.pi
+        delta1 = self._alpha - self._theta1 + (p1 + self._r1) * math.pi
         csocket.send_float(delta1)
 
         m1 = yield from csocket.recv_int()
-        if self._trap and self._dummy == 1:
-            delta2 = -self._theta2 + (p2 + self._r2) * math.pi
-        else:
-            delta2 = (
-                math.pow(-1, (m1 + self._r1)) * self._beta
-                - self._theta2
-                + (p2 + self._r2) * math.pi
-            )
+        delta2 = (
+            math.pow(-1, (m1 + self._r1)) * self._beta
+            - self._theta2
+            + (p2 + self._r2) * math.pi
+        )
         csocket.send_float(delta2)
 
         return {"p1": p1, "p2": p2}
@@ -242,11 +234,28 @@ def trap_round(
 
 if __name__ == "__main__":
     num_times = 1
-    LogManager.set_log_level("WARNING")
-    # ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
+    LogManager.set_log_level("INFO")
+    LogManager.log_to_file(os.path.join(os.path.dirname(__file__), "debug.log"))
 
-    cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")
-    cfg = StackNetworkConfig.from_file(cfg_file)
+    # cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")
+    # cfg = StackNetworkConfig.from_file(cfg_file)
+
+    client_stack = StackConfig(
+        name="client",
+        qdevice_typ="generic",
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+    )
+    server_stack = StackConfig(
+        name="server",
+        qdevice_typ="generic",
+        qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+    )
+    link = LinkConfig(
+        stack1="client",
+        stack2="server",
+        typ="perfect",
+    )
+    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
 
     computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
-    trap_round(cfg, num_times, dummy=1)
+    # trap_round(cfg, num_times, dummy=1)

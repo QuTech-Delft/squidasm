@@ -441,7 +441,7 @@ class LhrParser:
         return self._lines[self._lineno]
 
     def _parse_subroutine(self) -> LhrSubroutine:
-        return_dict: Dict[str, LhrSharedMemLoc] = {}
+        return_map: Dict[str, LhrSharedMemLoc] = {}
         while (line := self._read_line()) != "NETQASM_START":
             ret_text = "return "
             assert line.startswith(ret_text)
@@ -450,7 +450,7 @@ class LhrParser:
             assert len(map_parts) == 2
             shared_loc = map_parts[0]
             variable = map_parts[1]
-            return_dict[variable] = LhrSharedMemLoc(shared_loc)
+            return_map[variable] = LhrSharedMemLoc(shared_loc)
         subrt_lines = []
         while True:
             line = self._read_line()
@@ -462,7 +462,7 @@ class LhrParser:
             subrt = parse_text_subroutine(subrt_text)
         except KeyError:
             subrt = parse_text_subroutine(subrt_text, flavour=NVFlavour())
-        return LhrSubroutine(subrt, return_dict)
+        return LhrSubroutine(subrt, return_map)
 
     def parse(self) -> LhrProgram:
         instructions = []
