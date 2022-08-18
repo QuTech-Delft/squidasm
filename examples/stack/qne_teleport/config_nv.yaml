@@ -81,3 +81,4 @@ links:
     typ: nv
     cfg:
       <<: *link_cfg
+    host_host_latency: 10_000_000
