@@ -53,24 +53,16 @@ class HandlerComponent(Component):
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_handler")
         self._node = node
-        self.add_ports(["proc_out", "proc_in"])
-        self.add_ports(["host_out", "host_in"])
+        self.add_ports(["proc"])
+        self.add_ports(["host"])
 
     @property
-    def processor_in_port(self) -> Port:
-        return self.ports["proc_in"]
+    def processor_port(self) -> Port:
+        return self.ports["proc"]
 
     @property
-    def processor_out_port(self) -> Port:
-        return self.ports["proc_out"]
-
-    @property
-    def host_in_port(self) -> Port:
-        return self.ports["host_in"]
-
-    @property
-    def host_out_port(self) -> Port:
-        return self.ports["host_out"]
+    def host_port(self) -> Port:
+        return self.ports["host"]
 
     @property
     def node(self) -> Node:
@@ -125,11 +117,11 @@ class Handler(ComponentProtocol):
 
         self.add_listener(
             "host",
-            PortListener(self._comp.ports["host_in"], SIGNAL_HOST_HAND_MSG),
+            PortListener(self._comp.ports["host"], SIGNAL_HOST_HAND_MSG),
         )
         self.add_listener(
             "processor",
-            PortListener(self._comp.ports["proc_in"], SIGNAL_PROC_HAND_MSG),
+            PortListener(self._comp.ports["proc"], SIGNAL_PROC_HAND_MSG),
         )
 
         # Number of applications that were handled so far. Used as a unique ID for
@@ -176,13 +168,13 @@ class Handler(ComponentProtocol):
         self._flavour = flavour
 
     def _send_host_msg(self, msg: Any) -> None:
-        self._comp.host_out_port.tx_output(msg)
+        self._comp.host_port.tx_output(msg)
 
     def _receive_host_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("host", SIGNAL_HOST_HAND_MSG))
 
     def _send_processor_msg(self, msg: str) -> None:
-        self._comp.processor_out_port.tx_output(msg)
+        self._comp.processor_port.tx_output(msg)
 
     def _receive_processor_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("processor", SIGNAL_PROC_HAND_MSG))

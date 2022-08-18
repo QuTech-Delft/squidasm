@@ -72,24 +72,16 @@ class ProcessorComponent(Component):
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_processor")
         self._node = node
-        self.add_ports(["nstk_out", "nstk_in"])
-        self.add_ports(["hand_out", "hand_in"])
+        self.add_ports(["nstk"])
+        self.add_ports(["hand"])
 
     @property
-    def netstack_in_port(self) -> Port:
-        return self.ports["nstk_in"]
+    def netstack_port(self) -> Port:
+        return self.ports["nstk"]
 
     @property
-    def netstack_out_port(self) -> Port:
-        return self.ports["nstk_out"]
-
-    @property
-    def handler_in_port(self) -> Port:
-        return self.ports["hand_in"]
-
-    @property
-    def handler_out_port(self) -> Port:
-        return self.ports["hand_out"]
+    def handler_port(self) -> Port:
+        return self.ports["hand"]
 
     @property
     def qdevice(self) -> QuantumProcessor:
@@ -116,11 +108,11 @@ class Processor(ComponentProtocol):
 
         self.add_listener(
             "handler",
-            PortListener(self._comp.ports["hand_in"], SIGNAL_HAND_PROC_MSG),
+            PortListener(self._comp.ports["hand"], SIGNAL_HAND_PROC_MSG),
         )
         self.add_listener(
             "netstack",
-            PortListener(self._comp.ports["nstk_in"], SIGNAL_NSTK_PROC_MSG),
+            PortListener(self._comp.ports["nstk"], SIGNAL_NSTK_PROC_MSG),
         )
 
         self.add_signal(SIGNAL_MEMORY_FREED)
@@ -141,13 +133,13 @@ class Processor(ComponentProtocol):
         return self._comp.qdevice
 
     def _send_handler_msg(self, msg: str) -> None:
-        self._comp.handler_out_port.tx_output(msg)
+        self._comp.handler_port.tx_output(msg)
 
     def _receive_handler_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("handler", SIGNAL_HAND_PROC_MSG))
 
     def _send_netstack_msg(self, msg: str) -> None:
-        self._comp.netstack_out_port.tx_output(msg)
+        self._comp.netstack_port.tx_output(msg)
 
     def _receive_netstack_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("netstack", SIGNAL_NSTK_PROC_MSG))

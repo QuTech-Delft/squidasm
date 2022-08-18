@@ -41,10 +41,10 @@ class QnosComponent(Component):
         self._node = node
 
         # Ports for communicating with Host
-        self.add_ports(["host_out", "host_in"])
+        self.add_ports(["host"])
 
         # Ports for communicating with other nodes
-        self.add_ports(["peer_out", "peer_in"])
+        self.add_ports(["peer"])
 
         comp_handler = HandlerComponent(node)
         self.add_subcomponent(comp_handler, "handler")
@@ -55,25 +55,14 @@ class QnosComponent(Component):
         comp_netstack = NetstackComponent(node)
         self.add_subcomponent(comp_netstack, "netstack")
 
-        self.netstack_comp.ports["peer_out"].forward_output(self.peer_out_port)
-        self.peer_in_port.forward_input(self.netstack_comp.ports["peer_in"])
+        self.netstack_comp.peer_port.forward_output(self.peer_port)
+        self.peer_port.forward_input(self.netstack_comp.peer_port)
 
-        self.handler_comp.ports["host_out"].forward_output(self.host_out_port)
-        self.host_in_port.forward_input(self.handler_comp.ports["host_in"])
+        self.handler_comp.host_port.forward_output(self.host_port)
+        self.host_port.forward_input(self.handler_comp.host_port)
 
-        self.handler_comp.processor_out_port.connect(
-            self.processor_comp.handler_in_port
-        )
-        self.handler_comp.processor_in_port.connect(
-            self.processor_comp.handler_out_port
-        )
-
-        self.processor_comp.netstack_out_port.connect(
-            self.netstack_comp.processor_in_port
-        )
-        self.processor_comp.netstack_in_port.connect(
-            self.netstack_comp.processor_out_port
-        )
+        self.handler_comp.processor_port.connect(self.processor_comp.handler_port)
+        self.processor_comp.netstack_port.connect(self.netstack_comp.processor_port)
 
     @property
     def handler_comp(self) -> HandlerComponent:
@@ -92,20 +81,12 @@ class QnosComponent(Component):
         return self.node.qmemory
 
     @property
-    def host_in_port(self) -> Port:
-        return self.ports["host_in"]
+    def host_port(self) -> Port:
+        return self.ports["host"]
 
     @property
-    def host_out_port(self) -> Port:
-        return self.ports["host_out"]
-
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
-
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
+    def peer_port(self) -> Port:
+        return self.ports["peer"]
 
     @property
     def node(self) -> Node:

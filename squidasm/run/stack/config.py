@@ -114,6 +114,7 @@ class StackConfig(BaseModel):
     name: str
     qdevice_typ: str
     qdevice_cfg: Any
+    host_qnos_latency: float = 0.0
 
     @classmethod
     def from_file(cls, path: str) -> StackConfig:
@@ -125,6 +126,7 @@ class StackConfig(BaseModel):
             name=name,
             qdevice_typ="generic",
             qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+            host_qnos_latency=0.0,
         )
 
 
@@ -199,6 +201,8 @@ class LinkConfig(BaseModel):
     stack2: str
     typ: str
     cfg: Any
+    host_host_latency: float = 0.0
+    qnos_qnos_latency: float = 0.0
 
     @classmethod
     def from_file(cls, path: str) -> LinkConfig:
@@ -206,7 +210,14 @@ class LinkConfig(BaseModel):
 
     @classmethod
     def perfect_config(cls, stack1: str, stack2: str) -> LinkConfig:
-        return LinkConfig(stack1=stack1, stack2=stack2, typ="perfect", cfg=None)
+        return LinkConfig(
+            stack1=stack1,
+            stack2=stack2,
+            typ="perfect",
+            cfg=None,
+            host_host_latency=0.0,
+            qnos_qnos_latency=0.0,
+        )
 
 
 class StackNetworkConfig(BaseModel):

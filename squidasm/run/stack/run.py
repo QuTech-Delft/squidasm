@@ -72,22 +72,35 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
             if not isinstance(qdevice_cfg, NVQDeviceConfig):
                 qdevice_cfg = NVQDeviceConfig(**cfg.qdevice_cfg)
             qdevice = build_nv_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
-            stack = NodeStack(cfg.name, qdevice_type="nv", qdevice=qdevice)
+            stack = NodeStack(
+                cfg.name,
+                qdevice_type="nv",
+                qdevice=qdevice,
+                host_qnos_latency=cfg.host_qnos_latency,
+            )
         elif cfg.qdevice_typ == "generic":
             qdevice_cfg = cfg.qdevice_cfg
             if not isinstance(qdevice_cfg, GenericQDeviceConfig):
                 qdevice_cfg = GenericQDeviceConfig(**cfg.qdevice_cfg)
             qdevice = build_generic_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
-            stack = NodeStack(cfg.name, qdevice_type="generic", qdevice=qdevice)
+            stack = NodeStack(
+                cfg.name,
+                qdevice_type="generic",
+                qdevice=qdevice,
+                host_qnos_latency=cfg.host_qnos_latency,
+            )
         NetSquidContext.add_node(stack.node.ID, cfg.name)
         stacks[cfg.name] = stack
-
-    for (_, s1), (_, s2) in itertools.combinations(stacks.items(), 2):
-        s1.connect_to(s2)
 
     for link in config.links:
         stack1 = stacks[link.stack1]
         stack2 = stacks[link.stack2]
+        stack1.connect_to(
+            stack2,
+            host_host_delay=link.host_host_latency,
+            qnos_qnos_delay=link.qnos_qnos_latency,
+        )
+
         if link.typ == "perfect":
             link_dist = PerfectStateMagicDistributor(
                 nodes=[stack1.node, stack2.node], state_delay=1000.0

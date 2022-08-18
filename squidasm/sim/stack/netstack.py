@@ -76,24 +76,16 @@ class NetstackComponent(Component):
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_netstack")
         self._node = node
-        self.add_ports(["proc_out", "proc_in"])
-        self.add_ports(["peer_out", "peer_in"])
+        self.add_ports(["proc"])
+        self.add_ports(["peer"])
 
     @property
-    def processor_in_port(self) -> Port:
-        return self.ports["proc_in"]
+    def processor_port(self) -> Port:
+        return self.ports["proc"]
 
     @property
-    def processor_out_port(self) -> Port:
-        return self.ports["proc_out"]
-
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
-
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
+    def peer_port(self) -> Port:
+        return self.ports["peer"]
 
     @property
     def node(self) -> Node:
@@ -132,11 +124,11 @@ class Netstack(ComponentProtocol):
 
         self.add_listener(
             "processor",
-            PortListener(self._comp.processor_in_port, SIGNAL_PROC_NSTK_MSG),
+            PortListener(self._comp.processor_port, SIGNAL_PROC_NSTK_MSG),
         )
         self.add_listener(
             "peer",
-            PortListener(self._comp.peer_in_port, SIGNAL_PEER_NSTK_MSG),
+            PortListener(self._comp.peer_port, SIGNAL_PEER_NSTK_MSG),
         )
 
         self._egp: Optional[EgpProtocol] = None
@@ -163,7 +155,7 @@ class Netstack(ComponentProtocol):
 
     def _send_processor_msg(self, msg: str) -> None:
         """Send a message to the processor."""
-        self._comp.processor_out_port.tx_output(msg)
+        self._comp.processor_port.tx_output(msg)
 
     def _receive_processor_msg(self) -> Generator[EventExpression, None, str]:
         """Receive a message from the processor. Block until there is at least one
@@ -174,7 +166,7 @@ class Netstack(ComponentProtocol):
         """Send a message to the network stack of the other node.
 
         NOTE: for now we assume there is only one other node, which is 'the' peer."""
-        self._comp.peer_out_port.tx_output(msg)
+        self._comp.peer_port.tx_output(msg)
 
     def _receive_peer_msg(self) -> Generator[EventExpression, None, str]:
         """Receive a message from the network stack of the other node. Block until
