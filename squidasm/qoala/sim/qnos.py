@@ -8,6 +8,7 @@ from netsquid.nodes import Node
 from netsquid.protocols import Protocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
+from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.sim.common import (
     AppMemory,
     NVPhysicalQuantumMemory,
@@ -115,7 +116,12 @@ class QnosComponent(Component):
 class Qnos(Protocol):
     """NetSquid protocol representing a QNodeOS instance."""
 
-    def __init__(self, comp: QnosComponent, qdevice_type: Optional[str] = "nv") -> None:
+    def __init__(
+        self,
+        comp: QnosComponent,
+        local_env: LocalEnvironment,
+        qdevice_type: Optional[str] = "nv",
+    ) -> None:
         """Qnos protocol constructor.
 
         :param comp: NetSquid component representing the QNodeOS instance
@@ -123,6 +129,8 @@ class Qnos(Protocol):
         """
         super().__init__(name=f"{comp.name}_protocol")
         self._comp = comp
+
+        self._local_env = local_env
 
         # Create internal protocols.
         self.handler = Handler(comp.handler_comp, self, qdevice_type)

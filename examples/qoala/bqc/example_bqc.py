@@ -61,7 +61,7 @@ def test_run_two_nodes_epr():
     )
 
     cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
-    for i in range(2):
+    for i in range(1):
         result = run(
             cfg,
             programs={"client": prog_client_instance, "server": prog_server_instance},

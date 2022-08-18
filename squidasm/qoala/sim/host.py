@@ -197,7 +197,7 @@ class Host(ComponentProtocol):
         local_env: LocalEnvironment,
         qdevice_type: Optional[str] = "nv",
     ) -> None:
-        """Qnos protocol constructor.
+        """Host protocol constructor.
 
         :param comp: NetSquid component representing the Host
         :param qdevice_type: hardware type of the QDevice of this node
@@ -263,9 +263,14 @@ class Host(ComponentProtocol):
     def receive_peer_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG))
 
-    def run_lhr_program(
-        self, program: ProgramInstance, context: HostProgramContext
-    ) -> Generator[EventExpression, None, None]:
+    def run_lhr_program(self, app_id: int) -> Generator[EventExpression, None, None]:
+        program = self._programs[app_id]
+        context = HostProgramContext(
+            conn=self._connections[app_id],
+            csockets=self._csockets[app_id],
+            app_id=app_id,
+        )
+
         self._logger.info(f"Creating LHR process for program:\n{program}")
         process = LhrProcess(self, program, context)
         result = yield from process.run()
@@ -275,28 +280,10 @@ class Host(ComponentProtocol):
     def run(self) -> Generator[EventExpression, None, None]:
         """Run this protocol. Automatically called by NetSquid during simulation."""
 
-        # Run a single program as many times as requested.
-        programs = list(self._programs.items())
-        if len(programs) == 0:
-            return
+        pass
 
-        app_id, prog_instance = programs[0]
-
-        context = HostProgramContext(
-            conn=self._connections[app_id],
-            csockets=self._csockets[app_id],
-            app_id=app_id,
-        )
-
-        if isinstance(prog_instance.program, SdkProgram):
-            prog_instance.program = prog_instance.program.compile(context)
-        assert isinstance(prog_instance.program, lhr.LhrProgram)
-
-        yield from self.run_lhr_program(prog_instance, context)
-
-    def init_new_program(self, program: ProgramInstance) -> int:
-        app_id = self._program_counter
-        self._program_counter += 1
+    def init_new_program(self, program: ProgramInstance, program_id: int) -> None:
+        app_id = program_id
         self._programs[app_id] = program
 
         conn = QnosConnection(
@@ -309,8 +296,6 @@ class Host(ComponentProtocol):
         self._connections[app_id] = conn
 
         self._csockets[app_id] = {}
-
-        return app_id
 
     def open_csocket(self, app_id: int, remote_name: str) -> None:
         assert app_id in self._csockets

@@ -15,13 +15,17 @@ from netsquid_magic.link_layer import (
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
 from squidasm.qoala.sim.host import Host, HostComponent
 from squidasm.qoala.sim.qnos import Qnos, QnosComponent
+from squidasm.qoala.sim.scheduler import Scheduler, SchedulerComponent
 
 
 class ProcessingNode(Node):
     """NetSquid component representing a quantum network node containing a software
     stack consisting of Host, QNodeOS and QDevice.
 
-    This component has two subcomponents: a QnosComponent and a HostComponent.
+    This component has three subcomponents:
+        - a QnosComponent
+        - a HostComponent
+        - a SchedulerComponent
 
     Has communications ports between
      - the Host component on this node and the Host component on the peer node
@@ -52,6 +56,9 @@ class ProcessingNode(Node):
         host_comp = HostComponent(self)
         self.add_subcomponent(host_comp, "host")
 
+        scheduler_comp = SchedulerComponent(self)
+        self.add_subcomponent(scheduler_comp, "scheduler")
+
         self.host_comp.ports["qnos_out"].connect(self.qnos_comp.ports["host_in"])
         self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])
 
@@ -71,6 +78,10 @@ class ProcessingNode(Node):
     @property
     def host_comp(self) -> HostComponent:
         return self.subcomponents["host"]
+
+    @property
+    def scheduler_comp(self) -> SchedulerComponent:
+        return self.subcomponents["scheduler"]
 
     @property
     def qdevice(self) -> QuantumProcessor:
@@ -96,7 +107,7 @@ class ProcessingNode(Node):
 class NodeStack(Protocol):
     """NetSquid protocol representing a node with a software stack.
 
-    The software stack consists of a Host, QNodeOS and a QDevice.
+    The software stack consists of a Scheduler, Host, QNodeOS and a QDevice.
     The Host and QNodeOS are each represented by separate subprotocols.
     The QDevice is handled/modeled as part of the QNodeOS protocol.
     """
@@ -138,43 +149,19 @@ class NodeStack(Protocol):
 
         self._host: Optional[Host] = None
         self._qnos: Optional[Qnos] = None
+        self._scheduler: Optional[Scheduler] = None
 
         # Create internal components.
         # If `use_default_components` is False, these components must be manually
         # created and added to this NodeStack.
         if use_default_components:
             self._host = Host(self.host_comp, self._local_env, qdevice_type)
-            self._qnos = Qnos(self.qnos_comp, qdevice_type)
+            self._qnos = Qnos(self.qnos_comp, self._local_env, qdevice_type)
+            self._scheduler = Scheduler(self.scheduler_comp, self._host, self._qnos)
 
     def install_environment(self) -> None:
         for instance in self._local_env._programs:
-            app_id = self._host.init_new_program(instance)
-            self._qnos.handler.init_new_app(app_id)
-
-            # Open the EPR sockets required by the program.
-            for i, remote_name in enumerate(instance.program.meta.epr_sockets):
-                remote_id = None
-
-                # TODO: rewrite
-                nodes = self._global_env.get_nodes()
-                for id, info in nodes.items():
-                    if info.name == remote_name:
-                        remote_id = id
-
-                assert remote_id is not None
-                self._qnos.handler.open_epr_socket(app_id, i, remote_id)
-
-            for i, remote_name in enumerate(instance.program.meta.csockets):
-                remote_id = None
-
-                # TODO: rewrite
-                nodes = self._global_env.get_nodes()
-                for id, info in nodes.items():
-                    if info.name == remote_name:
-                        remote_id = id
-
-                assert remote_id is not None
-                self._host.open_csocket(app_id, remote_name)
+            self._scheduler.init_new_program(instance)
 
     def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
         """Set the link layer protocol to use for entanglement generation.
@@ -194,6 +181,10 @@ class NodeStack(Protocol):
     @property
     def qnos_comp(self) -> QnosComponent:
         return self.node.qnos_comp
+
+    @property
+    def scheduler_comp(self) -> SchedulerComponent:
+        return self.node.scheduler_comp
 
     @property
     def qdevice(self) -> QuantumProcessor:
@@ -227,6 +218,7 @@ class NodeStack(Protocol):
         assert self._host is not None
         assert self._qnos is not None
         super().start()
+        self._scheduler.start()
         self._host.start()
         self._qnos.start()
 
@@ -235,6 +227,7 @@ class NodeStack(Protocol):
         assert self._qnos is not None
         self._qnos.stop()
         self._host.stop()
+        self._scheduler.stop()
         super().stop()
 
 
