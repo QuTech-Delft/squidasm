@@ -8,7 +8,7 @@ from netsquid.nodes import Node
 from netsquid.protocols import Protocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
-from squidasm.qoala.runtime.environment import LocalEnvironment
+from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
 from squidasm.qoala.sim.common import (
     AppMemory,
     NVPhysicalQuantumMemory,
@@ -23,9 +23,6 @@ from squidasm.qoala.sim.processor import (
     ProcessorComponent,
 )
 
-# TODO: make this a parameter
-NUM_QUBITS = 5
-
 
 class QnosComponent(Component):
     """NetSquid component representing a QNodeOS instance.
@@ -37,15 +34,27 @@ class QnosComponent(Component):
     which is a subclass of `Protocol`.
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: Node, global_env: GlobalEnvironment) -> None:
         super().__init__(name=f"{node.name}_qnos")
         self._node = node
 
         # Ports for communicating with Host
         self.add_ports(["host_out", "host_in"])
 
-        # Ports for communicating with other nodes
-        self.add_ports(["peer_out", "peer_in"])
+        self._peer_in_ports: Dict[str, str] = {}  # peer name -> port name
+        self._peer_out_ports: Dict[str, str] = {}  # peer name -> port name
+
+        all_nodes = global_env.get_nodes().values()
+        self._peers = list(node.name for node in all_nodes)
+
+        for peer in self._peers:
+            port_in_name = f"peer_{peer}_in"
+            port_out_name = f"peer_{peer}_out"
+            self._peer_in_ports[peer] = port_in_name
+            self._peer_out_ports[peer] = port_out_name
+
+        self.add_ports(self._peer_in_ports.values())
+        self.add_ports(self._peer_out_ports.values())
 
         comp_handler = HandlerComponent(node)
         self.add_subcomponent(comp_handler, "handler")
@@ -53,11 +62,15 @@ class QnosComponent(Component):
         comp_processor = ProcessorComponent(node)
         self.add_subcomponent(comp_processor, "processor")
 
-        comp_netstack = NetstackComponent(node)
+        comp_netstack = NetstackComponent(node, global_env)
         self.add_subcomponent(comp_netstack, "netstack")
 
-        self.netstack_comp.ports["peer_out"].forward_output(self.peer_out_port)
-        self.peer_in_port.forward_input(self.netstack_comp.ports["peer_in"])
+        for peer in self._peer_in_ports.keys():
+            self.netstack_comp.peer_out_port(peer).forward_output(
+                self.peer_out_port(peer)
+            )
+        for peer in self._peer_out_ports.keys():
+            self.peer_in_port(peer).forward_input(self.netstack_comp.peer_in_port(peer))
 
         self.handler_comp.ports["host_out"].forward_output(self.host_out_port)
         self.host_in_port.forward_input(self.handler_comp.ports["host_in"])
@@ -100,13 +113,13 @@ class QnosComponent(Component):
     def host_out_port(self) -> Port:
         return self.ports["host_out"]
 
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
+    def peer_in_port(self, name: str) -> Port:
+        port_name = self._peer_in_ports[name]
+        return self.ports[port_name]
 
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
+    def peer_out_port(self, name: str) -> Port:
+        port_name = self._peer_out_ports[name]
+        return self.ports[port_name]
 
     @property
     def node(self) -> Node:

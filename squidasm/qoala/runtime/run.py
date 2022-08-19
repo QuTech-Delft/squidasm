@@ -46,12 +46,15 @@ def _setup_network(config: StackNetworkConfig, rte: GlobalEnvironment) -> StackN
     stacks: Dict[str, NodeStack] = {}
     link_prots: List[MagicLinkLayerProtocol] = []
 
+    # First add all nodes to the global environment ...
     for node_id, cfg in enumerate(config.stacks):
         # TODO !!!
         # get HW info from config
         node_info = GlobalNodeInfo(cfg.name, 2, 1, 0, 0, 0, 0)
         rte.add_node(node_id, node_info)
 
+    # ... so that the nodes know about all other nodes while building their components
+    for node_id, cfg in enumerate(config.stacks):
         if cfg.qdevice_typ == "nv":
             qdevice_cfg = cfg.qdevice_cfg
             if not isinstance(qdevice_cfg, NVQDeviceConfig):

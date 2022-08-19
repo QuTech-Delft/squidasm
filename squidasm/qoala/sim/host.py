@@ -12,7 +12,7 @@ from netsquid.nodes import Node
 
 from pydynaa import EventExpression
 from squidasm.qoala.lang import lhr
-from squidasm.qoala.runtime.environment import LocalEnvironment
+from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
 from squidasm.qoala.runtime.program import ProgramContext, ProgramInstance, SdkProgram
 from squidasm.qoala.sim.common import (
     ComponentProtocol,
@@ -176,10 +176,22 @@ class HostComponent(Component):
     of a Host is modeled in the `Host` class, which is a subclass of `Protocol`.
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: Node, global_env: GlobalEnvironment) -> None:
         super().__init__(f"{node.name}_host")
+
+        self._peer_in_ports: Dict[str, str] = {}  # peer name -> port name
+        self._peer_out_ports: Dict[str, str] = {}  # peer name -> port name
+
+        for node in global_env.get_nodes().values():
+            port_in_name = f"peer_{node.name}_in"
+            port_out_name = f"peer_{node.name}_out"
+            self._peer_in_ports[node.name] = port_in_name
+            self._peer_out_ports[node.name] = port_out_name
+
+        self.add_ports(self._peer_in_ports.values())
+        self.add_ports(self._peer_out_ports.values())
+
         self.add_ports(["qnos_in", "qnos_out"])
-        self.add_ports(["peer_in", "peer_out"])
 
     @property
     def qnos_in_port(self) -> Port:
@@ -189,13 +201,13 @@ class HostComponent(Component):
     def qnos_out_port(self) -> Port:
         return self.ports["qnos_out"]
 
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
+    def peer_in_port(self, name: str) -> Port:
+        port_name = self._peer_in_ports[name]
+        return self.ports[port_name]
 
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
+    def peer_out_port(self, name: str) -> Port:
+        port_name = self._peer_out_ports[name]
+        return self.ports[port_name]
 
 
 class Host(ComponentProtocol):
@@ -216,15 +228,20 @@ class Host(ComponentProtocol):
         self._comp = comp
 
         self._local_env = local_env
+        all_nodes = self._local_env.get_global_env().get_nodes().values()
+        self._peers: List[str] = list(node.name for node in all_nodes)
 
         self.add_listener(
             "qnos",
             PortListener(self._comp.ports["qnos_in"], SIGNAL_HAND_HOST_MSG),
         )
-        self.add_listener(
-            "peer",
-            PortListener(self._comp.ports["peer_in"], SIGNAL_HOST_HOST_MSG),
-        )
+        for peer in self._peers:
+            self.add_listener(
+                f"peer_{peer}",
+                PortListener(
+                    self._comp.peer_in_port(peer), f"{SIGNAL_HOST_HOST_MSG}_{peer}"
+                ),
+            )
 
         if qdevice_type == "nv":
             self._compiler: Optional[
@@ -268,11 +285,15 @@ class Host(ComponentProtocol):
     def receive_qnos_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("qnos", SIGNAL_HAND_HOST_MSG))
 
-    def send_peer_msg(self, msg: str) -> None:
-        self._comp.peer_out_port.tx_output(msg)
+    def send_peer_msg(self, peer: str, msg: str) -> None:
+        self._comp.peer_out_port(peer).tx_output(msg)
 
-    def receive_peer_msg(self) -> Generator[EventExpression, None, str]:
-        return (yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG))
+    def receive_peer_msg(self, peer: str) -> Generator[EventExpression, None, str]:
+        return (
+            yield from self._receive_msg(
+                f"peer_{peer}", f"{SIGNAL_HOST_HOST_MSG}_{peer}"
+            )
+        )
 
     def run_lhr_instr(
         self, app_id: int, instr_idx: int

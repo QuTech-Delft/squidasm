@@ -43,6 +43,7 @@ class ProcessingNode(Node):
         self,
         name: str,
         qdevice: QuantumProcessor,
+        global_env: GlobalEnvironment,
         node_id: Optional[int] = None,
     ) -> None:
         """ProcessingNode constructor. Typically created indirectly through
@@ -50,10 +51,10 @@ class ProcessingNode(Node):
         super().__init__(name, ID=node_id)
         self.qmemory = qdevice
 
-        qnos_comp = QnosComponent(self)
+        qnos_comp = QnosComponent(self, global_env)
         self.add_subcomponent(qnos_comp, "qnos")
 
-        host_comp = HostComponent(self)
+        host_comp = HostComponent(self, global_env)
         self.add_subcomponent(host_comp, "host")
 
         scheduler_comp = SchedulerComponent(self)
@@ -63,13 +64,43 @@ class ProcessingNode(Node):
         self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])
 
         # Ports for communicating with other nodes
-        self.add_ports(["qnos_peer_out", "qnos_peer_in"])
-        self.add_ports(["host_peer_out", "host_peer_in"])
+        all_nodes = global_env.get_nodes().values()
+        self._peers: List[str] = list(node.name for node in all_nodes)
 
-        self.qnos_comp.peer_out_port.forward_output(self.qnos_peer_out_port)
-        self.qnos_peer_in_port.forward_input(self.qnos_comp.peer_in_port)
-        self.host_comp.peer_out_port.forward_output(self.host_peer_out_port)
-        self.host_peer_in_port.forward_input(self.host_comp.peer_in_port)
+        self._qnos_peer_in_ports: Dict[str, str] = {}  # peer name -> port name
+        self._qnos_peer_out_ports: Dict[str, str] = {}  # peer name -> port name
+        self._host_peer_in_ports: Dict[str, str] = {}  # peer name -> port name
+        self._host_peer_out_ports: Dict[str, str] = {}  # peer name -> port name
+
+        for peer in self._peers:
+            qnos_port_in_name = f"qnos_peer_{peer}_in"
+            qnos_port_out_name = f"qnos_peer_{peer}_out"
+            self._qnos_peer_in_ports[peer] = qnos_port_in_name
+            self._qnos_peer_out_ports[peer] = qnos_port_out_name
+
+            host_port_in_name = f"host_peer_{peer}_in"
+            host_port_out_name = f"host_peer_{peer}_out"
+            self._host_peer_in_ports[peer] = host_port_in_name
+            self._host_peer_out_ports[peer] = host_port_out_name
+
+        self.add_ports(self._qnos_peer_in_ports.values())
+        self.add_ports(self._qnos_peer_out_ports.values())
+        self.add_ports(self._host_peer_in_ports.values())
+        self.add_ports(self._host_peer_out_ports.values())
+
+        for peer in self._peers:
+            self.qnos_comp.peer_out_port(peer).forward_output(
+                self.qnos_peer_out_port(peer)
+            )
+            self.qnos_peer_in_port(peer).forward_input(
+                self.qnos_comp.peer_in_port(peer)
+            )
+            self.host_comp.peer_out_port(peer).forward_output(
+                self.host_peer_out_port(peer)
+            )
+            self.host_peer_in_port(peer).forward_input(
+                self.host_comp.peer_in_port(peer)
+            )
 
     @property
     def qnos_comp(self) -> QnosComponent:
@@ -87,21 +118,21 @@ class ProcessingNode(Node):
     def qdevice(self) -> QuantumProcessor:
         return self.qmemory
 
-    @property
-    def host_peer_in_port(self) -> Port:
-        return self.ports["host_peer_in"]
+    def host_peer_in_port(self, name: str) -> Port:
+        port_name = self._host_peer_in_ports[name]
+        return self.ports[port_name]
 
-    @property
-    def host_peer_out_port(self) -> Port:
-        return self.ports["host_peer_out"]
+    def host_peer_out_port(self, name: str) -> Port:
+        port_name = self._host_peer_out_ports[name]
+        return self.ports[port_name]
 
-    @property
-    def qnos_peer_in_port(self) -> Port:
-        return self.ports["qnos_peer_in"]
+    def qnos_peer_in_port(self, name: str) -> Port:
+        port_name = self._qnos_peer_in_ports[name]
+        return self.ports[port_name]
 
-    @property
-    def qnos_peer_out_port(self) -> Port:
-        return self.ports["qnos_peer_out"]
+    def qnos_peer_out_port(self, name: str) -> Port:
+        port_name = self._qnos_peer_out_ports[name]
+        return self.ports[port_name]
 
 
 class NodeStack(Protocol):
@@ -142,7 +173,7 @@ class NodeStack(Protocol):
             self._node = node
         else:
             assert qdevice is not None
-            self._node = ProcessingNode(name, qdevice, node_id)
+            self._node = ProcessingNode(name, qdevice, global_env, node_id)
 
         self._global_env = global_env
         self._local_env = LocalEnvironment(global_env, global_env.get_node_id(name))
@@ -218,10 +249,12 @@ class NodeStack(Protocol):
     def connect_to(self, other: NodeStack) -> None:
         """Create connections between ports of this NodeStack and those of
         another NodeStack."""
-        self.node.host_peer_out_port.connect(other.node.host_peer_in_port)
-        self.node.host_peer_in_port.connect(other.node.host_peer_out_port)
-        self.node.qnos_peer_out_port.connect(other.node.qnos_peer_in_port)
-        self.node.qnos_peer_in_port.connect(other.node.qnos_peer_out_port)
+        here = self.node.name
+        there = other.node.name
+        self.node.host_peer_out_port(there).connect(other.node.host_peer_in_port(here))
+        self.node.host_peer_in_port(there).connect(other.node.host_peer_out_port(here))
+        self.node.qnos_peer_out_port(there).connect(other.node.qnos_peer_in_port(here))
+        self.node.qnos_peer_in_port(there).connect(other.node.qnos_peer_out_port(here))
 
     def start(self) -> None:
         assert self._host is not None

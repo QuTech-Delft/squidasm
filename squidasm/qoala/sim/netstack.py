@@ -33,6 +33,7 @@ from qlink_interface import (
 from qlink_interface.interface import ReqRemoteStatePrep
 
 from pydynaa import EventExpression
+from squidasm.qoala.runtime.environment import GlobalEnvironment
 from squidasm.qoala.sim.common import (
     AllocError,
     AppMemory,
@@ -73,11 +74,22 @@ class NetstackComponent(Component):
     which is a subclass of `Protocol`.
     """
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: Node, global_env: GlobalEnvironment) -> None:
         super().__init__(f"{node.name}_netstack")
         self._node = node
         self.add_ports(["proc_out", "proc_in"])
-        self.add_ports(["peer_out", "peer_in"])
+
+        self._peer_in_ports: Dict[str, str] = {}  # peer name -> port name
+        self._peer_out_ports: Dict[str, str] = {}  # peer name -> port name
+
+        for node in global_env.get_nodes().values():
+            port_in_name = f"peer_{node.name}_in"
+            port_out_name = f"peer_{node.name}_out"
+            self._peer_in_ports[node.name] = port_in_name
+            self._peer_out_ports[node.name] = port_out_name
+
+        self.add_ports(self._peer_in_ports.values())
+        self.add_ports(self._peer_out_ports.values())
 
     @property
     def processor_in_port(self) -> Port:
@@ -87,13 +99,13 @@ class NetstackComponent(Component):
     def processor_out_port(self) -> Port:
         return self.ports["proc_out"]
 
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
+    def peer_in_port(self, name: str) -> Port:
+        port_name = self._peer_in_ports[name]
+        return self.ports[port_name]
 
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
+    def peer_out_port(self, name: str) -> Port:
+        port_name = self._peer_out_ports[name]
+        return self.ports[port_name]
 
     @property
     def node(self) -> Node:
@@ -126,14 +138,22 @@ class Netstack(ComponentProtocol):
         self._comp = comp
         self._qnos = qnos
 
+        # TODO rewrite
+        self._local_env = qnos._local_env
+        all_nodes = self._local_env.get_global_env().get_nodes().values()
+        self._peers: List[str] = list(node.name for node in all_nodes)
+
         self.add_listener(
             "processor",
             PortListener(self._comp.processor_in_port, SIGNAL_PROC_NSTK_MSG),
         )
-        self.add_listener(
-            "peer",
-            PortListener(self._comp.peer_in_port, SIGNAL_PEER_NSTK_MSG),
-        )
+        for peer in self._peers:
+            self.add_listener(
+                f"peer_{peer}",
+                PortListener(
+                    self._comp.peer_in_port(peer), f"{SIGNAL_PEER_NSTK_MSG}_{peer}"
+                ),
+            )
 
         self._egp: Optional[EgpProtocol] = None
         self._epr_sockets: Dict[int, List[EprSocket]] = {}  # app ID -> [socket]
@@ -145,6 +165,10 @@ class Netstack(ComponentProtocol):
         :param prot: link layer protocol instance
         """
         self._egp = EgpProtocol(self._comp.node, prot)
+
+    def remote_id_to_peer_name(self, remote_id: int) -> str:
+        node_info = self._local_env.get_global_env().get_nodes()[remote_id]
+        return node_info.name
 
     def open_epr_socket(self, app_id: int, socket_id: int, remote_node_id: int) -> None:
         """Create a new EPR socket with the specified remote node.
@@ -166,18 +190,22 @@ class Netstack(ComponentProtocol):
         message."""
         return (yield from self._receive_msg("processor", SIGNAL_PROC_NSTK_MSG))
 
-    def _send_peer_msg(self, msg: str) -> None:
+    def _send_peer_msg(self, peer: str, msg: str) -> None:
         """Send a message to the network stack of the other node.
 
         NOTE: for now we assume there is only one other node, which is 'the' peer."""
-        self._comp.peer_out_port.tx_output(msg)
+        self._comp.peer_out_port(peer).tx_output(msg)
 
-    def _receive_peer_msg(self) -> Generator[EventExpression, None, str]:
+    def _receive_peer_msg(self, peer: str) -> Generator[EventExpression, None, str]:
         """Receive a message from the network stack of the other node. Block until
         there is at least one message.
 
         NOTE: for now we assume there is only one other node, which is 'the' peer."""
-        return (yield from self._receive_msg("peer", SIGNAL_PEER_NSTK_MSG))
+        return (
+            yield from self._receive_msg(
+                f"peer_{peer}", f"{SIGNAL_PEER_NSTK_MSG}_{peer}"
+            )
+        )
 
     def start(self) -> None:
         """Start this protocol. The NetSquid simulator will call and yield on the
@@ -475,10 +503,10 @@ class Netstack(ComponentProtocol):
         """
 
         # EPR socket should exist.
-        assert (
-            self.find_epr_socket(req.app_id, req.epr_socket_id, req.remote_node_id)
-            is not None
+        epr_socket = self.find_epr_socket(
+            req.app_id, req.epr_socket_id, req.remote_node_id
         )
+        assert epr_socket is not None
 
         # Read request parameters from the corresponding NetQASM array.
         args = self._read_request_args_array(req.app_id, req.arg_array_addr)
@@ -487,8 +515,9 @@ class Netstack(ComponentProtocol):
         request = self._construct_request(req.remote_node_id, args)
 
         # Send it to the receiver node and wait for an acknowledgement.
-        self._send_peer_msg(request)
-        peer_msg = yield from self._receive_peer_msg()
+        peer = self.remote_id_to_peer_name(epr_socket.remote_id)
+        self._send_peer_msg(peer, request)
+        peer_msg = yield from self._receive_peer_msg(peer)
         self._logger.debug(f"received peer msg: {peer_msg}")
 
         # Handle the request.
@@ -683,10 +712,10 @@ class Netstack(ComponentProtocol):
         """
 
         # EPR socket should exist.
-        assert (
-            self.find_epr_socket(req.app_id, req.epr_socket_id, req.remote_node_id)
-            is not None
+        epr_socket = self.find_epr_socket(
+            req.app_id, req.epr_socket_id, req.remote_node_id
         )
+        assert epr_socket is not None
 
         # Wait for the network stack in the remote node to get the corresponding
         # 'create' request from its local application and send it to us.
@@ -694,13 +723,14 @@ class Netstack(ComponentProtocol):
         # request. Also, we simply block until synchronizing with the other node,
         # and then fully handle the request. There is no support for queueing
         # and/or interleaving multiple different requests.
-        create_request = yield from self._receive_peer_msg()
+        peer = self.remote_id_to_peer_name(epr_socket.remote_id)
+        create_request = yield from self._receive_peer_msg(peer)
         self._logger.debug(f"received {create_request} from peer")
 
         # Acknowledge to the remote node that we received the request and we will
         # start handling it.
         self._logger.debug("sending 'ready' to peer")
-        self._send_peer_msg("ready")
+        self._send_peer_msg(peer, "ready")
 
         # Handle the request, based on the type that we now know because of the
         # other node.
@@ -713,8 +743,12 @@ class Netstack(ComponentProtocol):
         self,
     ) -> Generator[EventExpression, None, None]:
         # Synchronize with the remote node.
-        self._send_peer_msg("breakpoint start")
-        response = yield from self._receive_peer_msg()
+
+        self._logger.warning("USING EPR SOCKET (0, 0) FOR BREAKPOINT!!!!")
+        peer = self.remote_id_to_peer_name(self._epr_sockets[0][0].remote_id)
+
+        self._send_peer_msg(peer, "breakpoint start")
+        response = yield from self._receive_peer_msg(peer)
         assert response == "breakpoint start"
 
         # Remote node is now ready. Notify the processor.
@@ -725,10 +759,10 @@ class Netstack(ComponentProtocol):
         assert processor_msg == "breakpoint end"
 
         # Tell the remote node that the breakpoint has finished.
-        self._send_peer_msg("breakpoint end")
+        self._send_peer_msg(peer, "breakpoint end")
 
         # Wait for the remote node to have finsihed as well.
-        response = yield from self._receive_peer_msg()
+        response = yield from self._receive_peer_msg(peer)
         assert response == "breakpoint end"
 
         # Notify the processor that we are done.
@@ -738,9 +772,13 @@ class Netstack(ComponentProtocol):
         self,
     ) -> Generator[EventExpression, None, None]:
         # Synchronize with the remote node.
-        msg = yield from self._receive_peer_msg()
+
+        self._logger.warning("USING EPR SOCKET (0, 0) FOR BREAKPOINT!!!!")
+        peer = self.remote_id_to_peer_name(self._epr_sockets[0][0].remote_id)
+
+        msg = yield from self._receive_peer_msg(peer)
         assert msg == "breakpoint start"
-        self._send_peer_msg("breakpoint start")
+        self._send_peer_msg(peer, "breakpoint start")
 
         # Notify the processor we are ready to handle the breakpoint.
         self._send_processor_msg("breakpoint ready")
@@ -750,9 +788,9 @@ class Netstack(ComponentProtocol):
         assert processor_msg == "breakpoint end"
 
         # Wait for the remote node to finish and tell it we are finished as well.
-        peer_msg = yield from self._receive_peer_msg()
+        peer_msg = yield from self._receive_peer_msg(peer)
         assert peer_msg == "breakpoint end"
-        self._send_peer_msg("breakpoint end")
+        self._send_peer_msg(peer, "breakpoint end")
 
         # Notify the processor that we are done.
         self._send_processor_msg("breakpoint finished")

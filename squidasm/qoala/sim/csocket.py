@@ -17,10 +17,10 @@ class ClassicalSocket:
 
     def send(self, msg: str) -> None:
         """Sends a message to the remote node."""
-        self._host.send_peer_msg(msg)
+        self._host.send_peer_msg(self._remote_name, msg)
 
     def recv(self) -> Generator[EventExpression, None, str]:
-        return (yield from self._host.receive_peer_msg())
+        return (yield from self._host.receive_peer_msg(self._remote_name))
 
     def send_int(self, value: int) -> None:
         self.send(str(value))
