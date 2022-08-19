@@ -14,7 +14,12 @@ from pydynaa import EventExpression
 from squidasm.qoala.lang import lhr
 from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.runtime.program import ProgramContext, ProgramInstance, SdkProgram
-from squidasm.qoala.sim.common import ComponentProtocol, LogManager, PortListener
+from squidasm.qoala.sim.common import (
+    ComponentProtocol,
+    LogManager,
+    PortListener,
+    ProgramResult,
+)
 from squidasm.qoala.sim.connection import QnosConnection
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
@@ -60,12 +65,13 @@ class LhrProcess:
 
         self._memory: Dict[str, Any] = {}
 
-    def run(self, num_times: int = 1) -> Generator[EventExpression, None, None]:
-        for _ in range(num_times):
-            result = yield from self.execute_program()
-            self._program_results.append(result)
-            self._host.send_qnos_msg(bytes(StopAppMessage(self._context.app_id)))
-        return self._program_results
+    def run(self, instr_idx: int) -> Generator[EventExpression, None, None]:
+        # TODO multiple runs
+        run_idx = 0
+        assert len(self._program_results) in [run_idx, run_idx + 1]
+        if len(self._program_results) == run_idx:
+            self._program_results.append({})
+        yield from self.execute_program(run_idx, instr_idx)
 
     @property
     def context(self) -> HostProgramContext:
@@ -79,10 +85,17 @@ class LhrProcess:
     def program(self) -> ProgramInstance:
         return self._program
 
-    def execute_program(self) -> Generator[EventExpression, None, Dict[str, Any]]:
+    def get_results(self) -> ProgramResult:
+        return ProgramResult(self._program_results)
+
+    def execute_program(
+        self, run_idx: int, instr_idx: int
+    ) -> Generator[EventExpression, None, Dict[str, Any]]:
         context = self._context
         memory = self._memory
         program = self._program.program
+        # TODO: result index !
+        results = self._program_results[run_idx]
 
         csockets = list(self._context.csockets.values())
         csck = csockets[0] if len(csockets) > 0 else None
@@ -91,74 +104,71 @@ class LhrProcess:
         for name, value in self._program.inputs.items():
             memory[name] = value
 
-        results: Dict[str, Any] = {}
+        instr = program.instructions[instr_idx]
 
-        for instr in program.instructions:
-            self._logger.info(f"Interpreting LHR instruction {instr}")
-            if isinstance(instr, lhr.SendCMsgOp):
-                value = memory[instr.arguments[0]]
-                self._logger.info(f"sending msg {value}")
-                csck.send(value)
-            elif isinstance(instr, lhr.ReceiveCMsgOp):
-                msg = yield from csck.recv()
-                msg = int(msg)
-                memory[instr.results[0]] = msg
-                self._logger.info(f"received msg {msg}")
-            elif isinstance(instr, lhr.AddCValueOp):
-                arg0 = int(memory[instr.arguments[0]])
-                arg1 = int(memory[instr.arguments[1]])
-                memory[instr.results[0]] = arg0 + arg1
-            elif isinstance(instr, lhr.MultiplyConstantCValueOp):
-                arg0 = memory[instr.arguments[0]]
-                arg1 = int(instr.arguments[1])
+        self._logger.info(f"Interpreting LHR instruction {instr}")
+        if isinstance(instr, lhr.SendCMsgOp):
+            value = memory[instr.arguments[0]]
+            self._logger.info(f"sending msg {value}")
+            csck.send(value)
+        elif isinstance(instr, lhr.ReceiveCMsgOp):
+            msg = yield from csck.recv()
+            msg = int(msg)
+            memory[instr.results[0]] = msg
+            self._logger.info(f"received msg {msg}")
+        elif isinstance(instr, lhr.AddCValueOp):
+            arg0 = int(memory[instr.arguments[0]])
+            arg1 = int(memory[instr.arguments[1]])
+            memory[instr.results[0]] = arg0 + arg1
+        elif isinstance(instr, lhr.MultiplyConstantCValueOp):
+            arg0 = memory[instr.arguments[0]]
+            arg1 = int(instr.arguments[1])
+            memory[instr.results[0]] = arg0 * arg1
+        elif isinstance(instr, lhr.BitConditionalMultiplyConstantCValueOp):
+            arg0 = memory[instr.arguments[0]]
+            arg1 = int(instr.arguments[1])
+            cond = memory[instr.arguments[2]]
+            if cond == 1:
                 memory[instr.results[0]] = arg0 * arg1
-            elif isinstance(instr, lhr.BitConditionalMultiplyConstantCValueOp):
-                arg0 = memory[instr.arguments[0]]
-                arg1 = int(instr.arguments[1])
-                cond = memory[instr.arguments[2]]
-                if cond == 1:
-                    memory[instr.results[0]] = arg0 * arg1
-                else:
-                    memory[instr.results[0]] = arg0
-            elif isinstance(instr, lhr.AssignCValueOp):
-                value = instr.attributes[0]
-                # if isinstance(value, str) and value.startswith("RegFuture__"):
-                #     reg_str = value[len("RegFuture__") :]
-                memory[instr.results[0]] = instr.attributes[0]
-            elif isinstance(instr, lhr.RunSubroutineOp):
-                arg_vec: lhr.LhrVector = instr.arguments[0]
-                args = arg_vec.values
-                lhr_subrt: lhr.LhrSubroutine = instr.attributes[0]
-                subrt = lhr_subrt.subroutine
-                self._logger.info(f"executing subroutine {subrt}")
+            else:
+                memory[instr.results[0]] = arg0
+        elif isinstance(instr, lhr.AssignCValueOp):
+            value = instr.attributes[0]
+            # if isinstance(value, str) and value.startswith("RegFuture__"):
+            #     reg_str = value[len("RegFuture__") :]
+            memory[instr.results[0]] = instr.attributes[0]
+        elif isinstance(instr, lhr.RunSubroutineOp):
+            arg_vec: lhr.LhrVector = instr.arguments[0]
+            args = arg_vec.values
+            lhr_subrt: lhr.LhrSubroutine = instr.attributes[0]
+            subrt = lhr_subrt.subroutine
+            self._logger.info(f"executing subroutine {subrt}")
 
-                arg_values = {arg: memory[arg] for arg in args}
+            arg_values = {arg: memory[arg] for arg in args}
 
-                self._logger.info(f"instantiating subroutine with values {arg_values}")
-                subrt.instantiate(context.app_id, arg_values)
+            self._logger.info(f"instantiating subroutine with values {arg_values}")
+            subrt.instantiate(context.app_id, arg_values)
 
-                yield from conn.commit_subroutine(subrt)
+            yield from conn.commit_subroutine(subrt)
 
-                for key, mem_loc in lhr_subrt.return_map.items():
-                    try:
-                        reg: Register = parse_register(mem_loc.loc)
-                        value = conn.shared_memory.get_register(reg)
-                        self._logger.debug(
-                            f"writing shared memory value {value} from location "
-                            f"{mem_loc} to variable {key}"
-                        )
-                        memory[key] = value
-                    except NetQASMSyntaxError:
-                        pass
-            elif isinstance(instr, lhr.ReturnResultOp):
-                value = instr.arguments[0]
-                results[value] = int(memory[value])
-
-        return results
+            for key, mem_loc in lhr_subrt.return_map.items():
+                try:
+                    reg: Register = parse_register(mem_loc.loc)
+                    value = conn.shared_memory.get_register(reg)
+                    self._logger.debug(
+                        f"writing shared memory value {value} from location "
+                        f"{mem_loc} to variable {key}"
+                    )
+                    memory[key] = value
+                except NetQASMSyntaxError:
+                    pass
+        elif isinstance(instr, lhr.ReturnResultOp):
+            value = instr.arguments[0]
+            results[value] = int(memory[value])
 
 
 class HostComponent(Component):
-    """NetSquid compmonent representing a Host.
+    """NetSquid component representing a Host.
 
     Subcomponent of a ProcessingNode.
 
@@ -227,7 +237,8 @@ class Host(ComponentProtocol):
 
         # Programs that need to be executed.
         self._programs: Dict[int, ProgramInstance] = {}
-        self._program_counter: int = 0
+
+        self._processes: Dict[int, LhrProcess] = {}
 
         self._connections: Dict[int, QnosConnection] = {}
 
@@ -263,19 +274,15 @@ class Host(ComponentProtocol):
     def receive_peer_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG))
 
-    def run_lhr_program(self, app_id: int) -> Generator[EventExpression, None, None]:
-        program = self._programs[app_id]
-        context = HostProgramContext(
-            conn=self._connections[app_id],
-            csockets=self._csockets[app_id],
-            app_id=app_id,
-        )
+    def run_lhr_instr(
+        self, app_id: int, instr_idx: int
+    ) -> Generator[EventExpression, None, None]:
+        process = self._processes[app_id]
+        yield from process.run(instr_idx)
 
-        self._logger.info(f"Creating LHR process for program:\n{program}")
-        process = LhrProcess(self, program, context)
-        result = yield from process.run()
-        self._program_results.append(result)
-        return result
+    def program_end(self, app_id: int) -> ProgramResult:
+        self.send_qnos_msg(bytes(StopAppMessage(app_id)))
+        return self._processes[app_id].get_results()
 
     def run(self) -> Generator[EventExpression, None, None]:
         """Run this protocol. Automatically called by NetSquid during simulation."""
@@ -296,6 +303,14 @@ class Host(ComponentProtocol):
         self._connections[app_id] = conn
 
         self._csockets[app_id] = {}
+
+        context = HostProgramContext(
+            conn=self._connections[app_id],
+            csockets=self._csockets[app_id],
+            app_id=app_id,
+        )
+        process = LhrProcess(self, program, context)
+        self._processes[app_id] = process
 
     def open_csocket(self, app_id: int, remote_name: str) -> None:
         assert app_id in self._csockets

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import netsquid as ns
 from netsquid_magic.link_layer import (
@@ -31,6 +31,8 @@ from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.sim.build import build_generic_qdevice, build_nv_qdevice
 from squidasm.qoala.sim.globals import GlobalSimData
 from squidasm.qoala.sim.stack import NodeStack, StackNetwork
+
+from .schedule import Schedule
 
 
 def fidelity_to_prob_max_mixed(fid: float) -> float:
@@ -158,11 +160,14 @@ def _run(network: StackNetwork) -> List[Dict[str, Any]]:
     # Start the NetSquid simulation.
     ns.sim_run()
 
-    return [stack.host.get_results() for _, stack in network.stacks.items()]
+    return [stack.scheduler.get_results() for _, stack in network.stacks.items()]
 
 
 def run(
-    config: StackNetworkConfig, programs: Dict[str, ProgramInstance], num_times: int = 1
+    config: StackNetworkConfig,
+    programs: Dict[str, ProgramInstance],
+    schedules: Optional[Dict[str, Schedule]] = None,
+    num_times: int = 1,
 ) -> List[Dict[str, Any]]:
     """Run programs on a network specified by a network configuration.
 
@@ -184,6 +189,10 @@ def run(
 
     for name, program in programs.items():
         network.stacks[name]._local_env.register_program(program)
+
+    if schedules is not None:
+        for name, schedule in schedules.items():
+            network.stacks[name]._local_env.install_local_schedule(schedule)
 
     for name in programs.keys():
         network.stacks[name].install_environment()

@@ -1,51 +1,24 @@
 from __future__ import annotations
 
-import logging
-from ctypes import Union
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Type
+from selectors import EVENT_WRITE
+from typing import TYPE_CHECKING, Dict, Generator, List, Optional
 
-from netqasm.backend.messages import (
-    InitNewAppMessage,
-    Message,
-    OpenEPRSocketMessage,
-    StopAppMessage,
-    SubroutineMessage,
-    deserialize_host_msg,
-)
-from netqasm.lang.instr import flavour
-from netqasm.lang.operand import Register
-from netqasm.lang.parsing import deserialize as deser_subroutine
-from netqasm.lang.parsing.text import NetQASMSyntaxError, parse_register
+import netsquid as ns
 from netqasm.lang.subroutine import Subroutine
-from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
-from netsquid.components.component import Component, Port
+from netsquid.components.component import Component
 from netsquid.nodes import Node
 
-from pydynaa import EventExpression
+from pydynaa import Entity, EventExpression, EventType
 from squidasm.qoala.lang import lhr
-from squidasm.qoala.runtime.environment import LocalEnvironment
-from squidasm.qoala.runtime.program import ProgramContext, ProgramInstance, SdkProgram
-from squidasm.qoala.sim.common import (
-    AppMemory,
-    ComponentProtocol,
-    LogManager,
-    PhysicalQuantumMemory,
-    PortListener,
-)
+from squidasm.qoala.runtime.program import ProgramInstance
+from squidasm.qoala.runtime.schedule import Schedule
+from squidasm.qoala.sim.common import ComponentProtocol, ProgramResult
 from squidasm.qoala.sim.connection import QnosConnection
 from squidasm.qoala.sim.csocket import ClassicalSocket
-from squidasm.qoala.sim.host import Host, HostProgramContext
-from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
-from squidasm.qoala.sim.signals import (
-    SIGNAL_HAND_HOST_MSG,
-    SIGNAL_HOST_HAND_MSG,
-    SIGNAL_HOST_HOST_MSG,
-    SIGNAL_PROC_HAND_MSG,
-)
+from squidasm.qoala.sim.host import Host
 
 if TYPE_CHECKING:
-    from squidasm.qoala.sim.processor import ProcessorComponent
-    from squidasm.qoala.sim.qnos import Qnos, QnosComponent
+    from squidasm.qoala.sim.qnos import Qnos
 
 
 class SchedulerComponent(Component):
@@ -54,8 +27,6 @@ class SchedulerComponent(Component):
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_scheduler")
         self._node = node
-        # self.add_ports(["proc_out", "proc_in"])
-        # self.add_ports(["host_out", "host_in"])
 
     @property
     def node(self) -> Node:
@@ -86,12 +57,10 @@ class ProgramSchedule:
         self._schedule: Dict[int, int] = {}  # instr index -> time
 
 
-class Schedule:
-    def __init__(self) -> None:
-        self._schedule: Dict[lhr.ClassicalLhrOp, int] = {}
+EVENT_WAIT = EventType("SCHEDULER_WAIT", "scheduler wait")
 
 
-class Scheduler(ComponentProtocol):
+class Scheduler(ComponentProtocol, Entity):
     """NetSquid protocol representing a Scheduler."""
 
     def __init__(
@@ -112,8 +81,22 @@ class Scheduler(ComponentProtocol):
 
         self._csockets: Dict[int, Dict[str, ClassicalSocket]] = {}
 
-        # Results of program runs so far.
-        self._program_results: List[Dict[str, Any]] = []
+        self._program_results: Dict[int, ProgramResult] = {}
+
+        self._local_schedule: Optional[Schedule] = None
+
+    def install_schedule(self, schedule: Schedule):
+        self._local_schedule = schedule
+
+    def wait_until_next_slot(self) -> Generator[EventExpression, None, None]:
+        now = ns.sim_time()
+        next_slot = self._local_schedule.next_slot(now)
+        delta = next_slot - now
+        self._logger.warning(f"next slot = {next_slot}")
+        self._logger.warning(f"delta = {delta}")
+        self._schedule_after(delta, EVENT_WAIT)
+        event_expr = EventExpression(source=self, event_type=EVENT_WAIT)
+        yield event_expr
 
     def run(self) -> Generator[EventExpression, None, None]:
         """Run this protocol. Automatically called by NetSquid during simulation."""
@@ -127,7 +110,14 @@ class Scheduler(ComponentProtocol):
 
         assert isinstance(prog_instance.program, lhr.LhrProgram)
 
-        yield from self._host.run_lhr_program(app_id)
+        for i in range(len(prog_instance.program.instructions)):
+            if self._local_schedule is not None:
+                yield from self.wait_until_next_slot()
+            self._logger.warning(f"time: {ns.sim_time()}, executing instr #{i}")
+            yield from self._host.run_lhr_instr(app_id, i)
+
+        result = self._host.program_end(app_id)
+        self._program_results[app_id] = result
 
     def init_new_program(self, program: ProgramInstance) -> int:
         app_id = self._program_counter
@@ -165,3 +155,6 @@ class Scheduler(ComponentProtocol):
             self._qnos.handler.open_epr_socket(app_id, i, remote_id)
 
         return app_id
+
+    def get_results(self) -> Dict[int, ProgramResult]:
+        return self._program_results

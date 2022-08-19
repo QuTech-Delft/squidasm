@@ -11,11 +11,12 @@ from squidasm.qoala.runtime.config import (
 )
 from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.runtime.run import run
+from squidasm.qoala.runtime.schedule import Schedule
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import ProgramMeta
 
 
-def test_run_two_nodes_epr():
+def run_bqc():
     program_client_file = os.path.join(os.path.dirname(__file__), "bqc_5_6_client.lhr")
     with open(program_client_file) as file:
         program_client_text = file.read()
@@ -61,10 +62,14 @@ def test_run_two_nodes_epr():
     )
 
     cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
+
+    server_schedule = Schedule(timeslot_length=1337)
+
     for i in range(1):
         result = run(
             cfg,
             programs={"client": prog_client_instance, "server": prog_server_instance},
+            schedules={"server": server_schedule},
         )
         print(result)
         ns.sim_reset()
@@ -73,4 +78,4 @@ def test_run_two_nodes_epr():
 if __name__ == "__main__":
     # LogManager.set_log_level("INFO")
     # LogManager.log_to_file(os.path.join(os.path.dirname(__file__), "debug.log"))
-    test_run_two_nodes_epr()
+    run_bqc()

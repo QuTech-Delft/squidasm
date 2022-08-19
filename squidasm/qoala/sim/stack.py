@@ -161,6 +161,7 @@ class NodeStack(Protocol):
 
     def install_environment(self) -> None:
         for instance in self._local_env._programs:
+            self._scheduler.install_schedule(self._local_env._local_schedule)
             self._scheduler.init_new_program(instance)
 
     def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
@@ -205,6 +206,14 @@ class NodeStack(Protocol):
     @qnos.setter
     def qnos(self, qnos: Qnos) -> None:
         self._qnos = qnos
+
+    @property
+    def scheduler(self) -> Scheduler:
+        return self._scheduler
+
+    @scheduler.setter
+    def scheduler(self, scheduler: Scheduler) -> None:
+        self._scheduler = scheduler
 
     def connect_to(self, other: NodeStack) -> None:
         """Create connections between ports of this NodeStack and those of

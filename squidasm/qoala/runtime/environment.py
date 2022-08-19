@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from squidasm.qoala.runtime.config import (
     GenericQDeviceConfig,
@@ -9,6 +9,8 @@ from squidasm.qoala.runtime.config import (
     NVQDeviceConfig,
 )
 from squidasm.qoala.runtime.program import ProgramInstance
+
+from .schedule import Schedule
 
 
 @dataclass
@@ -116,7 +118,12 @@ class GlobalEnvironment:
 
 
 class LocalEnvironment:
-    def __init__(self, global_env: GlobalEnvironment, node_id: int) -> None:
+    def __init__(
+        self,
+        global_env: GlobalEnvironment,
+        node_id: int,
+        local_schedule: Optional[Schedule] = None,
+    ) -> None:
         self._global_env: GlobalEnvironment = global_env
 
         # node ID of self
@@ -125,6 +132,8 @@ class LocalEnvironment:
         self._programs: List[ProgramInstance] = []
         self._csockets: List[str] = []
         self._epr_sockets: List[str] = []
+
+        self._local_schedule = local_schedule
 
     def get_global_env(self) -> GlobalEnvironment:
         return self._global_env
@@ -137,6 +146,9 @@ class LocalEnvironment:
 
     def open_epr_socket(self) -> None:
         pass
+    
+    def install_local_schedule(self, schedule: Schedule) -> None:
+        self._local_schedule = schedule
 
 
 class ProgramEnvironment:

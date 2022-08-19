@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import netsquid as ns
 from netqasm.lang import operand
@@ -10,6 +10,11 @@ from netsquid.components.component import Component, Port
 from netsquid.protocols import Protocol
 
 from pydynaa import EventExpression
+
+
+@dataclass
+class ProgramResult:
+    results: List[Dict[str, Any]]
 
 
 class SimTimeFilter(logging.Filter):
