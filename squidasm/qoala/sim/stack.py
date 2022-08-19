@@ -191,16 +191,18 @@ class NodeStack(Protocol):
             self._scheduler = Scheduler(self.scheduler_comp, self._host, self._qnos)
 
     def install_environment(self) -> None:
+        self._scheduler.install_schedule(self._local_env._local_schedule)
         for instance in self._local_env._programs:
-            self._scheduler.install_schedule(self._local_env._local_schedule)
             self._scheduler.init_new_program(instance)
 
-    def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
+    def assign_ll_protocol(
+        self, remote_id: int, prot: MagicLinkLayerProtocolWithSignaling
+    ) -> None:
         """Set the link layer protocol to use for entanglement generation.
 
         The same link layer protocol object is used by both nodes sharing a link in
         the network."""
-        self.qnos.assign_ll_protocol(prot)
+        self.qnos.assign_ll_protocol(remote_id, prot)
 
     @property
     def node(self) -> ProcessingNode:

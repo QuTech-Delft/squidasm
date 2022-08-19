@@ -170,8 +170,8 @@ class Qnos(Protocol):
                 return app_id, virt_id
         raise RuntimeError(f"no virtual ID found for physical ID {phys_id}")
 
-    def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
-        self.netstack.assign_ll_protocol(prot)
+    def assign_ll_protocol(self, remote_id: int, prot: MagicLinkLayerProtocolWithSignaling) -> None:
+        self.netstack.assign_ll_protocol(remote_id, prot)
 
     @property
     def handler(self) -> Handler:

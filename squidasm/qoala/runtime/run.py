@@ -40,9 +40,6 @@ def fidelity_to_prob_max_mixed(fid: float) -> float:
 
 
 def _setup_network(config: StackNetworkConfig, rte: GlobalEnvironment) -> StackNetwork:
-    assert len(config.stacks) <= 2
-    assert len(config.links) <= 1
-
     stacks: Dict[str, NodeStack] = {}
     link_prots: List[MagicLinkLayerProtocol] = []
 
@@ -133,8 +130,8 @@ def _setup_network(config: StackNetworkConfig, rte: GlobalEnvironment) -> StackN
             magic_distributor=link_dist,
             translation_unit=SingleClickTranslationUnit(),
         )
-        stack1.assign_ll_protocol(link_prot)
-        stack2.assign_ll_protocol(link_prot)
+        stack1.assign_ll_protocol(stack2.node.ID, link_prot)
+        stack2.assign_ll_protocol(stack1.node.ID, link_prot)
 
         link_prots.append(link_prot)
 
@@ -144,13 +141,9 @@ def _setup_network(config: StackNetworkConfig, rte: GlobalEnvironment) -> StackN
 def _run(network: StackNetwork) -> List[Dict[str, Any]]:
     """Run the protocols of a network and programs running in that network.
 
-    NOTE: For now, only two nodes and a single link are supported.
-
     :param network: `StackNetwork` representing the nodes and links
     :return: final results of the programs
     """
-    assert len(network.stacks) <= 2
-    assert len(network.links) <= 1
 
     # Start the link protocols.
     for link in network.links:
@@ -168,7 +161,7 @@ def _run(network: StackNetwork) -> List[Dict[str, Any]]:
 
 def run(
     config: StackNetworkConfig,
-    programs: Dict[str, ProgramInstance],
+    programs: Dict[str, List[ProgramInstance]],
     schedules: Optional[Dict[str, Schedule]] = None,
     num_times: int = 1,
 ) -> List[Dict[str, Any]]:
@@ -190,8 +183,9 @@ def run(
 
     GlobalSimData.set_network(network)
 
-    for name, program in programs.items():
-        network.stacks[name]._local_env.register_program(program)
+    for name, program_list in programs.items():
+        for program in program_list:
+            network.stacks[name]._local_env.register_program(program)
 
     if schedules is not None:
         for name, schedule in schedules.items():

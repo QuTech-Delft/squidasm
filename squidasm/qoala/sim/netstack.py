@@ -155,16 +155,18 @@ class Netstack(ComponentProtocol):
                 ),
             )
 
-        self._egp: Optional[EgpProtocol] = None
+        self._egps: Dict[int, EgpProtocol] = {}
         self._epr_sockets: Dict[int, List[EprSocket]] = {}  # app ID -> [socket]
 
-    def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
+    def assign_ll_protocol(
+        self, remote_id: int, prot: MagicLinkLayerProtocolWithSignaling
+    ) -> None:
         """Set the magic link layer protocol that this network stack uses to produce
         entangled pairs with the remote node.
 
         :param prot: link layer protocol instance
         """
-        self._egp = EgpProtocol(self._comp.node, prot)
+        self._egps[remote_id] = EgpProtocol(self._comp.node, prot)
 
     def remote_id_to_peer_name(self, remote_id: int) -> str:
         node_info = self._local_env.get_global_env().get_nodes()[remote_id]
@@ -211,14 +213,14 @@ class Netstack(ComponentProtocol):
         """Start this protocol. The NetSquid simulator will call and yield on the
         `run` method. Also start the underlying EGP protocol."""
         super().start()
-        if self._egp:
-            self._egp.start()
+        for egp in self._egps.values():
+            egp.start()
 
     def stop(self) -> None:
         """Stop this protocol. The NetSquid simulator will stop calling `run`.
         Also stop the underlying EGP protocol."""
-        if self._egp:
-            self._egp.stop()
+        for egp in self._egps.values():
+            egp.stop()
         super().stop()
 
     def _read_request_args_array(self, app_id: int, array_addr: int) -> List[int]:
@@ -352,15 +354,16 @@ class Netstack(ComponentProtocol):
 
             # Put the request to the EGP.
             self._logger.info(f"putting CK request for pair {pair_index}")
-            self._egp.put(request)
+            self._egps[req.remote_node_id].put(request)
 
             # Wait for a signal from the EGP.
             self._logger.info(f"waiting for result for pair {pair_index}")
             yield self.await_signal(
-                sender=self._egp, signal_label=ResCreateAndKeep.__name__
+                sender=self._egps[req.remote_node_id],
+                signal_label=ResCreateAndKeep.__name__,
             )
             # Get the EGP's result.
-            result: ResCreateAndKeep = self._egp.get_signal_result(
+            result: ResCreateAndKeep = self._egps[req.remote_node_id].get_signal_result(
                 ResCreateAndKeep.__name__, receiver=self
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
@@ -444,7 +447,7 @@ class Netstack(ComponentProtocol):
         """
 
         # Put the reqeust to the EGP.
-        self._egp.put(request)
+        self._egps[req.remote_node_id].put(request)
 
         results: List[ResMeasureDirectly] = []
 
@@ -457,11 +460,12 @@ class Netstack(ComponentProtocol):
             phys_id = self.physical_memory.allocate_comm()
 
             yield self.await_signal(
-                sender=self._egp, signal_label=ResMeasureDirectly.__name__
+                sender=self._egps[req.remote_node_id],
+                signal_label=ResMeasureDirectly.__name__,
             )
-            result: ResMeasureDirectly = self._egp.get_signal_result(
-                ResMeasureDirectly.__name__, receiver=self
-            )
+            result: ResMeasureDirectly = self._egps[
+                req.remote_node_id
+            ].get_signal_result(ResMeasureDirectly.__name__, receiver=self)
             self._logger.debug(f"bell index: {result.bell_state}")
             results.append(result)
             self.physical_memory.free(phys_id)
@@ -582,15 +586,18 @@ class Netstack(ComponentProtocol):
 
             # Put the request to the EGP.
             self._logger.info(f"putting CK request for pair {pair_index}")
-            self._egp.put(ReqReceive(remote_node_id=req.remote_node_id))
+            self._egps[req.remote_node_id].put(
+                ReqReceive(remote_node_id=req.remote_node_id)
+            )
             self._logger.info(f"waiting for result for pair {pair_index}")
 
             # Wait for a signal from the EGP.
             yield self.await_signal(
-                sender=self._egp, signal_label=ResCreateAndKeep.__name__
+                sender=self._egps[req.remote_node_id],
+                signal_label=ResCreateAndKeep.__name__,
             )
             # Get the EGP's result.
-            result: ResCreateAndKeep = self._egp.get_signal_result(
+            result: ResCreateAndKeep = self._egps[req.remote_node_id].get_signal_result(
                 ResCreateAndKeep.__name__, receiver=self
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
@@ -658,7 +665,9 @@ class Netstack(ComponentProtocol):
         """
         assert isinstance(request, ReqMeasureDirectly)
 
-        self._egp.put(ReqReceive(remote_node_id=req.remote_node_id))
+        self._egps[req.remote_node_id].put(
+            ReqReceive(remote_node_id=req.remote_node_id)
+        )
 
         results: List[ResMeasureDirectly] = []
 
@@ -666,11 +675,12 @@ class Netstack(ComponentProtocol):
             phys_id = self.physical_memory.allocate_comm()
 
             yield self.await_signal(
-                sender=self._egp, signal_label=ResMeasureDirectly.__name__
+                sender=self._egps[req.remote_node_id],
+                signal_label=ResMeasureDirectly.__name__,
             )
-            result: ResMeasureDirectly = self._egp.get_signal_result(
-                ResMeasureDirectly.__name__, receiver=self
-            )
+            result: ResMeasureDirectly = self._egps[
+                req.remote_node_id
+            ].get_signal_result(ResMeasureDirectly.__name__, receiver=self)
             results.append(result)
 
             self.physical_memory.free(phys_id)

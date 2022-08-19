@@ -106,21 +106,23 @@ class Scheduler(ComponentProtocol, Entity):
         if len(programs) == 0:
             return
 
-        app_id, prog_instance = programs[0]
+        for program in programs:
+            app_id, prog_instance = program
 
-        assert isinstance(prog_instance.program, lhr.LhrProgram)
+            assert isinstance(prog_instance.program, lhr.LhrProgram)
 
-        for i in range(len(prog_instance.program.instructions)):
-            if self._local_schedule is not None:
-                yield from self.wait_until_next_slot()
-            self._logger.warning(f"time: {ns.sim_time()}, executing instr #{i}")
-            yield from self._host.run_lhr_instr(app_id, i)
+            for i in range(len(prog_instance.program.instructions)):
+                if self._local_schedule is not None:
+                    yield from self.wait_until_next_slot()
+                self._logger.warning(f"time: {ns.sim_time()}, executing instr #{i}")
+                yield from self._host.run_lhr_instr(app_id, i)
 
-        result = self._host.program_end(app_id)
-        self._program_results[app_id] = result
+            result = self._host.program_end(app_id)
+            self._program_results[app_id] = result
 
     def init_new_program(self, program: ProgramInstance) -> int:
         app_id = self._program_counter
+        self._logger.info(f"init new program with app ID {app_id}")
         self._program_counter += 1
         self._queued_programs[app_id] = program
 
@@ -131,15 +133,7 @@ class Scheduler(ComponentProtocol, Entity):
         global_env = self._host.local_env.get_global_env()
 
         for i, remote_name in enumerate(program.program.meta.csockets):
-            remote_id = None
-
-            # TODO: rewrite
-            nodes = global_env.get_nodes()
-            for id, info in nodes.items():
-                if info.name == remote_name:
-                    remote_id = id
-
-            assert remote_id is not None
+            remote_id = global_env.get_node_id(remote_name)
             self._host.open_csocket(app_id, remote_name)
 
         for i, remote_name in enumerate(program.program.meta.epr_sockets):
