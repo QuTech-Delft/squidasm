@@ -1,18 +1,25 @@
-run_subroutine(vec<>) : 
+run_subroutine(vec<client_id>) : 
     NETQASM_START
       array 10 @0
       array 1 @1
       store 0 @1[0]
-      recv_epr(0,0) 1 0
+      set C0 0
+      set C1 1
+      set C15 {client_id}
+      recv_epr C15 C0 C1 C0
       wait_all @0[0:10]
     NETQASM_END
 
-run_subroutine(vec<>) : 
+run_subroutine(vec<client_id>) : 
     NETQASM_START
       array 10 @2
       array 1 @3
       store 1 @3[0]
-      recv_epr(0,0) 3 2
+      set C0 0
+      set C2 2
+      set C3 3
+      set C15 {client_id}
+      recv_epr C15 C0 C3 C2
       wait_all @2[0:10]
     NETQASM_END
 

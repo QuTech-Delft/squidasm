@@ -1,4 +1,4 @@
-run_subroutine(vec<theta1; theta2>) : 
+run_subroutine(vec<theta1; theta2; server_id>) : 
     return M0 -> p2
     return M1 -> p1
   NETQASM_START
@@ -14,7 +14,14 @@ run_subroutine(vec<theta1; theta2>) :
     array 20 @5
     store 0 @5[0]
     store 1 @5[1]
-    create_epr(1,0) 1 2 0
+    set C0 0
+    set C1 1
+    set C2 2
+    set C3 3
+    set C4 4
+    set C5 5
+    set C15 {server_id}
+    create_epr C15 C0 C1 C2 C0
     wait_all @0[0:10]
     set Q0 0
     rot_z Q0 {theta2} 4
@@ -22,7 +29,7 @@ run_subroutine(vec<theta1; theta2>) :
     set Q0 0
     meas Q0 M0
     qfree Q0
-    create_epr(1,0) 4 5 3
+    create_epr C15 C0 C4 C5 C3
     wait_all @3[0:10]
     set Q0 0
     rot_z Q0 {theta1} 4

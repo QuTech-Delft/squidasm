@@ -47,14 +47,14 @@ def _setup_network(config: StackNetworkConfig, rte: GlobalEnvironment) -> StackN
     link_prots: List[MagicLinkLayerProtocol] = []
 
     # First add all nodes to the global environment ...
-    for node_id, cfg in enumerate(config.stacks):
+    for cfg in config.stacks:
         # TODO !!!
         # get HW info from config
         node_info = GlobalNodeInfo(cfg.name, 2, 1, 0, 0, 0, 0)
-        rte.add_node(node_id, node_info)
+        rte.add_node(cfg.node_id, node_info)
 
     # ... so that the nodes know about all other nodes while building their components
-    for node_id, cfg in enumerate(config.stacks):
+    for cfg in config.stacks:
         if cfg.qdevice_typ == "nv":
             qdevice_cfg = cfg.qdevice_cfg
             if not isinstance(qdevice_cfg, NVQDeviceConfig):
@@ -65,7 +65,7 @@ def _setup_network(config: StackNetworkConfig, rte: GlobalEnvironment) -> StackN
                 global_env=rte,
                 qdevice_type="nv",
                 qdevice=qdevice,
-                node_id=node_id,
+                node_id=cfg.node_id,
             )
         elif cfg.qdevice_typ == "generic":
             qdevice_cfg = cfg.qdevice_cfg
@@ -77,7 +77,7 @@ def _setup_network(config: StackNetworkConfig, rte: GlobalEnvironment) -> StackN
                 global_env=rte,
                 qdevice_type="generic",
                 qdevice=qdevice,
-                node_id=node_id,
+                node_id=cfg.node_id,
             )
 
         stacks[cfg.name] = stack

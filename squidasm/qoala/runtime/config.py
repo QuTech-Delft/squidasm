@@ -108,6 +108,7 @@ class NVQDeviceConfig(BaseModel):
 
 class StackConfig(BaseModel):
     name: str
+    node_id: int
     qdevice_typ: str
     qdevice_cfg: Any
     host_qnos_latency: float = 0.0
@@ -118,9 +119,10 @@ class StackConfig(BaseModel):
         return _from_file(path, StackConfig)  # type: ignore
 
     @classmethod
-    def perfect_generic_config(cls, name: str) -> StackConfig:
+    def perfect_generic_config(cls, name: str, node_id: int) -> StackConfig:
         return StackConfig(
             name=name,
+            node_id=node_id,
             qdevice_typ="generic",
             qdevice_cfg=GenericQDeviceConfig.perfect_config(),
             host_qnos_latency=0.0,
