@@ -152,8 +152,8 @@ def do_teleportation(
         rotate_phi = ns.create_rotation_op(angle=phi, rotation_axis=(0, 0, 1))
 
         expected = qubitapi.create_qubits(1)[0]
-        qubitapi.operate(expected, rotate_phi)
         qubitapi.operate(expected, rotate_theta)
+        qubitapi.operate(expected, rotate_phi)
 
         fid = qubitapi.fidelity(teleported, qubitapi.reduced_dm(expected), squared=True)
         if verbose:
