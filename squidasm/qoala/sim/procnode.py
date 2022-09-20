@@ -18,7 +18,7 @@ from squidasm.qoala.sim.qnos import Qnos, QnosComponent
 from squidasm.qoala.sim.scheduler import Scheduler, SchedulerComponent
 
 
-class ProcessingNode(Node):
+class ProcNodeComponent(Node):
     """NetSquid component representing a quantum network node containing a software
     stack consisting of Host, QNodeOS and QDevice.
 
@@ -28,15 +28,15 @@ class ProcessingNode(Node):
         - a SchedulerComponent
 
     Has communications ports between
-     - the Host component on this node and the Host component on the peer node
-     - the QNodeOS component on this node and the QNodeOS component on the peer node
-
-    For now, it is assumed there is only a single other nodes in the network,
-    which is "the" peer.
+     - the Host component on this node and the Host components on other nodes
+     - the QNodeOS component on this node and the QNodeOS components on other nodes
 
     This is a static container for components and ports.
-    Behavior of the node is modeled in the `NodeStack` class, which is a subclass
+    Behavior of the node is modeled in the `ProcNode` class, which is a subclass
     of `Protocol`.
+
+    This class is a subclass of the NetSquid `Node` class and can hence be used as
+    a standard NetSquid node.
     """
 
     def __init__(
@@ -46,8 +46,8 @@ class ProcessingNode(Node):
         global_env: GlobalEnvironment,
         node_id: Optional[int] = None,
     ) -> None:
-        """ProcessingNode constructor. Typically created indirectly through
-        constructing a `NodeStack`."""
+        """ProcNodeComponent constructor. Typically created indirectly through
+        constructing a `ProcNode`."""
         super().__init__(name, ID=node_id)
         self.qmemory = qdevice
 
@@ -135,7 +135,7 @@ class ProcessingNode(Node):
         return self.ports[port_name]
 
 
-class NodeStack(Protocol):
+class ProcNode(Protocol):
     """NetSquid protocol representing a node with a software stack.
 
     The software stack consists of a Scheduler, Host, QNodeOS and a QDevice.
@@ -147,17 +147,17 @@ class NodeStack(Protocol):
         self,
         name: str,
         global_env: Optional[GlobalEnvironment] = None,
-        node: Optional[ProcessingNode] = None,
+        node: Optional[ProcNodeComponent] = None,
         qdevice_type: Optional[str] = "generic",
         qdevice: Optional[QuantumProcessor] = None,
         node_id: Optional[int] = None,
         use_default_components: bool = True,
     ) -> None:
-        """NodeStack constructor.
+        """ProcNode constructor.
 
         :param name: name of this node
-        :param node: an existing ProcessingNode object containing the static
-            components or None. If None, a ProcessingNode is automatically
+        :param node: an existing ProcNodeComponent object containing the static
+            components or None. If None, a ProcNodeComponent is automatically
             created.
         :param qdevice_type: hardware type of the QDevice, defaults to "generic"
         :param qdevice: NetSquid `QuantumProcessor` representing the QDevice,
@@ -173,7 +173,7 @@ class NodeStack(Protocol):
             self._node = node
         else:
             assert qdevice is not None
-            self._node = ProcessingNode(name, qdevice, global_env, node_id)
+            self._node = ProcNodeComponent(name, qdevice, global_env, node_id)
 
         self._global_env = global_env
         self._local_env = LocalEnvironment(global_env, global_env.get_node_id(name))
@@ -184,7 +184,7 @@ class NodeStack(Protocol):
 
         # Create internal components.
         # If `use_default_components` is False, these components must be manually
-        # created and added to this NodeStack.
+        # created and added to this ProcNode.
         if use_default_components:
             self._host = Host(self.host_comp, self._local_env, qdevice_type)
             self._qnos = Qnos(self.qnos_comp, self._local_env, qdevice_type)
@@ -205,7 +205,7 @@ class NodeStack(Protocol):
         self.qnos.assign_ll_protocol(remote_id, prot)
 
     @property
-    def node(self) -> ProcessingNode:
+    def node(self) -> ProcNodeComponent:
         return self._node
 
     @property
@@ -248,9 +248,9 @@ class NodeStack(Protocol):
     def scheduler(self, scheduler: Scheduler) -> None:
         self._scheduler = scheduler
 
-    def connect_to(self, other: NodeStack) -> None:
-        """Create connections between ports of this NodeStack and those of
-        another NodeStack."""
+    def connect_to(self, other: ProcNode) -> None:
+        """Create connections between ports of this ProcNode and those of
+        another ProcNode."""
         here = self.node.name
         there = other.node.name
         self.node.host_peer_out_port(there).connect(other.node.host_peer_in_port(here))
@@ -275,26 +275,26 @@ class NodeStack(Protocol):
         super().stop()
 
 
-class StackNetwork(Network):
-    """A network of `NodeStack`s connected by links, which are
+class ProcNodeNetwork(Network):
+    """A network of `ProcNode`s connected by links, which are
     `MagicLinkLayerProtocol`s."""
 
     def __init__(
-        self, stacks: Dict[str, NodeStack], links: List[MagicLinkLayerProtocol]
+        self, nodes: Dict[str, ProcNode], links: List[MagicLinkLayerProtocol]
     ) -> None:
-        """StackNetwork constructor.
+        """ProcNodeNetwork constructor.
 
-        :param stacks: dictionary of node name to `NodeStack` object representing
+        :param nodes: dictionary of node name to `ProcNode` object representing
         that node
         :param links: list of link layer protocol objects. Each object internally
         contains the IDs of the two nodes that this link connects
         """
-        self._stacks = stacks
+        self._nodes = nodes
         self._links = links
 
     @property
-    def stacks(self) -> Dict[str, NodeStack]:
-        return self._stacks
+    def nodes(self) -> Dict[str, ProcNode]:
+        return self._nodes
 
     @property
     def links(self) -> List[MagicLinkLayerProtocol]:
@@ -302,4 +302,4 @@ class StackNetwork(Network):
 
     @property
     def qdevices(self) -> Dict[str, QuantumProcessor]:
-        return {name: stack.qdevice for name, stack in self._stacks.items()}
+        return {name: node.qdevice for name, node in self._nodes.items()}

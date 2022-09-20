@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Any, Dict, Generator, List, Optional, Type
 
 from netqasm.backend.messages import (
@@ -8,15 +7,13 @@ from netqasm.backend.messages import (
     OpenEPRSocketMessage,
     StopAppMessage,
 )
-from netqasm.lang.operand import Register
-from netqasm.lang.parsing.text import NetQASMSyntaxError, parse_register
 from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.common import ComponentProtocol, LogManager, PortListener
+from squidasm.sim.stack.common import ComponentProtocol, PortListener
 from squidasm.sim.stack.connection import QnosConnection
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.csocket import ClassicalSocket

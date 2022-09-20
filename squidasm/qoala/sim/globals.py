@@ -7,27 +7,24 @@ from netsquid.qubits import qubitapi
 from netsquid.qubits.qubit import Qubit
 
 if TYPE_CHECKING:
-    from squidasm.qoala.sim.stack import StackNetwork
+    from squidasm.qoala.sim.procnode import ProcNodeNetwork
 
 T_QubitData = Dict[str, Dict[int, Qubit]]
 T_StateData = Dict[str, Dict[int, np.ndarray]]
 
 
 class GlobalSimData:
-    _NETWORK: Optional[StackNetwork] = None
+    _NETWORK: Optional[ProcNodeNetwork] = None
     _BREAKPOINT_STATES: List[np.ndarray] = []
 
-    @classmethod
-    def set_network(cls, network: StackNetwork) -> None:
-        cls._NETWORK = network
+    def set_network(self, network: ProcNodeNetwork) -> None:
+        self._NETWORK = network
 
-    @classmethod
-    def get_network(cls) -> Optional[StackNetwork]:
-        return cls._NETWORK
+    def get_network(self) -> Optional[ProcNodeNetwork]:
+        return self._NETWORK
 
-    @classmethod
-    def get_quantum_state(cls, save: bool = False) -> T_QubitData:
-        network = cls.get_network()
+    def get_quantum_state(self, save: bool = False) -> T_QubitData:
+        network = self.get_network()
         assert network is not None
 
         qubits: T_QubitData = {}
@@ -42,10 +39,9 @@ class GlobalSimData:
                     if save:
                         states[name][i] = qubitapi.reduced_dm(q)
         if save:
-            cls._BREAKPOINT_STATES.append(states)
+            self._BREAKPOINT_STATES.append(states)
         return qubits
 
-    @classmethod
-    def get_last_breakpoint_state(cls) -> np.ndarray:
-        assert len(cls._BREAKPOINT_STATES) > 0
-        return cls._BREAKPOINT_STATES[-1]
+    def get_last_breakpoint_state(self) -> np.ndarray:
+        assert len(self._BREAKPOINT_STATES) > 0
+        return self._BREAKPOINT_STATES[-1]

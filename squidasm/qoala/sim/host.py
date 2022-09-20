@@ -13,7 +13,7 @@ from netsquid.nodes import Node
 from pydynaa import EventExpression
 from squidasm.qoala.lang import lhr
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.runtime.program import ProgramContext, ProgramInstance, SdkProgram
+from squidasm.qoala.runtime.program import ProgramContext, ProgramInstance
 from squidasm.qoala.sim.common import (
     ComponentProtocol,
     LogManager,
@@ -170,7 +170,7 @@ class LhrProcess:
 class HostComponent(Component):
     """NetSquid component representing a Host.
 
-    Subcomponent of a ProcessingNode.
+    Subcomponent of a ProcNodeComponent.
 
     This is a static container for Host-related components and ports. Behavior
     of a Host is modeled in the `Host` class, which is a subclass of `Protocol`.

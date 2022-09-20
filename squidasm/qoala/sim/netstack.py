@@ -70,7 +70,7 @@ class NetstackComponent(Component):
         NOTE: at this moment only a single other node is supported in the network
 
     This is a static container for network-stack-related components and ports.
-    Behavior of a QNodeOS network stack is modeled in the `NetStack` class,
+    Behavior of a QNodeOS network stack is modeled in the `NetProcNode` class,
     which is a subclass of `Protocol`.
     """
 

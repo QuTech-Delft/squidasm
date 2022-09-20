@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from selectors import EVENT_WRITE
 from typing import TYPE_CHECKING, Dict, Generator, List, Optional
 
 import netsquid as ns

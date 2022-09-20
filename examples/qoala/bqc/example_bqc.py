@@ -1,22 +1,19 @@
 import os
-from calendar import c
 from dataclasses import dataclass
-from typing import Dict
 
 import netsquid as ns
 
-from squidasm.qoala.lang import lhr as lp
+from squidasm.qoala.lang.lhr import LhrParser, LhrProgram, ProgramMeta
 from squidasm.qoala.runtime.config import (
     GenericQDeviceConfig,
     LinkConfig,
-    StackConfig,
-    StackNetworkConfig,
+    ProcNodeConfig,
+    ProcNodeNetworkConfig,
 )
 from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.runtime.run import run
 from squidasm.qoala.runtime.schedule import Schedule
-from squidasm.sim.stack.common import LogManager
-from squidasm.sim.stack.program import ProgramMeta
+from squidasm.qoala.sim.common import LogManager
 
 
 @dataclass
@@ -25,11 +22,11 @@ class BqcParty:
     node_id: int
 
 
-def load_client_program(client_name: str, server_name: str) -> lp.LhrProgram:
+def load_client_program(client_name: str, server_name: str) -> LhrProgram:
     program_client_file = os.path.join(os.path.dirname(__file__), "bqc_5_6_client.lhr")
     with open(program_client_file) as file:
         program_client_text = file.read()
-    program_client = lp.LhrParser(program_client_text).parse()
+    program_client = LhrParser(program_client_text).parse()
     program_client.meta = ProgramMeta(
         name=client_name,
         parameters={"theta_discrete": None},
@@ -41,11 +38,11 @@ def load_client_program(client_name: str, server_name: str) -> lp.LhrProgram:
     return program_client
 
 
-def load_server_program(client_name: str, server_name: str) -> lp.LhrProgram:
+def load_server_program(client_name: str, server_name: str) -> LhrProgram:
     program_server_file = os.path.join(os.path.dirname(__file__), "bqc_5_6_server.lhr")
     with open(program_server_file) as file:
         program_server_text = file.read()
-    program_server = lp.LhrParser(program_server_text).parse()
+    program_server = LhrParser(program_server_text).parse()
     program_server.meta = ProgramMeta(
         name=server_name,
         parameters={},
@@ -79,8 +76,8 @@ def create_server_instance(client: BqcParty, server: BqcParty) -> ProgramInstanc
     )
 
 
-def create_stack_config(party: BqcParty) -> StackConfig:
-    return StackConfig(
+def create_procnode_config(party: BqcParty) -> ProcNodeConfig:
+    return ProcNodeConfig(
         name=party.name,
         node_id=party.node_id,
         qdevice_typ="generic",
@@ -93,19 +90,19 @@ def run_bqc():
     client1 = BqcParty("client1", 1)
     client2 = BqcParty("client2", 2)
 
-    client1_stack = create_stack_config(client1)
-    client2_stack = create_stack_config(client2)
-    server_stack = create_stack_config(server)
-    link1 = LinkConfig(stack1=client1.name, stack2=server.name, typ="perfect")
-    link2 = LinkConfig(stack1=client2.name, stack2=server.name, typ="perfect")
+    client1_node = create_procnode_config(client1)
+    client2_node = create_procnode_config(client2)
+    server_node = create_procnode_config(server)
+    link1 = LinkConfig(node1=client1.name, node2=server.name, typ="perfect")
+    link2 = LinkConfig(node1=client2.name, node2=server.name, typ="perfect")
 
     client1_program = create_client_instance(client1, server)
     client2_program = create_client_instance(client2, server)
     server_program1 = create_server_instance(client1, server)
     server_program2 = create_server_instance(client2, server)
 
-    cfg = StackNetworkConfig(
-        stacks=[client1_stack, client2_stack, server_stack], links=[link1, link2]
+    cfg = ProcNodeNetworkConfig(
+        nodes=[client1_node, client2_node, server_node], links=[link1, link2]
     )
 
     server_schedule = Schedule(timeslot_length=1337)

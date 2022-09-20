@@ -1,4 +1,3 @@
-from os import times
 from typing import Dict
 
 from squidasm.qoala.lang import lhr

@@ -2,28 +2,24 @@ from __future__ import annotations
 
 import math
 import os
-from typing import List
-
-from netqasm.sdk.epr_socket import EPRSocket
 
 from squidasm.qoala.lang import lhr as lp
 from squidasm.qoala.runtime.config import (
     LinkConfig,
     NVQDeviceConfig,
-    StackConfig,
-    StackNetworkConfig,
+    ProcNodeConfig,
+    ProcNodeNetworkConfig,
 )
-from squidasm.qoala.runtime.program import ProgramContext, ProgramInstance, SdkProgram
+from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.runtime.run import run
 from squidasm.qoala.sim.common import LogManager
-from squidasm.qoala.sim.netstack import EprSocket
 
 PI = math.pi
 PI_OVER_2 = math.pi / 2
 
 
 def computation_round(
-    cfg: StackNetworkConfig,
+    cfg: ProcNodeNetworkConfig,
     num_times: int = 1,
     alpha: float = 0.0,
     beta: float = 0.0,
@@ -75,12 +71,12 @@ if __name__ == "__main__":
     LogManager.set_log_level("DEBUG")
     LogManager.log_to_file("dump.log")
 
-    sender_stack = StackConfig(
+    sender_stack = ProcNodeConfig(
         name="client",
         qdevice_typ="nv",
         qdevice_cfg=NVQDeviceConfig.perfect_config(),
     )
-    receiver_stack = StackConfig(
+    receiver_stack = ProcNodeConfig(
         name="server",
         qdevice_typ="nv",
         qdevice_cfg=NVQDeviceConfig.perfect_config(),
@@ -91,6 +87,6 @@ if __name__ == "__main__":
         typ="perfect",
     )
 
-    cfg = StackNetworkConfig(stacks=[sender_stack, receiver_stack], links=[link])
+    cfg = ProcNodeNetworkConfig(stacks=[sender_stack, receiver_stack], links=[link])
 
     computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)

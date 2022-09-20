@@ -27,7 +27,7 @@ from squidasm.qoala.sim.processor import (
 class QnosComponent(Component):
     """NetSquid component representing a QNodeOS instance.
 
-    Subcomponent of a ProcessingNode.
+    Subcomponent of a ProcNodeComponent.
 
     This is a static container for QNodeOS-related components and ports.
     Behavior of a QNodeOS instance is modeled in the `Qnos` class,
@@ -170,7 +170,9 @@ class Qnos(Protocol):
                 return app_id, virt_id
         raise RuntimeError(f"no virtual ID found for physical ID {phys_id}")
 
-    def assign_ll_protocol(self, remote_id: int, prot: MagicLinkLayerProtocolWithSignaling) -> None:
+    def assign_ll_protocol(
+        self, remote_id: int, prot: MagicLinkLayerProtocolWithSignaling
+    ) -> None:
         self.netstack.assign_ll_protocol(remote_id, prot)
 
     @property

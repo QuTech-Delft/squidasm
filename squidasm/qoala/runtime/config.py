@@ -106,7 +106,7 @@ class NVQDeviceConfig(BaseModel):
         return cfg
 
 
-class StackConfig(BaseModel):
+class ProcNodeConfig(BaseModel):
     name: str
     node_id: int
     qdevice_typ: str
@@ -115,12 +115,12 @@ class StackConfig(BaseModel):
     instr_latency: float = 0.0
 
     @classmethod
-    def from_file(cls, path: str) -> StackConfig:
-        return _from_file(path, StackConfig)  # type: ignore
+    def from_file(cls, path: str) -> ProcNodeConfig:
+        return _from_file(path, ProcNodeConfig)  # type: ignore
 
     @classmethod
-    def perfect_generic_config(cls, name: str, node_id: int) -> StackConfig:
-        return StackConfig(
+    def perfect_generic_config(cls, name: str, node_id: int) -> ProcNodeConfig:
+        return ProcNodeConfig(
             name=name,
             node_id=node_id,
             qdevice_typ="generic",
@@ -168,8 +168,8 @@ class HeraldedLinkConfig(BaseModel):
 
 
 class LinkConfig(BaseModel):
-    stack1: str
-    stack2: str
+    node1: str
+    node2: str
     typ: str
     cfg: Any
     host_host_latency: float = 0.0
@@ -180,10 +180,10 @@ class LinkConfig(BaseModel):
         return _from_file(path, LinkConfig)  # type: ignore
 
     @classmethod
-    def perfect_config(cls, stack1: str, stack2: str) -> LinkConfig:
+    def perfect_config(cls, node1: str, node2: str) -> LinkConfig:
         return LinkConfig(
-            stack1=stack1,
-            stack2=stack2,
+            node1=node1,
+            node2=node2,
             typ="perfect",
             cfg=None,
             host_host_latency=0.0,
@@ -191,10 +191,10 @@ class LinkConfig(BaseModel):
         )
 
 
-class StackNetworkConfig(BaseModel):
-    stacks: List[StackConfig]
+class ProcNodeNetworkConfig(BaseModel):
+    nodes: List[ProcNodeConfig]
     links: List[LinkConfig]
 
     @classmethod
-    def from_file(cls, path: str) -> StackNetworkConfig:
-        return _from_file(path, StackNetworkConfig)  # type: ignore
+    def from_file(cls, path: str) -> ProcNodeNetworkConfig:
+        return _from_file(path, ProcNodeNetworkConfig)  # type: ignore

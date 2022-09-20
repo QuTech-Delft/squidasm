@@ -24,7 +24,7 @@ class SimTimeFilter(logging.Filter):
 
 
 class LogManager:
-    STACK_LOGGER = "Stack"
+    STACK_LOGGER = "ProcNode"
     _LOGGER_HAS_BEEN_SETUP = False
 
     @classmethod

@@ -146,7 +146,7 @@ class LocalEnvironment:
 
     def open_epr_socket(self) -> None:
         pass
-    
+
     def install_local_schedule(self, schedule: Schedule) -> None:
         self._local_schedule = schedule
 
