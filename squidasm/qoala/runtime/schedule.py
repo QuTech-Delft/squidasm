@@ -1,11 +1,11 @@
 from typing import Dict
 
-from squidasm.qoala.lang import lhr
+from squidasm.qoala.lang import iqoala
 
 
 class Schedule:
     def __init__(self, timeslot_length: int) -> None:
-        self._schedule: Dict[lhr.ClassicalLhrOp, int] = {}
+        self._schedule: Dict[iqoala.ClassicalIqoalaOp, int] = {}
 
         self._timeslot_length = timeslot_length
 

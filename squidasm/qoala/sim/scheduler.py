@@ -8,10 +8,10 @@ from netsquid.components.component import Component
 from netsquid.nodes import Node
 
 from pydynaa import Entity, EventExpression, EventType
-from squidasm.qoala.lang import lhr
+from squidasm.qoala.lang import iqoala
 from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.runtime.schedule import Schedule
-from squidasm.qoala.sim.common import ComponentProtocol, ProgramResult
+from squidasm.qoala.sim.common import ComponentProtocol, BatchResult
 from squidasm.qoala.sim.connection import QnosConnection
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.host import Host
@@ -51,8 +51,8 @@ class RunningQoalaProgram:
 
 
 class ProgramSchedule:
-    def __init__(self, program: lhr.LhrProgram) -> None:
-        self._program: lhr.LhrProgram = program
+    def __init__(self, program: iqoala.IqoalaProgram) -> None:
+        self._program: iqoala.IqoalaProgram = program
         self._schedule: Dict[int, int] = {}  # instr index -> time
 
 
@@ -80,7 +80,7 @@ class Scheduler(ComponentProtocol, Entity):
 
         self._csockets: Dict[int, Dict[str, ClassicalSocket]] = {}
 
-        self._program_results: Dict[int, ProgramResult] = {}
+        self._program_results: Dict[int, BatchResult] = {}
 
         self._local_schedule: Optional[Schedule] = None
 
@@ -108,13 +108,13 @@ class Scheduler(ComponentProtocol, Entity):
         for program in programs:
             app_id, prog_instance = program
 
-            assert isinstance(prog_instance.program, lhr.LhrProgram)
+            assert isinstance(prog_instance.program, iqoala.IqoalaProgram)
 
             for i in range(len(prog_instance.program.instructions)):
                 if self._local_schedule is not None:
                     yield from self.wait_until_next_slot()
                 self._logger.warning(f"time: {ns.sim_time()}, executing instr #{i}")
-                yield from self._host.run_lhr_instr(app_id, i)
+                yield from self._host.run_iqoala_instr(app_id, i)
 
             result = self._host.program_end(app_id)
             self._program_results[app_id] = result
@@ -149,5 +149,5 @@ class Scheduler(ComponentProtocol, Entity):
 
         return app_id
 
-    def get_results(self) -> Dict[int, ProgramResult]:
+    def get_results(self) -> Dict[int, BatchResult]:
         return self._program_results

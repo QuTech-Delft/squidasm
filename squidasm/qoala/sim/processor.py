@@ -32,7 +32,6 @@ from netsquid.qubits import qubitapi
 from pydynaa import EventExpression
 from squidasm.qoala.sim.common import (
     AllocError,
-    AppMemory,
     ComponentProtocol,
     NetstackBreakpointCreateRequest,
     NetstackBreakpointReceiveRequest,
@@ -42,6 +41,7 @@ from squidasm.qoala.sim.common import (
     PortListener,
 )
 from squidasm.qoala.sim.globals import GlobalSimData
+from squidasm.qoala.sim.memory import AppMemory
 from squidasm.qoala.sim.signals import (
     SIGNAL_HAND_PROC_MSG,
     SIGNAL_MEMORY_FREED,

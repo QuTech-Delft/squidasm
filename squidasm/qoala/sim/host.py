@@ -11,17 +11,13 @@ from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
 from pydynaa import EventExpression
-from squidasm.qoala.lang import lhr
+from squidasm.qoala.lang import iqoala
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.runtime.program import ProgramContext, ProgramInstance
-from squidasm.qoala.sim.common import (
-    ComponentProtocol,
-    LogManager,
-    PortListener,
-    ProgramResult,
-)
+from squidasm.qoala.runtime.program import BatchResult, ProgramContext, ProgramInstance
+from squidasm.qoala.sim.common import ComponentProtocol, PortListener
 from squidasm.qoala.sim.connection import QnosConnection
 from squidasm.qoala.sim.csocket import ClassicalSocket
+from squidasm.qoala.sim.logging import LogManager
 from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
 
 
@@ -49,12 +45,12 @@ class HostProgramContext(ProgramContext):
         return self._app_id
 
 
-class LhrProcess:
+class IqoalaProcess:
     def __init__(
         self, host: Host, program: ProgramInstance, context: HostProgramContext
     ) -> None:
         self._host = host
-        self._name = f"{host._comp.name}_Lhr"
+        self._name = f"{host._comp.name}_Iqoala"
         self._logger: logging.Logger = LogManager.get_stack_logger(
             f"{self.__class__.__name__}({self._name})"
         )
@@ -85,8 +81,8 @@ class LhrProcess:
     def program(self) -> ProgramInstance:
         return self._program
 
-    def get_results(self) -> ProgramResult:
-        return ProgramResult(self._program_results)
+    def get_results(self) -> BatchResult:
+        return BatchResult(self._program_results)
 
     def execute_program(
         self, run_idx: int, instr_idx: int
@@ -107,24 +103,24 @@ class LhrProcess:
         instr = program.instructions[instr_idx]
 
         self._logger.info(f"Interpreting LHR instruction {instr}")
-        if isinstance(instr, lhr.SendCMsgOp):
+        if isinstance(instr, iqoala.SendCMsgOp):
             value = memory[instr.arguments[0]]
             self._logger.info(f"sending msg {value}")
             csck.send(value)
-        elif isinstance(instr, lhr.ReceiveCMsgOp):
+        elif isinstance(instr, iqoala.ReceiveCMsgOp):
             msg = yield from csck.recv()
             msg = int(msg)
             memory[instr.results[0]] = msg
             self._logger.info(f"received msg {msg}")
-        elif isinstance(instr, lhr.AddCValueOp):
+        elif isinstance(instr, iqoala.AddCValueOp):
             arg0 = int(memory[instr.arguments[0]])
             arg1 = int(memory[instr.arguments[1]])
             memory[instr.results[0]] = arg0 + arg1
-        elif isinstance(instr, lhr.MultiplyConstantCValueOp):
+        elif isinstance(instr, iqoala.MultiplyConstantCValueOp):
             arg0 = memory[instr.arguments[0]]
             arg1 = int(instr.arguments[1])
             memory[instr.results[0]] = arg0 * arg1
-        elif isinstance(instr, lhr.BitConditionalMultiplyConstantCValueOp):
+        elif isinstance(instr, iqoala.BitConditionalMultiplyConstantCValueOp):
             arg0 = memory[instr.arguments[0]]
             arg1 = int(instr.arguments[1])
             cond = memory[instr.arguments[2]]
@@ -132,16 +128,16 @@ class LhrProcess:
                 memory[instr.results[0]] = arg0 * arg1
             else:
                 memory[instr.results[0]] = arg0
-        elif isinstance(instr, lhr.AssignCValueOp):
+        elif isinstance(instr, iqoala.AssignCValueOp):
             value = instr.attributes[0]
             # if isinstance(value, str) and value.startswith("RegFuture__"):
             #     reg_str = value[len("RegFuture__") :]
             memory[instr.results[0]] = instr.attributes[0]
-        elif isinstance(instr, lhr.RunSubroutineOp):
-            arg_vec: lhr.LhrVector = instr.arguments[0]
+        elif isinstance(instr, iqoala.RunSubroutineOp):
+            arg_vec: iqoala.IqoalaVector = instr.arguments[0]
             args = arg_vec.values
-            lhr_subrt: lhr.LhrSubroutine = instr.attributes[0]
-            subrt = lhr_subrt.subroutine
+            iqoala_subrt: iqoala.IqoalaSubroutine = instr.attributes[0]
+            subrt = iqoala_subrt.subroutine
             self._logger.info(f"executing subroutine {subrt}")
 
             arg_values = {arg: memory[arg] for arg in args}
@@ -151,7 +147,7 @@ class LhrProcess:
 
             yield from conn.commit_subroutine(subrt)
 
-            for key, mem_loc in lhr_subrt.return_map.items():
+            for key, mem_loc in iqoala_subrt.return_map.items():
                 try:
                     reg: Register = parse_register(mem_loc.loc)
                     value = conn.shared_memory.get_register(reg)
@@ -162,7 +158,7 @@ class LhrProcess:
                     memory[key] = value
                 except NetQASMSyntaxError:
                     pass
-        elif isinstance(instr, lhr.ReturnResultOp):
+        elif isinstance(instr, iqoala.ReturnResultOp):
             value = instr.arguments[0]
             results[value] = int(memory[value])
 
@@ -255,7 +251,7 @@ class Host(ComponentProtocol):
         # Programs that need to be executed.
         self._programs: Dict[int, ProgramInstance] = {}
 
-        self._processes: Dict[int, LhrProcess] = {}
+        self._processes: Dict[int, IqoalaProcess] = {}
 
         self._connections: Dict[int, QnosConnection] = {}
 
@@ -295,13 +291,13 @@ class Host(ComponentProtocol):
             )
         )
 
-    def run_lhr_instr(
+    def run_iqoala_instr(
         self, app_id: int, instr_idx: int
     ) -> Generator[EventExpression, None, None]:
         process = self._processes[app_id]
         yield from process.run(instr_idx)
 
-    def program_end(self, app_id: int) -> ProgramResult:
+    def program_end(self, app_id: int) -> BatchResult:
         self.send_qnos_msg(bytes(StopAppMessage(app_id)))
         return self._processes[app_id].get_results()
 
@@ -330,7 +326,7 @@ class Host(ComponentProtocol):
             csockets=self._csockets[app_id],
             app_id=app_id,
         )
-        process = LhrProcess(self, program, context)
+        process = IqoalaProcess(self, program, context)
         self._processes[app_id] = process
 
     def open_csocket(self, app_id: int, remote_name: str) -> None:

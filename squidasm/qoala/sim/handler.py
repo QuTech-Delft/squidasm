@@ -18,11 +18,11 @@ from netsquid.nodes import Node
 
 from pydynaa import EventExpression
 from squidasm.qoala.sim.common import (
-    AppMemory,
     ComponentProtocol,
     PhysicalQuantumMemory,
     PortListener,
 )
+from squidasm.qoala.sim.memory import AppMemory
 from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
 from squidasm.qoala.sim.signals import SIGNAL_HOST_HAND_MSG, SIGNAL_PROC_HAND_MSG
 

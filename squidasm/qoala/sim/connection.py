@@ -13,7 +13,7 @@ from pydynaa import EventExpression
 if TYPE_CHECKING:
     from squidasm.qoala.sim.host import Host
 
-from squidasm.qoala.sim.common import LogManager
+from squidasm.qoala.sim.logging import LogManager
 
 
 class QnosConnection:

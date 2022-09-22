@@ -36,7 +36,6 @@ from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import GlobalEnvironment
 from squidasm.qoala.sim.common import (
     AllocError,
-    AppMemory,
     ComponentProtocol,
     NetstackBreakpointCreateRequest,
     NetstackBreakpointReceiveRequest,
@@ -46,6 +45,7 @@ from squidasm.qoala.sim.common import (
     PortListener,
 )
 from squidasm.qoala.sim.egp import EgpProtocol
+from squidasm.qoala.sim.memory import AppMemory
 from squidasm.qoala.sim.signals import (
     SIGNAL_MEMORY_FREED,
     SIGNAL_PEER_NSTK_MSG,

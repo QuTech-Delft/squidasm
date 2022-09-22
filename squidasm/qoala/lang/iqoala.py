@@ -8,7 +8,7 @@ from netqasm.lang.operand import Template
 from netqasm.lang.parsing.text import parse_text_subroutine
 from netqasm.lang.subroutine import Subroutine
 
-LhrValue = Union[int, Template]
+IqoalaValue = Union[int, Template]
 
 
 @dataclass
@@ -20,7 +20,7 @@ class ProgramMeta:
     max_qubits: int
 
 
-class LhrInstructionType(Enum):
+class IqoalaInstructionType(Enum):
     CC = 0
     CL = auto()
     QC = auto()
@@ -28,29 +28,29 @@ class LhrInstructionType(Enum):
 
 
 @dataclass
-class LhrInstructionSignature:
-    typ: LhrInstructionType
+class IqoalaInstructionSignature:
+    typ: IqoalaInstructionType
     duration: int = 0
 
 
-class StaticLhrProgramInfo:
+class StaticIqoalaProgramInfo:
     pass
 
 
-class DynamicLhrProgramInfo:
+class DynamicIqoalaProgramInfo:
     pass
 
 
-class LhrAttribute:
-    def __init__(self, value: LhrValue) -> None:
+class IqoalaAttribute:
+    def __init__(self, value: IqoalaValue) -> None:
         self._value = value
 
     @property
-    def value(self) -> LhrValue:
+    def value(self) -> IqoalaValue:
         return self._value
 
 
-class LhrSharedMemLoc:
+class IqoalaSharedMemLoc:
     def __init__(self, loc: str) -> None:
         self._loc = loc
 
@@ -62,7 +62,7 @@ class LhrSharedMemLoc:
         return str(self.loc)
 
 
-class LhrVector:
+class IqoalaVector:
     def __init__(self, values: List[str]) -> None:
         self._values = values
 
@@ -74,9 +74,9 @@ class LhrVector:
         return f"vec<{','.join(v for v in self.values)}>"
 
 
-class LhrSubroutine:
+class IqoalaSubroutine:
     def __init__(
-        self, subrt: Subroutine, return_map: Dict[str, LhrSharedMemLoc]
+        self, subrt: Subroutine, return_map: Dict[str, IqoalaSharedMemLoc]
     ) -> None:
         self._subrt = subrt
         self._return_map = return_map
@@ -86,7 +86,7 @@ class LhrSubroutine:
         return self._subrt
 
     @property
-    def return_map(self) -> Dict[str, LhrSharedMemLoc]:
+    def return_map(self) -> Dict[str, IqoalaSharedMemLoc]:
         return self._return_map
 
     def __str__(self) -> str:
@@ -99,16 +99,16 @@ class LhrSubroutine:
         return s
 
 
-class ClassicalLhrOp:
+class ClassicalIqoalaOp:
     def __init__(
         self,
         arguments: Optional[List[str]] = None,
         results: Optional[List[str]] = None,
-        attributes: Optional[List[LhrValue]] = None,
+        attributes: Optional[List[IqoalaValue]] = None,
     ) -> None:
         self._arguments: List[str]
         self._results: List[str]
-        self._attributes: List[LhrValue]
+        self._attributes: List[IqoalaValue]
 
         if arguments is None:
             self._arguments = []
@@ -152,134 +152,134 @@ class ClassicalLhrOp:
         return self._results
 
     @property
-    def attributes(self) -> List[LhrValue]:
+    def attributes(self) -> List[IqoalaValue]:
         return self._attributes
 
 
-class SendCMsgOp(ClassicalLhrOp):
+class SendCMsgOp(ClassicalIqoalaOp):
     OP_NAME = "send_cmsg"
-    TYP = LhrInstructionType.CC
+    TYP = IqoalaInstructionType.CC
 
     def __init__(self, value: str) -> None:
         super().__init__(arguments=[value])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: LhrValue):
+    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is None
         assert len(args) == 1
         assert attr is None
         return cls(args[0])
 
 
-class ReceiveCMsgOp(ClassicalLhrOp):
+class ReceiveCMsgOp(ClassicalIqoalaOp):
     OP_NAME = "recv_cmsg"
-    TYP = LhrInstructionType.CC
+    TYP = IqoalaInstructionType.CC
 
     def __init__(self, result: str) -> None:
         super().__init__(results=[result])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: LhrValue):
+    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is not None
         assert len(args) == 0
         assert attr is None
         return cls(result)
 
 
-class AddCValueOp(ClassicalLhrOp):
+class AddCValueOp(ClassicalIqoalaOp):
     OP_NAME = "add_cval_c"
-    TYP = LhrInstructionType.CL
+    TYP = IqoalaInstructionType.CL
 
     def __init__(self, result: str, value0: str, value1: str) -> None:
         super().__init__(arguments=[value0, value1], results=[result])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: LhrValue):
+    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is not None
         assert len(args) == 2
         assert attr is None
         return cls(result, args[0], args[1])
 
 
-class MultiplyConstantCValueOp(ClassicalLhrOp):
+class MultiplyConstantCValueOp(ClassicalIqoalaOp):
     OP_NAME = "mult_const"
-    TYP = LhrInstructionType.CL
+    TYP = IqoalaInstructionType.CL
 
-    def __init__(self, result: str, value0: str, value1: LhrAttribute) -> None:
+    def __init__(self, result: str, value0: str, value1: IqoalaAttribute) -> None:
         super().__init__(arguments=[value0, value1], results=[result])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: LhrValue):
+    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is not None
         assert len(args) == 2
         assert attr is None
         return cls(result, args[0], args[1])
 
 
-class BitConditionalMultiplyConstantCValueOp(ClassicalLhrOp):
+class BitConditionalMultiplyConstantCValueOp(ClassicalIqoalaOp):
     OP_NAME = "bcond_mult_const"
-    TYP = LhrInstructionType.CL
+    TYP = IqoalaInstructionType.CL
 
     def __init__(
-        self, result: str, value0: str, value1: LhrAttribute, cond: str
+        self, result: str, value0: str, value1: IqoalaAttribute, cond: str
     ) -> None:
         super().__init__(arguments=[value0, value1, cond], results=[result])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: LhrValue):
+    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is not None
         assert len(args) == 3
         assert attr is None
         return cls(result, args[0], args[1], args[2])
 
 
-class AssignCValueOp(ClassicalLhrOp):
+class AssignCValueOp(ClassicalIqoalaOp):
     OP_NAME = "assign_cval"
-    TYP = LhrInstructionType.CL
+    TYP = IqoalaInstructionType.CL
 
-    def __init__(self, result: str, value: LhrValue) -> None:
+    def __init__(self, result: str, value: IqoalaValue) -> None:
         super().__init__(results=[result], attributes=[value])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: LhrValue):
+    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is not None
         assert len(args) == 0
         assert attr is not None
         return cls(result, attr)
 
 
-class RunSubroutineOp(ClassicalLhrOp):
+class RunSubroutineOp(ClassicalIqoalaOp):
     OP_NAME = "run_subroutine"
-    TYP = LhrInstructionType.CL
+    TYP = IqoalaInstructionType.CL
 
-    def __init__(self, values: LhrVector, subrt: LhrSubroutine) -> None:
+    def __init__(self, values: IqoalaVector, subrt: IqoalaSubroutine) -> None:
         super().__init__(arguments=[values], attributes=[subrt])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: LhrValue):
+    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is None
         assert len(args) == 1
-        assert isinstance(args[0], LhrVector)
+        assert isinstance(args[0], IqoalaVector)
         assert attr is not None
         return cls(args[0], attr)
 
     @property
-    def subroutine(self) -> LhrSubroutine:
+    def subroutine(self) -> IqoalaSubroutine:
         return self.attributes[0]
 
     def __str__(self) -> str:
         return super().__str__()
 
 
-class ReturnResultOp(ClassicalLhrOp):
+class ReturnResultOp(ClassicalIqoalaOp):
     OP_NAME = "return_result"
-    TYP = LhrInstructionType.CL
+    TYP = IqoalaInstructionType.CL
 
     def __init__(self, value: str) -> None:
         super().__init__(arguments=[value])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: LhrValue):
+    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is None
         assert len(args) == 1
         assert attr is None
@@ -301,21 +301,21 @@ LHR_OP_NAMES = {
 }
 
 
-def netqasm_instr_to_type(instr: NetQASMInstruction) -> LhrInstructionType:
+def netqasm_instr_to_type(instr: NetQASMInstruction) -> IqoalaInstructionType:
     if instr.mnemonic in ["create_epr", "recv_epr"]:
-        return LhrInstructionType.QC
+        return IqoalaInstructionType.QC
     else:
-        return LhrInstructionType.QL
+        return IqoalaInstructionType.QL
 
 
-class LhrProgram:
+class IqoalaProgram:
     def __init__(
         self,
-        instructions: List[ClassicalLhrOp],
+        instructions: List[ClassicalIqoalaOp],
         subroutines: Dict[str, Subroutine],
         meta: Optional[ProgramMeta] = None,
     ) -> None:
-        self._instructions: List[ClassicalLhrOp] = instructions
+        self._instructions: List[ClassicalIqoalaOp] = instructions
         self._subroutines: Dict[str, Subroutine] = subroutines
         self._meta: Optional[ProgramMeta] = meta
 
@@ -330,15 +330,15 @@ class LhrProgram:
         self._meta = new_meta
 
     @property
-    def instructions(self) -> List[ClassicalLhrOp]:
+    def instructions(self) -> List[ClassicalIqoalaOp]:
         return self._instructions
 
     @instructions.setter
     def instructions(self, new_instrs) -> None:
         self._instructions = new_instrs
 
-    def get_instr_signatures(self) -> List[LhrInstructionSignature]:
-        sigs: List[LhrInstructionSignature] = []
+    def get_instr_signatures(self) -> List[IqoalaInstructionSignature]:
+        sigs: List[IqoalaInstructionSignature] = []
         for instr in self.instructions:
             if isinstance(instr, RunSubroutineOp):
                 subrt = instr.subroutine
@@ -373,7 +373,7 @@ class EndOfTextException(Exception):
     pass
 
 
-class LhrParser:
+class IqoalaParser:
     def __init__(self, text: str) -> None:
         self._text = text
         lines = [line.strip() for line in text.split("\n")]
@@ -385,7 +385,7 @@ class LhrParser:
         if self._lineno >= len(self._lines):
             raise EndOfTextException
 
-    def _parse_lhr(self) -> ClassicalLhrOp:
+    def _parse_lhr(self) -> ClassicalIqoalaOp:
         line = self._lines[self._lineno]
 
         assign_parts = [x.strip() for x in line.split("=")]
@@ -425,7 +425,7 @@ class LhrParser:
                     vec_values = []
                 else:
                     vec_values = [x.strip() for x in vec_values_str.split(";")]
-                return LhrVector(vec_values)
+                return IqoalaVector(vec_values)
             return arg
 
         args = [parse_arg(arg) for arg in args]
@@ -439,8 +439,8 @@ class LhrParser:
         self._next_line()
         return self._lines[self._lineno]
 
-    def _parse_subroutine(self) -> LhrSubroutine:
-        return_map: Dict[str, LhrSharedMemLoc] = {}
+    def _parse_subroutine(self) -> IqoalaSubroutine:
+        return_map: Dict[str, IqoalaSharedMemLoc] = {}
         while (line := self._read_line()) != "NETQASM_START":
             ret_text = "return "
             assert line.startswith(ret_text)
@@ -449,7 +449,7 @@ class LhrParser:
             assert len(map_parts) == 2
             shared_loc = map_parts[0]
             variable = map_parts[1]
-            return_map[variable] = LhrSharedMemLoc(shared_loc)
+            return_map[variable] = IqoalaSharedMemLoc(shared_loc)
         subrt_lines = []
         while True:
             line = self._read_line()
@@ -461,9 +461,9 @@ class LhrParser:
             subrt = parse_text_subroutine(subrt_text)
         except KeyError:
             subrt = parse_text_subroutine(subrt_text, flavour=NVFlavour())
-        return LhrSubroutine(subrt, return_map)
+        return IqoalaSubroutine(subrt, return_map)
 
-    def parse(self) -> LhrProgram:
+    def parse(self) -> IqoalaProgram:
         instructions = []
         subroutines = {}
 
@@ -478,7 +478,7 @@ class LhrParser:
         except EndOfTextException:
             pass
 
-        return LhrProgram(instructions, subroutines)
+        return IqoalaProgram(instructions, subroutines)
 
 
 if __name__ == "__main__":
@@ -495,11 +495,11 @@ if __name__ == "__main__":
     ret_reg M0
     """
     subrt = parse_text_subroutine(subrt_text)
-    lhr_subrt = LhrSubroutine(subrt, {"m": LhrSharedMemLoc("M0")})
-    ops.append(RunSubroutineOp(LhrVector(["my_value"]), lhr_subrt))
+    lhr_subrt = IqoalaSubroutine(subrt, {"m": IqoalaSharedMemLoc("M0")})
+    ops.append(RunSubroutineOp(IqoalaVector(["my_value"]), lhr_subrt))
     ops.append(ReturnResultOp("m"))
 
-    program = LhrProgram(
+    program = IqoalaProgram(
         instructions=ops,
         subroutines={"subrt1": subrt},
     )
@@ -507,7 +507,7 @@ if __name__ == "__main__":
     print(program)
 
     text = str(program)
-    parsed_program = LhrParser(text).parse()
+    parsed_program = IqoalaParser(text).parse()
 
     print("\nto text and parsed back:")
     print(parsed_program)

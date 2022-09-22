@@ -9,12 +9,9 @@ from netsquid.protocols import Protocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.sim.common import (
-    AppMemory,
-    NVPhysicalQuantumMemory,
-    PhysicalQuantumMemory,
-)
+from squidasm.qoala.sim.common import NVPhysicalQuantumMemory, PhysicalQuantumMemory
 from squidasm.qoala.sim.handler import Handler, HandlerComponent
+from squidasm.qoala.sim.memory import AppMemory
 from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
 from squidasm.qoala.sim.processor import (
     GenericProcessor,

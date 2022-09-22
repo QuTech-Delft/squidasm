@@ -1,23 +1,36 @@
 import abc
 from dataclasses import dataclass
-from typing import Any, Dict, Union
+from typing import Any, Dict, List
 
-from squidasm.qoala.lang.lhr import LhrProgram
+from squidasm.qoala.lang.iqoala import IqoalaProgram
 
 
 class ProgramContext(abc.ABC):
     pass
 
 
-class SdkProgram(abc.ABC):
-    @abc.abstractmethod
-    def compile(self, context: ProgramContext) -> LhrProgram:
-        raise NotImplementedError
+@dataclass
+class BatchInfo:
+    """Description of a batch of program instances that should be executed."""
+
+    program: IqoalaProgram
+    inputs: List[Dict[str, Any]]  # dict of inputs for each iteration
+    num_iterations: int
+    deadline: float
+
+
+class ProgramInstance:
+    """A running program"""
+
+    pass
 
 
 @dataclass
-class ProgramInstance:
-    program: Union[LhrProgram, SdkProgram]
-    inputs: Dict[str, Any]
-    num_iterations: int
-    deadline: float
+class ProgramBatch:
+    info: BatchInfo
+    instances: List[ProgramInstance]
+
+
+@dataclass
+class BatchResult:
+    results: List[Dict[str, Any]]
