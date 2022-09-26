@@ -20,13 +20,13 @@ class QnosConnection:
     def __init__(
         self,
         host: Host,
-        app_id: int,
+        pid: int,
         app_name: str,
         max_qubits: int = 5,
         **kwargs,
     ) -> None:
         self._app_name = app_name
-        self._app_id = app_id
+        self._pid = pid
         self._node_name = app_name
         self._max_qubits = max_qubits
 

@@ -77,7 +77,7 @@ class ComponentProtocol(Protocol):
 
 @dataclass
 class NetstackCreateRequest:
-    app_id: int
+    pid: int
     remote_node_id: int
     epr_socket_id: int
     qubit_array_addr: int
@@ -87,7 +87,7 @@ class NetstackCreateRequest:
 
 @dataclass
 class NetstackReceiveRequest:
-    app_id: int
+    pid: int
     remote_node_id: int
     epr_socket_id: int
     qubit_array_addr: int
@@ -96,12 +96,12 @@ class NetstackReceiveRequest:
 
 @dataclass
 class NetstackBreakpointCreateRequest:
-    app_id: int
+    pid: int
 
 
 @dataclass
 class NetstackBreakpointReceiveRequest:
-    app_id: int
+    pid: int
 
 
 class AllocError(Exception):

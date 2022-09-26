@@ -11,7 +11,7 @@ from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
 from squidasm.qoala.sim.common import NVPhysicalQuantumMemory, PhysicalQuantumMemory
 from squidasm.qoala.sim.handler import Handler, HandlerComponent
-from squidasm.qoala.sim.memory import AppMemory
+from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
 from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
 from squidasm.qoala.sim.processor import (
     GenericProcessor,
@@ -155,16 +155,16 @@ class Qnos(Protocol):
             raise ValueError
 
         # Classical memories that are shared (virtually) with the Host.
-        # Each application has its own `AppMemory`, identified by the application ID.
-        self._app_memories: Dict[int, AppMemory] = {}  # app ID -> app memory
+        # Each application has its own `ProgramMemory`, identified by the application ID.
+        self._program_memories: Dict[int, ProgramMemory] = {}  # program ID -> memory
 
     # TODO: move this to a separate memory manager object
     def get_virt_qubit_for_phys_id(self, phys_id: int) -> Tuple[int, int]:
-        # returns (app_id, virt_id)
-        for app_id, app_mem in self._app_memories.items():
-            virt_id = app_mem.virt_id_for(phys_id)
+        # returns (pid, virt_id)
+        for pid, mem in self.quantum_memories:
+            virt_id = mem.virt_id_for(phys_id)
             if virt_id is not None:
-                return app_id, virt_id
+                return pid, virt_id
         raise RuntimeError(f"no virtual ID found for physical ID {phys_id}")
 
     def assign_ll_protocol(
@@ -197,8 +197,16 @@ class Qnos(Protocol):
         self._netstack = netstack
 
     @property
-    def app_memories(self) -> Dict[int, AppMemory]:
-        return self._app_memories
+    def program_memories(self) -> Dict[int, ProgramMemory]:
+        return self._program_memories
+
+    @property
+    def shared_memories(self) -> Dict[int, SharedMemory]:
+        return {i: p.shared_mem for i, p in self._program_memories.items()}
+
+    @property
+    def quantum_memories(self) -> Dict[int, QuantumMemory]:
+        return {i: p.quantum_mem for i, p in self._program_memories.items()}
 
     @property
     def physical_memory(self) -> PhysicalQuantumMemory:

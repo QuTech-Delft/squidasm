@@ -26,11 +26,11 @@ class HostProgramContext(ProgramContext):
         self,
         conn: QnosConnection,
         csockets: Dict[str, ClassicalSocket],
-        app_id: int,
+        pid: int,
     ):
         self._conn = conn
         self._csockets = csockets
-        self._app_id = app_id
+        self._pid = pid
 
     @property
     def conn(self) -> QnosConnection:
@@ -41,8 +41,8 @@ class HostProgramContext(ProgramContext):
         return self._csockets
 
     @property
-    def app_id(self) -> int:
-        return self._app_id
+    def pid(self) -> int:
+        return self._pid
 
 
 class IqoalaProcess:
@@ -143,7 +143,7 @@ class IqoalaProcess:
             arg_values = {arg: memory[arg] for arg in args}
 
             self._logger.info(f"instantiating subroutine with values {arg_values}")
-            subrt.instantiate(context.app_id, arg_values)
+            subrt.instantiate(context.pid, arg_values)
 
             yield from conn.commit_subroutine(subrt)
 
@@ -292,14 +292,14 @@ class Host(ComponentProtocol):
         )
 
     def run_iqoala_instr(
-        self, app_id: int, instr_idx: int
+        self, pid: int, instr_idx: int
     ) -> Generator[EventExpression, None, None]:
-        process = self._processes[app_id]
+        process = self._processes[pid]
         yield from process.run(instr_idx)
 
-    def program_end(self, app_id: int) -> BatchResult:
-        self.send_qnos_msg(bytes(StopAppMessage(app_id)))
-        return self._processes[app_id].get_results()
+    def program_end(self, pid: int) -> BatchResult:
+        self.send_qnos_msg(bytes(StopAppMessage(pid)))
+        return self._processes[pid].get_results()
 
     def run(self) -> Generator[EventExpression, None, None]:
         """Run this protocol. Automatically called by NetSquid during simulation."""
@@ -307,31 +307,31 @@ class Host(ComponentProtocol):
         pass
 
     def init_new_program(self, program: ProgramInstance, program_id: int) -> None:
-        app_id = program_id
-        self._programs[app_id] = program
+        pid = program_id
+        self._programs[pid] = program
 
         conn = QnosConnection(
             host=self,
-            app_id=app_id,
+            pid=pid,
             app_name=program.program.meta.name,
             max_qubits=program.program.meta.max_qubits,
             compiler=self._compiler,
         )
-        self._connections[app_id] = conn
+        self._connections[pid] = conn
 
-        self._csockets[app_id] = {}
+        self._csockets[pid] = {}
 
         context = HostProgramContext(
-            conn=self._connections[app_id],
-            csockets=self._csockets[app_id],
-            app_id=app_id,
+            conn=self._connections[pid],
+            csockets=self._csockets[pid],
+            pid=pid,
         )
         process = IqoalaProcess(self, program, context)
-        self._processes[app_id] = process
+        self._processes[pid] = process
 
-    def open_csocket(self, app_id: int, remote_name: str) -> None:
-        assert app_id in self._csockets
-        self._csockets[app_id][remote_name] = ClassicalSocket(self, remote_name)
+    def open_csocket(self, pid: int, remote_name: str) -> None:
+        assert pid in self._csockets
+        self._csockets[pid][remote_name] = ClassicalSocket(self, remote_name)
 
     def get_results(self) -> List[Dict[str, Any]]:
         return self._program_results

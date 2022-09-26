@@ -41,7 +41,7 @@ from squidasm.qoala.sim.common import (
     PortListener,
 )
 from squidasm.qoala.sim.globals import GlobalSimData
-from squidasm.qoala.sim.memory import AppMemory
+from squidasm.qoala.sim.memory import ProgramMemory, SharedMemory
 from squidasm.qoala.sim.signals import (
     SIGNAL_HAND_PROC_MSG,
     SIGNAL_MEMORY_FREED,
@@ -126,9 +126,9 @@ class Processor(ComponentProtocol):
         self.add_signal(SIGNAL_MEMORY_FREED)
 
     @property
-    def app_memories(self) -> Dict[int, AppMemory]:
-        """Get a dictionary of app IDs to application memories."""
-        return self._qnos.app_memories
+    def program_memories(self) -> Dict[int, ProgramMemory]:
+        """Get a dictionary of program IDs to their shared memories."""
+        return self._qnos.program_memories
 
     @property
     def physical_memory(self) -> PhysicalQuantumMemory:
@@ -170,14 +170,14 @@ class Processor(ComponentProtocol):
         self, subroutine: Subroutine
     ) -> Generator[EventExpression, None, None]:
         """Execute a NetQASM subroutine on this processor."""
-        app_id = subroutine.app_id
-        assert app_id in self.app_memories
-        app_mem = self.app_memories[app_id]
-        app_mem.set_prog_counter(0)
-        while app_mem.prog_counter < len(subroutine.instructions):
-            instr = subroutine.instructions[app_mem.prog_counter]
+        pid = subroutine.app_id
+        assert pid in self.program_memories
+        prog_mem = self.program_memories[pid]
+        prog_mem.set_prog_counter(0)
+        while prog_mem.prog_counter < len(subroutine.instructions):
+            instr = subroutine.instructions[prog_mem.prog_counter]
             self._logger.debug(
-                f"{ns.sim_time()} interpreting instruction {instr} at line {app_mem.prog_counter}"
+                f"{ns.sim_time()} interpreting instruction {instr} at line {prog_mem.prog_counter}"
             )
 
             if (
@@ -185,65 +185,65 @@ class Processor(ComponentProtocol):
                 or isinstance(instr, core.BranchUnaryInstruction)
                 or isinstance(instr, core.BranchBinaryInstruction)
             ):
-                self._interpret_branch_instr(app_id, instr)
+                self._interpret_branch_instr(pid, instr)
             else:
-                generator = self._interpret_instruction(app_id, instr)
+                generator = self._interpret_instruction(pid, instr)
                 if generator:
                     yield from generator
-                app_mem.increment_prog_counter()
+                prog_mem.increment_prog_counter()
 
     def _interpret_instruction(
-        self, app_id: int, instr: NetQASMInstruction
+        self, pid: int, instr: NetQASMInstruction
     ) -> Optional[Generator[EventExpression, None, None]]:
         if isinstance(instr, core.SetInstruction):
-            return self._interpret_set(app_id, instr)
+            return self._interpret_set(pid, instr)
         elif isinstance(instr, core.QAllocInstruction):
-            return self._interpret_qalloc(app_id, instr)
+            return self._interpret_qalloc(pid, instr)
         elif isinstance(instr, core.QFreeInstruction):
-            return self._interpret_qfree(app_id, instr)
+            return self._interpret_qfree(pid, instr)
         elif isinstance(instr, core.StoreInstruction):
-            return self._interpret_store(app_id, instr)
+            return self._interpret_store(pid, instr)
         elif isinstance(instr, core.LoadInstruction):
-            return self._interpret_load(app_id, instr)
+            return self._interpret_load(pid, instr)
         elif isinstance(instr, core.LeaInstruction):
-            return self._interpret_lea(app_id, instr)
+            return self._interpret_lea(pid, instr)
         elif isinstance(instr, core.UndefInstruction):
-            return self._interpret_undef(app_id, instr)
+            return self._interpret_undef(pid, instr)
         elif isinstance(instr, core.ArrayInstruction):
-            return self._interpret_array(app_id, instr)
+            return self._interpret_array(pid, instr)
         elif isinstance(instr, core.InitInstruction):
-            return self._interpret_init(app_id, instr)
+            return self._interpret_init(pid, instr)
         elif isinstance(instr, core.MeasInstruction):
-            return self._interpret_meas(app_id, instr)
+            return self._interpret_meas(pid, instr)
         elif isinstance(instr, core.CreateEPRInstruction):
-            return self._interpret_create_epr(app_id, instr)
+            return self._interpret_create_epr(pid, instr)
         elif isinstance(instr, core.RecvEPRInstruction):
-            return self._interpret_recv_epr(app_id, instr)
+            return self._interpret_recv_epr(pid, instr)
         elif isinstance(instr, core.WaitAllInstruction):
-            return self._interpret_wait_all(app_id, instr)
+            return self._interpret_wait_all(pid, instr)
         elif isinstance(instr, core.RetRegInstruction):
             pass
         elif isinstance(instr, core.RetArrInstruction):
             pass
         elif isinstance(instr, core.SingleQubitInstruction):
-            return self._interpret_single_qubit_instr(app_id, instr)
+            return self._interpret_single_qubit_instr(pid, instr)
         elif isinstance(instr, core.TwoQubitInstruction):
-            return self._interpret_two_qubit_instr(app_id, instr)
+            return self._interpret_two_qubit_instr(pid, instr)
         elif isinstance(instr, core.RotationInstruction):
-            return self._interpret_single_rotation_instr(app_id, instr)
+            return self._interpret_single_rotation_instr(pid, instr)
         elif isinstance(instr, core.ControlledRotationInstruction):
-            return self._interpret_controlled_rotation_instr(app_id, instr)
+            return self._interpret_controlled_rotation_instr(pid, instr)
         elif isinstance(instr, core.ClassicalOpInstruction) or isinstance(
             instr, core.ClassicalOpModInstruction
         ):
-            return self._interpret_binary_classical_instr(app_id, instr)
+            return self._interpret_binary_classical_instr(pid, instr)
         elif isinstance(instr, core.BreakpointInstruction):
-            return self._interpret_breakpoint(app_id, instr)
+            return self._interpret_breakpoint(pid, instr)
         else:
             raise RuntimeError(f"Invalid instruction {instr}")
 
     def _interpret_breakpoint(
-        self, app_id: int, instr: core.BreakpointInstruction
+        self, pid: int, instr: core.BreakpointInstruction
     ) -> None:
         if instr.action.value == 0:
             self._logger.info("BREAKPOINT: no action taken")
@@ -259,7 +259,7 @@ class Processor(ComponentProtocol):
         elif instr.action.value == 2:
             self._logger.info("BREAKPOINT: dumping global state:")
             if instr.role.value == 0:
-                self._send_netstack_msg(NetstackBreakpointCreateRequest(app_id))
+                self._send_netstack_msg(NetstackBreakpointCreateRequest(pid))
                 ready = yield from self._receive_netstack_msg()
                 assert ready == "breakpoint ready"
 
@@ -270,7 +270,7 @@ class Processor(ComponentProtocol):
                 finished = yield from self._receive_netstack_msg()
                 assert finished == "breakpoint finished"
             elif instr.role.value == 1:
-                self._send_netstack_msg(NetstackBreakpointReceiveRequest(app_id))
+                self._send_netstack_msg(NetstackBreakpointReceiveRequest(pid))
                 ready = yield from self._receive_netstack_msg()
                 assert ready == "breakpoint ready"
                 self._send_netstack_msg("breakpoint end")
@@ -281,38 +281,39 @@ class Processor(ComponentProtocol):
         else:
             raise ValueError
 
-    def _interpret_set(self, app_id: int, instr: core.SetInstruction) -> None:
+    def _interpret_set(self, pid: int, instr: core.SetInstruction) -> None:
         self._logger.debug(f"Set register {instr.reg} to {instr.imm}")
-        self.app_memories[app_id].set_reg_value(instr.reg, instr.imm.value)
+        shared_mem = self.program_memories[pid].shared_mem
+        shared_mem.set_reg_value(instr.reg, instr.imm.value)
 
-    def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
-        app_mem = self.app_memories[app_id]
+    def _interpret_qalloc(self, pid: int, instr: core.QAllocInstruction) -> None:
+        shared_mem = self.program_memories[pid]
 
-        virt_id = app_mem.get_reg_value(instr.reg)
+        virt_id = shared_mem.get_reg_value(instr.reg)
         if virt_id is None:
             raise RuntimeError(f"qubit address in register {instr.reg} is not defined")
         self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
 
         phys_id = self.physical_memory.allocate()
-        app_mem.map_virt_id(virt_id, phys_id)
+        shared_mem.map_virt_id(virt_id, phys_id)
 
-    def _interpret_qfree(self, app_id: int, instr: core.QFreeInstruction) -> None:
-        app_mem = self.app_memories[app_id]
+    def _interpret_qfree(self, pid: int, instr: core.QFreeInstruction) -> None:
+        shared_mem = self.program_memories[pid]
 
-        virt_id = app_mem.get_reg_value(instr.reg)
+        virt_id = shared_mem.get_reg_value(instr.reg)
         assert virt_id is not None
         self._logger.debug(f"Freeing virtual qubit {virt_id}")
-        phys_id = app_mem.phys_id_for(virt_id)
+        phys_id = shared_mem.phys_id_for(virt_id)
         assert phys_id is not None
-        app_mem.unmap_virt_id(virt_id)
+        shared_mem.unmap_virt_id(virt_id)
         self.physical_memory.free(phys_id)
         self.send_signal(SIGNAL_MEMORY_FREED)
         self.qdevice.mem_positions[phys_id].in_use = False
 
-    def _interpret_store(self, app_id: int, instr: core.StoreInstruction) -> None:
-        app_mem = self.app_memories[app_id]
+    def _interpret_store(self, pid: int, instr: core.StoreInstruction) -> None:
+        shared_mem = self.program_memories[pid]
 
-        value = app_mem.get_reg_value(instr.reg)
+        value = shared_mem.get_reg_value(instr.reg)
         if value is None:
             raise RuntimeError(f"value in register {instr.reg} is not defined")
         self._logger.debug(
@@ -320,12 +321,12 @@ class Processor(ComponentProtocol):
             f"to array entry {instr.entry}"
         )
 
-        app_mem.set_array_entry(instr.entry, value)
+        shared_mem.set_array_entry(instr.entry, value)
 
-    def _interpret_load(self, app_id: int, instr: core.LoadInstruction) -> None:
-        app_mem = self.app_memories[app_id]
+    def _interpret_load(self, pid: int, instr: core.LoadInstruction) -> None:
+        shared_mem = self.program_memories[pid]
 
-        value = app_mem.get_array_entry(instr.entry)
+        value = shared_mem.get_array_entry(instr.entry)
         if value is None:
             raise RuntimeError(f"array value at {instr.entry} is not defined")
         self._logger.debug(
@@ -333,49 +334,49 @@ class Processor(ComponentProtocol):
             f"to register {instr.reg}"
         )
 
-        app_mem.set_reg_value(instr.reg, value)
+        shared_mem.set_reg_value(instr.reg, value)
 
-    def _interpret_lea(self, app_id: int, instr: core.LeaInstruction) -> None:
-        app_mem = self.app_memories[app_id]
+    def _interpret_lea(self, pid: int, instr: core.LeaInstruction) -> None:
+        shared_mem = self.program_memories[pid]
         self._logger.debug(
             f"Storing address of {instr.address} to register {instr.reg}"
         )
-        app_mem.set_reg_value(instr.reg, instr.address.address)
+        shared_mem.set_reg_value(instr.reg, instr.address.address)
 
-    def _interpret_undef(self, app_id: int, instr: core.UndefInstruction) -> None:
-        app_mem = self.app_memories[app_id]
+    def _interpret_undef(self, pid: int, instr: core.UndefInstruction) -> None:
+        shared_mem = self.program_memories[pid]
         self._logger.debug(f"Unset array entry {instr.entry}")
-        app_mem.set_array_entry(instr.entry, None)
+        shared_mem.set_array_entry(instr.entry, None)
 
-    def _interpret_array(self, app_id: int, instr: core.ArrayInstruction) -> None:
-        app_mem = self.app_memories[app_id]
+    def _interpret_array(self, pid: int, instr: core.ArrayInstruction) -> None:
+        shared_mem = self.program_memories[pid]
 
-        length = app_mem.get_reg_value(instr.size)
+        length = shared_mem.get_reg_value(instr.size)
         assert length is not None
         self._logger.debug(
             f"Initializing an array of length {length} at address {instr.address}"
         )
 
-        app_mem.init_new_array(instr.address.address, length)
+        shared_mem.init_new_array(instr.address.address, length)
 
     def _interpret_branch_instr(
         self,
-        app_id: int,
+        pid: int,
         instr: Union[
             core.BranchUnaryInstruction,
             core.BranchBinaryInstruction,
             core.JmpInstruction,
         ],
     ) -> None:
-        app_mem = self.app_memories[app_id]
+        shared_mem = self.program_memories[pid]
         a, b = None, None
         registers = []
         if isinstance(instr, core.BranchUnaryInstruction):
-            a = app_mem.get_reg_value(instr.reg)
+            a = shared_mem.get_reg_value(instr.reg)
             registers = [instr.reg]
         elif isinstance(instr, core.BranchBinaryInstruction):
-            a = app_mem.get_reg_value(instr.reg0)
-            b = app_mem.get_reg_value(instr.reg1)
+            a = shared_mem.get_reg_value(instr.reg0)
+            b = shared_mem.get_reg_value(instr.reg1)
             registers = [instr.reg0, instr.reg1]
 
         if isinstance(instr, core.JmpInstruction):
@@ -391,30 +392,30 @@ class Processor(ComponentProtocol):
                 f"Branching to line {jump_address}, since {instr}(a={a}, b={b}) "
                 f"is True, with values from registers {registers}"
             )
-            app_mem.set_prog_counter(jump_address.value)
+            shared_mem.set_prog_counter(jump_address.value)
         else:
             self._logger.debug(
                 f"Don't branch, since {instr}(a={a}, b={b}) "
                 f"is False, with values from registers {registers}"
             )
-            app_mem.increment_prog_counter()
+            shared_mem.increment_prog_counter()
 
     def _interpret_binary_classical_instr(
         self,
-        app_id: int,
+        pid: int,
         instr: Union[
             core.ClassicalOpInstruction,
             core.ClassicalOpModInstruction,
         ],
     ) -> None:
-        app_mem = self.app_memories[app_id]
+        shared_mem = self.program_memories[pid]
         mod = None
         if isinstance(instr, core.ClassicalOpModInstruction):
-            mod = app_mem.get_reg_value(instr.regmod)
+            mod = shared_mem.get_reg_value(instr.regmod)
         if mod is not None and mod < 1:
             raise RuntimeError(f"Modulus needs to be greater or equal to 1, not {mod}")
-        a = app_mem.get_reg_value(instr.regin0)
-        b = app_mem.get_reg_value(instr.regin1)
+        a = shared_mem.get_reg_value(instr.regin0)
+        b = shared_mem.get_reg_value(instr.regin1)
         assert a is not None
         assert b is not None
         value = self._compute_binary_classical_instr(instr, a, b, mod=mod)
@@ -423,7 +424,7 @@ class Processor(ComponentProtocol):
             f"Performing {instr} of a={a} and b={b} {mod_str} "
             f"and storing the value {value} at register {instr.regout}"
         )
-        app_mem.set_reg_value(instr.regout, value)
+        shared_mem.set_reg_value(instr.regout, value)
 
     def _compute_binary_classical_instr(
         self, instr: NetQASMInstruction, a: int, b: int, mod: Optional[int] = 1
@@ -442,19 +443,19 @@ class Processor(ComponentProtocol):
             raise ValueError(f"{instr} cannot be used as binary classical function")
 
     def _interpret_init(
-        self, app_id: int, instr: core.InitInstruction
+        self, pid: int, instr: core.InitInstruction
     ) -> Generator[EventExpression, None, None]:
         raise NotImplementedError
 
     def _do_single_rotation(
         self,
-        app_id: int,
+        pid: int,
         instr: core.RotationInstruction,
         ns_instr: NsInstr,
     ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
-        virt_id = app_mem.get_reg_value(instr.reg)
-        phys_id = app_mem.phys_id_for(virt_id)
+        shared_mem = self.program_memories[pid]
+        virt_id = shared_mem.get_reg_value(instr.reg)
+        phys_id = shared_mem.phys_id_for(virt_id)
         angle = self._get_rotation_angle_from_operands(
             n=instr.angle_num.value,
             d=instr.angle_denom.value,
@@ -468,21 +469,21 @@ class Processor(ComponentProtocol):
         yield self.qdevice.execute_program(prog)
 
     def _interpret_single_rotation_instr(
-        self, app_id: int, instr: nv.RotXInstruction
+        self, pid: int, instr: nv.RotXInstruction
     ) -> Generator[EventExpression, None, None]:
         raise NotImplementedError
 
     def _do_controlled_rotation(
         self,
-        app_id: int,
+        pid: int,
         instr: core.ControlledRotationInstruction,
         ns_instr: NsInstr,
     ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
-        virt_id0 = app_mem.get_reg_value(instr.reg0)
-        phys_id0 = app_mem.phys_id_for(virt_id0)
-        virt_id1 = app_mem.get_reg_value(instr.reg1)
-        phys_id1 = app_mem.phys_id_for(virt_id1)
+        shared_mem = self.program_memories[pid]
+        virt_id0 = shared_mem.get_reg_value(instr.reg0)
+        phys_id0 = shared_mem.phys_id_for(virt_id0)
+        virt_id1 = shared_mem.get_reg_value(instr.reg1)
+        phys_id1 = shared_mem.phys_id_for(virt_id1)
         angle = self._get_rotation_angle_from_operands(
             n=instr.angle_num.value,
             d=instr.angle_denom.value,
@@ -496,7 +497,7 @@ class Processor(ComponentProtocol):
         yield self.qdevice.execute_program(prog)
 
     def _interpret_controlled_rotation_instr(
-        self, app_id: int, instr: core.ControlledRotationInstruction
+        self, pid: int, instr: core.ControlledRotationInstruction
     ) -> Generator[EventExpression, None, None]:
         raise NotImplementedError
 
@@ -504,19 +505,17 @@ class Processor(ComponentProtocol):
         return float(n * PI / (2**d))
 
     def _interpret_meas(
-        self, app_id: int, instr: core.MeasInstruction
+        self, pid: int, instr: core.MeasInstruction
     ) -> Generator[EventExpression, None, None]:
         raise NotImplementedError
 
-    def _interpret_create_epr(
-        self, app_id: int, instr: core.CreateEPRInstruction
-    ) -> None:
-        app_mem = self.app_memories[app_id]
-        remote_node_id = app_mem.get_reg_value(instr.remote_node_id)
-        epr_socket_id = app_mem.get_reg_value(instr.epr_socket_id)
-        qubit_array_addr = app_mem.get_reg_value(instr.qubit_addr_array)
-        arg_array_addr = app_mem.get_reg_value(instr.arg_array)
-        result_array_addr = app_mem.get_reg_value(instr.ent_results_array)
+    def _interpret_create_epr(self, pid: int, instr: core.CreateEPRInstruction) -> None:
+        shared_mem = self.program_memories[pid]
+        remote_node_id = shared_mem.get_reg_value(instr.remote_node_id)
+        epr_socket_id = shared_mem.get_reg_value(instr.epr_socket_id)
+        qubit_array_addr = shared_mem.get_reg_value(instr.qubit_addr_array)
+        arg_array_addr = shared_mem.get_reg_value(instr.arg_array)
+        result_array_addr = shared_mem.get_reg_value(instr.ent_results_array)
         assert remote_node_id is not None
         assert epr_socket_id is not None
         # qubit_array_addr can be None
@@ -532,7 +531,7 @@ class Processor(ComponentProtocol):
         )
 
         msg = NetstackCreateRequest(
-            app_id,
+            pid,
             remote_node_id,
             epr_socket_id,
             qubit_array_addr,
@@ -543,12 +542,12 @@ class Processor(ComponentProtocol):
         # result = yield from self._receive_netstack_msg()
         # self._logger.debug(f"result from netstack: {result}")
 
-    def _interpret_recv_epr(self, app_id: int, instr: core.RecvEPRInstruction) -> None:
-        app_mem = self.app_memories[app_id]
-        remote_node_id = app_mem.get_reg_value(instr.remote_node_id)
-        epr_socket_id = app_mem.get_reg_value(instr.epr_socket_id)
-        qubit_array_addr = app_mem.get_reg_value(instr.qubit_addr_array)
-        result_array_addr = app_mem.get_reg_value(instr.ent_results_array)
+    def _interpret_recv_epr(self, pid: int, instr: core.RecvEPRInstruction) -> None:
+        shared_mem = self.program_memories[pid]
+        remote_node_id = shared_mem.get_reg_value(instr.remote_node_id)
+        epr_socket_id = shared_mem.get_reg_value(instr.epr_socket_id)
+        qubit_array_addr = shared_mem.get_reg_value(instr.qubit_addr_array)
+        result_array_addr = shared_mem.get_reg_value(instr.ent_results_array)
         assert remote_node_id is not None
         assert epr_socket_id is not None
         # qubit_array_addr can be None
@@ -562,7 +561,7 @@ class Processor(ComponentProtocol):
         )
 
         msg = NetstackReceiveRequest(
-            app_id,
+            pid,
             remote_node_id,
             epr_socket_id,
             qubit_array_addr,
@@ -573,28 +572,28 @@ class Processor(ComponentProtocol):
         # self._logger.debug(f"result from netstack: {result}")
 
     def _interpret_wait_all(
-        self, app_id: int, instr: core.WaitAllInstruction
+        self, pid: int, instr: core.WaitAllInstruction
     ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
+        shared_mem = self.program_memories[pid]
         self._logger.debug(
             f"Waiting for all entries in array slice {instr.slice} to become defined"
         )
         assert isinstance(instr.slice.start, Register)
         assert isinstance(instr.slice.stop, Register)
-        start: int = app_mem.get_reg_value(instr.slice.start)
-        end: int = app_mem.get_reg_value(instr.slice.stop)
+        start: int = shared_mem.get_reg_value(instr.slice.start)
+        end: int = shared_mem.get_reg_value(instr.slice.stop)
         addr: int = instr.slice.address.address
 
         self._logger.debug(
-            f"checking if @{addr}[{start}:{end}] has values for app ID {app_id}"
+            f"checking if @{addr}[{start}:{end}] has values for app ID {pid}"
         )
 
         while True:
-            values = self.app_memories[app_id].get_array_values(addr, start, end)
+            values = self.program_memories[pid].get_array_values(addr, start, end)
             if any(v is None for v in values):
                 self._logger.debug(
                     f"waiting for netstack to write to @{addr}[{start}:{end}] "
-                    f"for app ID {app_id}"
+                    f"for app ID {pid}"
                 )
                 yield from self._receive_netstack_msg()
                 self._logger.debug("netstack wrote something")
@@ -605,19 +604,19 @@ class Processor(ComponentProtocol):
 
         self._logger.info(f"\nFinished waiting for array slice {instr.slice}")
 
-    def _interpret_ret_reg(self, app_id: int, instr: core.RetRegInstruction) -> None:
+    def _interpret_ret_reg(self, pid: int, instr: core.RetRegInstruction) -> None:
         pass
 
-    def _interpret_ret_arr(self, app_id: int, instr: core.RetArrInstruction) -> None:
+    def _interpret_ret_arr(self, pid: int, instr: core.RetArrInstruction) -> None:
         pass
 
     def _interpret_single_qubit_instr(
-        self, app_id: int, instr: core.SingleQubitInstruction
+        self, pid: int, instr: core.SingleQubitInstruction
     ) -> Generator[EventExpression, None, None]:
         raise NotImplementedError
 
     def _interpret_two_qubit_instr(
-        self, app_id: int, instr: core.SingleQubitInstruction
+        self, pid: int, instr: core.SingleQubitInstruction
     ) -> Generator[EventExpression, None, None]:
         raise NotImplementedError
 
@@ -626,11 +625,11 @@ class GenericProcessor(Processor):
     """A `Processor` for nodes with a generic quantum hardware."""
 
     def _interpret_init(
-        self, app_id: int, instr: core.InitInstruction
+        self, pid: int, instr: core.InitInstruction
     ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
-        virt_id = app_mem.get_reg_value(instr.reg)
-        phys_id = app_mem.phys_id_for(virt_id)
+        shared_mem = self.program_memories[pid]
+        virt_id = shared_mem.get_reg_value(instr.reg)
+        phys_id = shared_mem.phys_id_for(virt_id)
         self._logger.debug(
             f"Performing {instr} on virtual qubit "
             f"{virt_id} (physical ID: {phys_id})"
@@ -640,11 +639,11 @@ class GenericProcessor(Processor):
         yield self.qdevice.execute_program(prog)
 
     def _interpret_meas(
-        self, app_id: int, instr: core.MeasInstruction
+        self, pid: int, instr: core.MeasInstruction
     ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
-        virt_id = app_mem.get_reg_value(instr.qreg)
-        phys_id = app_mem.phys_id_for(virt_id)
+        shared_mem = self.program_memories[pid]
+        virt_id = shared_mem.get_reg_value(instr.qreg)
+        phys_id = shared_mem.phys_id_for(virt_id)
 
         self._logger.debug(
             f"Measuring qubit {virt_id} (physical ID: {phys_id}), "
@@ -655,14 +654,14 @@ class GenericProcessor(Processor):
         prog.apply(INSTR_MEASURE, qubit_indices=[phys_id])
         yield self.qdevice.execute_program(prog)
         outcome: int = prog.output["last"][0]
-        app_mem.set_reg_value(instr.creg, outcome)
+        shared_mem.set_reg_value(instr.creg, outcome)
 
     def _interpret_single_qubit_instr(
-        self, app_id: int, instr: core.SingleQubitInstruction
+        self, pid: int, instr: core.SingleQubitInstruction
     ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
-        virt_id = app_mem.get_reg_value(instr.qreg)
-        phys_id = app_mem.phys_id_for(virt_id)
+        shared_mem = self.program_memories[pid]
+        virt_id = shared_mem.get_reg_value(instr.qreg)
+        phys_id = shared_mem.phys_id_for(virt_id)
         if isinstance(instr, vanilla.GateXInstruction):
             prog = QuantumProgram()
             prog.apply(INSTR_X, qubit_indices=[phys_id])
@@ -683,30 +682,30 @@ class GenericProcessor(Processor):
             raise RuntimeError(f"Unsupported instruction {instr}")
 
     def _interpret_single_rotation_instr(
-        self, app_id: int, instr: nv.RotXInstruction
+        self, pid: int, instr: nv.RotXInstruction
     ) -> Generator[EventExpression, None, None]:
         if isinstance(instr, vanilla.RotXInstruction):
-            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_X)
+            yield from self._do_single_rotation(pid, instr, INSTR_ROT_X)
         elif isinstance(instr, vanilla.RotYInstruction):
-            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Y)
+            yield from self._do_single_rotation(pid, instr, INSTR_ROT_Y)
         elif isinstance(instr, vanilla.RotZInstruction):
-            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Z)
+            yield from self._do_single_rotation(pid, instr, INSTR_ROT_Z)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
 
     def _interpret_controlled_rotation_instr(
-        self, app_id: int, instr: core.ControlledRotationInstruction
+        self, pid: int, instr: core.ControlledRotationInstruction
     ) -> Generator[EventExpression, None, None]:
         raise RuntimeError(f"Unsupported instruction {instr}")
 
     def _interpret_two_qubit_instr(
-        self, app_id: int, instr: core.SingleQubitInstruction
+        self, pid: int, instr: core.SingleQubitInstruction
     ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
-        virt_id0 = app_mem.get_reg_value(instr.reg0)
-        phys_id0 = app_mem.phys_id_for(virt_id0)
-        virt_id1 = app_mem.get_reg_value(instr.reg1)
-        phys_id1 = app_mem.phys_id_for(virt_id1)
+        shared_mem = self.program_memories[pid]
+        virt_id0 = shared_mem.get_reg_value(instr.reg0)
+        phys_id0 = shared_mem.phys_id_for(virt_id0)
+        virt_id1 = shared_mem.get_reg_value(instr.reg1)
+        phys_id1 = shared_mem.phys_id_for(virt_id1)
         if isinstance(instr, vanilla.CnotInstruction):
             prog = QuantumProgram()
             prog.apply(INSTR_CNOT, qubit_indices=[phys_id0, phys_id1])
@@ -722,10 +721,10 @@ class GenericProcessor(Processor):
 class NVProcessor(Processor):
     """A `Processor` for nodes with a NV hardware."""
 
-    def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
-        app_mem = self.app_memories[app_id]
+    def _interpret_qalloc(self, pid: int, instr: core.QAllocInstruction) -> None:
+        shared_mem = self.program_memories[pid]
 
-        virt_id = app_mem.get_reg_value(instr.reg)
+        virt_id = shared_mem.get_reg_value(instr.reg)
         if virt_id is None:
             raise RuntimeError(f"qubit address in register {instr.reg} is not defined")
         self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
@@ -735,14 +734,14 @@ class NVProcessor(Processor):
             phys_id = self.physical_memory.allocate_mem()
         else:
             phys_id = self.physical_memory.allocate_comm()
-        app_mem.map_virt_id(virt_id, phys_id)
+        shared_mem.map_virt_id(virt_id, phys_id)
 
     def _interpret_init(
-        self, app_id: int, instr: core.InitInstruction
+        self, pid: int, instr: core.InitInstruction
     ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
-        virt_id = app_mem.get_reg_value(instr.reg)
-        phys_id = app_mem.phys_id_for(virt_id)
+        shared_mem = self.program_memories[pid]
+        virt_id = shared_mem.get_reg_value(instr.reg)
+        phys_id = shared_mem.phys_id_for(virt_id)
         self._logger.debug(
             f"Performing {instr} on virtual qubit "
             f"{virt_id} (physical ID: {phys_id})"
@@ -782,11 +781,11 @@ class NVProcessor(Processor):
         yield self.qdevice.execute_program(prog)
 
     def _interpret_meas(
-        self, app_id: int, instr: core.MeasInstruction
+        self, pid: int, instr: core.MeasInstruction
     ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
-        virt_id = app_mem.get_reg_value(instr.qreg)
-        phys_id = app_mem.phys_id_for(virt_id)
+        shared_mem = self.program_memories[pid]
+        virt_id = shared_mem.get_reg_value(instr.qreg)
+        phys_id = shared_mem.phys_id_for(virt_id)
 
         # Only the electron (phys ID 0) can be measured.
         # Measuring any other physical qubit (i.e one of the carbons) requires
@@ -795,7 +794,7 @@ class NVProcessor(Processor):
         if phys_id == 0:
             # Measuring the electron. This can be done immediately.
             outcome = yield from self._measure_electron()
-            app_mem.set_reg_value(instr.creg, outcome)
+            shared_mem.set_reg_value(instr.creg, outcome)
         else:
             # We want to measure a carbon.
             # Move it to the electron first.
@@ -815,32 +814,32 @@ class NVProcessor(Processor):
                         f"-> No physical qubits available."
                     )
                 yield from self._move_electron_to_carbon(new_qubit)
-                elec_app_id, elec_virt_id = self._qnos.get_virt_qubit_for_phys_id(0)
+                elec_pid, elec_virt_id = self._qnos.get_virt_qubit_for_phys_id(0)
                 self._logger.warning(
                     f"moving virtual qubit {elec_virt_id} from app "
-                    f"{app_id} from physical ID 0 to {new_qubit}"
+                    f"{pid} from physical ID 0 to {new_qubit}"
                 )
                 # Update qubit ID mapping.
-                self.app_memories[elec_app_id].unmap_virt_id(elec_virt_id)
-                self.app_memories[elec_app_id].map_virt_id(elec_virt_id, new_qubit)
-                app_mem.unmap_virt_id(virt_id)
-                app_mem.map_virt_id(virt_id, 0)
+                self.program_memories[elec_pid].unmap_virt_id(elec_virt_id)
+                self.program_memories[elec_pid].map_virt_id(elec_virt_id, new_qubit)
+                shared_mem.unmap_virt_id(virt_id)
+                shared_mem.map_virt_id(virt_id, 0)
                 yield from self._move_carbon_to_electron_for_measure(phys_id)
                 self.physical_memory.free(phys_id)
                 self.send_signal(SIGNAL_MEMORY_FREED)
                 self.qdevice.mem_positions[phys_id].in_use = False
                 outcome = yield from self._measure_electron()
-                app_mem.set_reg_value(instr.creg, outcome)
+                shared_mem.set_reg_value(instr.creg, outcome)
             else:
                 self.physical_memory.allocate_comm()
-                app_mem.unmap_virt_id(virt_id)
-                app_mem.map_virt_id(virt_id, 0)
+                shared_mem.unmap_virt_id(virt_id)
+                shared_mem.map_virt_id(virt_id, 0)
                 yield from self._move_carbon_to_electron_for_measure(phys_id)
                 self.physical_memory.free(phys_id)
                 self.send_signal(SIGNAL_MEMORY_FREED)
                 self.qdevice.mem_positions[phys_id].in_use = False
                 outcome = yield from self._measure_electron()
-                app_mem.set_reg_value(instr.creg, outcome)
+                shared_mem.set_reg_value(instr.creg, outcome)
 
         self._logger.debug(
             f"Measuring qubit {virt_id} (physical ID: {phys_id}), "
@@ -848,23 +847,23 @@ class NVProcessor(Processor):
         )
 
     def _interpret_single_rotation_instr(
-        self, app_id: int, instr: nv.RotXInstruction
+        self, pid: int, instr: nv.RotXInstruction
     ) -> Generator[EventExpression, None, None]:
         if isinstance(instr, nv.RotXInstruction):
-            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_X)
+            yield from self._do_single_rotation(pid, instr, INSTR_ROT_X)
         elif isinstance(instr, nv.RotYInstruction):
-            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Y)
+            yield from self._do_single_rotation(pid, instr, INSTR_ROT_Y)
         elif isinstance(instr, nv.RotZInstruction):
-            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Z)
+            yield from self._do_single_rotation(pid, instr, INSTR_ROT_Z)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
 
     def _interpret_controlled_rotation_instr(
-        self, app_id: int, instr: core.ControlledRotationInstruction
+        self, pid: int, instr: core.ControlledRotationInstruction
     ) -> Generator[EventExpression, None, None]:
         if isinstance(instr, nv.ControlledRotXInstruction):
-            yield from self._do_controlled_rotation(app_id, instr, INSTR_CXDIR)
+            yield from self._do_controlled_rotation(pid, instr, INSTR_CXDIR)
         elif isinstance(instr, nv.ControlledRotYInstruction):
-            yield from self._do_controlled_rotation(app_id, instr, INSTR_CYDIR)
+            yield from self._do_controlled_rotation(pid, instr, INSTR_CYDIR)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")

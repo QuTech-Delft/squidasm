@@ -45,7 +45,7 @@ from squidasm.qoala.sim.common import (
     PortListener,
 )
 from squidasm.qoala.sim.egp import EgpProtocol
-from squidasm.qoala.sim.memory import AppMemory
+from squidasm.qoala.sim.memory import ProgramMemory
 from squidasm.qoala.sim.signals import (
     SIGNAL_MEMORY_FREED,
     SIGNAL_PEER_NSTK_MSG,
@@ -172,16 +172,16 @@ class Netstack(ComponentProtocol):
         node_info = self._local_env.get_global_env().get_nodes()[remote_id]
         return node_info.name
 
-    def open_epr_socket(self, app_id: int, socket_id: int, remote_node_id: int) -> None:
+    def open_epr_socket(self, pid: int, socket_id: int, remote_node_id: int) -> None:
         """Create a new EPR socket with the specified remote node.
 
-        :param app_id: ID of the application that creates this EPR socket
+        :param pid: ID of the application that creates this EPR socket
         :param socket_id: ID of the socket
         :param remote_node_id: ID of the remote node
         """
-        if app_id not in self._epr_sockets:
-            self._epr_sockets[app_id] = []
-        self._epr_sockets[app_id].append(EprSocket(socket_id, remote_node_id))
+        if pid not in self._epr_sockets:
+            self._epr_sockets[pid] = []
+        self._epr_sockets[pid].append(EprSocket(socket_id, remote_node_id))
 
     def _send_processor_msg(self, msg: str) -> None:
         """Send a message to the processor."""
@@ -223,10 +223,10 @@ class Netstack(ComponentProtocol):
             egp.stop()
         super().stop()
 
-    def _read_request_args_array(self, app_id: int, array_addr: int) -> List[int]:
-        app_mem = self.app_memories[app_id]
-        app_mem.get_array(array_addr)
-        return app_mem.get_array(array_addr)
+    def _read_request_args_array(self, pid: int, array_addr: int) -> List[int]:
+        prog_mem = self.program_memories[pid]
+        prog_mem.get_array(array_addr)
+        return prog_mem.get_array(array_addr)
 
     def _construct_request(self, remote_id: int, args: List[int]) -> ReqCreateBase:
         """Construct a link layer request from application request info.
@@ -267,8 +267,8 @@ class Netstack(ComponentProtocol):
         return request
 
     @property
-    def app_memories(self) -> Dict[int, AppMemory]:
-        return self._qnos.app_memories
+    def program_memories(self) -> Dict[int, ProgramMemory]:
+        return self._qnos.program_memories
 
     @property
     def physical_memory(self) -> PhysicalQuantumMemory:
@@ -279,18 +279,18 @@ class Netstack(ComponentProtocol):
         return self._comp.node.qdevice
 
     def find_epr_socket(
-        self, app_id: int, sck_id: int, rem_id: int
+        self, pid: int, sck_id: int, rem_id: int
     ) -> Optional[EprSocket]:
         """Get a specific EPR socket or None if it does not exist.
 
-        :param app_id: app ID
+        :param pid: app ID
         :param sck_id: EPR socket ID
         :param rem_id: remote node ID
         :return: the corresponding EPR socket or None if it does not exist
         """
-        if app_id not in self._epr_sockets:
+        if pid not in self._epr_sockets:
             return None
-        for sck in self._epr_sockets[app_id]:
+        for sck in self._epr_sockets[pid]:
             if sck.socket_id == sck_id and sck.remote_id == rem_id:
                 return sck
         return None
@@ -324,8 +324,8 @@ class Netstack(ComponentProtocol):
         """
         num_pairs = request.number
 
-        app_mem = self.app_memories[req.app_id]
-        qubit_ids = app_mem.get_array(req.qubit_array_addr)
+        prog_mem = self.program_memories[req.pid]
+        qubit_ids = prog_mem.get_array(req.qubit_array_addr)
 
         self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
         self._logger.info(f"qubit IDs specified by application: {qubit_ids}")
@@ -385,8 +385,8 @@ class Netstack(ComponentProtocol):
                 prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
                 yield self.qdevice.execute_program(prog)
 
-            virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
-            app_mem.map_virt_id(virt_id, phys_id)
+            virt_id = prog_mem.get_array_value(req.qubit_array_addr, pair_index)
+            prog_mem.map_virt_id(virt_id, phys_id)
             self._logger.info(
                 f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
             )
@@ -412,10 +412,10 @@ class Netstack(ComponentProtocol):
                 # Calculate array element location.
                 arr_index = slice_len * pair_index + i
 
-                app_mem.set_array_value(req.result_array_addr, arr_index, value)
+                prog_mem.set_array_value(req.result_array_addr, arr_index, value)
             self._logger.debug(
                 f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
-                f"{slice_len * pair_index + slice_len}] for app ID {req.app_id}"
+                f"{slice_len * pair_index + slice_len}] for app ID {req.pid}"
             )
             self._send_processor_msg("wrote to array")
 
@@ -470,7 +470,7 @@ class Netstack(ComponentProtocol):
             results.append(result)
             self.physical_memory.free(phys_id)
 
-        app_mem = self.app_memories[req.app_id]
+        prog_mem = self.program_memories[req.pid]
 
         # Length of response array slice for a single pair.
         slice_len = SER_RESPONSE_MEASURE_LEN
@@ -494,7 +494,7 @@ class Netstack(ComponentProtocol):
                 # Calculate array element location.
                 arr_index = slice_len * pair_index + i
 
-                app_mem.set_array_value(req.result_array_addr, arr_index, value)
+                prog_mem.set_array_value(req.result_array_addr, arr_index, value)
 
         self._send_processor_msg("wrote to array")
 
@@ -508,12 +508,12 @@ class Netstack(ComponentProtocol):
 
         # EPR socket should exist.
         epr_socket = self.find_epr_socket(
-            req.app_id, req.epr_socket_id, req.remote_node_id
+            req.pid, req.epr_socket_id, req.remote_node_id
         )
         assert epr_socket is not None
 
         # Read request parameters from the corresponding NetQASM array.
-        args = self._read_request_args_array(req.app_id, req.arg_array_addr)
+        args = self._read_request_args_array(req.pid, req.arg_array_addr)
 
         # Create the link layer request object.
         request = self._construct_request(req.remote_node_id, args)
@@ -602,9 +602,9 @@ class Netstack(ComponentProtocol):
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
 
-            app_mem = self.app_memories[req.app_id]
-            virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
-            app_mem.map_virt_id(virt_id, phys_id)
+            prog_mem = self.program_memories[req.pid]
+            virt_id = prog_mem.get_array_value(req.qubit_array_addr, pair_index)
+            prog_mem.map_virt_id(virt_id, phys_id)
             self._logger.info(
                 f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
             )
@@ -629,10 +629,10 @@ class Netstack(ComponentProtocol):
                 # Calculate array element location.
                 arr_index = slice_len * pair_index + i
 
-                app_mem.set_array_value(req.result_array_addr, arr_index, value)
+                prog_mem.set_array_value(req.result_array_addr, arr_index, value)
             self._logger.debug(
                 f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
-                f"{slice_len * pair_index + slice_len}] for app ID {req.app_id}"
+                f"{slice_len * pair_index + slice_len}] for app ID {req.pid}"
             )
             self._send_processor_msg("wrote to array")
 
@@ -685,7 +685,7 @@ class Netstack(ComponentProtocol):
 
             self.physical_memory.free(phys_id)
 
-        app_mem = self.app_memories[req.app_id]
+        prog_mem = self.program_memories[req.pid]
 
         # Length of response array slice for a single pair.
         slice_len = SER_RESPONSE_MEASURE_LEN
@@ -709,7 +709,7 @@ class Netstack(ComponentProtocol):
                 # Calculate array element location.
                 arr_index = slice_len * pair_index + i
 
-                app_mem.set_array_value(req.result_array_addr, arr_index, value)
+                prog_mem.set_array_value(req.result_array_addr, arr_index, value)
 
             self._send_processor_msg("wrote to array")
 
@@ -723,7 +723,7 @@ class Netstack(ComponentProtocol):
 
         # EPR socket should exist.
         epr_socket = self.find_epr_socket(
-            req.app_id, req.epr_socket_id, req.remote_node_id
+            req.pid, req.epr_socket_id, req.remote_node_id
         )
         assert epr_socket is not None
 
