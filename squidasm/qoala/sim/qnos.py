@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Tuple
 
+from netqasm.lang.subroutine import Subroutine
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
@@ -157,6 +158,10 @@ class Qnos(Protocol):
         # Classical memories that are shared (virtually) with the Host.
         # Each application has its own `ProgramMemory`, identified by the application ID.
         self._program_memories: Dict[int, ProgramMemory] = {}  # program ID -> memory
+
+        # Subroutines contained in programs that are being run.
+        # Nested mapping of program ID -> (subroutine name -> subroutine)
+        self._program_subroutines: Dict[int, Dict[str, Subroutine]]
 
     # TODO: move this to a separate memory manager object
     def get_virt_qubit_for_phys_id(self, phys_id: int) -> Tuple[int, int]:

@@ -204,21 +204,16 @@ class TwoGateTrait(GateTrait):
         self._depolarizing_factor = depolarizing_factor
 
 
+@dataclass(eq=True, frozen=True)
 class UnitModule:
-    def __init__(
-        self,
-        qubit_ids: List[int],
-        qubit_traits: Dict[int, List[QubitTrait]],
-        gate_traits: Dict[List[int], List[GateTrait]],
-    ) -> None:
-        """
-        :param qubit_ids: list of qubit IDs
-        :param qubit_traits: map from qubit ID to list of qubit traits
-        :param gate_traits: map from list of qubit IDs to list of gate traits
-        """
-        self._qubit_ids = qubit_ids
-        self._qubit_traits = qubit_traits
-        self._gate_traits = gate_traits
+    """
+    :param qubit_ids: list of qubit IDs
+    :param qubit_traits: map from qubit ID to list of qubit traits
+    :param gate_traits: map from list of qubit IDs to list of gate traits
+    """
+    qubit_ids: List[int]
+    qubit_traits: Dict[int, List[QubitTrait]]
+    gate_traits: Dict[List[int], List[GateTrait]]
 
     @property
     def qubit_ids(self) -> List[int]:

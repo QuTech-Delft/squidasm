@@ -19,10 +19,13 @@ class BatchInfo:
     deadline: float
 
 
+@dataclass
 class ProgramInstance:
     """A running program"""
 
-    pass
+    pid: int
+    program: IqoalaProgram
+    inputs: Dict[str, Any]
 
 
 @dataclass

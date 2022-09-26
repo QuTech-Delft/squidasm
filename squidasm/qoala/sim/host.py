@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Generator, List, Optional, Type
 
-from netqasm.backend.messages import StopAppMessage
+from netqasm.backend.messages import StopAppMessage, SubroutineMessage
 from netqasm.lang.operand import Register
 from netqasm.lang.parsing.text import NetQASMSyntaxError, parse_register
 from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
@@ -12,92 +12,81 @@ from netsquid.nodes import Node
 
 from pydynaa import EventExpression
 from squidasm.qoala.lang import iqoala
+from squidasm.qoala.lang.iqoala import IqoalaProgram
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
 from squidasm.qoala.runtime.program import BatchResult, ProgramContext, ProgramInstance
 from squidasm.qoala.sim.common import ComponentProtocol, PortListener
-from squidasm.qoala.sim.connection import QnosConnection
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.logging import LogManager
+from squidasm.qoala.sim.memory import ProgramMemory, UnitModule
 from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
-
-
-class HostProgramContext(ProgramContext):
-    def __init__(
-        self,
-        conn: QnosConnection,
-        csockets: Dict[str, ClassicalSocket],
-        pid: int,
-    ):
-        self._conn = conn
-        self._csockets = csockets
-        self._pid = pid
-
-    @property
-    def conn(self) -> QnosConnection:
-        return self._conn
-
-    @property
-    def csockets(self) -> Dict[str, ClassicalSocket]:
-        return self._csockets
-
-    @property
-    def pid(self) -> int:
-        return self._pid
+from squidasm.qoala.sim.util import default_nv_unit_module
 
 
 class IqoalaProcess:
     def __init__(
-        self, host: Host, program: ProgramInstance, context: HostProgramContext
+        self,
+        host: Host,
+        program_instance: ProgramInstance,
+        program_memory: ProgramMemory,
+        csockets: Dict[str, ClassicalSocket],
     ) -> None:
         self._host = host
         self._name = f"{host._comp.name}_Iqoala"
         self._logger: logging.Logger = LogManager.get_stack_logger(
             f"{self.__class__.__name__}({self._name})"
         )
-        self._program = program
-        self._program_results: List[Dict[str, Any]] = []
+        self._program_instance = program_instance
+        self._results: Dict[str, Any] = {}
 
-        self._context = context
+        self._csockets = csockets
+        self._memory = program_memory
 
-        self._memory: Dict[str, Any] = {}
-
-    def run(self, instr_idx: int) -> Generator[EventExpression, None, None]:
-        # TODO multiple runs
-        run_idx = 0
-        assert len(self._program_results) in [run_idx, run_idx + 1]
-        if len(self._program_results) == run_idx:
-            self._program_results.append({})
-        yield from self.execute_program(run_idx, instr_idx)
-
-    @property
-    def context(self) -> HostProgramContext:
-        return self._context
+        self._instr_idx = 0
 
     @property
     def memory(self) -> Dict[str, Any]:
         return self._memory
 
     @property
-    def program(self) -> ProgramInstance:
-        return self._program
+    def csockets(self) -> Dict[str, ClassicalSocket]:
+        return self._csockets
 
-    def get_results(self) -> BatchResult:
-        return BatchResult(self._program_results)
+    @property
+    def program_instance(self) -> ProgramInstance:
+        return self._program_instance
 
-    def execute_program(
-        self, run_idx: int, instr_idx: int
+    @property
+    def instr_idx(self) -> int:
+        return self._instr_idx
+
+    @property
+    def results(self) -> Dict[str, Any]:
+        return self._results
+
+
+class HostProcessor:
+    def __init__(self, host: Host) -> None:
+        self._host = host
+
+        self._name = f"{host._comp.name}_HostProcessor"
+        self._logger: logging.Logger = LogManager.get_stack_logger(
+            f"{self.__class__.__name__}({self._name})"
+        )
+
+    def execute_process(
+        self, process: IqoalaProcess, instr_idx: int
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
-        context = self._context
-        memory = self._memory
-        program = self._program.program
-        # TODO: result index !
-        results = self._program_results[run_idx]
+        csockets = process.csockets
+        memory = process.memory.host_mem
+        pid = process.program_instance.pid
+        program = process.program_instance.program
+        inputs = process.program_instance.inputs
 
-        csockets = list(self._context.csockets.values())
+        # TODO: support multiple csockets
         csck = csockets[0] if len(csockets) > 0 else None
-        conn = context.conn
 
-        for name, value in self._program.inputs.items():
+        for name, value in inputs.items():
             memory[name] = value
 
         instr = program.instructions[instr_idx]
@@ -143,14 +132,16 @@ class IqoalaProcess:
             arg_values = {arg: memory[arg] for arg in args}
 
             self._logger.info(f"instantiating subroutine with values {arg_values}")
-            subrt.instantiate(context.pid, arg_values)
+            subrt.instantiate(pid, arg_values)
 
-            yield from conn.commit_subroutine(subrt)
+            self._host.send_qnos_msg(SubroutineMessage(subrt))
+            yield from self._host.receive_qnos_msg()
+            # Qnos should have updated the shared memory with subroutine results.
 
             for key, mem_loc in iqoala_subrt.return_map.items():
                 try:
                     reg: Register = parse_register(mem_loc.loc)
-                    value = conn.shared_memory.get_register(reg)
+                    value = memory.shared_mem.get_register(reg)
                     self._logger.debug(
                         f"writing shared memory value {value} from location "
                         f"{mem_loc} to variable {key}"
@@ -160,7 +151,13 @@ class IqoalaProcess:
                     pass
         elif isinstance(instr, iqoala.ReturnResultOp):
             value = instr.arguments[0]
-            results[value] = int(memory[value])
+            process.results[value] = int(memory[value])
+
+    def execute_next_instr(
+        self, process: IqoalaProcess
+    ) -> Generator[EventExpression, None, None]:
+        process.instr_idx += 1
+        yield from self.execute_process(process, instr_idx=process.instr_idx)
 
 
 class HostComponent(Component):
@@ -239,37 +236,11 @@ class Host(ComponentProtocol):
                 ),
             )
 
-        if qdevice_type == "nv":
-            self._compiler: Optional[
-                Type[SubroutineTranspiler]
-            ] = NVSubroutineTranspiler
-        elif qdevice_type == "generic":
-            self._compiler: Optional[Type[SubroutineTranspiler]] = None
-        else:
-            raise ValueError
-
-        # Programs that need to be executed.
-        self._programs: Dict[int, ProgramInstance] = {}
-
-        self._processes: Dict[int, IqoalaProcess] = {}
-
-        self._connections: Dict[int, QnosConnection] = {}
-
-        self._csockets: Dict[int, Dict[str, ClassicalSocket]] = {}
-
-        # Number of times the current program still needs to be run.
-        self._num_pending: int = 0
-
-        # Results of program runs so far.
-        self._program_results: List[Dict[str, Any]] = []
+        self._processor = HostProcessor(self)
 
     @property
-    def compiler(self) -> Optional[Type[SubroutineTranspiler]]:
-        return self._compiler
-
-    @compiler.setter
-    def compiler(self, typ: Optional[Type[SubroutineTranspiler]]) -> None:
-        self._compiler = typ
+    def processor(self) -> HostProcessor:
+        return self._processor
 
     @property
     def local_env(self) -> LocalEnvironment:
@@ -292,9 +263,8 @@ class Host(ComponentProtocol):
         )
 
     def run_iqoala_instr(
-        self, pid: int, instr_idx: int
+        self, process: IqoalaProcess, instr_idx: int
     ) -> Generator[EventExpression, None, None]:
-        process = self._processes[pid]
         yield from process.run(instr_idx)
 
     def program_end(self, pid: int) -> BatchResult:
@@ -303,35 +273,10 @@ class Host(ComponentProtocol):
 
     def run(self) -> Generator[EventExpression, None, None]:
         """Run this protocol. Automatically called by NetSquid during simulation."""
-
         pass
 
-    def init_new_program(self, program: ProgramInstance, program_id: int) -> None:
-        pid = program_id
-        self._programs[pid] = program
-
-        conn = QnosConnection(
-            host=self,
-            pid=pid,
-            app_name=program.program.meta.name,
-            max_qubits=program.program.meta.max_qubits,
-            compiler=self._compiler,
-        )
-        self._connections[pid] = conn
-
-        self._csockets[pid] = {}
-
-        context = HostProgramContext(
-            conn=self._connections[pid],
-            csockets=self._csockets[pid],
-            pid=pid,
-        )
-        process = IqoalaProcess(self, program, context)
-        self._processes[pid] = process
-
-    def open_csocket(self, pid: int, remote_name: str) -> None:
-        assert pid in self._csockets
-        self._csockets[pid][remote_name] = ClassicalSocket(self, remote_name)
+    def run_process(self, pid: int) -> None:
+        pass
 
     def get_results(self) -> List[Dict[str, Any]]:
         return self._program_results
