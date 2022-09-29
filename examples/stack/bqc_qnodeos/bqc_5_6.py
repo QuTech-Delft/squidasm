@@ -17,7 +17,7 @@ from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
-# BQC example with a `min_fidelity_all_at_end` constraint on the entangled pairs.
+# BQC application run on NV hardware.
 
 
 class ClientProgram(Program):
@@ -69,50 +69,33 @@ class ClientProgram(Program):
         epr_socket = context.epr_sockets[self.PEER]
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
-        p1: Future
-        p2: Future
-        outcomes = conn.new_array(length=2)
+        epr1 = epr_socket.create_keep()[0]
+        # RSP
+        epr1.rot_Z(angle=self._theta2)
+        epr1.H()
+        p2 = epr1.measure(store_array=False)
 
-        def post_create(_: BaseNetQASMConnection, q: Qubit, index: RegFuture):
-            with index.if_eq(0):
-                if not (self._trap and self._dummy == 2):
-                    q.rot_Z(angle=self._theta2)
-                    q.H()
-
-            with index.if_eq(1):
-                if not (self._trap and self._dummy == 1):
-                    q.rot_Z(angle=self._theta1)
-                    q.H()
-            q.measure(future=outcomes.get_future_index(index))
-
-        epr_socket.create_keep(
-            2,
-            sequential=True,
-            post_routine=post_create,
-            min_fidelity_all_at_end=80,
-            max_tries=100,
-        )
+        # Create EPR pair
+        epr2 = epr_socket.create_keep()[0]
+        # RSP
+        epr2.rot_Z(angle=self._theta1)
+        epr2.H()
+        p1 = epr2.measure(store_array=False)
 
         yield from conn.flush()
 
-        p1 = int(outcomes.get_future_index(1))
-        p2 = int(outcomes.get_future_index(0))
+        p1 = int(p1)
+        p2 = int(p2)
 
-        if self._trap and self._dummy == 2:
-            delta1 = -self._theta1 + (p1 + self._r1) * math.pi
-        else:
-            delta1 = self._alpha - self._theta1 + (p1 + self._r1) * math.pi
+        delta1 = self._alpha - self._theta1 + (p1 + self._r1) * math.pi
         csocket.send_float(delta1)
 
         m1 = yield from csocket.recv_int()
-        if self._trap and self._dummy == 1:
-            delta2 = -self._theta2 + (p2 + self._r2) * math.pi
-        else:
-            delta2 = (
-                math.pow(-1, (m1 + self._r1)) * self._beta
-                - self._theta2
-                + (p2 + self._r2) * math.pi
-            )
+        delta2 = (
+            math.pow(-1, (m1 + self._r1)) * self._beta
+            - self._theta2
+            + (p2 + self._r2) * math.pi
+        )
         csocket.send_float(delta2)
 
         return {"p1": p1, "p2": p2}
@@ -139,7 +122,9 @@ class ServerProgram(Program):
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
         # Create EPR Pair
-        epr1, epr2 = epr_socket.recv_keep(2, min_fidelity_all_at_end=80, max_tries=100)
+        epr1 = epr_socket.recv_keep()[0]
+        epr2 = epr_socket.recv_keep()[0]
+
         epr2.cphase(epr1)
 
         yield from conn.flush()
@@ -159,7 +144,6 @@ class ServerProgram(Program):
 
         epr1.rot_Z(angle=delta2)
         epr1.H()
-        conn.insert_breakpoint(BreakpointAction.DUMP_LOCAL_STATE)
         m2 = epr1.measure(store_array=False)
         yield from conn.flush()
 
@@ -243,8 +227,8 @@ def trap_round(
 
 
 if __name__ == "__main__":
-    num_times = 50
-    LogManager.set_log_level("WARNING")
+    num_times = 1
+    LogManager.set_log_level("DEBUG")
 
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 

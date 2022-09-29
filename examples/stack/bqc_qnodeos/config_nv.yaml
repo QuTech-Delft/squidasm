@@ -20,8 +20,8 @@ stacks:
   
 link_cfg: &link_cfg
   fidelity: 1.0
-  prob_success: 0.01
-  t_cycle: 1e3
+  prob_success: 1.0
+  t_cycle: 1e1
 
 links:
   - stack1: client
