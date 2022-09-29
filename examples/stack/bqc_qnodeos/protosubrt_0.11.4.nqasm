@@ -1,0 +1,90 @@
+INFO:0.0 ns:Stack.QnosConnection(server_program):Flushing protosubroutine:
+ProtoSubroutine
+  NetQASM version: (0, 10)
+  App ID: 0
+ LN | HLN | CMD
+   0    () array 10 @0
+   1    () array 1 @1
+   2    () store 0 @1[0]
+   3    () array 10 @2
+   4    () array 1 @3
+   5    () store 0 @3[0]
+   6    () recv_epr(0,0) 1 0
+   7    () set R0 0
+   8    () LOOP2:
+   9    () beq R0 1 LOOP_EXIT2
+  10    () set R3 0
+  11    () set R4 0
+  12    () set R5 0
+  13    () set R6 0
+  14    () LOOP:
+  15    () beq R6 10 LOOP_EXIT
+  16    () add R3 R3 R0
+  17    () add R6 R6 1
+  18    () jmp LOOP
+  19    () LOOP_EXIT:
+  20    () add R4 R0 1
+  21    () set R6 0
+  22    () LOOP1:
+  23    () beq R6 10 LOOP_EXIT1
+  24    () add R5 R5 R4
+  25    () add R6 R6 1
+  26    () jmp LOOP1
+  27    () LOOP_EXIT1:
+  28    () wait_all @0[R3:R5]
+  29    () beq R0 0 IF_EXIT
+  30    () sub R3 0 R0
+  31    () set R4 0
+  32    () mov R4 R3
+  33    () qfree R4
+  34    () IF_EXIT:
+  35    () add R0 R0 1
+  36    () jmp LOOP2
+  37    () LOOP_EXIT2:
+  38    () set Q0 1
+  39    () qalloc Q0
+  40    () init Q0
+  41    () set Q0 0
+  42    () set Q1 1
+  43    () mov Q0 Q1
+  44    () set Q0 0
+  45    () qfree Q0
+  46    () recv_epr(0,0) 3 2
+  47    () set R0 0
+  48    () LOOP5:
+  49    () beq R0 1 LOOP_EXIT5
+  50    () set R3 0
+  51    () set R4 0
+  52    () set R5 0
+  53    () set R6 0
+  54    () LOOP3:
+  55    () beq R6 10 LOOP_EXIT3
+  56    () add R3 R3 R0
+  57    () add R6 R6 1
+  58    () jmp LOOP3
+  59    () LOOP_EXIT3:
+  60    () add R4 R0 1
+  61    () set R6 0
+  62    () LOOP4:
+  63    () beq R6 10 LOOP_EXIT4
+  64    () add R5 R5 R4
+  65    () add R6 R6 1
+  66    () jmp LOOP4
+  67    () LOOP_EXIT4:
+  68    () wait_all @2[R3:R5]
+  69    () beq R0 0 IF_EXIT1
+  70    () sub R3 0 R0
+  71    () set R4 0
+  72    () mov R4 R3
+  73    () qfree R4
+  74    () IF_EXIT1:
+  75    () add R0 R0 1
+  76    () jmp LOOP5
+  77    () LOOP_EXIT5:
+  78    () set Q0 0
+  79    () set Q1 1
+  80    () cphase Q0 Q1
+  81    () ret_arr @0
+  82    () ret_arr @1
+  83    () ret_arr @2
+  84    () ret_arr @3

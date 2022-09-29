@@ -228,7 +228,8 @@ def trap_round(
 
 if __name__ == "__main__":
     num_times = 1
-    LogManager.set_log_level("DEBUG")
+    LogManager.set_log_level("INFO")
+    LogManager.log_to_file("info.log")
 
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 

@@ -1,0 +1,122 @@
+INFO:0.0 ns:Stack.QnosConnection(server_program):Flushing protosubroutine:
+ProtoSubroutine
+  NetQASM version: (0, 10)
+  App ID: 0
+ LN | HLN | CMD
+   0    () array 10 @0
+   1    () array 1 @1
+   2    () store 0 @1[0]
+   3    () array 10 @2
+   4    () array 1 @3
+   5    () store 0 @3[0]
+   6    () recv_epr(0,0) 1 0
+   7    () set R0 0
+   8    () LOOP3:
+   9    () beq R0 1 LOOP_EXIT3
+  10    () set R3 0
+  11    () set R4 0
+  12    () set R5 0
+  13    () set R6 0
+  14    () LOOP:
+  15    () beq R6 10 LOOP_EXIT
+  16    () add R3 R3 R0
+  17    () add R6 R6 1
+  18    () jmp LOOP
+  19    () LOOP_EXIT:
+  20    () add R4 R0 1
+  21    () set R6 0
+  22    () LOOP1:
+  23    () beq R6 10 LOOP_EXIT1
+  24    () add R5 R5 R4
+  25    () add R6 R6 1
+  26    () jmp LOOP1
+  27    () LOOP_EXIT1:
+  28    () wait_all @0[R3:R5]
+  29    () set R3 9
+  30    () set R4 0
+  31    () LOOP2:
+  32    () beq R4 R0 LOOP_EXIT2
+  33    () add R3 R3 10
+  34    () add R4 R4 1
+  35    () jmp LOOP2
+  36    () LOOP_EXIT2:
+  37    () load R2 @0[R3]
+  38    () set R1 0
+  39    () bne R2 3 IF_EXIT
+  40    () rot_z R1 16 4
+  41    () IF_EXIT:
+  42    () bne R2 1 IF_EXIT1
+  43    () rot_x R1 16 4
+  44    () IF_EXIT1:
+  45    () bne R2 2 IF_EXIT2
+  46    () rot_x R1 16 4
+  47    () rot_z R1 16 4
+  48    () IF_EXIT2:
+  49    () beq R0 0 IF_EXIT3
+  50    () sub R3 0 R0
+  51    () set R4 0
+  52    () mov R4 R3
+  53    () qfree R4
+  54    () IF_EXIT3:
+  55    () add R0 R0 1
+  56    () jmp LOOP3
+  57    () LOOP_EXIT3:
+  58    () recv_epr(0,0) 3 2
+  59    () set R0 0
+  60    () LOOP7:
+  61    () beq R0 1 LOOP_EXIT7
+  62    () set R3 0
+  63    () set R4 0
+  64    () set R5 0
+  65    () set R6 0
+  66    () LOOP4:
+  67    () beq R6 10 LOOP_EXIT4
+  68    () add R3 R3 R0
+  69    () add R6 R6 1
+  70    () jmp LOOP4
+  71    () LOOP_EXIT4:
+  72    () add R4 R0 1
+  73    () set R6 0
+  74    () LOOP5:
+  75    () beq R6 10 LOOP_EXIT5
+  76    () add R5 R5 R4
+  77    () add R6 R6 1
+  78    () jmp LOOP5
+  79    () LOOP_EXIT5:
+  80    () wait_all @2[R3:R5]
+  81    () set R3 9
+  82    () set R4 0
+  83    () LOOP6:
+  84    () beq R4 R0 LOOP_EXIT6
+  85    () add R3 R3 10
+  86    () add R4 R4 1
+  87    () jmp LOOP6
+  88    () LOOP_EXIT6:
+  89    () load R2 @2[R3]
+  90    () set R1 0
+  91    () bne R2 3 IF_EXIT4
+  92    () rot_z R1 16 4
+  93    () IF_EXIT4:
+  94    () bne R2 1 IF_EXIT5
+  95    () rot_x R1 16 4
+  96    () IF_EXIT5:
+  97    () bne R2 2 IF_EXIT6
+  98    () rot_x R1 16 4
+  99    () rot_z R1 16 4
+ 100    () IF_EXIT6:
+ 101    () beq R0 0 IF_EXIT7
+ 102    () sub R3 0 R0
+ 103    () set R4 0
+ 104    () mov R4 R3
+ 105    () qfree R4
+ 106    () IF_EXIT7:
+ 107    () add R0 R0 1
+ 108    () jmp LOOP7
+ 109    () LOOP_EXIT7:
+ 110    () set Q0 0
+ 111    () set Q1 1
+ 112    () cphase Q0 Q1
+ 113    () ret_arr @0
+ 114    () ret_arr @1
+ 115    () ret_arr @2
+ 116    () ret_arr @3

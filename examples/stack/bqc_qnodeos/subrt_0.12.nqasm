@@ -1,0 +1,305 @@
+INFO:0.0 ns:Stack.QnosConnection(server_program):Flushing compiled subroutine:
+Subroutine
+NetQASM version: (0, 10)
+App ID: 0
+ LN | HLN | CMD
+   0    () set R7 10
+   1    () array R7 @0
+   2    () set R7 1
+   3    () array R7 @1
+   4    () set R7 0
+   5    () set R8 0
+   6    () store R7 @1[R8]
+   7    () set R7 10
+   8    () array R7 @2
+   9    () set R7 1
+  10    () array R7 @3
+  11    () set R7 0
+  12    () set R8 0
+  13    () store R7 @3[R8]
+  14    () set R7 0
+  15    () set R8 0
+  16    () set R9 1
+  17    () set R10 0
+  18    () recv_epr R7 R8 R9 R10
+  19    () set R0 0
+  20    () set R7 1
+  21    () beq R0 R7 75
+  22    () set R3 0
+  23    () set R4 0
+  24    () set R5 0
+  25    () set R6 0
+  26    () set R7 10
+  27    () beq R6 R7 32
+  28    () add R3 R3 R0
+  29    () set R7 1
+  30    () add R6 R6 R7
+  31    () jmp 26
+  32    () set R7 1
+  33    () add R4 R0 R7
+  34    () set R6 0
+  35    () set R7 10
+  36    () beq R6 R7 41
+  37    () add R5 R5 R4
+  38    () set R7 1
+  39    () add R6 R6 R7
+  40    () jmp 35
+  41    () wait_all @0[R3:R5]
+  42    () set R3 9
+  43    () set R4 0
+  44    () beq R4 R0 50
+  45    () set R7 10
+  46    () add R3 R3 R7
+  47    () set R7 1
+  48    () add R4 R4 R7
+  49    () jmp 44
+  50    () load R2 @0[R3]
+  51    () set R1 0
+  52    () set R7 3
+  53    () bne R2 R7 55
+  54    () rot_z R1 16 4
+  55    () set R7 1
+  56    () bne R2 R7 58
+  57    () rot_x R1 16 4
+  58    () set R7 2
+  59    () bne R2 R7 62
+  60    () rot_x R1 16 4
+  61    () rot_z R1 16 4
+  62    () set R7 0
+  63    () beq R0 R7 72
+  64    () set R7 0
+  65    () sub R3 R7 R0
+  66    () set R4 0
+  67    () rot_y R4 8 4
+  68    () crot_y R4 R3 24 4
+  69    () rot_x R4 24 4
+  70    () crot_x R4 R3 8 4
+  71    () qfree R4
+  72    () set R7 1
+  73    () add R0 R0 R7
+  74    () jmp 20
+  75    () set R7 0
+  76    () set R8 0
+  77    () set R9 3
+  78    () set R10 2
+  79    () recv_epr R7 R8 R9 R10
+  80    () set R0 0
+  81    () set R7 1
+  82    () beq R0 R7 136
+  83    () set R3 0
+  84    () set R4 0
+  85    () set R5 0
+  86    () set R6 0
+  87    () set R7 10
+  88    () beq R6 R7 93
+  89    () add R3 R3 R0
+  90    () set R7 1
+  91    () add R6 R6 R7
+  92    () jmp 87
+  93    () set R7 1
+  94    () add R4 R0 R7
+  95    () set R6 0
+  96    () set R7 10
+  97    () beq R6 R7 102
+  98    () add R5 R5 R4
+  99    () set R7 1
+ 100    () add R6 R6 R7
+ 101    () jmp 96
+ 102    () wait_all @2[R3:R5]
+ 103    () set R3 9
+ 104    () set R4 0
+ 105    () beq R4 R0 111
+ 106    () set R7 10
+ 107    () add R3 R3 R7
+ 108    () set R7 1
+ 109    () add R4 R4 R7
+ 110    () jmp 105
+ 111    () load R2 @2[R3]
+ 112    () set R1 0
+ 113    () set R7 3
+ 114    () bne R2 R7 116
+ 115    () rot_z R1 16 4
+ 116    () set R7 1
+ 117    () bne R2 R7 119
+ 118    () rot_x R1 16 4
+ 119    () set R7 2
+ 120    () bne R2 R7 123
+ 121    () rot_x R1 16 4
+ 122    () rot_z R1 16 4
+ 123    () set R7 0
+ 124    () beq R0 R7 133
+ 125    () set R7 0
+ 126    () sub R3 R7 R0
+ 127    () set R4 0
+ 128    () rot_y R4 8 4
+ 129    () crot_y R4 R3 24 4
+ 130    () rot_x R4 24 4
+ 131    () crot_x R4 R3 8 4
+ 132    () qfree R4
+ 133    () set R7 1
+ 134    () add R0 R0 R7
+ 135    () jmp 81
+ 136    () set Q0 0
+ 137    () set Q1 1
+ 138    () rot_y Q1 8 4
+ 139    () crot_x Q0 Q1 8 4
+ 140    () rot_z Q0 24 4
+ 141    () rot_x Q1 24 4
+ 142    () rot_y Q1 24 4
+ 143    () ret_arr @0
+ 144    () ret_arr @1
+ 145    () ret_arr @2
+ 146    () ret_arr @3
+
+INFO:0.0 ns:Stack.QnosConnection(server_program):Commiting compiled subroutine:
+Subroutine
+NetQASM version: (0, 10)
+App ID: 0
+ LN | HLN | CMD
+   0    () set R7 10
+   1    () array R7 @0
+   2    () set R7 1
+   3    () array R7 @1
+   4    () set R7 0
+   5    () set R8 0
+   6    () store R7 @1[R8]
+   7    () set R7 10
+   8    () array R7 @2
+   9    () set R7 1
+  10    () array R7 @3
+  11    () set R7 0
+  12    () set R8 0
+  13    () store R7 @3[R8]
+  14    () set R7 0
+  15    () set R8 0
+  16    () set R9 1
+  17    () set R10 0
+  18    () recv_epr R7 R8 R9 R10
+  19    () set R0 0
+  20    () set R7 1
+  21    () beq R0 R7 75
+  22    () set R3 0
+  23    () set R4 0
+  24    () set R5 0
+  25    () set R6 0
+  26    () set R7 10
+  27    () beq R6 R7 32
+  28    () add R3 R3 R0
+  29    () set R7 1
+  30    () add R6 R6 R7
+  31    () jmp 26
+  32    () set R7 1
+  33    () add R4 R0 R7
+  34    () set R6 0
+  35    () set R7 10
+  36    () beq R6 R7 41
+  37    () add R5 R5 R4
+  38    () set R7 1
+  39    () add R6 R6 R7
+  40    () jmp 35
+  41    () wait_all @0[R3:R5]
+  42    () set R3 9
+  43    () set R4 0
+  44    () beq R4 R0 50
+  45    () set R7 10
+  46    () add R3 R3 R7
+  47    () set R7 1
+  48    () add R4 R4 R7
+  49    () jmp 44
+  50    () load R2 @0[R3]
+  51    () set R1 0
+  52    () set R7 3
+  53    () bne R2 R7 55
+  54    () rot_z R1 16 4
+  55    () set R7 1
+  56    () bne R2 R7 58
+  57    () rot_x R1 16 4
+  58    () set R7 2
+  59    () bne R2 R7 62
+  60    () rot_x R1 16 4
+  61    () rot_z R1 16 4
+  62    () set R7 0
+  63    () beq R0 R7 72
+  64    () set R7 0
+  65    () sub R3 R7 R0
+  66    () set R4 0
+  67    () rot_y R4 8 4
+  68    () crot_y R4 R3 24 4
+  69    () rot_x R4 24 4
+  70    () crot_x R4 R3 8 4
+  71    () qfree R4
+  72    () set R7 1
+  73    () add R0 R0 R7
+  74    () jmp 20
+  75    () set R7 0
+  76    () set R8 0
+  77    () set R9 3
+  78    () set R10 2
+  79    () recv_epr R7 R8 R9 R10
+  80    () set R0 0
+  81    () set R7 1
+  82    () beq R0 R7 136
+  83    () set R3 0
+  84    () set R4 0
+  85    () set R5 0
+  86    () set R6 0
+  87    () set R7 10
+  88    () beq R6 R7 93
+  89    () add R3 R3 R0
+  90    () set R7 1
+  91    () add R6 R6 R7
+  92    () jmp 87
+  93    () set R7 1
+  94    () add R4 R0 R7
+  95    () set R6 0
+  96    () set R7 10
+  97    () beq R6 R7 102
+  98    () add R5 R5 R4
+  99    () set R7 1
+ 100    () add R6 R6 R7
+ 101    () jmp 96
+ 102    () wait_all @2[R3:R5]
+ 103    () set R3 9
+ 104    () set R4 0
+ 105    () beq R4 R0 111
+ 106    () set R7 10
+ 107    () add R3 R3 R7
+ 108    () set R7 1
+ 109    () add R4 R4 R7
+ 110    () jmp 105
+ 111    () load R2 @2[R3]
+ 112    () set R1 0
+ 113    () set R7 3
+ 114    () bne R2 R7 116
+ 115    () rot_z R1 16 4
+ 116    () set R7 1
+ 117    () bne R2 R7 119
+ 118    () rot_x R1 16 4
+ 119    () set R7 2
+ 120    () bne R2 R7 123
+ 121    () rot_x R1 16 4
+ 122    () rot_z R1 16 4
+ 123    () set R7 0
+ 124    () beq R0 R7 133
+ 125    () set R7 0
+ 126    () sub R3 R7 R0
+ 127    () set R4 0
+ 128    () rot_y R4 8 4
+ 129    () crot_y R4 R3 24 4
+ 130    () rot_x R4 24 4
+ 131    () crot_x R4 R3 8 4
+ 132    () qfree R4
+ 133    () set R7 1
+ 134    () add R0 R0 R7
+ 135    () jmp 81
+ 136    () set Q0 0
+ 137    () set Q1 1
+ 138    () rot_y Q1 8 4
+ 139    () crot_x Q0 Q1 8 4
+ 140    () rot_z Q0 24 4
+ 141    () rot_x Q1 24 4
+ 142    () rot_y Q1 24 4
+ 143    () ret_arr @0
+ 144    () ret_arr @1
+ 145    () ret_arr @2
+ 146    () ret_arr @3
