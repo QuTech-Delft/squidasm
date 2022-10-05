@@ -1,4 +1,5 @@
 import itertools
+from typing import Dict, List
 
 import numpy as np
 from netsquid.components.instructions import (

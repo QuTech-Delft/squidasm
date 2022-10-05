@@ -18,6 +18,7 @@ class GlobalNodeInfo:
     """Node information available at runtime."""
 
     name: str
+    id: int
 
     # total number of qubits
     num_qubits: int
@@ -34,11 +35,12 @@ class GlobalNodeInfo:
 
     @classmethod
     def from_config(
-        cls, name: str, config: Union[GenericQDeviceConfig, NVQDeviceConfig]
+        cls, name: str, id: int, config: Union[GenericQDeviceConfig, NVQDeviceConfig]
     ) -> GlobalNodeInfo:
         if isinstance(config, GenericQDeviceConfig):
             return GlobalNodeInfo(
                 name=name,
+                id=id,
                 num_qubits=config.num_qubits,
                 num_comm_qubits=config.num_comm_qubits,
                 comm_T1=config.T1,
@@ -149,6 +151,9 @@ class LocalEnvironment:
 
     def install_local_schedule(self, schedule: Schedule) -> None:
         self._local_schedule = schedule
+
+    def get_all_node_names(self) -> List[str]:
+        return list(self.get_global_env().get_nodes().values())
 
 
 class ProgramEnvironment:

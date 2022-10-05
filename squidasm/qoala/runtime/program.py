@@ -10,11 +10,21 @@ class ProgramContext(abc.ABC):
 
 
 @dataclass
+class ProgramInput:
+    values: Dict[str, Any]
+
+
+@dataclass
+class ProgramResult:
+    values: Dict[str, Any]
+
+
+@dataclass
 class BatchInfo:
     """Description of a batch of program instances that should be executed."""
 
     program: IqoalaProgram
-    inputs: List[Dict[str, Any]]  # dict of inputs for each iteration
+    inputs: List[ProgramInput]  # dict of inputs for each iteration
     num_iterations: int
     deadline: float
 
@@ -25,7 +35,7 @@ class ProgramInstance:
 
     pid: int
     program: IqoalaProgram
-    inputs: Dict[str, Any]
+    inputs: ProgramInput
 
 
 @dataclass
@@ -36,4 +46,4 @@ class ProgramBatch:
 
 @dataclass
 class BatchResult:
-    results: List[Dict[str, Any]]
+    results: List[ProgramResult]

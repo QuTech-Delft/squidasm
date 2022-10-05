@@ -34,24 +34,6 @@ class SchedulerComponent(Component):
         return self._node
 
 
-class RunningQoalaProgram:
-    def __init__(self, pid: int) -> None:
-        self._id = pid
-        self._pending_subroutines: List[Subroutine] = []
-
-    def add_subroutine(self, subroutine: Subroutine) -> None:
-        self._pending_subroutines.append(subroutine)
-
-    def next_subroutine(self) -> Optional[Subroutine]:
-        if len(self._pending_subroutines) > 0:
-            return self._pending_subroutines.pop()
-        return None
-
-    @property
-    def id(self) -> int:
-        return self._id
-
-
 class ProgramSchedule:
     def __init__(self, program: iqoala.IqoalaProgram) -> None:
         self._program: iqoala.IqoalaProgram = program

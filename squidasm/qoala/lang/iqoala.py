@@ -13,6 +13,7 @@ IqoalaValue = Union[int, Template]
 
 @dataclass
 class ProgramMeta:
+    # TODO: refactor
     name: str
     parameters: Dict[str, Any]
     csockets: List[str]

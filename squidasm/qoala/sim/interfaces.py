@@ -20,21 +20,19 @@ from squidasm.qoala.sim.common import ComponentProtocol, PortListener
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.hostcomp import HostComponent
 from squidasm.qoala.sim.hostprocessor import HostProcessor, IqoalaProcess
-from squidasm.qoala.sim.interfaces import HostInterface
 from squidasm.qoala.sim.logging import LogManager
 from squidasm.qoala.sim.memory import ProgramMemory, UnitModule
 from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
 from squidasm.qoala.sim.util import default_nv_unit_module
 
 
-class Host(ComponentProtocol):
+class HostInterface(ComponentProtocol):
     """NetSquid protocol representing a Host."""
 
     def __init__(
         self,
         comp: HostComponent,
         local_env: LocalEnvironment,
-        qdevice_type: Optional[str] = "nv",
     ) -> None:
         """Host protocol constructor.
 
@@ -43,38 +41,33 @@ class Host(ComponentProtocol):
         """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
-        self._interface = HostInterface(comp, local_env)
 
-        self._processor = HostProcessor(self)
+        self._local_env = local_env
 
-    @property
-    def processor(self) -> HostProcessor:
-        return self._processor
+        self.add_listener(
+            "qnos",
+            PortListener(self._comp.ports["qnos_in"], SIGNAL_HAND_HOST_MSG),
+        )
+        for peer in self._local_env.get_all_node_names():
+            self.add_listener(
+                f"peer_{peer}",
+                PortListener(
+                    self._comp.peer_in_port(peer), f"{SIGNAL_HOST_HOST_MSG}_{peer}"
+                ),
+            )
 
-    @property
-    def local_env(self) -> LocalEnvironment:
-        return self._local_env
+    def send_qnos_msg(self, msg: bytes) -> None:
+        self._comp.qnos_out_port.tx_output(msg)
 
-    def run_iqoala_instr(
-        self, process: IqoalaProcess, instr_idx: int
-    ) -> Generator[EventExpression, None, None]:
-        yield from process.run(instr_idx)
+    def receive_qnos_msg(self) -> Generator[EventExpression, None, str]:
+        return (yield from self._receive_msg("qnos", SIGNAL_HAND_HOST_MSG))
 
-    def program_end(self, pid: int) -> BatchResult:
-        self.send_qnos_msg(bytes(StopAppMessage(pid)))
-        return self._processes[pid].get_results()
+    def send_peer_msg(self, peer: str, msg: str) -> None:
+        self._comp.peer_out_port(peer).tx_output(msg)
 
-    def run_process(self, pid: int) -> None:
-        pass
-
-    def get_results(self) -> List[Dict[str, Any]]:
-        return self._program_results
-
-    def start(self) -> None:
-        assert self._interface is not None
-        super().start()
-        self._interface.start()
-
-    def stop(self) -> None:
-        self._interface.stop()
-        super().stop()
+    def receive_peer_msg(self, peer: str) -> Generator[EventExpression, None, str]:
+        return (
+            yield from self._receive_msg(
+                f"peer_{peer}", f"{SIGNAL_HOST_HOST_MSG}_{peer}"
+            )
+        )
