@@ -57,9 +57,6 @@ from squidasm.qoala.sim.signals import (
 if TYPE_CHECKING:
     from squidasm.qoala.sim.qnos import Qnos
 
-PI = math.pi
-PI_OVER_2 = math.pi / 2
-
 
 class NetstackInterface(ComponentProtocol):
     """NetSquid protocol representing the QNodeOS network stack."""
@@ -87,9 +84,6 @@ class NetstackInterface(ComponentProtocol):
                     self._comp.peer_in_port(peer), f"{SIGNAL_PEER_NSTK_MSG}_{peer}"
                 ),
             )
-
-        self._egps: Dict[int, EgpProtocol] = {}
-        self._epr_sockets: Dict[int, List[EprSocket]] = {}  # app ID -> [socket]
 
     def _send_qnos_msg(self, msg: str) -> None:
         """Send a message to the processor."""

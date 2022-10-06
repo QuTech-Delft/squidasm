@@ -44,6 +44,7 @@ from squidasm.qoala.sim.common import (
     PhysicalQuantumMemory,
     PortListener,
 )
+from squidasm.qoala.sim.constants import PI
 from squidasm.qoala.sim.egp import EgpProtocol
 from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.memory import ProgramMemory
@@ -56,10 +57,6 @@ from squidasm.qoala.sim.signals import (
 
 if TYPE_CHECKING:
     from squidasm.qoala.sim.qnos import Qnos
-
-PI = math.pi
-PI_OVER_2 = math.pi / 2
-
 
 
 class Netstack(ComponentProtocol):

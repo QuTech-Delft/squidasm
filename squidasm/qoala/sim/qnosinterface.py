@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Generator, Optional, Union
 
+from netsquid.components import QuantumProcessor
 from netsquid.components.instructions import Instruction as NsInstr
 from netsquid.components.qprogram import QuantumProgram
 
@@ -39,14 +40,21 @@ class QnosInterface(ComponentProtocol):
 
         self.add_signal(SIGNAL_MEMORY_FREED)
 
-    def _send_host_msg(self, msg: Any) -> None:
+    def send_host_msg(self, msg: Any) -> None:
         self._comp.host_out_port.tx_output(msg)
 
-    def _receive_host_msg(self) -> Generator[EventExpression, None, str]:
+    def receive_host_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("host", SIGNAL_HOST_HAND_MSG))
 
-    def _send_netstack_msg(self, msg: str) -> None:
+    def send_netstack_msg(self, msg: str) -> None:
         self._comp.netstack_out_port.tx_output(msg)
 
-    def _receive_netstack_msg(self) -> Generator[EventExpression, None, str]:
+    def receive_netstack_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("netstack", SIGNAL_NSTK_PROC_MSG))
+
+    def flush_netstack_msgs(self) -> None:
+        self._listeners["netstack"].buffer.clear()
+
+    @property
+    def qdevice(self) -> QuantumProcessor:
+        return self._comp.qdevice

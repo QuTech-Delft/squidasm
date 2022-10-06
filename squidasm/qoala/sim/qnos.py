@@ -19,8 +19,7 @@ from squidasm.qoala.sim.qnoscomp import QnosComponent
 from squidasm.qoala.sim.qnosprocessor import (
     GenericProcessor,
     NVProcessor,
-    Processor,
-    ProcessorComponent,
+    QnosProcessor,
 )
 
 
@@ -88,11 +87,11 @@ class Qnos(Protocol):
         self._handler = handler
 
     @property
-    def processor(self) -> Processor:
+    def processor(self) -> QnosProcessor:
         return self._processor
 
     @processor.setter
-    def processor(self, processor: Processor) -> None:
+    def processor(self, processor: QnosProcessor) -> None:
         self._processor = processor
 
     @property

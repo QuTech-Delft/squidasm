@@ -9,9 +9,6 @@ from netsquid.nodes import Node
 from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import GlobalEnvironment
 
-PI = math.pi
-PI_OVER_2 = math.pi / 2
-
 
 class NetstackComponent(Component):
     """NetSquid component representing the network stack in QNodeOS.

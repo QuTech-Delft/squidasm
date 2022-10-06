@@ -34,7 +34,7 @@ class HostProcessor:
 
     def assign(
         self, process: IqoalaProcess, instr_idx: int
-    ) -> Generator[EventExpression, None, Dict[str, Any]]:
+    ) -> Generator[EventExpression, None, None]:
         csockets = process.csockets
         host_mem = process.prog_memory.host_mem
         shared_mem = process.prog_memory.shared_mem
