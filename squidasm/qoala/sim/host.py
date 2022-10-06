@@ -9,9 +9,11 @@ from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.runtime.program import BatchResult
 from squidasm.qoala.sim.common import ComponentProtocol
+from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.hostcomp import HostComponent
-from squidasm.qoala.sim.hostprocessor import HostProcessor, IqoalaProcess
 from squidasm.qoala.sim.hostinterface import HostInterface
+from squidasm.qoala.sim.hostprocessor import HostProcessor, IqoalaProcess
+from squidasm.qoala.sim.scheduler import Scheduler
 
 
 class Host(ComponentProtocol):
@@ -21,6 +23,7 @@ class Host(ComponentProtocol):
         self,
         comp: HostComponent,
         local_env: LocalEnvironment,
+        scheduler: Scheduler,
         qdevice_type: Optional[str] = "nv",
     ) -> None:
         """Host protocol constructor.
@@ -33,6 +36,9 @@ class Host(ComponentProtocol):
         self._interface = HostInterface(comp, local_env)
 
         self._processor = HostProcessor(self)
+        self._processes: Dict[int, IqoalaProcess] = {}
+
+        self._scheduler = scheduler
 
     @property
     def processor(self) -> HostProcessor:
@@ -42,20 +48,14 @@ class Host(ComponentProtocol):
     def local_env(self) -> LocalEnvironment:
         return self._local_env
 
-    def run_iqoala_instr(
-        self, process: IqoalaProcess, instr_idx: int
-    ) -> Generator[EventExpression, None, None]:
-        yield from process.run(instr_idx)
+    def run(self) -> Generator[EventExpression, None, None]:
+        while True:
+            task = self._scheduler.next_host_task()
+            if task.no_more_tasks:
+                break
 
-    def program_end(self, pid: int) -> BatchResult:
-        self.send_qnos_msg(bytes(StopAppMessage(pid)))
-        return self._processes[pid].get_results()
-
-    def run_process(self, pid: int) -> None:
-        pass
-
-    def get_results(self) -> List[Dict[str, Any]]:
-        return self._program_results
+            process = self._processes[task.pid]
+            yield from self.processor.assign(process, task.instr_idx)
 
     def start(self) -> None:
         assert self._interface is not None
@@ -65,3 +65,9 @@ class Host(ComponentProtocol):
     def stop(self) -> None:
         self._interface.stop()
         super().stop()
+
+    def create_csocket(self, remote_name: str) -> ClassicalSocket:
+        return ClassicalSocket(self._interface, remote_name)
+
+    def add_process(self, process: IqoalaProcess) -> None:
+        self._processes[process.prog_instance.pid] = process

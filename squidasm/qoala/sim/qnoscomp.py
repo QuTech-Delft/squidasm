@@ -11,7 +11,6 @@ from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
 from squidasm.qoala.sim.common import NVPhysicalQuantumMemory, PhysicalQuantumMemory
-from squidasm.qoala.sim.handler import Handler, HandlerComponent
 from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
 from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
 from squidasm.qoala.sim.qnosprocessor import (
@@ -39,10 +38,6 @@ class QnosComponent(Component):
         # Ports for communicating with Host
         self.add_ports(["host_out", "host_in"])
         self.add_ports(["nstk_out", "nstk_in"])
-
-    @property
-    def qdevice(self) -> QuantumProcessor:
-        return self.node.qmemory
 
     @property
     def host_in_port(self) -> Port:

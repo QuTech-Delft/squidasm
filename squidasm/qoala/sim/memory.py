@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 
@@ -211,6 +213,7 @@ class UnitModule:
     :param qubit_traits: map from qubit ID to list of qubit traits
     :param gate_traits: map from list of qubit IDs to list of gate traits
     """
+
     qubit_ids: List[int]
     qubit_traits: Dict[int, List[QubitTrait]]
     gate_traits: Dict[List[int], List[GateTrait]]
@@ -222,6 +225,14 @@ class UnitModule:
     @property
     def num_qubits(self) -> int:
         return len(self._qubit_ids)
+
+    @classmethod
+    def default_generic(num_qubits: int) -> UnitModule:
+        return UnitModule(
+            qubit_ids=[i for i in range(num_qubits)],
+            qubit_traits={i: CommQubitTrait for i in range(num_qubits)},
+            gate_traits={},
+        )
 
 
 class QuantumMemory:

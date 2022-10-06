@@ -11,16 +11,18 @@ from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
 from squidasm.qoala.sim.common import NVPhysicalQuantumMemory, PhysicalQuantumMemory
-from squidasm.qoala.sim.handler import Handler, HandlerComponent
 from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
 from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
 from squidasm.qoala.sim.process import IqoalaProcess
+from squidasm.qoala.sim.qdevice import QDevice, QDeviceType
 from squidasm.qoala.sim.qnoscomp import QnosComponent
+from squidasm.qoala.sim.qnosinterface import QnosInterface
 from squidasm.qoala.sim.qnosprocessor import (
     GenericProcessor,
     NVProcessor,
     QnosProcessor,
 )
+from squidasm.qoala.sim.scheduler import Scheduler
 
 
 class Qnos(Protocol):
@@ -30,7 +32,8 @@ class Qnos(Protocol):
         self,
         comp: QnosComponent,
         local_env: LocalEnvironment,
-        qdevice_type: Optional[str] = "nv",
+        scheduler: Scheduler,
+        qdevice: QDevice,
     ) -> None:
         """Qnos protocol constructor.
 
@@ -39,30 +42,19 @@ class Qnos(Protocol):
         """
         super().__init__(name=f"{comp.name}_protocol")
         self._comp = comp
+        self._interface = QnosInterface(comp)
 
         self._local_env = local_env
 
-        # Create internal protocols.
-        self.handler = Handler(comp.handler_comp, self, qdevice_type)
-        self.netstack = Netstack(comp.netstack_comp, self)
-        if qdevice_type == "generic":
-            self.processor = GenericProcessor(comp.processor_comp, self)
-            self._physical_memory = PhysicalQuantumMemory(comp.qdevice.num_positions)
-        elif qdevice_type == "nv":
-            self.processor = NVProcessor(comp.processor_comp, self)
-            self._physical_memory = NVPhysicalQuantumMemory(comp.qdevice.num_positions)
+        if qdevice.typ == QDeviceType.GENERIC:
+            self.processor = GenericProcessor()
+        elif qdevice.typ == QDeviceType.NV:
+            self.processor = NVProcessor()
         else:
             raise ValueError
 
-        # Classical memories that are shared (virtually) with the Host.
-        # Each application has its own `ProgramMemory`, identified by the application ID.
-        self._program_memories: Dict[int, ProgramMemory] = {}  # program ID -> memory
-
-        # Subroutines contained in programs that are being run.
-        # Nested mapping of program ID -> (subroutine name -> subroutine)
-        self._program_subroutines: Dict[int, Dict[str, Subroutine]]
-
         self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
+        self._scheduler = scheduler
 
     # TODO: move this to a separate memory manager object
     def get_virt_qubit_for_phys_id(self, phys_id: int) -> Tuple[int, int]:
@@ -73,19 +65,6 @@ class Qnos(Protocol):
                 return pid, virt_id
         raise RuntimeError(f"no virtual ID found for physical ID {phys_id}")
 
-    def assign_ll_protocol(
-        self, remote_id: int, prot: MagicLinkLayerProtocolWithSignaling
-    ) -> None:
-        self.netstack.assign_ll_protocol(remote_id, prot)
-
-    @property
-    def handler(self) -> Handler:
-        return self._handler
-
-    @handler.setter
-    def handler(self, handler: Handler) -> None:
-        self._handler = handler
-
     @property
     def processor(self) -> QnosProcessor:
         return self._processor
@@ -95,48 +74,16 @@ class Qnos(Protocol):
         self._processor = processor
 
     @property
-    def netstack(self) -> Netstack:
-        return self._netstack
-
-    @netstack.setter
-    def netstack(self, netstack: Netstack) -> None:
-        self._netstack = netstack
-
-    @property
-    def program_memories(self) -> Dict[int, ProgramMemory]:
-        return self._program_memories
-
-    @property
-    def shared_memories(self) -> Dict[int, SharedMemory]:
-        return {i: p.shared_mem for i, p in self._program_memories.items()}
-
-    @property
-    def quantum_memories(self) -> Dict[int, QuantumMemory]:
-        return {i: p.quantum_mem for i, p in self._program_memories.items()}
-
-    @property
     def physical_memory(self) -> PhysicalQuantumMemory:
         return self._physical_memory
 
     def start(self) -> None:
-        assert self._handler is not None
-        assert self._processor is not None
-        assert self._netstack is not None
         super().start()
-        self._handler.start()
-        self._processor.start()
-        self._netstack.start()
+        self._interface.start()
 
     def stop(self) -> None:
-        self._netstack.stop()
-        self._processor.stop()
-        self._handler.stop()
+        self._interface.stop()
         super().stop()
-
-    @property
-    def program_memories(self) -> Dict[int, ProgramMemory]:
-        """Get a dictionary of program IDs to their shared memories."""
-        return self._qnos.program_memories
 
     @property
     def physical_memory(self) -> PhysicalQuantumMemory:

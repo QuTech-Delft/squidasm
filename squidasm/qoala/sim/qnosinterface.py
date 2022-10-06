@@ -8,6 +8,7 @@ from netsquid.components.qprogram import QuantumProgram
 
 from pydynaa import EventExpression
 from squidasm.qoala.sim.common import ComponentProtocol, PortListener
+from squidasm.qoala.sim.qdevice import QDevice
 from squidasm.qoala.sim.qnos import QnosComponent
 from squidasm.qoala.sim.signals import (
     SIGNAL_HOST_HAND_MSG,
@@ -19,7 +20,7 @@ from squidasm.qoala.sim.signals import (
 class QnosInterface(ComponentProtocol):
     """NetSquid protocol representing a QNodeOS processor."""
 
-    def __init__(self, comp: QnosComponent) -> None:
+    def __init__(self, comp: QnosComponent, qdevice: QDevice) -> None:
         """Processor protocol constructor. Typically created indirectly through
         constructing a `Qnos` instance.
 
@@ -28,6 +29,7 @@ class QnosInterface(ComponentProtocol):
         """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
+        self._qdevice = qdevice
 
         self.add_listener(
             "host",
@@ -56,5 +58,5 @@ class QnosInterface(ComponentProtocol):
         self._listeners["netstack"].buffer.clear()
 
     @property
-    def qdevice(self) -> QuantumProcessor:
-        return self._comp.qdevice
+    def qdevice(self) -> QDevice:
+        return self._qdevice

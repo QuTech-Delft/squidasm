@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import process
 from typing import Dict, List, Optional
 
 from netsquid.components import QuantumProcessor
@@ -13,132 +14,30 @@ from netsquid_magic.link_layer import (
 )
 
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
+from squidasm.qoala.runtime.program import (
+    BatchInfo,
+    BatchResult,
+    ProgramBatch,
+    ProgramInstance,
+    ProgramResult,
+)
+from squidasm.qoala.sim.csocket import ClassicalSocket
+from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.host import Host
 from squidasm.qoala.sim.hostcomp import HostComponent
+from squidasm.qoala.sim.memory import ProgramMemory, UnitModule
 from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
+from squidasm.qoala.sim.process import IqoalaProcess
+from squidasm.qoala.sim.procnodecomp import ProcNodeComponent
+from squidasm.qoala.sim.qdevice import (
+    NVPhysicalQuantumMemory,
+    PhysicalQuantumMemory,
+    QDevice,
+    QDeviceType,
+)
 from squidasm.qoala.sim.qnos import Qnos
 from squidasm.qoala.sim.qnoscomp import QnosComponent
 from squidasm.qoala.sim.scheduler import Scheduler, SchedulerComponent
-
-
-class ProcNodeComponent(Node):
-    """NetSquid component representing a quantum network node containing a software
-    stack consisting of Host, QNodeOS and QDevice.
-
-    This component has three subcomponents:
-        - a QnosComponent
-        - a HostComponent
-        - a SchedulerComponent
-
-    Has communications ports between
-     - the Host component on this node and the Host components on other nodes
-     - the QNodeOS component on this node and the QNodeOS components on other nodes
-
-    This is a static container for components and ports.
-    Behavior of the node is modeled in the `ProcNode` class, which is a subclass
-    of `Protocol`.
-
-    This class is a subclass of the NetSquid `Node` class and can hence be used as
-    a standard NetSquid node.
-    """
-
-    def __init__(
-        self,
-        name: str,
-        qdevice: QuantumProcessor,
-        global_env: GlobalEnvironment,
-        node_id: Optional[int] = None,
-    ) -> None:
-        """ProcNodeComponent constructor. Typically created indirectly through
-        constructing a `ProcNode`."""
-        super().__init__(name, ID=node_id)
-        self.qmemory = qdevice
-
-        qnos_comp = QnosComponent(self, global_env)
-        self.add_subcomponent(qnos_comp, "qnos")
-
-        host_comp = HostComponent(self, global_env)
-        self.add_subcomponent(host_comp, "host")
-
-        comp_netstack = NetstackComponent(node, global_env)
-        self.add_subcomponent(comp_netstack, "netstack")
-
-        scheduler_comp = SchedulerComponent(self)
-        self.add_subcomponent(scheduler_comp, "scheduler")
-
-        self.host_comp.ports["qnos_out"].connect(self.qnos_comp.ports["host_in"])
-        self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])
-
-        # Ports for communicating with other nodes
-        all_nodes = global_env.get_nodes().values()
-        self._peers: List[str] = list(node.name for node in all_nodes)
-
-        self._qnos_peer_in_ports: Dict[str, str] = {}  # peer name -> port name
-        self._qnos_peer_out_ports: Dict[str, str] = {}  # peer name -> port name
-        self._host_peer_in_ports: Dict[str, str] = {}  # peer name -> port name
-        self._host_peer_out_ports: Dict[str, str] = {}  # peer name -> port name
-
-        for peer in self._peers:
-            qnos_port_in_name = f"qnos_peer_{peer}_in"
-            qnos_port_out_name = f"qnos_peer_{peer}_out"
-            self._qnos_peer_in_ports[peer] = qnos_port_in_name
-            self._qnos_peer_out_ports[peer] = qnos_port_out_name
-
-            host_port_in_name = f"host_peer_{peer}_in"
-            host_port_out_name = f"host_peer_{peer}_out"
-            self._host_peer_in_ports[peer] = host_port_in_name
-            self._host_peer_out_ports[peer] = host_port_out_name
-
-        self.add_ports(self._qnos_peer_in_ports.values())
-        self.add_ports(self._qnos_peer_out_ports.values())
-        self.add_ports(self._host_peer_in_ports.values())
-        self.add_ports(self._host_peer_out_ports.values())
-
-        for peer in self._peers:
-            self.qnos_comp.peer_out_port(peer).forward_output(
-                self.qnos_peer_out_port(peer)
-            )
-            self.qnos_peer_in_port(peer).forward_input(
-                self.qnos_comp.peer_in_port(peer)
-            )
-            self.host_comp.peer_out_port(peer).forward_output(
-                self.host_peer_out_port(peer)
-            )
-            self.host_peer_in_port(peer).forward_input(
-                self.host_comp.peer_in_port(peer)
-            )
-
-    @property
-    def qnos_comp(self) -> QnosComponent:
-        return self.subcomponents["qnos"]
-
-    @property
-    def host_comp(self) -> HostComponent:
-        return self.subcomponents["host"]
-
-    @property
-    def scheduler_comp(self) -> SchedulerComponent:
-        return self.subcomponents["scheduler"]
-
-    @property
-    def qdevice(self) -> QuantumProcessor:
-        return self.qmemory
-
-    def host_peer_in_port(self, name: str) -> Port:
-        port_name = self._host_peer_in_ports[name]
-        return self.ports[port_name]
-
-    def host_peer_out_port(self, name: str) -> Port:
-        port_name = self._host_peer_out_ports[name]
-        return self.ports[port_name]
-
-    def qnos_peer_in_port(self, name: str) -> Port:
-        port_name = self._qnos_peer_in_ports[name]
-        return self.ports[port_name]
-
-    def qnos_peer_out_port(self, name: str) -> Port:
-        port_name = self._qnos_peer_out_ports[name]
-        return self.ports[port_name]
 
 
 class ProcNode(Protocol):
@@ -196,6 +95,23 @@ class ProcNode(Protocol):
             self._qnos = Qnos(self.qnos_comp, self._local_env, qdevice_type)
             self._scheduler = Scheduler(self.scheduler_comp, self._host, self._qnos)
 
+        self._qdevice: QDevice
+        if qdevice_type == "generic":
+            physical_memory = PhysicalQuantumMemory(qdevice.num_positions)
+            self._qdevice = QDevice(self._node, QDeviceType.GENERIC, physical_memory)
+        elif qdevice_type == "nv":
+            physical_memory = NVPhysicalQuantumMemory(qdevice.num_positions)
+            self._qdevice = QDevice(self._node, QDeviceType.NV, physical_memory)
+        else:
+            raise ValueError
+
+        self._prog_instance_counter: int = 0
+        self._batch_counter: int = 0
+        self._batches: Dict[int, ProgramBatch] = {}  # batch ID -> batch
+
+        self._prog_results: Dict[int, ProgramResult] = {}  # program ID -> result
+        self._batch_result: Dict[int, BatchResult] = {}  # batch ID -> result
+
     def install_environment(self) -> None:
         self._scheduler.install_schedule(self._local_env._local_schedule)
         for instance in self._local_env._programs:
@@ -227,7 +143,7 @@ class ProcNode(Protocol):
         return self.node.scheduler_comp
 
     @property
-    def qdevice(self) -> QuantumProcessor:
+    def qdevice(self) -> QDevice:
         return self.node.qdevice
 
     @property
@@ -280,32 +196,50 @@ class ProcNode(Protocol):
         self._scheduler.stop()
         super().stop()
 
+    def submit_batch(self, batch_info: BatchInfo) -> None:
+        prog_instances: List[ProgramInstance] = []
 
-class ProcNodeNetwork(Network):
-    """A network of `ProcNode`s connected by links, which are
-    `MagicLinkLayerProtocol`s."""
+        for input in batch_info.inputs:
+            instance = ProgramInstance(
+                pid=self._prog_instance_counter,
+                program=batch_info.program,
+                inputs=input,
+            )
+            self._prog_instance_counter += 1
+            prog_instances.append(instance)
 
-    def __init__(
-        self, nodes: Dict[str, ProcNode], links: List[MagicLinkLayerProtocol]
-    ) -> None:
-        """ProcNodeNetwork constructor.
+        batch = ProgramBatch(
+            batch_id=self._batch_counter, info=batch_info, instances=prog_instances
+        )
+        self._batches[batch.batch_id] = batch
+        self._batch_counter += 1
 
-        :param nodes: dictionary of node name to `ProcNode` object representing
-        that node
-        :param links: list of link layer protocol objects. Each object internally
-        contains the IDs of the two nodes that this link connects
-        """
-        self._nodes = nodes
-        self._links = links
+    def initialize_runtime(self) -> None:
+        for batch in self._batches.values():
+            for prog_instance in batch.instances:
+                prog_memory = ProgramMemory(
+                    prog_instance.pid, unit_module=UnitModule.default_generic()
+                )
+                meta = prog_instance.program.meta
 
-    @property
-    def nodes(self) -> Dict[str, ProcNode]:
-        return self._nodes
+                csockets: Dict[int, ClassicalSocket] = {}
+                for i, remote_name in meta.csockets:
+                    csockets[i] = self.host.create_csocket(remote_name)
 
-    @property
-    def links(self) -> List[MagicLinkLayerProtocol]:
-        return self._links
+                epr_sockets: Dict[int, EprSocket] = {}
+                for i, remote_name in meta.epr_sockets:
+                    remote_id = self._global_env.get_node_id(remote_name)
+                    epr_sockets[i] = EprSocket(i, remote_id)
 
-    @property
-    def qdevices(self) -> Dict[str, QuantumProcessor]:
-        return {name: node.qdevice for name, node in self._nodes.items()}
+                result = ProgramResult(values={})
+
+                process = IqoalaProcess(
+                    prog_instance=prog_instance,
+                    prog_memory=prog_memory,
+                    csockets=csockets,
+                    epr_sockets=epr_sockets,
+                    subroutines={},
+                    result=result,
+                )
+
+                self.host.add_process(process)

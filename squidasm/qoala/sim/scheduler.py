@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional
 
 import netsquid as ns
@@ -20,6 +21,13 @@ from squidasm.qoala.sim.util import default_nv_unit_module
 
 if TYPE_CHECKING:
     from squidasm.qoala.sim.qnos import Qnos
+
+
+@dataclass
+class HostTask:
+    no_more_tasks: bool
+    pid: int
+    instr_idx: int
 
 
 class SchedulerComponent(Component):
@@ -83,6 +91,9 @@ class Scheduler(ComponentProtocol, Entity):
         self._schedule_after(delta, EVENT_WAIT)
         event_expr = EventExpression(source=self, event_type=EVENT_WAIT)
         yield event_expr
+
+    def next_host_task(self) -> HostTask:
+        pass
 
     def run(self) -> Generator[EventExpression, None, None]:
         """Run this protocol. Automatically called by NetSquid during simulation."""

@@ -107,7 +107,7 @@ class HostProcessor:
                     pass
         elif isinstance(instr, iqoala.ReturnResultOp):
             value = instr.arguments[0]
-            process.results[value] = int(host_mem[value])
+            process.result.values[value] = int(host_mem[value])
 
     def execute_next_instr(
         self, process: IqoalaProcess
