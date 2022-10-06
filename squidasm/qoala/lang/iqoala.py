@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from netqasm.lang.instr import NetQASMInstruction
 from netqasm.lang.instr.flavour import NVFlavour
@@ -13,12 +13,10 @@ IqoalaValue = Union[int, Template]
 
 @dataclass
 class ProgramMeta:
-    # TODO: refactor
     name: str
-    parameters: Dict[str, Any]
-    csockets: List[str]
-    epr_sockets: List[str]
-    max_qubits: int
+    parameters: Dict[str, Type]  # input name -> input type
+    csockets: Dict[int, str]  # socket ID -> remote node name
+    epr_sockets: Dict[int, str]  # socket ID -> remote node name
 
 
 class IqoalaInstructionType(Enum):
@@ -161,30 +159,33 @@ class SendCMsgOp(ClassicalIqoalaOp):
     OP_NAME = "send_cmsg"
     TYP = IqoalaInstructionType.CC
 
-    def __init__(self, value: str) -> None:
-        super().__init__(arguments=[value])
+    def __init__(self, csocket: str, value: str) -> None:
+        # args:
+        #   csocket (int): ID of csocket
+        #   value (str): ID of csocket
+        super().__init__(arguments=[csocket, value])
 
     @classmethod
     def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is None
-        assert len(args) == 1
+        assert len(args) == 2
         assert attr is None
-        return cls(args[0])
+        return cls(args[0], args[1])
 
 
 class ReceiveCMsgOp(ClassicalIqoalaOp):
     OP_NAME = "recv_cmsg"
     TYP = IqoalaInstructionType.CC
 
-    def __init__(self, result: str) -> None:
-        super().__init__(results=[result])
+    def __init__(self, csocket: str, result: str) -> None:
+        super().__init__(arguments=[csocket], results=[result])
 
     @classmethod
     def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
         assert result is not None
-        assert len(args) == 0
+        assert len(args) == 1
         assert attr is None
-        return cls(result)
+        return cls(args[0], result)
 
 
 class AddCValueOp(ClassicalIqoalaOp):
@@ -314,21 +315,15 @@ class IqoalaProgram:
         self,
         instructions: List[ClassicalIqoalaOp],
         subroutines: Dict[str, Subroutine],
-        meta: Optional[ProgramMeta] = None,
+        meta: ProgramMeta,
     ) -> None:
         self._instructions: List[ClassicalIqoalaOp] = instructions
         self._subroutines: Dict[str, Subroutine] = subroutines
-        self._meta: Optional[ProgramMeta] = meta
+        self._meta: ProgramMeta = meta
 
     @property
     def meta(self) -> ProgramMeta:
-        if self._meta is None:
-            raise NotImplementedError
         return self._meta
-
-    @meta.setter
-    def meta(self, new_meta: ProgramMeta) -> None:
-        self._meta = new_meta
 
     @property
     def instructions(self) -> List[ClassicalIqoalaOp]:
@@ -467,6 +462,8 @@ class IqoalaParser:
     def parse(self) -> IqoalaProgram:
         instructions = []
         subroutines = {}
+
+        # TODO: parse ProgramMeta
 
         try:
             while True:

@@ -13,8 +13,11 @@ from netsquid_magic.link_layer import (
 )
 
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.sim.host import Host, HostComponent
-from squidasm.qoala.sim.qnos import Qnos, QnosComponent
+from squidasm.qoala.sim.host import Host
+from squidasm.qoala.sim.hostcomp import HostComponent
+from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
+from squidasm.qoala.sim.qnos import Qnos
+from squidasm.qoala.sim.qnoscomp import QnosComponent
 from squidasm.qoala.sim.scheduler import Scheduler, SchedulerComponent
 
 
@@ -56,6 +59,9 @@ class ProcNodeComponent(Node):
 
         host_comp = HostComponent(self, global_env)
         self.add_subcomponent(host_comp, "host")
+
+        comp_netstack = NetstackComponent(node, global_env)
+        self.add_subcomponent(comp_netstack, "netstack")
 
         scheduler_comp = SchedulerComponent(self)
         self.add_subcomponent(scheduler_comp, "scheduler")

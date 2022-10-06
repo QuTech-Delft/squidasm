@@ -40,10 +40,12 @@ class ProgramInstance:
 
 @dataclass
 class ProgramBatch:
+    batch_id: int
     info: BatchInfo
     instances: List[ProgramInstance]
 
 
 @dataclass
 class BatchResult:
+    batch_id: int
     results: List[ProgramResult]

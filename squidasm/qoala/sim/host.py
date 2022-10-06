@@ -1,30 +1,17 @@
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional, Type
 
-from netqasm.backend.messages import StopAppMessage, SubroutineMessage
-from netqasm.lang.operand import Register
-from netqasm.lang.parsing.text import NetQASMSyntaxError, parse_register
-from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
-from netsquid.components.component import Component, Port
-from netsquid.nodes import Node
+from netqasm.backend.messages import StopAppMessage
 
 from pydynaa import EventExpression
-from squidasm.qoala.lang import iqoala
-from squidasm.qoala.lang.iqoala import IqoalaProgram
-from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.runtime.program import BatchResult, ProgramContext, ProgramInstance
-from squidasm.qoala.sim.common import ComponentProtocol, PortListener
-from squidasm.qoala.sim.csocket import ClassicalSocket
+from squidasm.qoala.runtime.environment import LocalEnvironment
+from squidasm.qoala.runtime.program import BatchResult
+from squidasm.qoala.sim.common import ComponentProtocol
 from squidasm.qoala.sim.hostcomp import HostComponent
 from squidasm.qoala.sim.hostprocessor import HostProcessor, IqoalaProcess
-from squidasm.qoala.sim.interfaces import HostInterface
-from squidasm.qoala.sim.logging import LogManager
-from squidasm.qoala.sim.memory import ProgramMemory, UnitModule
-from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
-from squidasm.qoala.sim.util import default_nv_unit_module
+from squidasm.qoala.sim.hostinterface import HostInterface
 
 
 class Host(ComponentProtocol):

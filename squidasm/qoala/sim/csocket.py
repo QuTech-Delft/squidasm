@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING, Generator
 from netqasm.sdk.classical_communication.message import StructuredMessage
 
 from pydynaa import EventExpression
-from squidasm.qoala.sim.interfaces import HostInterface
+from squidasm.qoala.sim.hostinterface import HostInterface
 
 
 class ClassicalSocket:
+    """Wrapper around classical ports"""
+
     def __init__(self, host: HostInterface, remote_name: str):
         self._host = host
         self._remote_name = remote_name

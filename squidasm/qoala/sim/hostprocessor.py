@@ -1,38 +1,22 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Type
+from typing import Any, Dict, Generator
 
-from netqasm.backend.messages import StopAppMessage, SubroutineMessage
+from netqasm.backend.messages import SubroutineMessage
 from netqasm.lang.operand import Register
 from netqasm.lang.parsing.text import NetQASMSyntaxError, parse_register
-from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
-from netsquid.components.component import Component, Port
-from netsquid.nodes import Node
 
 from pydynaa import EventExpression
 from squidasm.qoala.lang import iqoala
-from squidasm.qoala.lang.iqoala import IqoalaProgram
-from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.runtime.program import BatchResult, ProgramContext, ProgramInstance
-from squidasm.qoala.sim.common import ComponentProtocol, PortListener
-from squidasm.qoala.sim.csocket import ClassicalSocket
-from squidasm.qoala.sim.interfaces import HostInterface
+from squidasm.qoala.sim.hostinterface import HostInterface
 from squidasm.qoala.sim.logging import LogManager
-from squidasm.qoala.sim.memory import ProgramMemory, UnitModule
-from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
-from squidasm.qoala.sim.util import default_nv_unit_module
-
-
-@dataclass
-class IqoalaProcess:
-    prog_instance: ProgramInstance
-    prog_memory: ProgramMemory
-    csockets: Dict[str, ClassicalSocket]
+from squidasm.qoala.sim.process import IqoalaProcess
 
 
 class HostProcessor:
+    """Does not have state itself. Acts on and changes process objects."""
+
     def __init__(self, interface: HostInterface) -> None:
         self._interface = interface
 
@@ -42,6 +26,12 @@ class HostProcessor:
             f"{self.__class__.__name__}({self._name})"
         )
 
+    def initialize(self, process: IqoalaProcess) -> None:
+        host_mem = process.prog_memory.host_mem
+        inputs = process.prog_instance.inputs
+        for name, value in inputs.values.items():
+            host_mem[name] = value
+
     def assign(
         self, process: IqoalaProcess, instr_idx: int
     ) -> Generator[EventExpression, None, Dict[str, Any]]:
@@ -50,22 +40,19 @@ class HostProcessor:
         shared_mem = process.prog_memory.shared_mem
         pid = process.prog_instance.pid
         program = process.prog_instance.program
-        inputs = process.prog_instance.inputs
-
-        # TODO: support multiple csockets
-        csck = csockets[0] if len(csockets) > 0 else None
-
-        for name, value in inputs.items():
-            host_mem[name] = value
 
         instr = program.instructions[instr_idx]
 
         self._logger.info(f"Interpreting LHR instruction {instr}")
         if isinstance(instr, iqoala.SendCMsgOp):
-            value = host_mem[instr.arguments[0]]
+            csck_id = host_mem[instr.arguments[0]]
+            csck = csockets[csck_id]
+            value = host_mem[instr.arguments[1]]
             self._logger.info(f"sending msg {value}")
             csck.send(value)
         elif isinstance(instr, iqoala.ReceiveCMsgOp):
+            csck_id = host_mem[instr.arguments[0]]
+            csck = csockets[csck_id]
             msg = yield from csck.recv()
             msg = int(msg)
             host_mem[instr.results[0]] = msg

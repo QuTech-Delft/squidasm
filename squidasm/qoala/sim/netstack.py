@@ -45,7 +45,9 @@ from squidasm.qoala.sim.common import (
     PortListener,
 )
 from squidasm.qoala.sim.egp import EgpProtocol
+from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.memory import ProgramMemory
+from squidasm.qoala.sim.netstackcomp import NetstackComponent
 from squidasm.qoala.sim.signals import (
     SIGNAL_MEMORY_FREED,
     SIGNAL_PEER_NSTK_MSG,
@@ -58,70 +60,6 @@ if TYPE_CHECKING:
 PI = math.pi
 PI_OVER_2 = math.pi / 2
 
-
-class NetstackComponent(Component):
-    """NetSquid component representing the network stack in QNodeOS.
-
-    Subcomponent of a QnosComponent.
-
-    Has communications ports with
-     - the processor component of this QNodeOS
-     - the netstack compmonent of the remote node
-        NOTE: at this moment only a single other node is supported in the network
-
-    This is a static container for network-stack-related components and ports.
-    Behavior of a QNodeOS network stack is modeled in the `NetProcNode` class,
-    which is a subclass of `Protocol`.
-    """
-
-    def __init__(self, node: Node, global_env: GlobalEnvironment) -> None:
-        super().__init__(f"{node.name}_netstack")
-        self._node = node
-        self.add_ports(["proc_out", "proc_in"])
-
-        self._peer_in_ports: Dict[str, str] = {}  # peer name -> port name
-        self._peer_out_ports: Dict[str, str] = {}  # peer name -> port name
-
-        for node in global_env.get_nodes().values():
-            port_in_name = f"peer_{node.name}_in"
-            port_out_name = f"peer_{node.name}_out"
-            self._peer_in_ports[node.name] = port_in_name
-            self._peer_out_ports[node.name] = port_out_name
-
-        self.add_ports(self._peer_in_ports.values())
-        self.add_ports(self._peer_out_ports.values())
-
-    @property
-    def processor_in_port(self) -> Port:
-        return self.ports["proc_in"]
-
-    @property
-    def processor_out_port(self) -> Port:
-        return self.ports["proc_out"]
-
-    def peer_in_port(self, name: str) -> Port:
-        port_name = self._peer_in_ports[name]
-        return self.ports[port_name]
-
-    def peer_out_port(self, name: str) -> Port:
-        port_name = self._peer_out_ports[name]
-        return self.ports[port_name]
-
-    @property
-    def node(self) -> Node:
-        return self._node
-
-
-@dataclass
-class EprSocket:
-    """EPR Socket. Allows for EPR pair generation with a single remote node.
-
-    Multiple EPR Sockets may be created for a single pair of nodes. These
-    sockets have a different ID, and may e.g be used for EPR generation requests
-    with different parameters."""
-
-    socket_id: int
-    remote_id: int
 
 
 class Netstack(ComponentProtocol):

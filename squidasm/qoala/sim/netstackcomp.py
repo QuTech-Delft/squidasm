@@ -1,26 +1,37 @@
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Type
+import math
+from typing import TYPE_CHECKING, Dict, Generator, List, Optional
 
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
+from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import GlobalEnvironment
 
+PI = math.pi
+PI_OVER_2 = math.pi / 2
 
-class HostComponent(Component):
-    """NetSquid component representing a Host.
 
-    Subcomponent of a ProcNodeComponent.
+class NetstackComponent(Component):
+    """NetSquid component representing the network stack in QNodeOS.
 
-    This is a static container for Host-related components and ports. Behavior
-    of a Host is modeled in the `Host` class, which is a subclass of `Protocol`.
+    Subcomponent of a QnosComponent.
+
+    Has communications ports with
+     - the processor component of this QNodeOS
+     - the netstack compmonent of the remote node
+        NOTE: at this moment only a single other node is supported in the network
+
+    This is a static container for network-stack-related components and ports.
+    Behavior of a QNodeOS network stack is modeled in the `NetProcNode` class,
+    which is a subclass of `Protocol`.
     """
 
     def __init__(self, node: Node, global_env: GlobalEnvironment) -> None:
-        super().__init__(f"{node.name}_host")
+        super().__init__(f"{node.name}_netstack")
+        self._node = node
+        self.add_ports(["qnos_out", "qnos_in"])
 
         self._peer_in_ports: Dict[str, str] = {}  # peer name -> port name
         self._peer_out_ports: Dict[str, str] = {}  # peer name -> port name
@@ -33,8 +44,6 @@ class HostComponent(Component):
 
         self.add_ports(self._peer_in_ports.values())
         self.add_ports(self._peer_out_ports.values())
-
-        self.add_ports(["qnos_in", "qnos_out"])
 
     @property
     def qnos_in_port(self) -> Port:
@@ -51,3 +60,7 @@ class HostComponent(Component):
     def peer_out_port(self, name: str) -> Port:
         port_name = self._peer_out_ports[name]
         return self.ports[port_name]
+
+    @property
+    def node(self) -> Node:
+        return self._node

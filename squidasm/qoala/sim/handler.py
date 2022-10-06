@@ -27,8 +27,8 @@ from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
 from squidasm.qoala.sim.signals import SIGNAL_HOST_HAND_MSG, SIGNAL_PROC_HAND_MSG
 
 if TYPE_CHECKING:
-    from squidasm.qoala.sim.processor import ProcessorComponent
     from squidasm.qoala.sim.qnos import Qnos, QnosComponent
+    from squidasm.qoala.sim.qnosprocessor import ProcessorComponent
 
 
 class HandlerComponent(Component):

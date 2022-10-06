@@ -14,114 +14,14 @@ from squidasm.qoala.sim.common import NVPhysicalQuantumMemory, PhysicalQuantumMe
 from squidasm.qoala.sim.handler import Handler, HandlerComponent
 from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
 from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
-from squidasm.qoala.sim.processor import (
+from squidasm.qoala.sim.process import IqoalaProcess
+from squidasm.qoala.sim.qnoscomp import QnosComponent
+from squidasm.qoala.sim.qnosprocessor import (
     GenericProcessor,
     NVProcessor,
     Processor,
     ProcessorComponent,
 )
-
-
-class QnosComponent(Component):
-    """NetSquid component representing a QNodeOS instance.
-
-    Subcomponent of a ProcNodeComponent.
-
-    This is a static container for QNodeOS-related components and ports.
-    Behavior of a QNodeOS instance is modeled in the `Qnos` class,
-    which is a subclass of `Protocol`.
-    """
-
-    def __init__(self, node: Node, global_env: GlobalEnvironment) -> None:
-        super().__init__(name=f"{node.name}_qnos")
-        self._node = node
-
-        # Ports for communicating with Host
-        self.add_ports(["host_out", "host_in"])
-
-        self._peer_in_ports: Dict[str, str] = {}  # peer name -> port name
-        self._peer_out_ports: Dict[str, str] = {}  # peer name -> port name
-
-        all_nodes = global_env.get_nodes().values()
-        self._peers = list(node.name for node in all_nodes)
-
-        for peer in self._peers:
-            port_in_name = f"peer_{peer}_in"
-            port_out_name = f"peer_{peer}_out"
-            self._peer_in_ports[peer] = port_in_name
-            self._peer_out_ports[peer] = port_out_name
-
-        self.add_ports(self._peer_in_ports.values())
-        self.add_ports(self._peer_out_ports.values())
-
-        comp_handler = HandlerComponent(node)
-        self.add_subcomponent(comp_handler, "handler")
-
-        comp_processor = ProcessorComponent(node)
-        self.add_subcomponent(comp_processor, "processor")
-
-        comp_netstack = NetstackComponent(node, global_env)
-        self.add_subcomponent(comp_netstack, "netstack")
-
-        for peer in self._peer_in_ports.keys():
-            self.netstack_comp.peer_out_port(peer).forward_output(
-                self.peer_out_port(peer)
-            )
-        for peer in self._peer_out_ports.keys():
-            self.peer_in_port(peer).forward_input(self.netstack_comp.peer_in_port(peer))
-
-        self.handler_comp.ports["host_out"].forward_output(self.host_out_port)
-        self.host_in_port.forward_input(self.handler_comp.ports["host_in"])
-
-        self.handler_comp.processor_out_port.connect(
-            self.processor_comp.handler_in_port
-        )
-        self.handler_comp.processor_in_port.connect(
-            self.processor_comp.handler_out_port
-        )
-
-        self.processor_comp.netstack_out_port.connect(
-            self.netstack_comp.processor_in_port
-        )
-        self.processor_comp.netstack_in_port.connect(
-            self.netstack_comp.processor_out_port
-        )
-
-    @property
-    def handler_comp(self) -> HandlerComponent:
-        return self.subcomponents["handler"]
-
-    @property
-    def processor_comp(self) -> ProcessorComponent:
-        return self.subcomponents["processor"]
-
-    @property
-    def netstack_comp(self) -> NetstackComponent:
-        return self.subcomponents["netstack"]
-
-    @property
-    def qdevice(self) -> QuantumProcessor:
-        return self.node.qmemory
-
-    @property
-    def host_in_port(self) -> Port:
-        return self.ports["host_in"]
-
-    @property
-    def host_out_port(self) -> Port:
-        return self.ports["host_out"]
-
-    def peer_in_port(self, name: str) -> Port:
-        port_name = self._peer_in_ports[name]
-        return self.ports[port_name]
-
-    def peer_out_port(self, name: str) -> Port:
-        port_name = self._peer_out_ports[name]
-        return self.ports[port_name]
-
-    @property
-    def node(self) -> Node:
-        return self._node
 
 
 class Qnos(Protocol):
@@ -162,6 +62,8 @@ class Qnos(Protocol):
         # Subroutines contained in programs that are being run.
         # Nested mapping of program ID -> (subroutine name -> subroutine)
         self._program_subroutines: Dict[int, Dict[str, Subroutine]]
+
+        self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
 
     # TODO: move this to a separate memory manager object
     def get_virt_qubit_for_phys_id(self, phys_id: int) -> Tuple[int, int]:
@@ -231,3 +133,13 @@ class Qnos(Protocol):
         self._processor.stop()
         self._handler.stop()
         super().stop()
+
+    @property
+    def program_memories(self) -> Dict[int, ProgramMemory]:
+        """Get a dictionary of program IDs to their shared memories."""
+        return self._qnos.program_memories
+
+    @property
+    def physical_memory(self) -> PhysicalQuantumMemory:
+        """Get the physical quantum memory object."""
+        return self._qnos.physical_memory

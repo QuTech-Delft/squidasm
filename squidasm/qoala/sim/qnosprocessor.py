@@ -42,6 +42,8 @@ from squidasm.qoala.sim.common import (
 )
 from squidasm.qoala.sim.globals import GlobalSimData
 from squidasm.qoala.sim.memory import ProgramMemory, SharedMemory
+from squidasm.qoala.sim.process import IqoalaProcess
+from squidasm.qoala.sim.qnosinterface import QnosInterface
 from squidasm.qoala.sim.signals import (
     SIGNAL_HAND_PROC_MSG,
     SIGNAL_MEMORY_FREED,
@@ -55,75 +57,11 @@ PI = math.pi
 PI_OVER_2 = math.pi / 2
 
 
-class ProcessorComponent(Component):
-    """NetSquid component representing a QNodeOS processor.
+class QnosProcessor:
+    """Does not have state itself."""
 
-    Subcomponent of a QnosComponent.
-
-    Has communications ports with
-     - the netstack component of this QNodeOS
-     - the handler compmonent of this QNodeOS
-
-    This is a static container for processor-related components and ports.
-    Behavior of a QNodeOS processor is modeled in the `Processor` class,
-    which is a subclass of `Protocol`.
-    """
-
-    def __init__(self, node: Node) -> None:
-        super().__init__(f"{node.name}_processor")
-        self._node = node
-        self.add_ports(["nstk_out", "nstk_in"])
-        self.add_ports(["hand_out", "hand_in"])
-
-    @property
-    def netstack_in_port(self) -> Port:
-        return self.ports["nstk_in"]
-
-    @property
-    def netstack_out_port(self) -> Port:
-        return self.ports["nstk_out"]
-
-    @property
-    def handler_in_port(self) -> Port:
-        return self.ports["hand_in"]
-
-    @property
-    def handler_out_port(self) -> Port:
-        return self.ports["hand_out"]
-
-    @property
-    def qdevice(self) -> QuantumProcessor:
-        return self.supercomponent.qdevice
-
-    @property
-    def node(self) -> Node:
-        return self._node
-
-
-class Processor(ComponentProtocol):
-    """NetSquid protocol representing a QNodeOS processor."""
-
-    def __init__(self, comp: ProcessorComponent, qnos: Qnos) -> None:
-        """Processor protocol constructor. Typically created indirectly through
-        constructing a `Qnos` instance.
-
-        :param comp: NetSquid component representing the processor
-        :param qnos: `Qnos` protocol that owns this protocol
-        """
-        super().__init__(name=f"{comp.name}_protocol", comp=comp)
-        self._comp = comp
-        self._qnos = qnos
-
-        self.add_listener(
-            "handler",
-            PortListener(self._comp.ports["hand_in"], SIGNAL_HAND_PROC_MSG),
-        )
-        self.add_listener(
-            "netstack",
-            PortListener(self._comp.ports["nstk_in"], SIGNAL_NSTK_PROC_MSG),
-        )
-
-        self.add_signal(SIGNAL_MEMORY_FREED)
+    def __init__(self, interface: QnosInterface) -> None:
+        self._interface = interface
 
     @property
     def program_memories(self) -> Dict[int, ProgramMemory]:
