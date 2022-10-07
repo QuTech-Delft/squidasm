@@ -52,7 +52,7 @@ class QnosProcessor:
         # TODO: rewrite
         self._node_name = interface._comp.node.name
 
-        self._logger: logging.Logger = LogManager.get_stack_logger(
+        self._logger: logging.Logger = LogManager.get_stack_logger(  # type: ignore
             f"{self.__class__.__name__}({self._node_name})"
         )
 
@@ -147,7 +147,7 @@ class QnosProcessor:
 
     def _interpret_breakpoint(
         self, pid: int, instr: core.BreakpointInstruction
-    ) -> None:
+    ) -> Optional[Generator[EventExpression, None, None]]:
         if instr.action.value == 0:
             self._logger.info("BREAKPOINT: no action taken")
         elif instr.action.value == 1:
@@ -184,12 +184,17 @@ class QnosProcessor:
         else:
             raise ValueError
 
-    def _interpret_set(self, pid: int, instr: core.SetInstruction) -> None:
+    def _interpret_set(
+        self, pid: int, instr: core.SetInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         self._logger.debug(f"Set register {instr.reg} to {instr.imm}")
         shared_mem = self._prog_mem().shared_mem
         shared_mem.set_reg_value(instr.reg, instr.imm.value)
+        return None
 
-    def _interpret_qalloc(self, pid: int, instr: core.QAllocInstruction) -> None:
+    def _interpret_qalloc(
+        self, pid: int, instr: core.QAllocInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
 
         virt_id = shared_mem.get_reg_value(instr.reg)
@@ -199,8 +204,11 @@ class QnosProcessor:
 
         phys_id = self.qdevice.allocate()
         shared_mem.map_virt_id(virt_id, phys_id)
+        return None
 
-    def _interpret_qfree(self, pid: int, instr: core.QFreeInstruction) -> None:
+    def _interpret_qfree(
+        self, pid: int, instr: core.QFreeInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
         q_mem = self._prog_mem().quantum_mem
 
@@ -213,8 +221,11 @@ class QnosProcessor:
         self.qdevice.free(phys_id)
         self.send_signal(SIGNAL_MEMORY_FREED)
         self.qdevice.mem_positions[phys_id].in_use = False
+        return None
 
-    def _interpret_store(self, pid: int, instr: core.StoreInstruction) -> None:
+    def _interpret_store(
+        self, pid: int, instr: core.StoreInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
 
         value = shared_mem.get_reg_value(instr.reg)
@@ -226,8 +237,11 @@ class QnosProcessor:
         )
 
         shared_mem.set_array_entry(instr.entry, value)
+        return None
 
-    def _interpret_load(self, pid: int, instr: core.LoadInstruction) -> None:
+    def _interpret_load(
+        self, pid: int, instr: core.LoadInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
 
         value = shared_mem.get_array_entry(instr.entry)
@@ -239,20 +253,29 @@ class QnosProcessor:
         )
 
         shared_mem.set_reg_value(instr.reg, value)
+        return None
 
-    def _interpret_lea(self, pid: int, instr: core.LeaInstruction) -> None:
+    def _interpret_lea(
+        self, pid: int, instr: core.LeaInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
         self._logger.debug(
             f"Storing address of {instr.address} to register {instr.reg}"
         )
         shared_mem.set_reg_value(instr.reg, instr.address.address)
+        return None
 
-    def _interpret_undef(self, pid: int, instr: core.UndefInstruction) -> None:
+    def _interpret_undef(
+        self, pid: int, instr: core.UndefInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
         self._logger.debug(f"Unset array entry {instr.entry}")
         shared_mem.set_array_entry(instr.entry, None)
+        return None
 
-    def _interpret_array(self, pid: int, instr: core.ArrayInstruction) -> None:
+    def _interpret_array(
+        self, pid: int, instr: core.ArrayInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
 
         length = shared_mem.get_reg_value(instr.size)
@@ -262,6 +285,7 @@ class QnosProcessor:
         )
 
         shared_mem.init_new_array(instr.address.address, length)
+        return None
 
     def _interpret_branch_instr(
         self,
@@ -271,7 +295,7 @@ class QnosProcessor:
             core.BranchBinaryInstruction,
             core.JmpInstruction,
         ],
-    ) -> None:
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
         a, b = None, None
         registers = []
@@ -303,6 +327,7 @@ class QnosProcessor:
                 f"is False, with values from registers {registers}"
             )
             shared_mem.increment_prog_counter()
+        return None
 
     def _interpret_binary_classical_instr(
         self,
@@ -311,7 +336,7 @@ class QnosProcessor:
             core.ClassicalOpInstruction,
             core.ClassicalOpModInstruction,
         ],
-    ) -> None:
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
         mod = None
         if isinstance(instr, core.ClassicalOpModInstruction):
@@ -329,6 +354,7 @@ class QnosProcessor:
             f"and storing the value {value} at register {instr.regout}"
         )
         shared_mem.set_reg_value(instr.regout, value)
+        return None
 
     def _compute_binary_classical_instr(
         self, instr: NetQASMInstruction, a: int, b: int, mod: Optional[int] = 1
@@ -415,7 +441,9 @@ class QnosProcessor:
     ) -> Generator[EventExpression, None, None]:
         raise NotImplementedError
 
-    def _interpret_create_epr(self, pid: int, instr: core.CreateEPRInstruction) -> None:
+    def _interpret_create_epr(
+        self, pid: int, instr: core.CreateEPRInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
         remote_node_id = shared_mem.get_reg_value(instr.remote_node_id)
         epr_socket_id = shared_mem.get_reg_value(instr.epr_socket_id)
@@ -447,8 +475,11 @@ class QnosProcessor:
         self._interface.send_netstack_msg(msg)
         # result = yield from self._interface.receive_netstack_msg()
         # self._logger.debug(f"result from netstack: {result}")
+        return None
 
-    def _interpret_recv_epr(self, pid: int, instr: core.RecvEPRInstruction) -> None:
+    def _interpret_recv_epr(
+        self, pid: int, instr: core.RecvEPRInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
         remote_node_id = shared_mem.get_reg_value(instr.remote_node_id)
         epr_socket_id = shared_mem.get_reg_value(instr.epr_socket_id)
@@ -476,6 +507,7 @@ class QnosProcessor:
         self._interface.send_netstack_msg(msg)
         # result = yield from self._interface.receive_netstack_msg()
         # self._logger.debug(f"result from netstack: {result}")
+        return None
 
     def _interpret_wait_all(
         self, pid: int, instr: core.WaitAllInstruction
@@ -510,11 +542,15 @@ class QnosProcessor:
 
         self._logger.info(f"\nFinished waiting for array slice {instr.slice}")
 
-    def _interpret_ret_reg(self, pid: int, instr: core.RetRegInstruction) -> None:
-        pass
+    def _interpret_ret_reg(
+        self, pid: int, instr: core.RetRegInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
+        return None
 
-    def _interpret_ret_arr(self, pid: int, instr: core.RetArrInstruction) -> None:
-        pass
+    def _interpret_ret_arr(
+        self, pid: int, instr: core.RetArrInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
+        return None
 
     def _interpret_single_qubit_instr(
         self, pid: int, instr: core.SingleQubitInstruction
@@ -631,7 +667,9 @@ class GenericProcessor(QnosProcessor):
 class NVProcessor(QnosProcessor):
     """A `Processor` for nodes with a NV hardware."""
 
-    def _interpret_qalloc(self, pid: int, instr: core.QAllocInstruction) -> None:
+    def _interpret_qalloc(
+        self, pid: int, instr: core.QAllocInstruction
+    ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
         q_mem = self._prog_mem().quantum_mem
 
@@ -646,6 +684,7 @@ class NVProcessor(QnosProcessor):
         else:
             phys_id = self.qdevice.allocate_comm()
         q_mem.map_virt_id(virt_id, phys_id)
+        return None
 
     def _interpret_init(
         self, pid: int, instr: core.InitInstruction
