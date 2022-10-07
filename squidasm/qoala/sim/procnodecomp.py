@@ -5,21 +5,12 @@ from typing import Dict, List, Optional
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Port
 from netsquid.nodes import Node
-from netsquid.nodes.network import Network
-from netsquid.protocols import Protocol
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocol,
-    MagicLinkLayerProtocolWithSignaling,
-)
 
-from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.runtime.program import BatchInfo
-from squidasm.qoala.sim.host import Host
+from squidasm.qoala.runtime.environment import GlobalEnvironment
 from squidasm.qoala.sim.hostcomp import HostComponent
-from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
-from squidasm.qoala.sim.qnos import Qnos
+from squidasm.qoala.sim.netstack import NetstackComponent
 from squidasm.qoala.sim.qnoscomp import QnosComponent
-from squidasm.qoala.sim.scheduler import Scheduler, SchedulerComponent
+from squidasm.qoala.sim.scheduler import SchedulerComponent
 
 
 class ProcNodeComponent(Node):
@@ -61,8 +52,8 @@ class ProcNodeComponent(Node):
         host_comp = HostComponent(self, global_env)
         self.add_subcomponent(host_comp, "host")
 
-        comp_netstack = NetstackComponent(self, global_env)
-        self.add_subcomponent(comp_netstack, "netstack")
+        netstack_comp = NetstackComponent(self, global_env)
+        self.add_subcomponent(netstack_comp, "netstack")
 
         scheduler_comp = SchedulerComponent(self)
         self.add_subcomponent(scheduler_comp, "scheduler")
@@ -116,6 +107,10 @@ class ProcNodeComponent(Node):
     @property
     def host_comp(self) -> HostComponent:
         return self.subcomponents["host"]
+
+    @property
+    def netstack_comp(self) -> NetstackComponent:
+        return self.subcomponents["netstack"]
 
     @property
     def scheduler_comp(self) -> SchedulerComponent:

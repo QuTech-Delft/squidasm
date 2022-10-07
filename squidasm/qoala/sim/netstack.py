@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, Generator, List, Optional
+from typing import Dict, Generator, List, Optional
 
 import netsquid as ns
 from netqasm.sdk.build_epr import (
@@ -16,10 +14,8 @@ from netqasm.sdk.build_epr import (
     SER_RESPONSE_MEASURE_LEN,
 )
 from netsquid.components import QuantumProcessor
-from netsquid.components.component import Component, Port
 from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z
 from netsquid.components.qprogram import QuantumProgram
-from netsquid.nodes import Node
 from netsquid.qubits.ketstates import BellIndex
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from qlink_interface import (
@@ -33,7 +29,7 @@ from qlink_interface import (
 from qlink_interface.interface import ReqRemoteStatePrep
 
 from pydynaa import EventExpression
-from squidasm.qoala.runtime.environment import GlobalEnvironment
+from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.sim.common import (
     AllocError,
     ComponentProtocol,
@@ -42,27 +38,32 @@ from squidasm.qoala.sim.common import (
     NetstackCreateRequest,
     NetstackReceiveRequest,
     PhysicalQuantumMemory,
-    PortListener,
 )
 from squidasm.qoala.sim.constants import PI
 from squidasm.qoala.sim.egp import EgpProtocol
 from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.memory import ProgramMemory
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
+from squidasm.qoala.sim.netstackinterface import NetstackInterface
+from squidasm.qoala.sim.qdevice import QDevice
+from squidasm.qoala.sim.scheduler import Scheduler
 from squidasm.qoala.sim.signals import (
     SIGNAL_MEMORY_FREED,
     SIGNAL_PEER_NSTK_MSG,
     SIGNAL_PROC_NSTK_MSG,
 )
 
-if TYPE_CHECKING:
-    from squidasm.qoala.sim.qnos import Qnos
-
 
 class Netstack(ComponentProtocol):
     """NetSquid protocol representing the QNodeOS network stack."""
 
-    def __init__(self, comp: NetstackComponent, qnos: Qnos) -> None:
+    def __init__(
+        self,
+        comp: NetstackComponent,
+        local_env: LocalEnvironment,
+        scheduler: Scheduler,
+        qdevice: QDevice,
+    ) -> None:
         """Network stack protocol constructor. Typically created indirectly through
         constructing a `Qnos` instance.
 
@@ -70,28 +71,15 @@ class Netstack(ComponentProtocol):
         :param qnos: `Qnos` protocol that owns this protocol
         """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
+
+        # References to objects.
         self._comp = comp
-        self._qnos = qnos
+        self._scheduler = scheduler
+        self._local_env = local_env
 
-        # TODO rewrite
-        self._local_env = qnos._local_env
-        all_nodes = self._local_env.get_global_env().get_nodes().values()
-        self._peers: List[str] = list(node.name for node in all_nodes)
-
-        self.add_listener(
-            "processor",
-            PortListener(self._comp.processor_in_port, SIGNAL_PROC_NSTK_MSG),
-        )
-        for peer in self._peers:
-            self.add_listener(
-                f"peer_{peer}",
-                PortListener(
-                    self._comp.peer_in_port(peer), f"{SIGNAL_PEER_NSTK_MSG}_{peer}"
-                ),
-            )
-
+        # Owned objects.
+        self._interface = NetstackInterface(comp, local_env, qdevice)
         self._egps: Dict[int, EgpProtocol] = {}
-        self._epr_sockets: Dict[int, List[EprSocket]] = {}  # app ID -> [socket]
 
     def assign_ll_protocol(
         self, remote_id: int, prot: MagicLinkLayerProtocolWithSignaling

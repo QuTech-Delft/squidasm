@@ -1,17 +1,10 @@
 from __future__ import annotations
 
-from concurrent.futures import process
 from typing import Dict, List, Optional
 
 from netsquid.components import QuantumProcessor
-from netsquid.components.component import Port
-from netsquid.nodes import Node
-from netsquid.nodes.network import Network
 from netsquid.protocols import Protocol
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocol,
-    MagicLinkLayerProtocolWithSignaling,
-)
+from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
 from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
 from squidasm.qoala.runtime.program import (
@@ -85,15 +78,21 @@ class ProcNode(Protocol):
 
         self._host: Optional[Host] = None
         self._qnos: Optional[Qnos] = None
+        self._netstack: Optional[Netstack] = None
         self._scheduler: Optional[Scheduler] = None
 
         # Create internal components.
         # If `use_default_components` is False, these components must be manually
         # created and added to this ProcNode.
         if use_default_components:
-            self._host = Host(self.host_comp, self._local_env, qdevice_type)
-            self._qnos = Qnos(self.qnos_comp, self._local_env, qdevice_type)
-            self._scheduler = Scheduler(self.scheduler_comp, self._host, self._qnos)
+            self._scheduler = Scheduler(self._node.name)
+            self._host = Host(self.host_comp, self._local_env, self.scheduler)
+            self._qnos = Qnos(
+                self.qnos_comp, self._local_env, self.scheduler, self.qdevice
+            )
+            self._nestack = Netstack(
+                self.netstack_comp, self._local_env, self.scheduler, self.qdevice
+            )
 
         self._qdevice: QDevice
         if qdevice_type == "generic":
@@ -137,6 +136,10 @@ class ProcNode(Protocol):
     @property
     def qnos_comp(self) -> QnosComponent:
         return self.node.qnos_comp
+
+    @property
+    def netstack_comp(self) -> NetstackComponent:
+        return self.node.netstack_comp
 
     @property
     def scheduler_comp(self) -> SchedulerComponent:
@@ -183,6 +186,7 @@ class ProcNode(Protocol):
     def start(self) -> None:
         assert self._host is not None
         assert self._qnos is not None
+        # assert self._net is not None
         super().start()
         self._scheduler.start()
         self._host.start()

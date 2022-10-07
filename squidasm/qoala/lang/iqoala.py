@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Dict, List, Optional, Type, Union
 
 from netqasm.lang.instr import NetQASMInstruction
 from netqasm.lang.instr.flavour import NVFlavour

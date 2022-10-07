@@ -1,67 +1,21 @@
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, Generator, List, Optional
-
-import netsquid as ns
-from netqasm.sdk.build_epr import (
-    SER_CREATE_IDX_NUMBER,
-    SER_CREATE_IDX_TYPE,
-    SER_RESPONSE_KEEP_IDX_BELL_STATE,
-    SER_RESPONSE_KEEP_IDX_GOODNESS,
-    SER_RESPONSE_KEEP_LEN,
-    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_BASIS,
-    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_OUTCOME,
-    SER_RESPONSE_MEASURE_LEN,
-)
-from netsquid.components import QuantumProcessor
-from netsquid.components.component import Component, Port
-from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z
-from netsquid.components.qprogram import QuantumProgram
-from netsquid.nodes import Node
-from netsquid.qubits.ketstates import BellIndex
-from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
-from qlink_interface import (
-    ReqCreateAndKeep,
-    ReqCreateBase,
-    ReqMeasureDirectly,
-    ReqReceive,
-    ResCreateAndKeep,
-    ResMeasureDirectly,
-)
-from qlink_interface.interface import ReqRemoteStatePrep
+from typing import Generator
 
 from pydynaa import EventExpression
-from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.sim.common import (
-    AllocError,
-    ComponentProtocol,
-    NetstackBreakpointCreateRequest,
-    NetstackBreakpointReceiveRequest,
-    NetstackCreateRequest,
-    NetstackReceiveRequest,
-    PhysicalQuantumMemory,
-    PortListener,
-)
-from squidasm.qoala.sim.egp import EgpProtocol
-from squidasm.qoala.sim.eprsocket import EprSocket
-from squidasm.qoala.sim.memory import ProgramMemory
+from squidasm.qoala.runtime.environment import LocalEnvironment
+from squidasm.qoala.sim.common import ComponentProtocol, PortListener
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
-from squidasm.qoala.sim.signals import (
-    SIGNAL_MEMORY_FREED,
-    SIGNAL_PEER_NSTK_MSG,
-    SIGNAL_PROC_NSTK_MSG,
-)
-
-if TYPE_CHECKING:
-    from squidasm.qoala.sim.qnos import Qnos
+from squidasm.qoala.sim.qdevice import QDevice
+from squidasm.qoala.sim.signals import SIGNAL_PEER_NSTK_MSG, SIGNAL_PROC_NSTK_MSG
 
 
 class NetstackInterface(ComponentProtocol):
     """NetSquid protocol representing the QNodeOS network stack."""
 
-    def __init__(self, comp: NetstackComponent, local_env: LocalEnvironment) -> None:
+    def __init__(
+        self, comp: NetstackComponent, local_env: LocalEnvironment, qdevice: QDevice
+    ) -> None:
         """Network stack protocol constructor. Typically created indirectly through
         constructing a `Qnos` instance.
 
@@ -70,7 +24,7 @@ class NetstackInterface(ComponentProtocol):
         """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
         self._comp = comp
-
+        self._qdevice = qdevice
         self._local_env = local_env
 
         self.add_listener(
@@ -110,3 +64,7 @@ class NetstackInterface(ComponentProtocol):
                 f"peer_{peer}", f"{SIGNAL_PEER_NSTK_MSG}_{peer}"
             )
         )
+
+    @property
+    def qdevice(self) -> QDevice:
+        return self._qdevice

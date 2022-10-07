@@ -1,20 +1,12 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
-from netqasm.lang.subroutine import Subroutine
-from netsquid.components import QuantumProcessor
-from netsquid.components.component import Component, Port
-from netsquid.nodes import Node
 from netsquid.protocols import Protocol
-from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
-from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.sim.common import NVPhysicalQuantumMemory, PhysicalQuantumMemory
-from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
-from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
+from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.sim.process import IqoalaProcess
-from squidasm.qoala.sim.qdevice import QDevice, QDeviceType
+from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice, QDeviceType
 from squidasm.qoala.sim.qnoscomp import QnosComponent
 from squidasm.qoala.sim.qnosinterface import QnosInterface
 from squidasm.qoala.sim.qnosprocessor import (
@@ -41,20 +33,24 @@ class Qnos(Protocol):
         :param qdevice_type: hardware type of the QDevice of this node
         """
         super().__init__(name=f"{comp.name}_protocol")
-        self._comp = comp
-        self._interface = QnosInterface(comp)
 
+        # References to objects.
+        self._comp = comp
+        self._scheduler = scheduler
         self._local_env = local_env
 
+        # Owned objects.
+        self._interface = QnosInterface(comp, qdevice)
+        self._processor: QnosProcessor
+        self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
+        # TODO: make self._processes fully referenced object?
+
         if qdevice.typ == QDeviceType.GENERIC:
-            self.processor = GenericProcessor()
+            self._processor = GenericProcessor()
         elif qdevice.typ == QDeviceType.NV:
-            self.processor = NVProcessor()
+            self._processor = NVProcessor()
         else:
             raise ValueError
-
-        self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
-        self._scheduler = scheduler
 
     # TODO: move this to a separate memory manager object
     def get_virt_qubit_for_phys_id(self, phys_id: int) -> Tuple[int, int]:
@@ -75,7 +71,7 @@ class Qnos(Protocol):
 
     @property
     def physical_memory(self) -> PhysicalQuantumMemory:
-        return self._physical_memory
+        return self._interface.qdevice.memory
 
     def start(self) -> None:
         super().start()
@@ -84,8 +80,3 @@ class Qnos(Protocol):
     def stop(self) -> None:
         self._interface.stop()
         super().stop()
-
-    @property
-    def physical_memory(self) -> PhysicalQuantumMemory:
-        """Get the physical quantum memory object."""
-        return self._qnos.physical_memory

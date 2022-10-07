@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Type
+from typing import Generator
 
 from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import LocalEnvironment

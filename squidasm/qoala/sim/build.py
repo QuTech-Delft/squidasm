@@ -42,9 +42,8 @@ from squidasm.qoala.runtime.config import (
     ProcNodeNetworkConfig,
 )
 from squidasm.qoala.runtime.environment import GlobalEnvironment, GlobalNodeInfo
-from squidasm.qoala.sim.build import build_generic_qdevice, build_nv_qdevice
-from squidasm.qoala.sim.procnode import ProcNode, ProcNodeNetwork
-from squidasm.run.stack.config import GenericQDeviceConfig, NVQDeviceConfig
+from squidasm.qoala.sim.network import ProcNodeNetwork
+from squidasm.qoala.sim.procnode import ProcNode
 
 
 # TODO: move this to somewhere else

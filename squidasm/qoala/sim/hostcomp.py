@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Type
+from typing import Dict
 
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node

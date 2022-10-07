@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Type
+from typing import Dict, Generator
 
-from netqasm.backend.messages import StopAppMessage
+import netsquid as ns
 
-from pydynaa import EventExpression
+from pydynaa import EventExpression, EventType
 from squidasm.qoala.runtime.environment import LocalEnvironment
-from squidasm.qoala.runtime.program import BatchResult
 from squidasm.qoala.sim.common import ComponentProtocol
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.hostcomp import HostComponent
 from squidasm.qoala.sim.hostinterface import HostInterface
 from squidasm.qoala.sim.hostprocessor import HostProcessor, IqoalaProcess
 from squidasm.qoala.sim.scheduler import Scheduler
+
+EVENT_WAIT = EventType("SCHEDULER_WAIT", "scheduler wait")
 
 
 class Host(ComponentProtocol):
@@ -24,7 +24,6 @@ class Host(ComponentProtocol):
         comp: HostComponent,
         local_env: LocalEnvironment,
         scheduler: Scheduler,
-        qdevice_type: Optional[str] = "nv",
     ) -> None:
         """Host protocol constructor.
 
@@ -32,13 +31,16 @@ class Host(ComponentProtocol):
         :param qdevice_type: hardware type of the QDevice of this node
         """
         super().__init__(name=f"{comp.name}_protocol", comp=comp)
-        self._comp = comp
-        self._interface = HostInterface(comp, local_env)
 
+        # References to objects.
+        self._comp = comp
+        self._scheduler = scheduler
+        self._local_env = local_env
+
+        # Owned objects.
+        self._interface = HostInterface(comp, local_env)
         self._processor = HostProcessor(self)
         self._processes: Dict[int, IqoalaProcess] = {}
-
-        self._scheduler = scheduler
 
     @property
     def processor(self) -> HostProcessor:
@@ -71,3 +73,13 @@ class Host(ComponentProtocol):
 
     def add_process(self, process: IqoalaProcess) -> None:
         self._processes[process.prog_instance.pid] = process
+
+    def wait_until_next_slot(self) -> Generator[EventExpression, None, None]:
+        now = ns.sim_time()
+        next_slot = self._local_schedule.next_slot(now)
+        delta = next_slot - now
+        self._logger.warning(f"next slot = {next_slot}")
+        self._logger.warning(f"delta = {delta}")
+        self._schedule_after(delta, EVENT_WAIT)
+        event_expr = EventExpression(source=self, event_type=EVENT_WAIT)
+        yield event_expr

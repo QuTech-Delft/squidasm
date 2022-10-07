@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Generator, Optional, Union
-
-from netsquid.components import QuantumProcessor
-from netsquid.components.instructions import Instruction as NsInstr
-from netsquid.components.qprogram import QuantumProgram
+from typing import Any, Generator
 
 from pydynaa import EventExpression
 from squidasm.qoala.sim.common import ComponentProtocol, PortListener

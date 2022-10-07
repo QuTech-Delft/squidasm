@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Generator
+from typing import Generator
 
 from netqasm.backend.messages import SubroutineMessage
 from netqasm.lang.operand import Register

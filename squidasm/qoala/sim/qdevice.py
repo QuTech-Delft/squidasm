@@ -88,6 +88,10 @@ class QDevice:
     def typ(self) -> QDeviceType:
         return self._typ
 
+    @property
+    def memory(self) -> PhysicalQuantumMemory:
+        return self._memory
+
     def allocate(self) -> int:
         return self._memory.allocate()
 

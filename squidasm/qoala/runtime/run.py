@@ -11,7 +11,7 @@ from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.runtime.schedule import Schedule
 from squidasm.qoala.sim.build import build_network
 from squidasm.qoala.sim.globals import GlobalSimData
-from squidasm.qoala.sim.procnode import ProcNodeNetwork
+from squidasm.qoala.sim.network import ProcNodeNetwork
 
 
 def _run(network: ProcNodeNetwork) -> List[Dict[str, Any]]:
@@ -60,6 +60,7 @@ def run(
     sim_data = GlobalSimData()
     sim_data.set_network(network)
     context = SimulationContext(global_env=rte, global_sim_data=sim_data)
+    print(context)
 
     for name, program_list in programs.items():
         for program in program_list:

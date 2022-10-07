@@ -1,24 +1,9 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
-
-from netqasm.lang.subroutine import Subroutine
-from netsquid.components import QuantumProcessor
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
-from netsquid.protocols import Protocol
-from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
-from squidasm.qoala.runtime.environment import GlobalEnvironment, LocalEnvironment
-from squidasm.qoala.sim.common import NVPhysicalQuantumMemory, PhysicalQuantumMemory
-from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
-from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
-from squidasm.qoala.sim.qnosprocessor import (
-    GenericProcessor,
-    NVProcessor,
-    Processor,
-    ProcessorComponent,
-)
+from squidasm.qoala.runtime.environment import GlobalEnvironment
 
 
 class QnosComponent(Component):

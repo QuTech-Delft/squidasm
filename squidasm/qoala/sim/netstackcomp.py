@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import math
-from typing import TYPE_CHECKING, Dict, Generator, List, Optional
+from typing import Dict
 
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
-from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import GlobalEnvironment
 
 

@@ -1,8 +1,7 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Dict, Generator, List
 
-from netqasm.lang.encoding import RegisterName
 from netsquid.components.component import Component, Port
 from netsquid.protocols import Protocol
 

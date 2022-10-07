@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import math
-from typing import TYPE_CHECKING, Dict, Generator, Optional, Union
+import logging
+from typing import Generator, Optional, Union
 
 import netsquid as ns
 from netqasm.lang.instr import NetQASMInstruction, core, nv, vanilla
 from netqasm.lang.operand import Register
-from netqasm.lang.subroutine import Subroutine
-from netsquid.components import QuantumProcessor
-from netsquid.components.component import Component, Port
 from netsquid.components.instructions import (
     INSTR_CNOT,
     INSTR_CXDIR,
@@ -26,34 +23,24 @@ from netsquid.components.instructions import (
 )
 from netsquid.components.instructions import Instruction as NsInstr
 from netsquid.components.qprogram import QuantumProgram
-from netsquid.nodes import Node
 from netsquid.qubits import qubitapi
 
 from pydynaa import EventExpression
 from squidasm.qoala.sim.common import (
     AllocError,
-    ComponentProtocol,
     NetstackBreakpointCreateRequest,
     NetstackBreakpointReceiveRequest,
     NetstackCreateRequest,
     NetstackReceiveRequest,
-    PhysicalQuantumMemory,
-    PortListener,
 )
 from squidasm.qoala.sim.constants import PI, PI_OVER_2
 from squidasm.qoala.sim.globals import GlobalSimData
-from squidasm.qoala.sim.memory import ProgramMemory, SharedMemory
+from squidasm.qoala.sim.logging import LogManager
+from squidasm.qoala.sim.memory import ProgramMemory
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import QDevice
 from squidasm.qoala.sim.qnosinterface import QnosInterface
-from squidasm.qoala.sim.signals import (
-    SIGNAL_HAND_PROC_MSG,
-    SIGNAL_MEMORY_FREED,
-    SIGNAL_NSTK_PROC_MSG,
-)
-
-if TYPE_CHECKING:
-    from squidasm.qoala.sim.qnos import Qnos
+from squidasm.qoala.sim.signals import SIGNAL_MEMORY_FREED
 
 
 class QnosProcessor:
@@ -61,6 +48,13 @@ class QnosProcessor:
 
     def __init__(self, interface: QnosInterface) -> None:
         self._interface = interface
+
+        # TODO: rewrite
+        self._node_name = interface._comp.node.name
+
+        self._logger: logging.Logger = LogManager.get_stack_logger(
+            f"{self.__class__.__name__}({self._node_name})"
+        )
 
         # memory of current program, only not-None when processor is active
         self._current_prog_mem: Optional[ProgramMemory] = None
@@ -73,17 +67,6 @@ class QnosProcessor:
     @property
     def qdevice(self) -> QDevice:
         return self._interface.qdevice
-
-    def run(self) -> Generator[EventExpression, None, None]:
-        """Run this protocol. Automatically called by NetSquid during simulation."""
-        while True:
-            subroutine = yield from self._interface.receive_handler_msg()
-            # assert isinstance(subroutine, Subroutine)
-            self._logger.debug(f"received new subroutine from handler: {subroutine}")
-
-            yield from self.execute_subroutine(subroutine)
-
-            self._interface.send_handler_msg("subroutine done")
 
     def assign(
         self, process: IqoalaProcess, subrt_name: str, instr_idx: int
