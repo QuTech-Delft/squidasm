@@ -6,6 +6,7 @@ from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.sim.common import ComponentProtocol, PortListener
 from squidasm.qoala.sim.hostcomp import HostComponent
+from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
 
 
@@ -39,16 +40,16 @@ class HostInterface(ComponentProtocol):
                 ),
             )
 
-    def send_qnos_msg(self, msg: bytes) -> None:
+    def send_qnos_msg(self, msg: Message) -> None:
         self._comp.qnos_out_port.tx_output(msg)
 
-    def receive_qnos_msg(self) -> Generator[EventExpression, None, str]:
+    def receive_qnos_msg(self) -> Generator[EventExpression, None, Message]:
         return (yield from self._receive_msg("qnos", SIGNAL_HAND_HOST_MSG))
 
-    def send_peer_msg(self, peer: str, msg: str) -> None:
+    def send_peer_msg(self, peer: str, msg: Message) -> None:
         self._comp.peer_out_port(peer).tx_output(msg)
 
-    def receive_peer_msg(self, peer: str) -> Generator[EventExpression, None, str]:
+    def receive_peer_msg(self, peer: str) -> Generator[EventExpression, None, Message]:
         return (
             yield from self._receive_msg(
                 f"peer_{peer}", f"{SIGNAL_HOST_HOST_MSG}_{peer}"

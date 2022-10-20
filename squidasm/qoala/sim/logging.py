@@ -1,6 +1,6 @@
 # type: ignore
 import logging
-from typing import Optional, Union, no_type_check
+from typing import Optional, Union
 
 import netsquid as ns
 

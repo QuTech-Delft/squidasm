@@ -62,7 +62,7 @@ class PhysicalQuantumMemory:
         return id in self._allocated_ids
 
     def clear(self) -> None:
-        self._allocated_ids = {}
+        self._allocated_ids = set()
 
 
 class NVPhysicalQuantumMemory(PhysicalQuantumMemory):

@@ -51,7 +51,7 @@ def fidelity_to_prob_max_mixed(fid: float) -> float:
     return (1 - fid) * 4.0 / 3.0
 
 
-def build_generic_qdevice(name: str, cfg: GenericQDeviceConfig) -> QuantumProcessor:
+def build_generic_qprocessor(name: str, cfg: GenericQDeviceConfig) -> QuantumProcessor:
     phys_instructions = []
 
     single_qubit_gate_noise = DepolarNoiseModel(
@@ -118,7 +118,7 @@ def build_generic_qdevice(name: str, cfg: GenericQDeviceConfig) -> QuantumProces
     return qmem
 
 
-def build_nv_qdevice(name: str, cfg: NVQDeviceConfig) -> QuantumProcessor:
+def build_nv_qprocessor(name: str, cfg: NVQDeviceConfig) -> QuantumProcessor:
 
     # noise models for single- and multi-qubit operations
     electron_init_noise = DepolarNoiseModel(
@@ -281,24 +281,26 @@ def build_network(
             qdevice_cfg = cfg.qdevice_cfg
             if not isinstance(qdevice_cfg, NVQDeviceConfig):
                 qdevice_cfg = NVQDeviceConfig(**cfg.qdevice_cfg)
-            qdevice = build_nv_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
+            qprocessor = build_nv_qprocessor(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
             procnode = ProcNode(
                 cfg.name,
                 global_env=rte,
+                qprocessor=qprocessor,
                 qdevice_type="nv",
-                qdevice=qdevice,
                 node_id=cfg.node_id,
             )
         elif cfg.qdevice_typ == "generic":
             qdevice_cfg = cfg.qdevice_cfg
             if not isinstance(qdevice_cfg, GenericQDeviceConfig):
                 qdevice_cfg = GenericQDeviceConfig(**cfg.qdevice_cfg)
-            qdevice = build_generic_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
+            qprocessor = build_generic_qprocessor(
+                f"qdevice_{cfg.name}", cfg=qdevice_cfg
+            )
             procnode = ProcNode(
                 cfg.name,
                 global_env=rte,
+                qprocessor=qprocessor,
                 qdevice_type="generic",
-                qdevice=qdevice,
                 node_id=cfg.node_id,
             )
 

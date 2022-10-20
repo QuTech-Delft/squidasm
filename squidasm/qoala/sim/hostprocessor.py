@@ -11,6 +11,7 @@ from pydynaa import EventExpression
 from squidasm.qoala.lang import iqoala
 from squidasm.qoala.sim.hostinterface import HostInterface
 from squidasm.qoala.sim.logging import LogManager
+from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
 
 
@@ -90,7 +91,7 @@ class HostProcessor:
             self._logger.info(f"instantiating subroutine with values {arg_values}")
             subrt.instantiate(pid, arg_values)
 
-            self._interface.send_qnos_msg(SubroutineMessage(subrt))
+            self._interface.send_qnos_msg(Message(content=SubroutineMessage(subrt)))
             yield from self._interface.receive_qnos_msg()
             # Qnos should have updated the shared memory with subroutine results.
 

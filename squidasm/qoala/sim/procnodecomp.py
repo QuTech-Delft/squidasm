@@ -37,14 +37,14 @@ class ProcNodeComponent(Node):
     def __init__(
         self,
         name: str,
-        qdevice: QuantumProcessor,
+        qprocessor: QuantumProcessor,
         global_env: GlobalEnvironment,
         node_id: Optional[int] = None,
     ) -> None:
         """ProcNodeComponent constructor. Typically created indirectly through
         constructing a `ProcNode`."""
         super().__init__(name, ID=node_id)
-        self.qmemory = qdevice
+        self.qmemory = qprocessor
 
         qnos_comp = QnosComponent(self, global_env)
         self.add_subcomponent(qnos_comp, "qnos")
@@ -117,7 +117,7 @@ class ProcNodeComponent(Node):
         return self.subcomponents["scheduler"]
 
     @property
-    def qdevice(self) -> QuantumProcessor:
+    def qprocessor(self) -> QuantumProcessor:
         return self.qmemory
 
     def host_peer_in_port(self, name: str) -> Port:

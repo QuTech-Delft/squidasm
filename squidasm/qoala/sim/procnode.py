@@ -44,10 +44,10 @@ class ProcNode(Protocol):
     def __init__(
         self,
         name: str,
-        global_env: Optional[GlobalEnvironment] = None,
+        global_env: GlobalEnvironment,
+        qprocessor: QuantumProcessor,
         node: Optional[ProcNodeComponent] = None,
         qdevice_type: Optional[str] = "generic",
-        qdevice: Optional[QuantumProcessor] = None,
         node_id: Optional[int] = None,
         use_default_components: bool = True,
     ) -> None:
@@ -70,8 +70,7 @@ class ProcNode(Protocol):
         if node:
             self._node = node
         else:
-            assert qdevice is not None
-            self._node = ProcNodeComponent(name, qdevice, global_env, node_id)
+            self._node = ProcNodeComponent(name, qprocessor, global_env, node_id)
 
         self._global_env = global_env
         self._local_env = LocalEnvironment(global_env, global_env.get_node_id(name))
@@ -96,10 +95,10 @@ class ProcNode(Protocol):
 
         self._qdevice: QDevice
         if qdevice_type == "generic":
-            physical_memory = PhysicalQuantumMemory(qdevice.num_positions)
+            physical_memory = PhysicalQuantumMemory(qprocessor.num_positions)
             self._qdevice = QDevice(self._node, QDeviceType.GENERIC, physical_memory)
         elif qdevice_type == "nv":
-            physical_memory = NVPhysicalQuantumMemory(qdevice.num_positions)
+            physical_memory = NVPhysicalQuantumMemory(qprocessor.num_positions)
             self._qdevice = QDevice(self._node, QDeviceType.NV, physical_memory)
         else:
             raise ValueError
@@ -247,3 +246,4 @@ class ProcNode(Protocol):
                 )
 
                 self.host.add_process(process)
+                self.qnos.add_process(process)

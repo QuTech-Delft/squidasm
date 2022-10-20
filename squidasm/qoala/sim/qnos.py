@@ -5,6 +5,7 @@ from typing import Dict, Tuple
 from netsquid.protocols import Protocol
 
 from squidasm.qoala.runtime.environment import LocalEnvironment
+from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice, QDeviceType
 from squidasm.qoala.sim.qnoscomp import QnosComponent
@@ -40,7 +41,8 @@ class Qnos(Protocol):
         self._local_env = local_env
 
         # Owned objects.
-        self._interface = QnosInterface(comp, qdevice)
+        self._memmgr = MemoryManager()
+        self._interface = QnosInterface(comp, qdevice, self._memmgr)
         self._processor: QnosProcessor
         self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
         # TODO: make self._processes fully referenced object?
@@ -51,15 +53,6 @@ class Qnos(Protocol):
             self._processor = NVProcessor()
         else:
             raise ValueError
-
-    # TODO: move this to a separate memory manager object
-    def get_virt_qubit_for_phys_id(self, phys_id: int) -> Tuple[int, int]:
-        # returns (pid, virt_id)
-        for pid, mem in self.quantum_memories:
-            virt_id = mem.virt_id_for(phys_id)
-            if virt_id is not None:
-                return pid, virt_id
-        raise RuntimeError(f"no virtual ID found for physical ID {phys_id}")
 
     @property
     def processor(self) -> QnosProcessor:
@@ -72,6 +65,9 @@ class Qnos(Protocol):
     @property
     def physical_memory(self) -> PhysicalQuantumMemory:
         return self._interface.qdevice.memory
+
+    def add_process(self, process: IqoalaProcess) -> None:
+        self._processes[process.prog_instance.pid] = process
 
     def start(self) -> None:
         super().start()

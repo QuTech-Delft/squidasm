@@ -37,6 +37,7 @@ from squidasm.qoala.sim.constants import PI, PI_OVER_2
 from squidasm.qoala.sim.globals import GlobalSimData
 from squidasm.qoala.sim.logging import LogManager
 from squidasm.qoala.sim.memory import ProgramMemory
+from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import QDevice
 from squidasm.qoala.sim.qnosinterface import QnosInterface
@@ -125,9 +126,9 @@ class QnosProcessor:
         elif isinstance(instr, core.WaitAllInstruction):
             return self._interpret_wait_all(pid, instr)
         elif isinstance(instr, core.RetRegInstruction):
-            pass
+            return None
         elif isinstance(instr, core.RetArrInstruction):
-            pass
+            return None
         elif isinstance(instr, core.SingleQubitInstruction):
             return self._interpret_single_qubit_instr(pid, instr)
         elif isinstance(instr, core.TwoQubitInstruction):
@@ -162,23 +163,27 @@ class QnosProcessor:
         elif instr.action.value == 2:
             self._logger.info("BREAKPOINT: dumping global state:")
             if instr.role.value == 0:
-                self._interface.send_netstack_msg(NetstackBreakpointCreateRequest(pid))
+                self._interface.send_netstack_msg(
+                    Message(content=NetstackBreakpointCreateRequest(pid))
+                )
                 ready = yield from self._interface.receive_netstack_msg()
-                assert ready == "breakpoint ready"
+                assert ready.content == "breakpoint ready"
 
                 state = GlobalSimData.get_quantum_state(save=True)
                 self._logger.info(state)
 
-                self._interface.send_netstack_msg("breakpoint end")
+                self._interface.send_netstack_msg(Message(content="breakpoint end"))
                 finished = yield from self._interface.receive_netstack_msg()
-                assert finished == "breakpoint finished"
+                assert finished.content == "breakpoint finished"
             elif instr.role.value == 1:
-                self._interface.send_netstack_msg(NetstackBreakpointReceiveRequest(pid))
+                self._interface.send_netstack_msg(
+                    Message(content=NetstackBreakpointReceiveRequest(pid))
+                )
                 ready = yield from self._interface.receive_netstack_msg()
-                assert ready == "breakpoint ready"
-                self._interface.send_netstack_msg("breakpoint end")
+                assert ready.content == "breakpoint ready"
+                self._interface.send_netstack_msg(Message(content="breakpoint end"))
                 finished = yield from self._interface.receive_netstack_msg()
-                assert finished == "breakpoint finished"
+                assert finished.content == "breakpoint finished"
             else:
                 raise ValueError
         else:
@@ -219,7 +224,7 @@ class QnosProcessor:
         assert phys_id is not None
         q_mem.unmap_virt_id(virt_id)
         self.qdevice.free(phys_id)
-        self.send_signal(SIGNAL_MEMORY_FREED)
+        self._interface.signal_memory_freed()
         self.qdevice.mem_positions[phys_id].in_use = False
         return None
 
@@ -472,7 +477,7 @@ class QnosProcessor:
             arg_array_addr,
             result_array_addr,
         )
-        self._interface.send_netstack_msg(msg)
+        self._interface.send_netstack_msg(Message(content=msg))
         # result = yield from self._interface.receive_netstack_msg()
         # self._logger.debug(f"result from netstack: {result}")
         return None
@@ -504,7 +509,7 @@ class QnosProcessor:
             qubit_array_addr,
             result_array_addr,
         )
-        self._interface.send_netstack_msg(msg)
+        self._interface.send_netstack_msg(Message(content=msg))
         # result = yield from self._interface.receive_netstack_msg()
         # self._logger.debug(f"result from netstack: {result}")
         return None
@@ -766,20 +771,12 @@ class NVProcessor(QnosProcessor):
                         f"-> No physical qubits available."
                     )
                 yield from self._move_electron_to_carbon(new_qubit)
-                elec_pid, elec_virt_id = self._qnos.get_virt_qubit_for_phys_id(0)
-                self._logger.warning(
-                    f"moving virtual qubit {elec_virt_id} from app "
-                    f"{pid} from physical ID 0 to {new_qubit}"
-                )
-                # Update qubit ID mapping.
-                # TODO: fix this
-                self.program_memories[elec_pid].unmap_virt_id(elec_virt_id)
-                self.program_memories[elec_pid].map_virt_id(elec_virt_id, new_qubit)
+                self._interface.memmgr.move_phys_qubit(0, new_qubit)
                 q_mem.unmap_virt_id(virt_id)
                 q_mem.map_virt_id(virt_id, 0)
                 yield from self._move_carbon_to_electron_for_measure(phys_id)
                 self.qdevice.free(phys_id)
-                self.send_signal(SIGNAL_MEMORY_FREED)
+                self._interface.signal_memory_freed()
                 self.qdevice.set_mem_pos_in_use(phys_id, False)
                 outcome = yield from self._measure_electron()
                 shared_mem.set_reg_value(instr.creg, outcome)
@@ -789,7 +786,7 @@ class NVProcessor(QnosProcessor):
                 q_mem.map_virt_id(virt_id, 0)
                 yield from self._move_carbon_to_electron_for_measure(phys_id)
                 self.qdevice.free(phys_id)
-                self.send_signal(SIGNAL_MEMORY_FREED)
+                self._interface.signal_memory_freed()
                 self.qdevice.set_mem_pos_in_use(phys_id, False)
                 outcome = yield from self._measure_electron()
                 shared_mem.set_reg_value(instr.creg, outcome)

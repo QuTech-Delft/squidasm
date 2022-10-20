@@ -6,6 +6,7 @@ from netqasm.sdk.classical_communication.message import StructuredMessage
 
 from pydynaa import EventExpression
 from squidasm.qoala.sim.hostinterface import HostInterface
+from squidasm.qoala.sim.message import Message
 
 
 class ClassicalSocket:
@@ -17,10 +18,11 @@ class ClassicalSocket:
 
     def send(self, msg: str) -> None:
         """Sends a message to the remote node."""
-        self._host.send_peer_msg(self._remote_name, msg)
+        self._host.send_peer_msg(self._remote_name, Message(content=msg))
 
     def recv(self) -> Generator[EventExpression, None, str]:
-        return (yield from self._host.receive_peer_msg(self._remote_name))
+        msg = yield from self._host.receive_peer_msg(self._remote_name)
+        return msg.content
 
     def send_int(self, value: int) -> None:
         self.send(str(value))

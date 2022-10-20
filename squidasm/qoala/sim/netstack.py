@@ -43,6 +43,7 @@ from squidasm.qoala.sim.constants import PI
 from squidasm.qoala.sim.egp import EgpProtocol
 from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.memory import ProgramMemory
+from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
 from squidasm.qoala.sim.netstackinterface import NetstackInterface
 from squidasm.qoala.sim.qdevice import QDevice
@@ -106,22 +107,22 @@ class Netstack(ComponentProtocol):
             self._epr_sockets[pid] = []
         self._epr_sockets[pid].append(EprSocket(socket_id, remote_node_id))
 
-    def _send_processor_msg(self, msg: str) -> None:
+    def _send_processor_msg(self, msg: Message) -> None:
         """Send a message to the processor."""
         self._comp.processor_out_port.tx_output(msg)
 
-    def _receive_processor_msg(self) -> Generator[EventExpression, None, str]:
+    def _receive_processor_msg(self) -> Generator[EventExpression, None, Message]:
         """Receive a message from the processor. Block until there is at least one
         message."""
         return (yield from self._receive_msg("processor", SIGNAL_PROC_NSTK_MSG))
 
-    def _send_peer_msg(self, peer: str, msg: str) -> None:
+    def _send_peer_msg(self, peer: str, msg: Message) -> None:
         """Send a message to the network stack of the other node.
 
         NOTE: for now we assume there is only one other node, which is 'the' peer."""
         self._comp.peer_out_port(peer).tx_output(msg)
 
-    def _receive_peer_msg(self, peer: str) -> Generator[EventExpression, None, str]:
+    def _receive_peer_msg(self, peer: str) -> Generator[EventExpression, None, Message]:
         """Receive a message from the network stack of the other node. Block until
         there is at least one message.
 
@@ -340,7 +341,7 @@ class Netstack(ComponentProtocol):
                 f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
                 f"{slice_len * pair_index + slice_len}] for app ID {req.pid}"
             )
-            self._send_processor_msg("wrote to array")
+            self._send_processor_msg(Message(content="wrote to array"))
 
     def handle_create_md_request(
         self, req: NetstackCreateRequest, request: ReqMeasureDirectly
@@ -419,7 +420,7 @@ class Netstack(ComponentProtocol):
 
                 prog_mem.set_array_value(req.result_array_addr, arr_index, value)
 
-        self._send_processor_msg("wrote to array")
+        self._send_processor_msg(Message(content="wrote to array"))
 
     def handle_create_request(
         self, req: NetstackCreateRequest
@@ -443,7 +444,7 @@ class Netstack(ComponentProtocol):
 
         # Send it to the receiver node and wait for an acknowledgement.
         peer = self.remote_id_to_peer_name(epr_socket.remote_id)
-        self._send_peer_msg(peer, request)
+        self._send_peer_msg(peer, Message(content=request))
         peer_msg = yield from self._receive_peer_msg(peer)
         self._logger.debug(f"received peer msg: {peer_msg}")
 
@@ -557,7 +558,7 @@ class Netstack(ComponentProtocol):
                 f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
                 f"{slice_len * pair_index + slice_len}] for app ID {req.pid}"
             )
-            self._send_processor_msg("wrote to array")
+            self._send_processor_msg(Message(content="wrote to array"))
 
     def handle_receive_md_request(
         self, req: NetstackReceiveRequest, request: ReqMeasureDirectly
@@ -634,7 +635,7 @@ class Netstack(ComponentProtocol):
 
                 prog_mem.set_array_value(req.result_array_addr, arr_index, value)
 
-            self._send_processor_msg("wrote to array")
+            self._send_processor_msg(Message(content="wrote to array"))
 
     def handle_receive_request(
         self, req: NetstackReceiveRequest
@@ -657,13 +658,14 @@ class Netstack(ComponentProtocol):
         # and then fully handle the request. There is no support for queueing
         # and/or interleaving multiple different requests.
         peer = self.remote_id_to_peer_name(epr_socket.remote_id)
-        create_request = yield from self._receive_peer_msg(peer)
+        msg = yield from self._receive_peer_msg(peer)
+        create_request = msg.content
         self._logger.debug(f"received {create_request} from peer")
 
         # Acknowledge to the remote node that we received the request and we will
         # start handling it.
         self._logger.debug("sending 'ready' to peer")
-        self._send_peer_msg(peer, "ready")
+        self._send_peer_msg(peer, Message(content="ready"))
 
         # Handle the request, based on the type that we now know because of the
         # other node.
@@ -680,26 +682,26 @@ class Netstack(ComponentProtocol):
         self._logger.warning("USING EPR SOCKET (0, 0) FOR BREAKPOINT!!!!")
         peer = self.remote_id_to_peer_name(self._epr_sockets[0][0].remote_id)
 
-        self._send_peer_msg(peer, "breakpoint start")
+        self._send_peer_msg(peer, Message(content="breakpoint start"))
         response = yield from self._receive_peer_msg(peer)
-        assert response == "breakpoint start"
+        assert response.content == "breakpoint start"
 
         # Remote node is now ready. Notify the processor.
-        self._send_processor_msg("breakpoint ready")
+        self._send_processor_msg(Message(content="breakpoint ready"))
 
         # Wait for the processor to finish handling the breakpoint.
         processor_msg = yield from self._receive_processor_msg()
-        assert processor_msg == "breakpoint end"
+        assert processor_msg.content == "breakpoint end"
 
         # Tell the remote node that the breakpoint has finished.
-        self._send_peer_msg(peer, "breakpoint end")
+        self._send_peer_msg(peer, Message(content="breakpoint end"))
 
         # Wait for the remote node to have finsihed as well.
         response = yield from self._receive_peer_msg(peer)
-        assert response == "breakpoint end"
+        assert response.content == "breakpoint end"
 
         # Notify the processor that we are done.
-        self._send_processor_msg("breakpoint finished")
+        self._send_processor_msg(Message(content="breakpoint finished"))
 
     def handle_breakpoint_receive_request(
         self,
@@ -710,23 +712,23 @@ class Netstack(ComponentProtocol):
         peer = self.remote_id_to_peer_name(self._epr_sockets[0][0].remote_id)
 
         msg = yield from self._receive_peer_msg(peer)
-        assert msg == "breakpoint start"
-        self._send_peer_msg(peer, "breakpoint start")
+        assert msg.content == "breakpoint start"
+        self._send_peer_msg(peer, Message(content="breakpoint start"))
 
         # Notify the processor we are ready to handle the breakpoint.
-        self._send_processor_msg("breakpoint ready")
+        self._send_processor_msg(Message(content="breakpoint ready"))
 
         # Wait for the processor to finish handling the breakpoint.
         processor_msg = yield from self._receive_processor_msg()
-        assert processor_msg == "breakpoint end"
+        assert processor_msg.content == "breakpoint end"
 
         # Wait for the remote node to finish and tell it we are finished as well.
         peer_msg = yield from self._receive_peer_msg(peer)
-        assert peer_msg == "breakpoint end"
-        self._send_peer_msg(peer, "breakpoint end")
+        assert peer_msg.content == "breakpoint end"
+        self._send_peer_msg(peer, Message(content="breakpoint end"))
 
         # Notify the processor that we are done.
-        self._send_processor_msg("breakpoint finished")
+        self._send_processor_msg(Message(content="breakpoint finished"))
 
     def run(self) -> Generator[EventExpression, None, None]:
         # Loop forever acting on messages from the processor.
@@ -734,17 +736,18 @@ class Netstack(ComponentProtocol):
             # Wait for a new message.
             msg = yield from self._receive_processor_msg()
             self._logger.debug(f"received new msg from processor: {msg}")
+            request = msg.content
 
             # Handle it.
-            if isinstance(msg, NetstackCreateRequest):
+            if isinstance(request, NetstackCreateRequest):
                 yield from self.handle_create_request(msg)
                 self._logger.debug("create request done")
-            elif isinstance(msg, NetstackReceiveRequest):
+            elif isinstance(request, NetstackReceiveRequest):
                 yield from self.handle_receive_request(msg)
                 self._logger.debug("receive request done")
-            elif isinstance(msg, NetstackBreakpointCreateRequest):
+            elif isinstance(request, NetstackBreakpointCreateRequest):
                 yield from self.handle_breakpoint_create_request()
                 self._logger.debug("breakpoint create request done")
-            elif isinstance(msg, NetstackBreakpointReceiveRequest):
+            elif isinstance(request, NetstackBreakpointReceiveRequest):
                 yield from self.handle_breakpoint_receive_request()
                 self._logger.debug("breakpoint receive request done")
