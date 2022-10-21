@@ -48,7 +48,7 @@ class Scheduler:
         self._batch_counter: int = 0
         self._processes: Dict[int, IqoalaProcess] = {}
 
-        self._logger: logging.Logger = LogManager.get_stack_logger(
+        self._logger: logging.Logger = LogManager.get_stack_logger(  # type: ignore
             f"{self.__class__.__name__}({node_name})"
         )
 

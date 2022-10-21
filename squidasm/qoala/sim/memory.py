@@ -44,7 +44,13 @@ class SharedMemory:
     def __init__(self, pid: int) -> None:
         self._pid = pid
 
-        self._registers: Dict[RegisterName, RegisterGroup] = setup_registers()
+        register_names: Dict[RegisterName, RegisterGroup] = setup_registers()
+        self._registers: Dict[Dict[RegisterName, RegisterGroup], int] = {}
+        # TODO fix this abomination of handling registers
+        for name in register_names.keys():
+            self._registers[name] = {}  # type: ignore
+            for i in range(16):
+                self._registers[name][i] = 0  # type: ignore
         self._arrays: Arrays = Arrays()
 
     def set_reg_value(self, register: Union[str, operand.Register], value: int) -> None:
@@ -52,14 +58,14 @@ class SharedMemory:
             name, index = RegisterMeta.parse(register)
         else:
             name, index = register.name, register.index
-        self._registers[name][index] = value
+        self._registers[name][index] = value  # type: ignore
 
     def get_reg_value(self, register: Union[str, operand.Register]) -> int:
         if isinstance(register, str):
             name, index = RegisterMeta.parse(register)
         else:
             name, index = register.name, register.index
-        return self._registers[name][index]
+        return self._registers[name][index]  # type: ignore
 
     # for compatibility with netqasm Futures
     def get_register(self, register: Union[str, operand.Register]) -> Optional[int]:
@@ -78,7 +84,7 @@ class SharedMemory:
         self._arrays.init_new_array(address, length)
 
     def get_array(self, address: int) -> List[Optional[int]]:
-        return self._arrays._get_array(address)
+        return self._arrays._get_array(address)  # type: ignore
 
     def get_array_entry(self, array_entry: operand.ArrayEntry) -> Optional[int]:
         address, index = self.expand_array_part(array_part=array_entry)
@@ -219,18 +225,14 @@ class UnitModule:
     gate_traits: Dict[List[int], List[GateTrait]]
 
     @property
-    def qubit_ids(self) -> List[int]:
-        return self._qubit_ids
-
-    @property
     def num_qubits(self) -> int:
-        return len(self._qubit_ids)
+        return len(self.qubit_ids)
 
     @classmethod
-    def default_generic(num_qubits: int) -> UnitModule:
+    def default_generic(cls, num_qubits: int) -> UnitModule:
         return UnitModule(
             qubit_ids=[i for i in range(num_qubits)],
-            qubit_traits={i: CommQubitTrait for i in range(num_qubits)},
+            qubit_traits={i: CommQubitTrait for i in range(num_qubits)},  # type: ignore
             gate_traits={},
         )
 
@@ -263,7 +265,9 @@ class QuantumMemory:
         return self._mapping
 
     def phys_id_for(self, virt_id: int) -> int:
-        return self._mapping[virt_id]
+        phys_id = self._mapping[virt_id]
+        assert phys_id is not None
+        return phys_id
 
     def virt_id_for(self, phys_id: int) -> Optional[int]:
         for virt, phys in self._mapping.items():

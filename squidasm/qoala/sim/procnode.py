@@ -49,7 +49,7 @@ class ProcNode(Protocol):
         node: Optional[ProcNodeComponent] = None,
         qdevice_type: Optional[str] = "generic",
         node_id: Optional[int] = None,
-        use_default_components: bool = True,
+        scheduler: Optional[Scheduler] = None,
     ) -> None:
         """ProcNode constructor.
 
@@ -75,23 +75,17 @@ class ProcNode(Protocol):
         self._global_env = global_env
         self._local_env = LocalEnvironment(global_env, global_env.get_node_id(name))
 
-        self._host: Optional[Host] = None
-        self._qnos: Optional[Qnos] = None
-        self._netstack: Optional[Netstack] = None
-        self._scheduler: Optional[Scheduler] = None
-
         # Create internal components.
-        # If `use_default_components` is False, these components must be manually
-        # created and added to this ProcNode.
-        if use_default_components:
+        self._host = Host(self.host_comp, self._local_env, self.scheduler)
+        self._qnos = Qnos(self.qnos_comp, self._local_env, self.scheduler, self.qdevice)
+        self._nestack = Netstack(
+            self.netstack_comp, self._local_env, self.scheduler, self.qdevice
+        )
+
+        if scheduler is None:
             self._scheduler = Scheduler(self._node.name)
-            self._host = Host(self.host_comp, self._local_env, self.scheduler)
-            self._qnos = Qnos(
-                self.qnos_comp, self._local_env, self.scheduler, self.qdevice
-            )
-            self._nestack = Netstack(
-                self.netstack_comp, self._local_env, self.scheduler, self.qdevice
-            )
+        else:
+            self._scheduler = scheduler
 
         self._qdevice: QDevice
         if qdevice_type == "generic":

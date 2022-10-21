@@ -40,12 +40,14 @@ class Qnos(Protocol):
         self._scheduler = scheduler
         self._local_env = local_env
 
-        # Owned objects.
-        self._memmgr = MemoryManager()
-        self._interface = QnosInterface(comp, qdevice, self._memmgr)
-        self._processor: QnosProcessor
+        # Values are references to objects created elsewhere
         self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
         # TODO: make self._processes fully referenced object?
+
+        # Owned objects.
+        self._memmgr = MemoryManager(comp.name)
+        self._interface = QnosInterface(comp, qdevice, self._memmgr)
+        self._processor: QnosProcessor
 
         if qdevice.typ == QDeviceType.GENERIC:
             self._processor = GenericProcessor()

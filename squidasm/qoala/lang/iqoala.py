@@ -140,7 +140,7 @@ class ClassicalIqoalaOp:
 
     @property
     def op_name(self) -> str:
-        return self.__class__.OP_NAME
+        return self.__class__.OP_NAME  # type: ignore
 
     @property
     def arguments(self) -> List[str]:
@@ -207,7 +207,7 @@ class MultiplyConstantCValueOp(ClassicalIqoalaOp):
     OP_NAME = "mult_const"
     TYP = IqoalaInstructionType.CL
 
-    def __init__(self, result: str, value0: str, value1: IqoalaAttribute) -> None:
+    def __init__(self, result: str, value0: str, value1: str) -> None:
         super().__init__(arguments=[value0, value1], results=[result])
 
     @classmethod
@@ -222,9 +222,7 @@ class BitConditionalMultiplyConstantCValueOp(ClassicalIqoalaOp):
     OP_NAME = "bcond_mult_const"
     TYP = IqoalaInstructionType.CL
 
-    def __init__(
-        self, result: str, value0: str, value1: IqoalaAttribute, cond: str
-    ) -> None:
+    def __init__(self, result: str, value0: str, value1: str, cond: str) -> None:
         super().__init__(arguments=[value0, value1, cond], results=[result])
 
     @classmethod

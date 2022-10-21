@@ -23,7 +23,7 @@ class HostProcessor:
 
         # TODO: name
         self._name = f"{interface._comp.name}_HostProcessor"
-        self._logger: logging.Logger = LogManager.get_stack_logger(
+        self._logger: logging.Logger = LogManager.get_stack_logger(  # type: ignore
             f"{self.__class__.__name__}({self._name})"
         )
 
@@ -109,9 +109,3 @@ class HostProcessor:
         elif isinstance(instr, iqoala.ReturnResultOp):
             value = instr.arguments[0]
             process.result.values[value] = int(host_mem[value])
-
-    def execute_next_instr(
-        self, process: IqoalaProcess
-    ) -> Generator[EventExpression, None, None]:
-        process.instr_idx += 1
-        yield from self.execute_process(process, instr_idx=process.instr_idx)

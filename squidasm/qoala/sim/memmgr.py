@@ -3,11 +3,12 @@ from typing import Dict, Tuple
 
 from squidasm.qoala.sim.hostprocessor import IqoalaProcess
 from squidasm.qoala.sim.logging import LogManager
-from squidasm.qoala.sim.memory import QuantumMemory
+from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory
 
 
 class MemoryManager:
-    def __init__(self) -> None:
+    def __init__(self, node_name: str) -> None:
+        self._node_name = node_name
         self._processes: Dict[int, IqoalaProcess] = {}
         self._logger: logging.Logger = LogManager.get_stack_logger(  # type: ignore
             f"{self.__class__.__name__}({self._node_name})"
@@ -17,6 +18,9 @@ class MemoryManager:
         return {
             pid: mem.prog_memory.quantum_mem for (pid, mem) in self._processes.items()
         }
+
+    def get_program_memory(self, pid: int) -> ProgramMemory:
+        return self._processes[pid].prog_memory
 
     def _phys_to_virt_id(self, phys_id: int) -> Tuple[int, int]:
         # returns (pid, virt_id)

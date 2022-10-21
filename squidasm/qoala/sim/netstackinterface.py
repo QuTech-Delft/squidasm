@@ -5,6 +5,7 @@ from typing import Generator
 from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.sim.common import ComponentProtocol, PortListener
+from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
 from squidasm.qoala.sim.qdevice import QDevice
@@ -15,7 +16,11 @@ class NetstackInterface(ComponentProtocol):
     """NetSquid protocol representing the QNodeOS network stack."""
 
     def __init__(
-        self, comp: NetstackComponent, local_env: LocalEnvironment, qdevice: QDevice
+        self,
+        comp: NetstackComponent,
+        local_env: LocalEnvironment,
+        qdevice: QDevice,
+        memmgr: MemoryManager,
     ) -> None:
         """Network stack protocol constructor. Typically created indirectly through
         constructing a `Qnos` instance.
@@ -69,3 +74,7 @@ class NetstackInterface(ComponentProtocol):
     @property
     def qdevice(self) -> QDevice:
         return self._qdevice
+
+    @property
+    def memmgr(self) -> MemoryManager:
+        return self._memmgr

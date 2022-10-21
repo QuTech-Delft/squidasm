@@ -29,7 +29,7 @@ from qlink_interface import (
 from qlink_interface.interface import ReqRemoteStatePrep
 
 from pydynaa import EventExpression
-from squidasm.qoala.runtime.environment import LocalEnvironment
+from squidasm.qoala.runtime.environment import GlobalNodeInfo, LocalEnvironment
 from squidasm.qoala.sim.common import (
     AllocError,
     ComponentProtocol,
@@ -42,10 +42,11 @@ from squidasm.qoala.sim.common import (
 from squidasm.qoala.sim.constants import PI
 from squidasm.qoala.sim.egp import EgpProtocol
 from squidasm.qoala.sim.eprsocket import EprSocket
-from squidasm.qoala.sim.memory import ProgramMemory
+from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
 from squidasm.qoala.sim.netstackinterface import NetstackInterface
+from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import QDevice
 from squidasm.qoala.sim.scheduler import Scheduler
 from squidasm.qoala.sim.signals import (
@@ -78,6 +79,9 @@ class Netstack(ComponentProtocol):
         self._scheduler = scheduler
         self._local_env = local_env
 
+        # Values are references to objects created elsewhere
+        self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
+
         # Owned objects.
         self._interface = NetstackInterface(comp, local_env, qdevice)
         self._egps: Dict[int, EgpProtocol] = {}
@@ -94,7 +98,8 @@ class Netstack(ComponentProtocol):
 
     def remote_id_to_peer_name(self, remote_id: int) -> str:
         node_info = self._local_env.get_global_env().get_nodes()[remote_id]
-        return node_info.name
+        # TODO figure out why mypy does not like this
+        return node_info.name  # type: ignore
 
     def open_epr_socket(self, pid: int, socket_id: int, remote_node_id: int) -> None:
         """Create a new EPR socket with the specified remote node.
@@ -133,6 +138,14 @@ class Netstack(ComponentProtocol):
             )
         )
 
+    def get_shared_mem(self, pid: int) -> SharedMemory:
+        prog_mem = self._interface.memmgr.get_program_memory(pid)
+        return prog_mem.shared_mem
+
+    def get_quantum_mem(self, pid: int) -> QuantumMemory:
+        prog_mem = self._interface.memmgr.get_program_memory(pid)
+        return prog_mem.quantum_mem
+
     def start(self) -> None:
         """Start this protocol. The NetSquid simulator will call and yield on the
         `run` method. Also start the underlying EGP protocol."""
@@ -148,9 +161,9 @@ class Netstack(ComponentProtocol):
         super().stop()
 
     def _read_request_args_array(self, pid: int, array_addr: int) -> List[int]:
-        prog_mem = self.program_memories[pid]
-        prog_mem.get_array(array_addr)
-        return prog_mem.get_array(array_addr)
+        shared_mem = self.get_shared_mem(pid)
+        # TODO figure out why mypy does not like this
+        return shared_mem.get_array(array_addr)  # type: ignore
 
     def _construct_request(self, remote_id: int, args: List[int]) -> ReqCreateBase:
         """Construct a link layer request from application request info.
@@ -189,10 +202,6 @@ class Netstack(ComponentProtocol):
         else:
             raise ValueError(f"Unsupported create type {typ}")
         return request
-
-    @property
-    def program_memories(self) -> Dict[int, ProgramMemory]:
-        return self._qnos.program_memories
 
     @property
     def physical_memory(self) -> PhysicalQuantumMemory:
@@ -248,8 +257,9 @@ class Netstack(ComponentProtocol):
         """
         num_pairs = request.number
 
-        prog_mem = self.program_memories[req.pid]
-        qubit_ids = prog_mem.get_array(req.qubit_array_addr)
+        shared_mem = self.get_shared_mem(req.pid)
+        quantum_mem = self.get_quantum_mem(req.pid)
+        qubit_ids = shared_mem.get_array(req.qubit_array_addr)
 
         self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
         self._logger.info(f"qubit IDs specified by application: {qubit_ids}")
@@ -309,8 +319,8 @@ class Netstack(ComponentProtocol):
                 prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
                 yield self.qdevice.execute_program(prog)
 
-            virt_id = prog_mem.get_array_value(req.qubit_array_addr, pair_index)
-            prog_mem.map_virt_id(virt_id, phys_id)
+            virt_id = shared_mem.get_array_value(req.qubit_array_addr, pair_index)
+            quantum_mem.map_virt_id(virt_id, phys_id)
             self._logger.info(
                 f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
             )
@@ -336,7 +346,7 @@ class Netstack(ComponentProtocol):
                 # Calculate array element location.
                 arr_index = slice_len * pair_index + i
 
-                prog_mem.set_array_value(req.result_array_addr, arr_index, value)
+                shared_mem.set_array_value(req.result_array_addr, arr_index, value)
             self._logger.debug(
                 f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
                 f"{slice_len * pair_index + slice_len}] for app ID {req.pid}"
@@ -394,7 +404,7 @@ class Netstack(ComponentProtocol):
             results.append(result)
             self.physical_memory.free(phys_id)
 
-        prog_mem = self.program_memories[req.pid]
+        shared_mem = self.get_shared_mem(req.pid)
 
         # Length of response array slice for a single pair.
         slice_len = SER_RESPONSE_MEASURE_LEN
@@ -418,7 +428,7 @@ class Netstack(ComponentProtocol):
                 # Calculate array element location.
                 arr_index = slice_len * pair_index + i
 
-                prog_mem.set_array_value(req.result_array_addr, arr_index, value)
+                shared_mem.set_array_value(req.result_array_addr, arr_index, value)
 
         self._send_processor_msg(Message(content="wrote to array"))
 
@@ -526,9 +536,10 @@ class Netstack(ComponentProtocol):
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
 
-            prog_mem = self.program_memories[req.pid]
-            virt_id = prog_mem.get_array_value(req.qubit_array_addr, pair_index)
-            prog_mem.map_virt_id(virt_id, phys_id)
+            shared_mem = self.get_shared_mem(req.pid)
+            quantum_mem = self.get_quantum_mem(req.pid)
+            virt_id = shared_mem.get_array_value(req.qubit_array_addr, pair_index)
+            quantum_mem.map_virt_id(virt_id, phys_id)
             self._logger.info(
                 f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
             )
@@ -553,7 +564,7 @@ class Netstack(ComponentProtocol):
                 # Calculate array element location.
                 arr_index = slice_len * pair_index + i
 
-                prog_mem.set_array_value(req.result_array_addr, arr_index, value)
+                shared_mem.set_array_value(req.result_array_addr, arr_index, value)
             self._logger.debug(
                 f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
                 f"{slice_len * pair_index + slice_len}] for app ID {req.pid}"
@@ -596,7 +607,7 @@ class Netstack(ComponentProtocol):
         results: List[ResMeasureDirectly] = []
 
         for _ in range(request.number):
-            phys_id = self.physical_memory.allocate_comm()
+            phys_id = self._interface.qdevice.allocate_comm()
 
             yield self.await_signal(
                 sender=self._egps[req.remote_node_id],
@@ -609,7 +620,7 @@ class Netstack(ComponentProtocol):
 
             self.physical_memory.free(phys_id)
 
-        prog_mem = self.program_memories[req.pid]
+        shared_mem = self.get_shared_mem(req.pid)
 
         # Length of response array slice for a single pair.
         slice_len = SER_RESPONSE_MEASURE_LEN
@@ -633,7 +644,7 @@ class Netstack(ComponentProtocol):
                 # Calculate array element location.
                 arr_index = slice_len * pair_index + i
 
-                prog_mem.set_array_value(req.result_array_addr, arr_index, value)
+                shared_mem.set_array_value(req.result_array_addr, arr_index, value)
 
             self._send_processor_msg(Message(content="wrote to array"))
 
@@ -751,3 +762,6 @@ class Netstack(ComponentProtocol):
             elif isinstance(request, NetstackBreakpointReceiveRequest):
                 yield from self.handle_breakpoint_receive_request()
                 self._logger.debug("breakpoint receive request done")
+
+    def add_process(self, process: IqoalaProcess) -> None:
+        self._processes[process.prog_instance.pid] = process
