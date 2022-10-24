@@ -1,4 +1,4 @@
-from squidasm.qoala.lang import lhr as lp
+from squidasm.qoala.lang.iqoala import IqoalaParser
 from squidasm.qoala.runtime.config import (
     GenericQDeviceConfig,
     LinkConfig,
@@ -28,7 +28,7 @@ run_subroutine(vec<my_value>) :
   NETQASM_END
 return_result(m)
     """
-    parsed_program = lp.LhrParser(program_text).parse()
+    parsed_program = IqoalaParser(program_text).parse()
 
     print(parsed_program)
 
@@ -49,7 +49,7 @@ run_subroutine(vec<my_value>) :
   NETQASM_END
 return_result(m)
     """
-    parsed_program = lp.LhrParser(program_text).parse()
+    parsed_program = IqoalaParser(program_text).parse()
     parsed_program.meta = ProgramMeta(
         name="client", parameters={}, csockets=[], epr_sockets=[], max_qubits=1
     )
@@ -72,7 +72,7 @@ def test_run_two_nodes_classical():
 new_value = assign_cval() : 8
 send_cmsg(new_value)
     """
-    program_client = lp.LhrParser(program_text_client).parse()
+    program_client = IqoalaParser(program_text_client).parse()
     program_client.meta = ProgramMeta(
         name="client", parameters={}, csockets=["server"], epr_sockets=[], max_qubits=1
     )
@@ -87,7 +87,7 @@ new_value = assign_cval() : 8
 value = recv_cmsg()
 return_result(value)
     """
-    program_server = lp.LhrParser(program_text_server).parse()
+    program_server = IqoalaParser(program_text_server).parse()
     program_server.meta = ProgramMeta(
         name="client", parameters={}, csockets=["client"], epr_sockets=[], max_qubits=1
     )
@@ -136,7 +136,7 @@ run_subroutine(vec<remote_id; epr_sck_id>) :
   NETQASM_END
 return_result(m)
     """
-    program_client = lp.LhrParser(program_text_client).parse()
+    program_client = IqoalaParser(program_text_client).parse()
     program_client.meta = ProgramMeta(
         name="client",
         parameters={},
@@ -170,7 +170,7 @@ run_subroutine(vec<>) :
   NETQASM_END
 return_result(m)
     """
-    program_server = lp.LhrParser(program_text_server).parse()
+    program_server = IqoalaParser(program_text_server).parse()
     program_server.meta = ProgramMeta(
         name="client",
         parameters={},

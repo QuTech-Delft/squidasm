@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, List, Optional, Type, Union
@@ -7,8 +9,6 @@ from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.operand import Template
 from netqasm.lang.parsing.text import parse_text_subroutine
 from netqasm.lang.subroutine import Subroutine
-
-IqoalaValue = Union[int, Template]
 
 
 @dataclass
@@ -38,6 +38,34 @@ class StaticIqoalaProgramInfo:
 
 class DynamicIqoalaProgramInfo:
     pass
+
+
+class IqoalaSubroutine:
+    def __init__(
+        self, subrt: Subroutine, return_map: Dict[str, IqoalaSharedMemLoc]
+    ) -> None:
+        self._subrt = subrt
+        self._return_map = return_map
+
+    @property
+    def subroutine(self) -> Subroutine:
+        return self._subrt
+
+    @property
+    def return_map(self) -> Dict[str, IqoalaSharedMemLoc]:
+        return self._return_map
+
+    def __str__(self) -> str:
+        s = "\n"
+        for key, value in self.return_map.items():
+            s += f"return {str(value)} -> {key}\n"
+        s += "NETQASM_START\n"
+        s += self.subroutine.print_instructions()
+        s += "\nNETQASM_END"
+        return s
+
+
+IqoalaValue = Union[int, Template, IqoalaSubroutine]
 
 
 class IqoalaAttribute:
@@ -73,44 +101,24 @@ class IqoalaVector:
         return f"vec<{','.join(v for v in self.values)}>"
 
 
-class IqoalaSubroutine:
-    def __init__(
-        self, subrt: Subroutine, return_map: Dict[str, IqoalaSharedMemLoc]
-    ) -> None:
-        self._subrt = subrt
-        self._return_map = return_map
-
-    @property
-    def subroutine(self) -> Subroutine:
-        return self._subrt
-
-    @property
-    def return_map(self) -> Dict[str, IqoalaSharedMemLoc]:
-        return self._return_map
-
-    def __str__(self) -> str:
-        s = "\n"
-        for key, value in self.return_map.items():
-            s += f"return {str(value)} -> {key}\n"
-        s += "NETQASM_START\n"
-        s += self.subroutine.print_instructions()
-        s += "\nNETQASM_END"
-        return s
-
-
 class ClassicalIqoalaOp:
+    OP_NAME: str = None  # type: ignore
+    TYP: IqoalaInstructionType = None  # type: ignore
+
     def __init__(
         self,
-        arguments: Optional[List[str]] = None,
+        arguments: Optional[Union[List[str], List[IqoalaVector]]] = None,
         results: Optional[List[str]] = None,
         attributes: Optional[List[IqoalaValue]] = None,
     ) -> None:
-        self._arguments: List[str]
+        # TODO: support list of strs and vectors
+        # currently not needed and confuses mypy
+        self._arguments: Union[List[str], List[IqoalaVector]]
         self._results: List[str]
         self._attributes: List[IqoalaValue]
 
         if arguments is None:
-            self._arguments = []
+            self._arguments = []  # type: ignore
         else:
             self._arguments = arguments
 
@@ -138,12 +146,18 @@ class ClassicalIqoalaOp:
             s += f" : {attrs}"
         return s
 
+    @classmethod
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ) -> ClassicalIqoalaOp:
+        raise NotImplementedError
+
     @property
     def op_name(self) -> str:
         return self.__class__.OP_NAME  # type: ignore
 
     @property
-    def arguments(self) -> List[str]:
+    def arguments(self) -> Union[List[str], List[IqoalaVector]]:
         return self._arguments
 
     @property
@@ -166,7 +180,9 @@ class SendCMsgOp(ClassicalIqoalaOp):
         super().__init__(arguments=[csocket, value])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
         assert result is None
         assert len(args) == 2
         assert attr is None
@@ -181,7 +197,9 @@ class ReceiveCMsgOp(ClassicalIqoalaOp):
         super().__init__(arguments=[csocket], results=[result])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
         assert result is not None
         assert len(args) == 1
         assert attr is None
@@ -196,7 +214,9 @@ class AddCValueOp(ClassicalIqoalaOp):
         super().__init__(arguments=[value0, value1], results=[result])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
         assert result is not None
         assert len(args) == 2
         assert attr is None
@@ -211,7 +231,9 @@ class MultiplyConstantCValueOp(ClassicalIqoalaOp):
         super().__init__(arguments=[value0, value1], results=[result])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
         assert result is not None
         assert len(args) == 2
         assert attr is None
@@ -226,7 +248,9 @@ class BitConditionalMultiplyConstantCValueOp(ClassicalIqoalaOp):
         super().__init__(arguments=[value0, value1, cond], results=[result])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
         assert result is not None
         assert len(args) == 3
         assert attr is None
@@ -241,7 +265,9 @@ class AssignCValueOp(ClassicalIqoalaOp):
         super().__init__(results=[result], attributes=[value])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
         assert result is not None
         assert len(args) == 0
         assert attr is not None
@@ -256,15 +282,18 @@ class RunSubroutineOp(ClassicalIqoalaOp):
         super().__init__(arguments=[values], attributes=[subrt])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
         assert result is None
         assert len(args) == 1
         assert isinstance(args[0], IqoalaVector)
-        assert attr is not None
+        assert isinstance(attr, IqoalaSubroutine)
         return cls(args[0], attr)
 
     @property
     def subroutine(self) -> IqoalaSubroutine:
+        assert isinstance(self.attributes[0], IqoalaSubroutine)
         return self.attributes[0]
 
     def __str__(self) -> str:
@@ -279,15 +308,17 @@ class ReturnResultOp(ClassicalIqoalaOp):
         super().__init__(arguments=[value])
 
     @classmethod
-    def from_generic_args(cls, result: str, args: List[str], attr: IqoalaValue):
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
         assert result is None
         assert len(args) == 1
         assert attr is None
         return cls(args[0])
 
 
-LHR_OP_NAMES = {
-    cls.OP_NAME: cls
+LHR_OP_NAMES: Dict[str, ClassicalIqoalaOp] = {
+    cls.OP_NAME: cls  # type: ignore
     for cls in [
         SendCMsgOp,
         ReceiveCMsgOp,
@@ -338,9 +369,10 @@ class IqoalaProgram:
                 subrt = instr.subroutine
                 for nq_instr in subrt.subroutine.instructions:
                     typ = netqasm_instr_to_type(nq_instr)
-                    sigs.append(typ)
+                    # TODO: add duration
+                    sigs.append(IqoalaInstructionSignature(typ))
             else:
-                sigs.append(instr.TYP)
+                sigs.append(IqoalaInstructionSignature(instr.TYP))
         return sigs
 
     @property
@@ -382,6 +414,8 @@ class IqoalaParser:
     def _parse_lhr(self) -> ClassicalIqoalaOp:
         line = self._lines[self._lineno]
 
+        attr: Optional[IqoalaValue]
+
         assign_parts = [x.strip() for x in line.split("=")]
         assert len(assign_parts) <= 2
         if len(assign_parts) == 1:
@@ -394,9 +428,9 @@ class IqoalaParser:
         assert len(value_parts) <= 2
         if len(value_parts) == 2:
             value = value_parts[0]
-            attr = value_parts[1]
+            attr_str = value_parts[1]
             try:
-                attr = int(attr)
+                attr = int(attr_str)
             except ValueError:
                 pass
         else:
@@ -433,6 +467,9 @@ class IqoalaParser:
         self._next_line()
         return self._lines[self._lineno]
 
+    def _parse_meta(self) -> ProgramMeta:
+        raise NotImplementedError
+
     def _parse_subroutine(self) -> IqoalaSubroutine:
         return_map: Dict[str, IqoalaSharedMemLoc] = {}
         while (line := self._read_line()) != "NETQASM_START":
@@ -458,29 +495,33 @@ class IqoalaParser:
         return IqoalaSubroutine(subrt, return_map)
 
     def parse(self) -> IqoalaProgram:
+        meta: ProgramMeta
         instructions = []
-        subroutines = {}
+        subroutines: Dict[str, Subroutine] = {}
 
         # TODO: parse ProgramMeta
 
         try:
+            meta = self._parse_meta()
             while True:
                 instr = self._parse_lhr()
                 if isinstance(instr, RunSubroutineOp):
                     subrt = self._parse_subroutine()
+                    assert isinstance(instr.arguments[0], IqoalaVector)
                     instr = RunSubroutineOp(instr.arguments[0], subrt)
                 instructions.append(instr)
                 self._next_line()
         except EndOfTextException:
             pass
 
-        return IqoalaProgram(instructions, subroutines)
+        return IqoalaProgram(instructions, subroutines, meta)
 
 
 if __name__ == "__main__":
-    ops = []
-    ops.append(SendCMsgOp("my_value"))
-    ops.append(ReceiveCMsgOp("received_value"))
+    ops: List[ClassicalIqoalaOp] = []
+    ops.append(AssignCValueOp("socket_id", 0))
+    ops.append(SendCMsgOp("socket_id", "my_value"))
+    ops.append(ReceiveCMsgOp("socket_id", "received_value"))
     ops.append(AssignCValueOp("new_value", 3))
     ops.append(AddCValueOp("my_value", "new_value", "new_value"))
 
@@ -495,10 +536,9 @@ if __name__ == "__main__":
     ops.append(RunSubroutineOp(IqoalaVector(["my_value"]), lhr_subrt))
     ops.append(ReturnResultOp("m"))
 
-    program = IqoalaProgram(
-        instructions=ops,
-        subroutines={"subrt1": subrt},
-    )
+    meta = ProgramMeta(name="alice", parameters={}, csockets={}, epr_sockets={})
+
+    program = IqoalaProgram(instructions=ops, subroutines={"subrt1": subrt}, meta=meta)
     print("original program:")
     print(program)
 

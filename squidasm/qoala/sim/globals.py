@@ -7,7 +7,7 @@ from netsquid.qubits import qubitapi
 from netsquid.qubits.qubit import Qubit
 
 if TYPE_CHECKING:
-    from squidasm.qoala.sim.procnode import ProcNodeNetwork
+    from squidasm.qoala.sim.network import ProcNodeNetwork
 
 T_QubitData = Dict[str, Dict[int, Qubit]]
 T_StateData = Dict[str, Dict[int, np.ndarray]]
@@ -15,7 +15,7 @@ T_StateData = Dict[str, Dict[int, np.ndarray]]
 
 class GlobalSimData:
     _NETWORK: Optional[ProcNodeNetwork] = None
-    _BREAKPOINT_STATES: List[np.ndarray] = []
+    _BREAKPOINT_STATES: List[T_StateData] = []
 
     def set_network(self, network: ProcNodeNetwork) -> None:
         self._NETWORK = network
@@ -42,6 +42,6 @@ class GlobalSimData:
             self._BREAKPOINT_STATES.append(states)
         return qubits
 
-    def get_last_breakpoint_state(self) -> np.ndarray:
+    def get_last_breakpoint_state(self) -> T_StateData:
         assert len(self._BREAKPOINT_STATES) > 0
         return self._BREAKPOINT_STATES[-1]

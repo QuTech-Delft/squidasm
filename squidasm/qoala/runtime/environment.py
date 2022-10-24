@@ -34,6 +34,20 @@ class GlobalNodeInfo:
     mem_T2: int
 
     @classmethod
+    def default_nv(cls, name: str, id: int, num_qubits: int) -> GlobalNodeInfo:
+        # TODO: think about default values
+        return GlobalNodeInfo(
+            name=name,
+            id=id,
+            num_qubits=num_qubits,
+            num_comm_qubits=1,
+            comm_T1=1e9,
+            comm_T2=1e9,
+            mem_T1=1e10,
+            mem_T2=1e10,
+        )
+
+    @classmethod
     def from_config(
         cls, name: str, id: int, config: Union[GenericQDeviceConfig, NVQDeviceConfig]
     ) -> GlobalNodeInfo:
@@ -52,6 +66,7 @@ class GlobalNodeInfo:
             assert isinstance(config, NVQDeviceConfig)
             return GlobalNodeInfo(
                 name=name,
+                id=id,
                 num_qubits=config.num_qubits,
                 num_comm_qubits=1,
                 comm_T1=config.electron_T1,
@@ -102,6 +117,7 @@ class GlobalEnvironment:
         for id, node in self._nodes.items():
             if node.name == name:
                 return id
+        raise ValueError
 
     def set_nodes(self, nodes: Dict[int, GlobalNodeInfo]) -> None:
         self._nodes = nodes
@@ -109,14 +125,14 @@ class GlobalEnvironment:
     def add_node(self, id: int, node: GlobalNodeInfo) -> None:
         self._nodes[id] = node
 
-    def get_links(self) -> Dict[int, GlobalLinkInfo]:
+    def get_links(self) -> Dict[Tuple[int, int], GlobalLinkInfo]:
         return self._links
 
-    def set_links(self, links: Dict[int, GlobalLinkInfo]) -> None:
+    def set_links(self, links: Dict[Tuple[int, int], GlobalLinkInfo]) -> None:
         self._links = links
 
-    def add_link(self, id: int, link: GlobalLinkInfo) -> None:
-        self._links[id] = link
+    def add_link(self, id1: int, id2: int, link: GlobalLinkInfo) -> None:
+        self._links[(id1, id2)] = link
 
 
 class LocalEnvironment:
@@ -153,7 +169,7 @@ class LocalEnvironment:
         self._local_schedule = schedule
 
     def get_all_node_names(self) -> List[str]:
-        return list(self.get_global_env().get_nodes().values())
+        return [info.name for info in self.get_global_env().get_nodes().values()]
 
 
 class ProgramEnvironment:
