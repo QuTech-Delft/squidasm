@@ -31,7 +31,6 @@ from qlink_interface.interface import ReqRemoteStatePrep
 from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import GlobalNodeInfo, LocalEnvironment
 from squidasm.qoala.sim.common import (
-    AllocError,
     ComponentProtocol,
     NetstackBreakpointCreateRequest,
     NetstackBreakpointReceiveRequest,
@@ -47,7 +46,7 @@ from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
 from squidasm.qoala.sim.netstackinterface import NetstackInterface
 from squidasm.qoala.sim.process import IqoalaProcess
-from squidasm.qoala.sim.qdevice import QDevice
+from squidasm.qoala.sim.qdevice import AllocError, QDevice
 from squidasm.qoala.sim.scheduler import Scheduler
 from squidasm.qoala.sim.signals import (
     SIGNAL_MEMORY_FREED,

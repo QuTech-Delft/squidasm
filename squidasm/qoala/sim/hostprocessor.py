@@ -22,7 +22,7 @@ class HostProcessor:
         self._interface = interface
 
         # TODO: name
-        self._name = f"{interface._comp.name}_HostProcessor"
+        self._name = f"{interface.name}_HostProcessor"
         self._logger: logging.Logger = LogManager.get_stack_logger(  # type: ignore
             f"{self.__class__.__name__}({self._name})"
         )
@@ -31,7 +31,7 @@ class HostProcessor:
         host_mem = process.prog_memory.host_mem
         inputs = process.prog_instance.inputs
         for name, value in inputs.values.items():
-            host_mem[name] = value
+            host_mem.write(name, value)
 
     def assign(
         self, process: IqoalaProcess, instr_idx: int
@@ -45,53 +45,54 @@ class HostProcessor:
         instr = program.instructions[instr_idx]
 
         self._logger.info(f"Interpreting LHR instruction {instr}")
-        if isinstance(instr, iqoala.SendCMsgOp):
-            csck_id = host_mem[instr.arguments[0]]
+        if isinstance(instr, iqoala.AssignCValueOp):
+            value = instr.attributes[0]
+            host_mem.write(instr.results[0], instr.attributes[0])
+        elif isinstance(instr, iqoala.SendCMsgOp):
+            csck_id = host_mem.read(instr.arguments[0])
             csck = csockets[csck_id]
-            value = host_mem[instr.arguments[1]]
+            value = host_mem.read(instr.arguments[1])
             self._logger.info(f"sending msg {value}")
-            csck.send(value)
+            csck.send_int(value)
         elif isinstance(instr, iqoala.ReceiveCMsgOp):
-            csck_id = host_mem[instr.arguments[0]]
+            csck_id = host_mem.read(instr.arguments[0])
             csck = csockets[csck_id]
-            msg = yield from csck.recv()
-            msg = int(msg)
-            host_mem[instr.results[0]] = msg
+            msg = yield from csck.recv_int()
+            host_mem.write(instr.results[0], msg)
             self._logger.info(f"received msg {msg}")
         elif isinstance(instr, iqoala.AddCValueOp):
-            arg0 = int(host_mem[instr.arguments[0]])
-            arg1 = int(host_mem[instr.arguments[1]])
-            host_mem[instr.results[0]] = arg0 + arg1
+            arg0 = host_mem.read(instr.arguments[0])
+            arg1 = host_mem.read(instr.arguments[1])
+            host_mem.write(instr.results[0], arg0 + arg1)
         elif isinstance(instr, iqoala.MultiplyConstantCValueOp):
-            arg0 = host_mem[instr.arguments[0]]
-            arg1 = int(instr.arguments[1])
-            host_mem[instr.results[0]] = arg0 * arg1
+            arg0 = host_mem.read(instr.arguments[0])
+            const = instr.attributes[0]
+            assert isinstance(const, int)
+            host_mem.write(instr.results[0], arg0 * const)
         elif isinstance(instr, iqoala.BitConditionalMultiplyConstantCValueOp):
-            arg0 = host_mem[instr.arguments[0]]
-            arg1 = int(instr.arguments[1])
-            cond = host_mem[instr.arguments[2]]
+            arg0 = host_mem.read(instr.arguments[0])
+            cond = host_mem.read(instr.arguments[1])
+            const = instr.attributes[0]
+            assert isinstance(const, int)
             if cond == 1:
-                host_mem[instr.results[0]] = arg0 * arg1
+                host_mem.write(instr.results[0], arg0 * const)
             else:
-                host_mem[instr.results[0]] = arg0
-        elif isinstance(instr, iqoala.AssignCValueOp):
-            value = instr.attributes[0]
-            # if isinstance(value, str) and value.startswith("RegFuture__"):
-            #     reg_str = value[len("RegFuture__") :]
-            host_mem[instr.results[0]] = instr.attributes[0]
+                host_mem.write(instr.results[0], arg0)
         elif isinstance(instr, iqoala.RunSubroutineOp):
             arg_vec: iqoala.IqoalaVector = instr.arguments[0]
             args = arg_vec.values
-            iqoala_subrt: iqoala.IqoalaSubroutine = instr.attributes[0]
-            subrt = iqoala_subrt.subroutine
-            self._logger.info(f"executing subroutine {subrt}")
+            subrt_name = instr.attributes[0]
+            assert isinstance(subrt_name, str)
 
-            arg_values = {arg: host_mem[arg] for arg in args}
+            iqoala_subrt = process.subroutines[subrt_name]
+            self._logger.info(f"executing subroutine {iqoala_subrt}")
+
+            arg_values = {arg: host_mem.read(arg) for arg in args}
 
             self._logger.info(f"instantiating subroutine with values {arg_values}")
-            subrt.instantiate(pid, arg_values)
+            iqoala_subrt.subroutine.instantiate(pid, arg_values)
 
-            self._interface.send_qnos_msg(Message(content=SubroutineMessage(subrt)))
+            self._interface.send_qnos_msg(Message(subrt_name))
             yield from self._interface.receive_qnos_msg()
             # Qnos should have updated the shared memory with subroutine results.
 
@@ -103,9 +104,9 @@ class HostProcessor:
                         f"writing shared memory value {value} from location "
                         f"{mem_loc} to variable {key}"
                     )
-                    host_mem[key] = value
+                    host_mem.write(key, value)
                 except NetQASMSyntaxError:
                     pass
         elif isinstance(instr, iqoala.ReturnResultOp):
             value = instr.arguments[0]
-            process.result.values[value] = int(host_mem[value])
+            process.result.values[value] = host_mem.read(value)

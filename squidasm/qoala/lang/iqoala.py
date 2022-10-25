@@ -18,6 +18,10 @@ class ProgramMeta:
     csockets: Dict[int, str]  # socket ID -> remote node name
     epr_sockets: Dict[int, str]  # socket ID -> remote node name
 
+    @classmethod
+    def empty(cls, name: str) -> ProgramMeta:
+        return ProgramMeta(name=name, parameters={}, csockets={}, epr_sockets={})
+
 
 class IqoalaInstructionType(Enum):
     CC = 0
@@ -42,10 +46,15 @@ class DynamicIqoalaProgramInfo:
 
 class IqoalaSubroutine:
     def __init__(
-        self, subrt: Subroutine, return_map: Dict[str, IqoalaSharedMemLoc]
+        self, name: str, subrt: Subroutine, return_map: Dict[str, IqoalaSharedMemLoc]
     ) -> None:
+        self._name = name
         self._subrt = subrt
         self._return_map = return_map
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     @property
     def subroutine(self) -> Subroutine:
@@ -65,7 +74,7 @@ class IqoalaSubroutine:
         return s
 
 
-IqoalaValue = Union[int, Template, IqoalaSubroutine]
+IqoalaValue = Union[int, Template, str]
 
 
 class IqoalaAttribute:
@@ -169,6 +178,23 @@ class ClassicalIqoalaOp:
         return self._attributes
 
 
+class AssignCValueOp(ClassicalIqoalaOp):
+    OP_NAME = "assign_cval"
+    TYP = IqoalaInstructionType.CL
+
+    def __init__(self, result: str, value: IqoalaValue) -> None:
+        super().__init__(results=[result], attributes=[value])
+
+    @classmethod
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
+        assert result is not None
+        assert len(args) == 0
+        assert attr is not None
+        return cls(result, attr)
+
+
 class SendCMsgOp(ClassicalIqoalaOp):
     OP_NAME = "send_cmsg"
     TYP = IqoalaInstructionType.CC
@@ -176,7 +202,7 @@ class SendCMsgOp(ClassicalIqoalaOp):
     def __init__(self, csocket: str, value: str) -> None:
         # args:
         #   csocket (int): ID of csocket
-        #   value (str): ID of csocket
+        #   value (str): name of variable holding the value to send
         super().__init__(arguments=[csocket, value])
 
     @classmethod
@@ -227,8 +253,30 @@ class MultiplyConstantCValueOp(ClassicalIqoalaOp):
     OP_NAME = "mult_const"
     TYP = IqoalaInstructionType.CL
 
-    def __init__(self, result: str, value0: str, value1: str) -> None:
-        super().__init__(arguments=[value0, value1], results=[result])
+    def __init__(self, result: str, value0: str, const: IqoalaValue) -> None:
+        # result = value0 * const
+        super().__init__(arguments=[value0], attributes=[const], results=[result])
+
+    @classmethod
+    def from_generic_args(
+        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
+    ):
+        assert result is not None
+        assert len(args) == 1
+        assert attr is not None
+        return cls(result, args[0], attr)
+
+
+class BitConditionalMultiplyConstantCValueOp(ClassicalIqoalaOp):
+    OP_NAME = "bcond_mult_const"
+    TYP = IqoalaInstructionType.CL
+
+    def __init__(self, result: str, value0: str, cond: str, const: IqoalaValue) -> None:
+        # if const == 1:
+        #   result = value0 * const
+        # else:
+        #   result = value0
+        super().__init__(arguments=[value0, cond], attributes=[const], results=[result])
 
     @classmethod
     def from_generic_args(
@@ -236,49 +284,15 @@ class MultiplyConstantCValueOp(ClassicalIqoalaOp):
     ):
         assert result is not None
         assert len(args) == 2
-        assert attr is None
-        return cls(result, args[0], args[1])
-
-
-class BitConditionalMultiplyConstantCValueOp(ClassicalIqoalaOp):
-    OP_NAME = "bcond_mult_const"
-    TYP = IqoalaInstructionType.CL
-
-    def __init__(self, result: str, value0: str, value1: str, cond: str) -> None:
-        super().__init__(arguments=[value0, value1, cond], results=[result])
-
-    @classmethod
-    def from_generic_args(
-        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
-    ):
-        assert result is not None
-        assert len(args) == 3
-        assert attr is None
-        return cls(result, args[0], args[1], args[2])
-
-
-class AssignCValueOp(ClassicalIqoalaOp):
-    OP_NAME = "assign_cval"
-    TYP = IqoalaInstructionType.CL
-
-    def __init__(self, result: str, value: IqoalaValue) -> None:
-        super().__init__(results=[result], attributes=[value])
-
-    @classmethod
-    def from_generic_args(
-        cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
-    ):
-        assert result is not None
-        assert len(args) == 0
         assert attr is not None
-        return cls(result, attr)
+        return cls(result, args[0], args[1], attr)
 
 
 class RunSubroutineOp(ClassicalIqoalaOp):
     OP_NAME = "run_subroutine"
     TYP = IqoalaInstructionType.CL
 
-    def __init__(self, values: IqoalaVector, subrt: IqoalaSubroutine) -> None:
+    def __init__(self, values: IqoalaVector, subrt: str) -> None:
         super().__init__(arguments=[values], attributes=[subrt])
 
     @classmethod
@@ -288,7 +302,7 @@ class RunSubroutineOp(ClassicalIqoalaOp):
         assert result is None
         assert len(args) == 1
         assert isinstance(args[0], IqoalaVector)
-        assert isinstance(attr, IqoalaSubroutine)
+        assert isinstance(attr, str)
         return cls(args[0], attr)
 
     @property
@@ -343,11 +357,11 @@ class IqoalaProgram:
     def __init__(
         self,
         instructions: List[ClassicalIqoalaOp],
-        subroutines: Dict[str, Subroutine],
+        subroutines: Dict[str, IqoalaSubroutine],
         meta: ProgramMeta,
     ) -> None:
         self._instructions: List[ClassicalIqoalaOp] = instructions
-        self._subroutines: Dict[str, Subroutine] = subroutines
+        self._subroutines: Dict[str, IqoalaSubroutine] = subroutines
         self._meta: ProgramMeta = meta
 
     @property
@@ -376,11 +390,11 @@ class IqoalaProgram:
         return sigs
 
     @property
-    def subroutines(self) -> Dict[str, Subroutine]:
+    def subroutines(self) -> Dict[str, IqoalaSubroutine]:
         return self._subroutines
 
     @subroutines.setter
-    def subroutines(self, new_subroutines) -> None:
+    def subroutines(self, new_subroutines: Dict[str, IqoalaSubroutine]) -> None:
         self._subroutines = new_subroutines
 
     def __str__(self) -> str:
@@ -472,6 +486,9 @@ class IqoalaParser:
 
     def _parse_subroutine(self) -> IqoalaSubroutine:
         return_map: Dict[str, IqoalaSharedMemLoc] = {}
+        name_line = self._read_line()
+        assert name_line.startswith("name: ")
+        name = name_line[6:]
         while (line := self._read_line()) != "NETQASM_START":
             ret_text = "return "
             assert line.startswith(ret_text)
@@ -492,12 +509,12 @@ class IqoalaParser:
             subrt = parse_text_subroutine(subrt_text)
         except KeyError:
             subrt = parse_text_subroutine(subrt_text, flavour=NVFlavour())
-        return IqoalaSubroutine(subrt, return_map)
+        return IqoalaSubroutine(name, subrt, return_map)
 
     def parse(self) -> IqoalaProgram:
         meta: ProgramMeta
         instructions = []
-        subroutines: Dict[str, Subroutine] = {}
+        subroutines: Dict[str, IqoalaSubroutine] = {}
 
         # TODO: parse ProgramMeta
 
@@ -507,8 +524,9 @@ class IqoalaParser:
                 instr = self._parse_lhr()
                 if isinstance(instr, RunSubroutineOp):
                     subrt = self._parse_subroutine()
+                    subroutines[subrt.name] = subrt
                     assert isinstance(instr.arguments[0], IqoalaVector)
-                    instr = RunSubroutineOp(instr.arguments[0], subrt)
+                    instr = RunSubroutineOp(instr.arguments[0], subrt.name)
                 instructions.append(instr)
                 self._next_line()
         except EndOfTextException:

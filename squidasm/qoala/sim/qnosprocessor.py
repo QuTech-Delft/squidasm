@@ -27,7 +27,6 @@ from netsquid.qubits import qubitapi
 
 from pydynaa import EventExpression
 from squidasm.qoala.sim.common import (
-    AllocError,
     NetstackBreakpointCreateRequest,
     NetstackBreakpointReceiveRequest,
     NetstackCreateRequest,
@@ -39,7 +38,7 @@ from squidasm.qoala.sim.logging import LogManager
 from squidasm.qoala.sim.memory import ProgramMemory
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
-from squidasm.qoala.sim.qdevice import QDevice
+from squidasm.qoala.sim.qdevice import AllocError, QDevice
 from squidasm.qoala.sim.qnosinterface import QnosInterface
 from squidasm.qoala.sim.signals import SIGNAL_MEMORY_FREED
 
@@ -51,10 +50,10 @@ class QnosProcessor:
         self._interface = interface
 
         # TODO: rewrite
-        self._node_name = interface._comp.node.name
+        self._name = f"{interface.name}_QnosProcessor"
 
         self._logger: logging.Logger = LogManager.get_stack_logger(  # type: ignore
-            f"{self.__class__.__name__}({self._node_name})"
+            f"{self.__class__.__name__}({self._name})"
         )
 
         # memory of current program, only not-None when processor is active
@@ -72,15 +71,18 @@ class QnosProcessor:
     def assign(
         self, process: IqoalaProcess, subrt_name: str, instr_idx: int
     ) -> Generator[EventExpression, None, None]:
-        subroutine = process.subroutines[subrt_name]
+        iqoala_subrt = process.subroutines[subrt_name]
         pid = process.prog_instance.pid
 
         self._current_prog_mem = process.prog_memory
         prog_mem = self._prog_mem()
 
-        instr = subroutine.instructions[prog_mem.prog_counter]
+        subroutine = iqoala_subrt.subroutine
+
+        # TODO: handle program counter and jumping!!
+        instr = subroutine.instructions[instr_idx]
         self._logger.debug(
-            f"{ns.sim_time()} interpreting instruction {instr} at line {prog_mem.prog_counter}"
+            f"{ns.sim_time()} interpreting instruction {instr} at line {instr_idx}"
         )
 
         if (
@@ -201,6 +203,7 @@ class QnosProcessor:
         self, pid: int, instr: core.QAllocInstruction
     ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
+        q_mem = self._prog_mem().quantum_mem
 
         virt_id = shared_mem.get_reg_value(instr.reg)
         if virt_id is None:
@@ -208,7 +211,7 @@ class QnosProcessor:
         self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
 
         phys_id = self.qdevice.allocate()
-        shared_mem.map_virt_id(virt_id, phys_id)
+        q_mem.map_virt_id(virt_id, phys_id)
         return None
 
     def _interpret_qfree(

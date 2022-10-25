@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict
 
-from netqasm.lang.subroutine import Subroutine
-
+from squidasm.qoala.lang.iqoala import IqoalaSubroutine
 from squidasm.qoala.runtime.program import ProgramInstance, ProgramResult
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.eprsocket import EprSocket
@@ -15,5 +14,5 @@ class IqoalaProcess:
     prog_memory: ProgramMemory
     csockets: Dict[int, ClassicalSocket]
     epr_sockets: Dict[int, EprSocket]
-    subroutines: Dict[str, Subroutine]
+    subroutines: Dict[str, IqoalaSubroutine]
     result: ProgramResult

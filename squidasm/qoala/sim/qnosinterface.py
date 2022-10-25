@@ -7,7 +7,7 @@ from squidasm.qoala.sim.common import ComponentProtocol, PortListener
 from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.qdevice import QDevice
-from squidasm.qoala.sim.qnos import QnosComponent
+from squidasm.qoala.sim.qnoscomp import QnosComponent
 from squidasm.qoala.sim.signals import (
     SIGNAL_HOST_HAND_MSG,
     SIGNAL_MEMORY_FREED,

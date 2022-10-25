@@ -31,8 +31,14 @@ class HostMemory:
         self._pid = pid
 
         # Host memory is represented as a mapping from variables to values.
-        # Variables have a name (str), and values can have any type.
-        self._mem: Dict[str, Any] = {}
+        # Variables have a name (str) and values (int).
+        self._mem: Dict[str, int] = {}
+
+    def write(self, loc: str, value: int) -> None:
+        self._mem[loc] = value
+
+    def read(self, loc: str) -> int:
+        return self._mem[loc]
 
 
 class SharedMemory:

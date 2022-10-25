@@ -171,6 +171,13 @@ class LocalEnvironment:
     def get_all_node_names(self) -> List[str]:
         return [info.name for info in self.get_global_env().get_nodes().values()]
 
+    def get_all_other_node_names(self) -> List[str]:
+        return [
+            info.name
+            for info in self.get_global_env().get_nodes().values()
+            if info.id != self._node_id
+        ]
+
 
 class ProgramEnvironment:
     """Environment interface given to a program"""

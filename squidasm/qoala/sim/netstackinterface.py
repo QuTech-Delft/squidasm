@@ -37,7 +37,7 @@ class NetstackInterface(ComponentProtocol):
             "processor",
             PortListener(self._comp.qnos_in_port, SIGNAL_PROC_NSTK_MSG),
         )
-        for peer in self._local_env.get_all_node_names():
+        for peer in self._local_env.get_all_other_node_names():
             self.add_listener(
                 f"peer_{peer}",
                 PortListener(

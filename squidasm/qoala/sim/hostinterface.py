@@ -23,7 +23,8 @@ class HostInterface(ComponentProtocol):
         :param comp: NetSquid component representing the Host
         :param qdevice_type: hardware type of the QDevice of this node
         """
-        super().__init__(name=f"{comp.name}_protocol", comp=comp)
+        name = f"{comp.name}_protocol"
+        super().__init__(name=name, comp=comp)
         self._comp = comp
 
         self._local_env = local_env
@@ -32,7 +33,7 @@ class HostInterface(ComponentProtocol):
             "qnos",
             PortListener(self._comp.ports["qnos_in"], SIGNAL_HAND_HOST_MSG),
         )
-        for peer in self._local_env.get_all_node_names():
+        for peer in self._local_env.get_all_other_node_names():
             self.add_listener(
                 f"peer_{peer}",
                 PortListener(
