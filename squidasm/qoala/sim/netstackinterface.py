@@ -32,6 +32,7 @@ class NetstackInterface(ComponentProtocol):
         self._comp = comp
         self._qdevice = qdevice
         self._local_env = local_env
+        self._memmgr = memmgr
 
         self.add_listener(
             "processor",

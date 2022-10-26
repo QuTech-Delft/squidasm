@@ -16,3 +16,7 @@ class IqoalaProcess:
     epr_sockets: Dict[int, EprSocket]
     subroutines: Dict[str, IqoalaSubroutine]
     result: ProgramResult
+
+    @property
+    def pid(self) -> int:
+        return self.prog_instance.pid

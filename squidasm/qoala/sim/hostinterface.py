@@ -21,7 +21,6 @@ class HostInterface(ComponentProtocol):
         """Host protocol constructor.
 
         :param comp: NetSquid component representing the Host
-        :param qdevice_type: hardware type of the QDevice of this node
         """
         name = f"{comp.name}_protocol"
         super().__init__(name=name, comp=comp)

@@ -18,6 +18,7 @@ from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.host import Host
 from squidasm.qoala.sim.hostcomp import HostComponent
+from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.memory import ProgramMemory, UnitModule
 from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
 from squidasm.qoala.sim.process import IqoalaProcess
@@ -34,12 +35,7 @@ from squidasm.qoala.sim.scheduler import Scheduler, SchedulerComponent
 
 
 class ProcNode(Protocol):
-    """NetSquid protocol representing a node with a software stack.
-
-    The software stack consists of a Scheduler, Host, QNodeOS and a QDevice.
-    The Host and QNodeOS are each represented by separate subprotocols.
-    The QDevice is handled/modeled as part of the QNodeOS protocol.
-    """
+    """NetSquid protocol representing a node with a software stack."""
 
     def __init__(
         self,
@@ -58,7 +54,7 @@ class ProcNode(Protocol):
             components or None. If None, a ProcNodeComponent is automatically
             created.
         :param qdevice_type: hardware type of the QDevice, defaults to "generic"
-        :param qdevice: NetSquid `QuantumProcessor` representing the QDevice,
+        :param qprocessor: NetSquid `QuantumProcessor` representing the QDevice,
             defaults to None. If None, a QuantumProcessor is created
             automatically.
         :param node_id: ID to use for the internal NetSquid node object
@@ -81,6 +77,7 @@ class ProcNode(Protocol):
         self._nestack = Netstack(
             self.netstack_comp, self._local_env, self.scheduler, self.qdevice
         )
+        self._memmgr = MemoryManager(self.node.name)
 
         if scheduler is None:
             self._scheduler = Scheduler(self._node.name)

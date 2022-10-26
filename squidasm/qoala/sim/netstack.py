@@ -41,6 +41,7 @@ from squidasm.qoala.sim.common import (
 from squidasm.qoala.sim.constants import PI
 from squidasm.qoala.sim.egp import EgpProtocol
 from squidasm.qoala.sim.eprsocket import EprSocket
+from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
@@ -62,6 +63,7 @@ class Netstack(ComponentProtocol):
         self,
         comp: NetstackComponent,
         local_env: LocalEnvironment,
+        memmgr: MemoryManager,
         scheduler: Scheduler,
         qdevice: QDevice,
     ) -> None:
@@ -82,7 +84,7 @@ class Netstack(ComponentProtocol):
         self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
 
         # Owned objects.
-        self._interface = NetstackInterface(comp, local_env, qdevice)
+        self._interface = NetstackInterface(comp, local_env, qdevice, memmgr)
         self._egps: Dict[int, EgpProtocol] = {}
 
     def assign_ll_protocol(
@@ -307,16 +309,16 @@ class Netstack(ComponentProtocol):
             elif result.bell_state == BellIndex.B01:
                 prog = QuantumProgram()
                 prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-                yield self.qdevice.execute_program(prog)
+                yield self._interface.qdevice.execute_program(prog)
             elif result.bell_state == BellIndex.B10:
                 prog = QuantumProgram()
                 prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-                yield self.qdevice.execute_program(prog)
+                yield self._interface.qdevice.execute_program(prog)
             elif result.bell_state == BellIndex.B11:
                 prog = QuantumProgram()
                 prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
                 prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-                yield self.qdevice.execute_program(prog)
+                yield self._interface.qdevice.execute_program(prog)
 
             virt_id = shared_mem.get_array_value(req.qubit_array_addr, pair_index)
             quantum_mem.map_virt_id(virt_id, phys_id)

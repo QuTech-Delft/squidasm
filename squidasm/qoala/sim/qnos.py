@@ -25,6 +25,7 @@ class Qnos(Protocol):
         self,
         comp: QnosComponent,
         local_env: LocalEnvironment,
+        memmgr: MemoryManager,
         scheduler: Scheduler,
         qdevice: QDevice,
     ) -> None:
@@ -45,8 +46,7 @@ class Qnos(Protocol):
         # TODO: make self._processes fully referenced object?
 
         # Owned objects.
-        self._memmgr = MemoryManager(comp.name)
-        self._interface = QnosInterface(comp, qdevice, self._memmgr)
+        self._interface = QnosInterface(comp, qdevice, memmgr)
         self._processor: QnosProcessor
 
         if qdevice.typ == QDeviceType.GENERIC:

@@ -22,6 +22,7 @@ class PhysicalQuantumMemory:
         self._qubit_count = qubit_count
         self._allocated_ids: Set[int] = set()
         self._comm_qubit_ids: Set[int] = {i for i in range(qubit_count)}
+        self._mem_qubit_ids: Set[int] = {i for i in range(qubit_count)}
 
     @property
     def qubit_count(self) -> int:
@@ -31,44 +32,20 @@ class PhysicalQuantumMemory:
     def comm_qubit_count(self) -> int:
         return len(self._comm_qubit_ids)
 
-    def allocate(self) -> int:
-        """Allocate a qubit (communcation or memory)."""
-        for i in range(self._qubit_count):
-            if i not in self._allocated_ids:
-                self._allocated_ids.add(i)
-                return i
-        raise AllocError("No more qubits available")
+    @property
+    def comm_qubit_ids(self) -> Set[int]:
+        return self._comm_qubit_ids
 
-    def allocate_comm(self) -> int:
-        """Allocate a communication qubit."""
-        for i in range(self._qubit_count):
-            if i not in self._allocated_ids and i in self._comm_qubit_ids:
-                self._allocated_ids.add(i)
-                return i
-        raise AllocError("No more comm qubits available")
-
-    def allocate_mem(self) -> int:
-        """Allocate a memory qubit."""
-        for i in range(self._qubit_count):
-            if i not in self._allocated_ids and i not in self._comm_qubit_ids:
-                self._allocated_ids.add(i)
-                return i
-        raise AllocError("No more mem qubits available")
-
-    def free(self, id: int) -> None:
-        self._allocated_ids.remove(id)
-
-    def is_allocated(self, id: int) -> bool:
-        return id in self._allocated_ids
-
-    def clear(self) -> None:
-        self._allocated_ids = set()
+    @property
+    def mem_qubit_ids(self) -> Set[int]:
+        return self._mem_qubit_ids
 
 
 class NVPhysicalQuantumMemory(PhysicalQuantumMemory):
     def __init__(self, qubit_count: int) -> None:
         super().__init__(qubit_count)
         self._comm_qubit_ids: Set[int] = {0}
+        self._mem_qubit_ids: Set[int] = {i for i in range(1, qubit_count)}
 
 
 class QDevice:
@@ -92,20 +69,21 @@ class QDevice:
     def memory(self) -> PhysicalQuantumMemory:
         return self._memory
 
-    def allocate(self) -> int:
-        return self._memory.allocate()
+    @property
+    def qubit_count(self) -> int:
+        return self.memory.qubit_count
 
-    def allocate_comm(self) -> int:
-        return self._memory.allocate_comm()
+    @property
+    def comm_qubit_count(self) -> int:
+        return self.memory.comm_qubit_count
 
-    def allocate_mem(self) -> int:
-        return self._memory.allocate_mem()
+    @property
+    def comm_qubit_ids(self) -> Set[int]:
+        return self.memory.comm_qubit_ids
 
-    def free(self, id: int) -> None:
-        self._memory.free(id)
-
-    def is_allocated(self, id: int) -> bool:
-        return self._memory.is_allocated(id)
+    @property
+    def mem_qubit_ids(self) -> Set[int]:
+        return self.memory.mem_qubit_ids
 
     def set_mem_pos_in_use(self, id: int, in_use: bool) -> None:
         self.qprocessor.mem_positions[id].in_use = in_use
