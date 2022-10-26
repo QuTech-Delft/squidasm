@@ -260,6 +260,10 @@ class QuantumMemory:
             i: None for i in unit_module.qubit_ids
         }
 
+    @property
+    def unit_module(self) -> UnitModule:
+        return self._unit_module
+
     def map_virt_id(self, virt_id: int, phys_id: int) -> None:
         self._mapping[virt_id] = phys_id
 
