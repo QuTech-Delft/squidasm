@@ -38,7 +38,7 @@ from squidasm.qoala.sim.logging import LogManager
 from squidasm.qoala.sim.memory import ProgramMemory
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
-from squidasm.qoala.sim.qdevice import AllocError, QDevice
+from squidasm.qoala.sim.qdevice import QDevice
 from squidasm.qoala.sim.qnosinterface import QnosInterface
 from squidasm.qoala.sim.signals import SIGNAL_MEMORY_FREED
 
@@ -203,32 +203,26 @@ class QnosProcessor:
         self, pid: int, instr: core.QAllocInstruction
     ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
 
         virt_id = shared_mem.get_reg_value(instr.reg)
         if virt_id is None:
             raise RuntimeError(f"qubit address in register {instr.reg} is not defined")
         self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
+        self._interface.memmgr.allocate(pid, virt_id)
 
-        phys_id = self.qdevice.allocate()
-        q_mem.map_virt_id(virt_id, phys_id)
         return None
 
     def _interpret_qfree(
         self, pid: int, instr: core.QFreeInstruction
     ) -> Optional[Generator[EventExpression, None, None]]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
 
         virt_id = shared_mem.get_reg_value(instr.reg)
         assert virt_id is not None
         self._logger.debug(f"Freeing virtual qubit {virt_id}")
-        phys_id = q_mem.phys_id_for(virt_id)
-        assert phys_id is not None
-        q_mem.unmap_virt_id(virt_id)
-        self.qdevice.free(phys_id)
+        self._interface.memmgr.free(pid, virt_id)
         self._interface.signal_memory_freed()
-        self.qdevice.mem_positions[phys_id].in_use = False
+
         return None
 
     def _interpret_store(
@@ -675,25 +669,6 @@ class GenericProcessor(QnosProcessor):
 class NVProcessor(QnosProcessor):
     """A `Processor` for nodes with a NV hardware."""
 
-    def _interpret_qalloc(
-        self, pid: int, instr: core.QAllocInstruction
-    ) -> Optional[Generator[EventExpression, None, None]]:
-        shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
-
-        virt_id = shared_mem.get_reg_value(instr.reg)
-        if virt_id is None:
-            raise RuntimeError(f"qubit address in register {instr.reg} is not defined")
-        self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
-
-        # Virtual ID > 0 corresponds to memory qubits
-        if virt_id > 0:
-            phys_id = self.qdevice.allocate_mem()
-        else:
-            phys_id = self.qdevice.allocate_comm()
-        q_mem.map_virt_id(virt_id, phys_id)
-        return None
-
     def _interpret_init(
         self, pid: int, instr: core.InitInstruction
     ) -> Generator[EventExpression, None, None]:
@@ -728,6 +703,19 @@ class NVProcessor(QnosProcessor):
         prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=-PI_OVER_2)
         yield from self.qdevice.execute_program(prog)
 
+    def _move_carbon_to_electron(
+        self, carbon_id: int
+    ) -> Generator[EventExpression, None, None]:
+        # TODO: CHECK SEQUENCE OF GATES!!!
+        prog = QuantumProgram()
+        prog.apply(INSTR_INIT, qubit_indices=[0])
+        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
+        prog.apply(INSTR_CYDIR, qubit_indices=[0, carbon_id], angle=-PI_OVER_2)
+        prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=-PI_OVER_2)
+        prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
+        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=-PI_OVER_2)
+        yield from self.qdevice.execute_program(prog)
+
     def _move_electron_to_carbon(
         self, carbon_id: int
     ) -> Generator[EventExpression, None, None]:
@@ -745,59 +733,72 @@ class NVProcessor(QnosProcessor):
         shared_mem = self._prog_mem().shared_mem
         q_mem = self._prog_mem().quantum_mem
         virt_id = shared_mem.get_reg_value(instr.qreg)
-        phys_id = q_mem.phys_id_for(virt_id)
+        phys_id = self._interface.memmgr.phys_id_for(pid, virt_id)
 
         # Only the electron (phys ID 0) can be measured.
         # Measuring any other physical qubit (i.e one of the carbons) requires
         # freeing up the electron and moving the target qubit to the electron first.
 
-        if phys_id == 0:
-            # Measuring the electron. This can be done immediately.
-            outcome = yield from self._measure_electron()
-            shared_mem.set_reg_value(instr.creg, outcome)
-        else:
-            # We want to measure a carbon.
-            # Move it to the electron first.
-            if self.qdevice.is_allocated(0):
-                # Electron is already allocated. Try to move it to a free carbon.
-                try:
-                    new_qubit = self.qdevice.allocate()
-                except AllocError:
-                    self._logger.error(
-                        f"Allocation error. Reason:\n"
-                        f"Measuring virtual qubit {virt_id}.\n"
-                        f"-> Measuring physical qubit {phys_id}.\n"
-                        f"-> Measuring physical qubit with ID > 0 requires "
-                        f"physical qubit 0 to be free."
-                        f"-> Physical qubit 0 is in use.\n"
-                        f"-> Trying to find free physical qubit for qubit 0.\n"
-                        f"-> No physical qubits available."
-                    )
-                yield from self._move_electron_to_carbon(new_qubit)
-                self._interface.memmgr.move_phys_qubit(0, new_qubit)
-                q_mem.unmap_virt_id(virt_id)
-                q_mem.map_virt_id(virt_id, 0)
-                yield from self._move_carbon_to_electron_for_measure(phys_id)
-                self.qdevice.free(phys_id)
-                self._interface.signal_memory_freed()
-                self.qdevice.set_mem_pos_in_use(phys_id, False)
-                outcome = yield from self._measure_electron()
-                shared_mem.set_reg_value(instr.creg, outcome)
-            else:
-                self.qdevice.allocate_comm()
-                q_mem.unmap_virt_id(virt_id)
-                q_mem.map_virt_id(virt_id, 0)
-                yield from self._move_carbon_to_electron_for_measure(phys_id)
-                self.qdevice.free(phys_id)
-                self._interface.signal_memory_freed()
-                self.qdevice.set_mem_pos_in_use(phys_id, False)
-                outcome = yield from self._measure_electron()
-                shared_mem.set_reg_value(instr.creg, outcome)
-
         self._logger.debug(
             f"Measuring qubit {virt_id} (physical ID: {phys_id}), "
             f"placing the outcome in register {instr.creg}"
         )
+
+        memmgr = self._interface.memmgr
+
+        if phys_id == 0:
+            # Measuring a comm qubit. This can be done immediately.
+            outcome = yield from self._measure_electron()
+            shared_mem.set_reg_value(instr.creg, outcome)
+            memmgr.free(pid, virt_id)
+            return None
+        # else:
+
+        # We want to measure a mem qubit.
+        # Move it to the comm qubit first.
+        # Check if comm qubit is already used by this process:
+        if memmgr.phys_id_for(pid, 0) is not None:
+            # Comm qubit is already allocated. Try to move it to a free mem qubit.
+            mem_virt_id = memmgr.get_unmapped_mem_qubit(pid)
+            memmgr.allocate(pid, mem_virt_id)
+            mem_phys_id = memmgr.phys_id_for(mem_virt_id)
+
+            # Move (temporarily) state from comm qubit to mem qubit.
+            yield from self._move_electron_to_carbon(mem_phys_id)
+
+            # Move state from qubit-to-measure to comm qubit.
+            yield from self._move_carbon_to_electron_for_measure(phys_id)
+            memmgr.free(pid, virt_id)
+            self._interface.signal_memory_freed()
+
+            # Measure comm qubit (containing state of qubit-to-measure).
+            outcome = yield from self._measure_electron()
+            shared_mem.set_reg_value(instr.creg, outcome)
+
+            # Move temporarily-moved state back to comm qubit.
+            yield from self._move_carbon_to_electron(mem_phys_id)
+
+            # Free mem qubit that was temporarily used.
+            memmgr.free(mem_virt_id)
+            self._interface.signal_memory_freed()
+        else:  # comm qubit not in use.
+            # Allocate comm qubit.
+            memmgr.allocate(pid, 0)
+
+            # Move state-to-measure to comm qubit.
+            yield from self._move_carbon_to_electron_for_measure(phys_id)
+
+            # Free qubit that contained state-to-measure.
+            memmgr.free(pid, virt_id)
+            self._interface.signal_memory_freed()
+
+            # Measure comm qubit.
+            outcome = yield from self._measure_electron()
+            shared_mem.set_reg_value(instr.creg, outcome)
+
+            # Free comm qubit.
+            memmgr.free(pid, 0)
+            self._interface.signal_memory_freed()
 
     def _interpret_single_rotation_instr(
         self, pid: int, instr: nv.RotXInstruction

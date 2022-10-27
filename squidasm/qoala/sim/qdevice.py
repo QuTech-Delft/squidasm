@@ -13,10 +13,6 @@ class QDeviceType(Enum):
     NV = auto()
 
 
-class AllocError(Exception):
-    pass
-
-
 class PhysicalQuantumMemory:
     def __init__(self, qubit_count: int) -> None:
         self._qubit_count = qubit_count
@@ -84,6 +80,10 @@ class QDevice:
     @property
     def mem_qubit_ids(self) -> Set[int]:
         return self.memory.mem_qubit_ids
+
+    @property
+    def all_qubit_ids(self) -> Set[int]:
+        return self.comm_qubit_ids.union(self.mem_qubit_ids)
 
     def set_mem_pos_in_use(self, id: int, in_use: bool) -> None:
         self.qprocessor.mem_positions[id].in_use = in_use

@@ -254,40 +254,9 @@ class QuantumMemory:
         self._pid = pid
         self._unit_module = unit_module
 
-        # Mapping from virtual qubit IDs (IDs in the unit module) to physical qubit IDs.
-        # Initially all virtual IDs map to None, i.e. they are unmapped.
-        self._mapping: Dict[int, Optional[int]] = {
-            i: None for i in unit_module.qubit_ids
-        }
-
     @property
     def unit_module(self) -> UnitModule:
         return self._unit_module
-
-    def map_virt_id(self, virt_id: int, phys_id: int) -> None:
-        self._mapping[virt_id] = phys_id
-
-    def unmap_virt_id(self, virt_id: int) -> None:
-        self._mapping[virt_id] = None
-
-    def unmap_all(self) -> None:
-        for virt_id in self._mapping:
-            self._mapping[virt_id] = None
-
-    @property
-    def qubit_mapping(self) -> Dict[int, Optional[int]]:
-        return self._mapping
-
-    def phys_id_for(self, virt_id: int) -> int:
-        phys_id = self._mapping[virt_id]
-        assert phys_id is not None
-        return phys_id
-
-    def virt_id_for(self, phys_id: int) -> Optional[int]:
-        for virt, phys in self._mapping.items():
-            if phys == phys_id:
-                return virt
-        return None
 
 
 class ProgramMemory:

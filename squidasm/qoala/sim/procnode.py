@@ -73,11 +73,17 @@ class ProcNode(Protocol):
 
         # Create internal components.
         self._host = Host(self.host_comp, self._local_env, self.scheduler)
-        self._qnos = Qnos(self.qnos_comp, self._local_env, self.scheduler, self.qdevice)
-        self._nestack = Netstack(
-            self.netstack_comp, self._local_env, self.scheduler, self.qdevice
-        )
         self._memmgr = MemoryManager(self.node.name)
+        self._qnos = Qnos(
+            self.qnos_comp, self._local_env, self._memmgr, self.scheduler, self.qdevice
+        )
+        self._nestack = Netstack(
+            self.netstack_comp,
+            self._local_env,
+            self._memmgr,
+            self.scheduler,
+            self.qdevice,
+        )
 
         if scheduler is None:
             self._scheduler = Scheduler(self._node.name)

@@ -41,13 +41,13 @@ from squidasm.qoala.sim.common import (
 from squidasm.qoala.sim.constants import PI
 from squidasm.qoala.sim.egp import EgpProtocol
 from squidasm.qoala.sim.eprsocket import EprSocket
-from squidasm.qoala.sim.memmgr import MemoryManager
+from squidasm.qoala.sim.memmgr import AllocError, MemoryManager
 from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
 from squidasm.qoala.sim.netstackinterface import NetstackInterface
 from squidasm.qoala.sim.process import IqoalaProcess
-from squidasm.qoala.sim.qdevice import AllocError, QDevice
+from squidasm.qoala.sim.qdevice import QDevice
 from squidasm.qoala.sim.scheduler import Scheduler
 from squidasm.qoala.sim.signals import (
     SIGNAL_MEMORY_FREED,
@@ -140,12 +140,8 @@ class Netstack(ComponentProtocol):
         )
 
     def get_shared_mem(self, pid: int) -> SharedMemory:
-        prog_mem = self._interface.memmgr.get_program_memory(pid)
+        prog_mem = self._processes[pid].prog_memory
         return prog_mem.shared_mem
-
-    def get_quantum_mem(self, pid: int) -> QuantumMemory:
-        prog_mem = self._interface.memmgr.get_program_memory(pid)
-        return prog_mem.quantum_mem
 
     def start(self) -> None:
         """Start this protocol. The NetSquid simulator will call and yield on the
@@ -259,7 +255,6 @@ class Netstack(ComponentProtocol):
         num_pairs = request.number
 
         shared_mem = self.get_shared_mem(req.pid)
-        quantum_mem = self.get_quantum_mem(req.pid)
         qubit_ids = shared_mem.get_array(req.qubit_array_addr)
 
         self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
@@ -271,9 +266,10 @@ class Netstack(ComponentProtocol):
 
         for pair_index in range(num_pairs):
             self._logger.info(f"trying to allocate comm qubit for pair {pair_index}")
+            virt_id = shared_mem.get_array_value(req.qubit_array_addr, pair_index)
             while True:
                 try:
-                    phys_id = self.physical_memory.allocate_comm()
+                    self._interface.memmgr.allocate(req.pid, virt_id)
                     break
                 except AllocError:
                     self._logger.info("no comm qubit available, waiting...")
@@ -319,12 +315,6 @@ class Netstack(ComponentProtocol):
                 prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
                 prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
                 yield self._interface.qdevice.execute_program(prog)
-
-            virt_id = shared_mem.get_array_value(req.qubit_array_addr, pair_index)
-            quantum_mem.map_virt_id(virt_id, phys_id)
-            self._logger.info(
-                f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
-            )
 
             gen_duration_ns_float = ns.sim_time() - start_time
             gen_duration_us_int = int(gen_duration_ns_float / 1000)
@@ -496,6 +486,8 @@ class Netstack(ComponentProtocol):
 
         num_pairs = request.number
 
+        shared_mem = self.get_shared_mem(req.pid)
+
         self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
         self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
 
@@ -503,9 +495,10 @@ class Netstack(ComponentProtocol):
 
         for pair_index in range(num_pairs):
             self._logger.info(f"trying to allocate comm qubit for pair {pair_index}")
+            virt_id = shared_mem.get_array_value(req.qubit_array_addr, pair_index)
             while True:
                 try:
-                    phys_id = self.physical_memory.allocate_comm()
+                    self._interface.memmgr.allocate(req.pid, virt_id)
                     break
                 except AllocError:
                     self._logger.info("no comm qubit available, waiting...")
@@ -536,14 +529,6 @@ class Netstack(ComponentProtocol):
                 ResCreateAndKeep.__name__, receiver=self
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
-
-            shared_mem = self.get_shared_mem(req.pid)
-            quantum_mem = self.get_quantum_mem(req.pid)
-            virt_id = shared_mem.get_array_value(req.qubit_array_addr, pair_index)
-            quantum_mem.map_virt_id(virt_id, phys_id)
-            self._logger.info(
-                f"mapping virtual qubit {virt_id} to physical qubit {phys_id}"
-            )
 
             gen_duration_ns_float = ns.sim_time() - start_time
             gen_duration_us_int = int(gen_duration_ns_float / 1000)
