@@ -1,10 +1,5 @@
 from squidasm.qoala.lang.iqoala import IqoalaParser
-from squidasm.qoala.runtime.config import (
-    GenericQDeviceConfig,
-    LinkConfig,
-    StackConfig,
-    StackNetworkConfig,
-)
+from squidasm.qoala.runtime.config import GenericQDeviceConfig, LinkConfig
 from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.runtime.run import run
 from squidasm.sim.stack.common import LogManager
@@ -14,8 +9,9 @@ from squidasm.sim.stack.program import ProgramMeta
 def test_parse():
     program_text = """
 my_value = assign_cval() : 1
-send_cmsg(my_value)
-received_value = recv_cmsg()
+remote_id = assign_cval() : 0
+send_cmsg(remote_id, my_value)
+received_value = recv_cmsg(remote_id)
 new_value = assign_cval() : 3
 my_value = add_cval_c(new_value, new_value)
 run_subroutine(vec<my_value>) :

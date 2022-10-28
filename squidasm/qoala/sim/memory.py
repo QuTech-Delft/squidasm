@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from netqasm.lang import operand
 from netqasm.lang.encoding import RegisterName
@@ -218,6 +218,12 @@ class TwoGateTrait(GateTrait):
         self._depolarizing_factor = depolarizing_factor
 
 
+@dataclass
+class Topology:
+    comm_ids: Set[int]
+    mem_ids: Set[int]
+
+
 @dataclass(eq=True, frozen=True)
 class UnitModule:
     """
@@ -233,6 +239,17 @@ class UnitModule:
     @property
     def num_qubits(self) -> int:
         return len(self.qubit_ids)
+
+    @classmethod
+    def from_topology(cls, topology: Topology) -> UnitModule:
+        all_ids = topology.comm_ids.union(topology.mem_ids)
+        traits = {i: [] for i in all_ids}
+        for i in all_ids:
+            if i in topology.comm_ids:
+                traits[i].append(CommQubitTrait)
+            if i in topology.mem_ids:
+                traits[i].append(MemQubitTrait)
+        return UnitModule(qubit_ids=list(all_ids), qubit_traits=traits, gate_traits={})
 
     @classmethod
     def default_generic(cls, num_qubits: int) -> UnitModule:

@@ -36,7 +36,6 @@ from squidasm.qoala.sim.common import (
     NetstackBreakpointReceiveRequest,
     NetstackCreateRequest,
     NetstackReceiveRequest,
-    PhysicalQuantumMemory,
 )
 from squidasm.qoala.sim.constants import PI
 from squidasm.qoala.sim.egp import EgpProtocol
@@ -199,10 +198,6 @@ class Netstack(ComponentProtocol):
         else:
             raise ValueError(f"Unsupported create type {typ}")
         return request
-
-    @property
-    def physical_memory(self) -> PhysicalQuantumMemory:
-        return self._qnos.physical_memory
 
     @property
     def qdevice(self) -> QuantumProcessor:
@@ -382,7 +377,7 @@ class Netstack(ComponentProtocol):
         # expected to finish in a short time anyway. However, writing results for a
         # pair as soon as they are done may be implemented in the future.
         for _ in range(request.number):
-            phys_id = self.physical_memory.allocate_comm()
+            self._interface.memmgr.allocate(req.pid, 0)
 
             yield self.await_signal(
                 sender=self._egps[req.remote_node_id],
@@ -393,7 +388,7 @@ class Netstack(ComponentProtocol):
             ].get_signal_result(ResMeasureDirectly.__name__, receiver=self)
             self._logger.debug(f"bell index: {result.bell_state}")
             results.append(result)
-            self.physical_memory.free(phys_id)
+            self._interface.memmgr.free(req.pid, 0)
 
         shared_mem = self.get_shared_mem(req.pid)
 
@@ -593,7 +588,7 @@ class Netstack(ComponentProtocol):
         results: List[ResMeasureDirectly] = []
 
         for _ in range(request.number):
-            phys_id = self._interface.qdevice.allocate_comm()
+            self._interface.memmgr.allocate(req.pid, 0)
 
             yield self.await_signal(
                 sender=self._egps[req.remote_node_id],
@@ -604,7 +599,7 @@ class Netstack(ComponentProtocol):
             ].get_signal_result(ResMeasureDirectly.__name__, receiver=self)
             results.append(result)
 
-            self.physical_memory.free(phys_id)
+            self._interface.memmgr.free(req.pid, 0)
 
         shared_mem = self.get_shared_mem(req.pid)
 

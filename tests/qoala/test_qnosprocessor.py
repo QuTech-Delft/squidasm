@@ -24,6 +24,7 @@ from squidasm.qoala.sim.memory import (
     MemQubitTrait,
     ProgramMemory,
     SharedMemory,
+    Topology,
     UnitModule,
 )
 from squidasm.qoala.sim.message import Message
@@ -52,23 +53,6 @@ class FlushEvent:
 @dataclass(eq=True, frozen=True)
 class SignalEvent:
     pass
-
-
-@dataclass
-class Topology:
-    comm_ids: Set[int]
-    mem_ids: Set[int]
-
-
-def create_unit_module(topology: Topology) -> UnitModule:
-    all_ids = topology.comm_ids.union(topology.mem_ids)
-    traits = {i: [] for i in all_ids}
-    for i in all_ids:
-        if i in topology.comm_ids:
-            traits[i].append(CommQubitTrait)
-        if i in topology.mem_ids:
-            traits[i].append(MemQubitTrait)
-    return UnitModule(qubit_ids=list(all_ids), qubit_traits=traits, gate_traits={})
 
 
 class MockQDevice(QDevice):
@@ -152,138 +136,115 @@ def create_process(
     return process
 
 
-def execute_subroutine(
-    processor: GenericProcessor,
-    interface: QnosInterface,
-    text: str,
-    unit_module: UnitModule,
+def create_process_with_subrt(
+    pid: int, subrt_text: str, unit_module: UnitModule
 ) -> IqoalaProcess:
-    subrt = parse_text_subroutine(text)
-    iqoala_subrt = IqoalaSubroutine("subrt1", subrt, return_map={})
+    subrt = parse_text_subroutine(subrt_text)
+    iqoala_subrt = IqoalaSubroutine("subrt", subrt, return_map={})
     meta = ProgramMeta.empty("alice")
     meta.epr_sockets = {0: "bob"}
-    program = create_program(subroutines={"subrt1": iqoala_subrt}, meta=meta)
-    process = create_process(0, program, unit_module)
-    interface.memmgr.add_process(process)
+    program = create_program(subroutines={"subrt": iqoala_subrt}, meta=meta)
+    return create_process(pid, program, unit_module)
 
-    netqasm_instructions = program.subroutines["subrt1"].subroutine.instructions
+
+def execute_process(processor: GenericProcessor, process: IqoalaProcess) -> None:
+    subroutines = process.prog_instance.program.subroutines
+    netqasm_instructions = subroutines["subrt"].subroutine.instructions
     for i in range(len(netqasm_instructions)):
-        yield_from(processor.assign(process, "subrt1", i))
-
-    return process
+        yield_from(processor.assign(process, "subrt", i))
 
 
-def execute_multiple_subroutines(
-    processor: GenericProcessor,
-    interface: QnosInterface,
-    text1: str,
-    text2: str,
-    unit_module1: UnitModule,
-    unit_module2: UnitModule,
-) -> Tuple[IqoalaProcess, IqoalaProcess]:
-    subrt1 = parse_text_subroutine(text1)
-    subrt2 = parse_text_subroutine(text2)
-    iqoala_subrt1 = IqoalaSubroutine("subrt1", subrt1, return_map={})
-    iqoala_subrt2 = IqoalaSubroutine("subrt2", subrt2, return_map={})
-    meta1 = ProgramMeta.empty("alice1")
-    meta1.epr_sockets = {0: "bob"}
-    meta2 = ProgramMeta.empty("alice2")
-    meta2.epr_sockets = {0: "bob"}
-    program1 = create_program(subroutines={"subrt1": iqoala_subrt1}, meta=meta1)
-    program2 = create_program(subroutines={"subrt2": iqoala_subrt2}, meta=meta1)
-    process1 = create_process(1, program1, unit_module1)
-    process2 = create_process(2, program2, unit_module2)
-    interface.memmgr.add_process(process1)
-    interface.memmgr.add_process(process2)
-
-    netqasm_instructions1 = program1.subroutines["subrt1"].subroutine.instructions
-    netqasm_instructions2 = program2.subroutines["subrt2"].subroutine.instructions
-    for i in range(len(netqasm_instructions1)):
-        yield_from(processor.assign(process1, "subrt1", i))
-    for i in range(len(netqasm_instructions2)):
-        yield_from(processor.assign(process2, "subrt2", i))
-
-    return [process1, process2]
+def execute_multiple_processes(
+    processor: GenericProcessor, processes: List[IqoalaProcess]
+) -> None:
+    for proc in processes:
+        subroutines = proc.prog_instance.program.subroutines
+        netqasm_instructions = subroutines["subrt"].subroutine.instructions
+        for i in range(len(netqasm_instructions)):
+            yield_from(processor.assign(proc, "subrt", i))
 
 
-def test_create_unit_module():
-    top = Topology(comm_ids={0}, mem_ids={0})
-    um = create_unit_module(top)
-
-    assert um == UnitModule(
-        qubit_ids=[0], qubit_traits={0: [CommQubitTrait, MemQubitTrait]}, gate_traits={}
-    )
+def setup_components(topology: Topology) -> Tuple[QnosProcessor, UnitModule]:
+    qdevice = MockQDevice(topology)
+    unit_module = UnitModule.from_topology(topology)
+    interface = MockQnosInterface(qdevice)
+    processor = QnosProcessor(interface)
+    return (processor, unit_module)
 
 
 def test_set_reg():
-    qdevice = MockQDevice()
-    interface = MockQnosInterface(qubit_count=2)
-    processor = QnosProcessor(interface)
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={1}))
 
     subrt = """
     set R0 17
     """
-    process = execute_subroutine(processor, interface, subrt)
+    process = create_process_with_subrt(0, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    execute_process(processor, process)
     assert process.prog_memory.shared_mem.get_reg_value("R0") == 17
 
 
 def test_add():
-    interface = MockQnosInterface(qubit_count=2)
-    processor = QnosProcessor(interface)
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={1}))
 
     subrt = """
     set R0 2
     set R1 5
     add R2 R0 R1
     """
-    process = execute_subroutine(subrt, interface, processor)
+    process = create_process_with_subrt(0, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    execute_process(processor, process)
     assert process.prog_memory.shared_mem.get_reg_value("R2") == 7
 
 
 def test_alloc_qubit():
-    interface = MockQnosInterface(qubit_count=2)
-    processor = GenericProcessor(interface)
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={1}))
 
     subrt = """
     set Q0 0
     qalloc Q0
     """
-    process = execute_subroutine(subrt, interface, processor)
+    process = create_process_with_subrt(0, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    execute_process(processor, process)
 
-    assert interface.memmgr.phys_id_for(process.pid, 0) == 0
-    assert interface.memmgr.phys_id_for(process.pid, 1) == None
+    assert processor._interface.memmgr.phys_id_for(process.pid, 0) == 0
+    assert processor._interface.memmgr.phys_id_for(process.pid, 1) == None
 
 
 def test_free_qubit():
-    interface = MockQnosInterface(qubit_count=2)
-    processor = GenericProcessor(interface)
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={1}))
 
     subrt = """
     set Q0 0
     qalloc Q0
     qfree Q0
     """
-    process = execute_subroutine(subrt, interface, processor)
+    process = create_process_with_subrt(0, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    execute_process(processor, process)
 
-    assert interface.memmgr.phys_id_for(process.pid, 0) == None
-    assert interface.memmgr.phys_id_for(process.pid, 1) == None
+    assert processor._interface.memmgr.phys_id_for(process.pid, 0) == None
+    assert processor._interface.memmgr.phys_id_for(process.pid, 1) == None
 
 
 def test_free_non_allocated():
-    interface = MockQnosInterface(qubit_count=2)
-    processor = GenericProcessor(interface)
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={1}))
 
     subrt = """
     set Q0 0
     qfree Q0
     """
+    process = create_process_with_subrt(0, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+
     with pytest.raises(AllocError):
-        execute_subroutine(subrt, interface, processor)
+        execute_process(processor, process)
 
 
 def test_alloc_multiple():
-    interface = MockQnosInterface(qubit_count=2)
-    processor = GenericProcessor(interface)
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={1}))
 
     subrt = """
     set Q0 0
@@ -291,70 +252,95 @@ def test_alloc_multiple():
     qalloc Q0
     qalloc Q1
     """
-    process = execute_subroutine(subrt, interface, processor)
+    process = create_process_with_subrt(0, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    execute_process(processor, process)
 
-    assert interface.memmgr.phys_id_for(process.pid, 0) == 0
-    assert interface.memmgr.phys_id_for(process.pid, 1) == 1
+    assert processor._interface.memmgr.phys_id_for(process.pid, 0) == 0
+    assert processor._interface.memmgr.phys_id_for(process.pid, 1) == 1
 
 
 def test_alloc_multiprocess():
-    interface = MockQnosInterface(qubit_count=2)
-    processor = GenericProcessor(interface)
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={1}))
 
-    subrt1 = """
+    subrt0 = """
     set Q0 0
     qalloc Q0
     """
-    subrt2 = """
+    subrt1 = """
     set Q1 1
     qalloc Q1
     """
-    process1, process2 = execute_multiple_subroutines(
-        subrt1, subrt2, interface, processor
-    )
+    process0 = create_process_with_subrt(0, subrt0, unit_module)
+    process1 = create_process_with_subrt(1, subrt1, unit_module)
+    processor._interface.memmgr.add_process(process0)
+    processor._interface.memmgr.add_process(process1)
+    execute_multiple_processes(processor, [process0, process1])
 
-    assert interface.memmgr.phys_id_for(process1.pid, 0) == 0
-    assert interface.memmgr.phys_id_for(process1.pid, 1) == None
-    assert interface.memmgr.phys_id_for(process2.pid, 0) == None
-    assert interface.memmgr.phys_id_for(process2.pid, 1) == 1
+    assert processor._interface.memmgr.phys_id_for(process0.pid, 0) == 0
+    assert processor._interface.memmgr.phys_id_for(process0.pid, 1) == None
+    assert processor._interface.memmgr.phys_id_for(process1.pid, 0) == None
+    assert processor._interface.memmgr.phys_id_for(process1.pid, 1) == 1
 
-    assert interface.memmgr._physical_mapping[0].pid == process1.pid
-    assert interface.memmgr._physical_mapping[1].pid == process2.pid
+    assert processor._interface.memmgr._physical_mapping[0].pid == process0.pid
+    assert processor._interface.memmgr._physical_mapping[1].pid == process1.pid
 
 
 def test_alloc_multiprocess_same_virt_id():
-    interface = MockQnosInterface(qubit_count=2)
-    processor = GenericProcessor(interface)
+    processor, unit_module = setup_components(Topology(comm_ids={0, 1}, mem_ids={0, 1}))
 
+    subrt0 = """
+    set Q0 0
+    qalloc Q0
+    """
     subrt1 = """
     set Q0 0
     qalloc Q0
     """
-    subrt2 = """
+
+    process0 = create_process_with_subrt(0, subrt0, unit_module)
+    process1 = create_process_with_subrt(1, subrt1, unit_module)
+    processor._interface.memmgr.add_process(process0)
+    processor._interface.memmgr.add_process(process1)
+    execute_multiple_processes(processor, [process0, process1])
+
+    assert processor._interface.memmgr.phys_id_for(process0.pid, 0) == 0
+    assert processor._interface.memmgr.phys_id_for(process0.pid, 1) == None
+    assert processor._interface.memmgr.phys_id_for(process1.pid, 0) == 1
+    assert processor._interface.memmgr.phys_id_for(process1.pid, 1) == None
+
+    assert processor._interface.memmgr._physical_mapping[0].pid == process0.pid
+    assert processor._interface.memmgr._physical_mapping[1].pid == process1.pid
+
+
+def test_alloc_multiprocess_same_virt_id_trait_not_available():
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={0, 1}))
+
+    subrt0 = """
+    set Q0 0
+    qalloc Q0
+    """
+    subrt1 = """
     set Q0 0
     qalloc Q0
     """
 
-    process1, process2 = execute_multiple_subroutines(
-        subrt1, subrt2, interface, processor
-    )
+    process0 = create_process_with_subrt(0, subrt0, unit_module)
+    process1 = create_process_with_subrt(1, subrt1, unit_module)
+    processor._interface.memmgr.add_process(process0)
+    processor._interface.memmgr.add_process(process1)
 
-    assert interface.memmgr.phys_id_for(process1.pid, 0) == 0
-    assert interface.memmgr.phys_id_for(process1.pid, 1) == None
-    assert interface.memmgr.phys_id_for(process2.pid, 0) == 1
-    assert interface.memmgr.phys_id_for(process2.pid, 1) == None
-
-    assert interface.memmgr._physical_mapping[0].pid == process1.pid
-    assert interface.memmgr._physical_mapping[1].pid == process2.pid
+    with pytest.raises(AllocError):
+        execute_multiple_processes(processor, [process0, process1])
 
 
 if __name__ == "__main__":
-    # test_set_reg()
-    # test_add()
-    # test_alloc_qubit()
-    # test_free_qubit()
-    # test_free_non_allocated()
-    # test_alloc_multiple()
-    # test_alloc_multiprocess()
-    # test_alloc_multiprocess_same_virt_id()
-    test_create_unit_module()
+    test_set_reg()
+    test_add()
+    test_alloc_qubit()
+    test_free_qubit()
+    test_free_non_allocated()
+    test_alloc_multiple()
+    test_alloc_multiprocess()
+    test_alloc_multiprocess_same_virt_id()
+    test_alloc_multiprocess_same_virt_id_trait_not_available()

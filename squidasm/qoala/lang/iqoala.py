@@ -446,7 +446,7 @@ class IqoalaParser:
             try:
                 attr = int(attr_str)
             except ValueError:
-                pass
+                raise RuntimeError  # TODO: handle
         else:
             value = value_parts[0]
             attr = None
@@ -460,7 +460,7 @@ class IqoalaParser:
         else:
             args = [x.strip() for x in arguments.split(",")]
 
-        def parse_arg(arg):
+        def parse_arg(arg: str):
             if arg.startswith("vec<"):
                 vec_values_str = arg[4:-1]
                 if len(vec_values_str) == 0:
@@ -482,7 +482,8 @@ class IqoalaParser:
         return self._lines[self._lineno]
 
     def _parse_meta(self) -> ProgramMeta:
-        raise NotImplementedError
+        # TODO: implement!
+        return ProgramMeta.empty("empty")
 
     def _parse_subroutine(self) -> IqoalaSubroutine:
         return_map: Dict[str, IqoalaSharedMemLoc] = {}
