@@ -14,11 +14,11 @@ class QDeviceType(Enum):
 
 
 class PhysicalQuantumMemory:
-    def __init__(self, qubit_count: int) -> None:
-        self._qubit_count = qubit_count
-        self._allocated_ids: Set[int] = set()
-        self._comm_qubit_ids: Set[int] = {i for i in range(qubit_count)}
-        self._mem_qubit_ids: Set[int] = {i for i in range(qubit_count)}
+    def __init__(self, comm_ids: Set[int], mem_ids: Set[int]) -> None:
+        self._comm_qubit_ids: Set[int] = comm_ids
+        self._mem_qubit_ids: Set[int] = mem_ids
+        self._all_ids = comm_ids.union(mem_ids)
+        self._qubit_count = len(self._all_ids)
 
     @property
     def qubit_count(self) -> int:
@@ -37,11 +37,17 @@ class PhysicalQuantumMemory:
         return self._mem_qubit_ids
 
 
+class GenericPhysicalQuantumMemory(PhysicalQuantumMemory):
+    def __init__(self, qubit_count: int) -> None:
+        super().__init__(
+            comm_ids={i for i in range(qubit_count)},
+            mem_ids={i for i in range(qubit_count)},
+        )
+
+
 class NVPhysicalQuantumMemory(PhysicalQuantumMemory):
     def __init__(self, qubit_count: int) -> None:
-        super().__init__(qubit_count)
-        self._comm_qubit_ids: Set[int] = {0}
-        self._mem_qubit_ids: Set[int] = {i for i in range(1, qubit_count)}
+        super().__init__(comm_ids={0}, mem_ids={i for i in range(1, qubit_count)})
 
 
 class QDevice:

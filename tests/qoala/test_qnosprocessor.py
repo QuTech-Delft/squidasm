@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from code import interact
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from re import M
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple
 
 import netsquid as ns
+import pytest
 from netqasm.lang.parsing import parse_text_subroutine
 from netsquid.nodes import Node
 
@@ -15,7 +18,14 @@ from squidasm.qoala.lang.iqoala import (
     ProgramMeta,
 )
 from squidasm.qoala.runtime.program import ProgramInput, ProgramInstance, ProgramResult
-from squidasm.qoala.sim.memory import ProgramMemory, SharedMemory, UnitModule
+from squidasm.qoala.sim.memmgr import AllocError, MemoryManager
+from squidasm.qoala.sim.memory import (
+    CommQubitTrait,
+    MemQubitTrait,
+    ProgramMemory,
+    SharedMemory,
+    UnitModule,
+)
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice
@@ -44,19 +54,40 @@ class SignalEvent:
     pass
 
 
+@dataclass
+class Topology:
+    comm_ids: Set[int]
+    mem_ids: Set[int]
+
+
+def create_unit_module(topology: Topology) -> UnitModule:
+    all_ids = topology.comm_ids.union(topology.mem_ids)
+    traits = {i: [] for i in all_ids}
+    for i in all_ids:
+        if i in topology.comm_ids:
+            traits[i].append(CommQubitTrait)
+        if i in topology.mem_ids:
+            traits[i].append(MemQubitTrait)
+    return UnitModule(qubit_ids=list(all_ids), qubit_traits=traits, gate_traits={})
+
+
 class MockQDevice(QDevice):
-    def __init__(self, qubit_count: int) -> None:
-        self._memory = PhysicalQuantumMemory(qubit_count)
+    def __init__(self, topology: Topology) -> None:
+        self._memory = PhysicalQuantumMemory(topology.comm_ids, topology.mem_ids)
+
+    def set_mem_pos_in_use(self, id: int, in_use: bool) -> None:
+        pass
 
 
 class MockQnosInterface(QnosInterface):
-    def __init__(self, qubit_count: int) -> None:
+    def __init__(self, qdevice: QDevice) -> None:
         self.send_events: List[InterfaceEvent] = []
         self.recv_events: List[InterfaceEvent] = []
         self.flush_events: List[FlushEvent] = []
         self.signal_events: List[SignalEvent] = []
 
-        self._qdevice = MockQDevice(qubit_count=qubit_count)
+        self._qdevice = qdevice
+        self._memmgr = MemoryManager("alice", self._qdevice)
 
     def send_peer_msg(self, peer: str, msg: Message) -> None:
         self.send_events.append(InterfaceEvent(peer, msg))
@@ -105,10 +136,10 @@ def create_program(
 
 
 def create_process(
-    program: IqoalaProgram,
+    pid: int, program: IqoalaProgram, unit_module: UnitModule
 ) -> IqoalaProcess:
-    instance = ProgramInstance(pid=0, program=program, inputs=ProgramInput({}))
-    mem = ProgramMemory(pid=0, unit_module=UnitModule.default_generic(2))
+    instance = ProgramInstance(pid=pid, program=program, inputs=ProgramInput({}))
+    mem = ProgramMemory(pid=pid, unit_module=unit_module)
 
     process = IqoalaProcess(
         prog_instance=instance,
@@ -121,49 +152,91 @@ def create_process(
     return process
 
 
-def test_set_reg():
-    interface = MockQnosInterface()
-    processor = QnosProcessor(interface)
-
-    subrt_text = """
-    set R0 17
-    """
-    subrt = parse_text_subroutine(subrt_text)
+def execute_subroutine(
+    processor: GenericProcessor,
+    interface: QnosInterface,
+    text: str,
+    unit_module: UnitModule,
+) -> IqoalaProcess:
+    subrt = parse_text_subroutine(text)
     iqoala_subrt = IqoalaSubroutine("subrt1", subrt, return_map={})
-
     meta = ProgramMeta.empty("alice")
     meta.epr_sockets = {0: "bob"}
     program = create_program(subroutines={"subrt1": iqoala_subrt}, meta=meta)
-    process = create_process(program)
+    process = create_process(0, program, unit_module)
+    interface.memmgr.add_process(process)
 
     netqasm_instructions = program.subroutines["subrt1"].subroutine.instructions
     for i in range(len(netqasm_instructions)):
         yield_from(processor.assign(process, "subrt1", i))
 
+    return process
+
+
+def execute_multiple_subroutines(
+    processor: GenericProcessor,
+    interface: QnosInterface,
+    text1: str,
+    text2: str,
+    unit_module1: UnitModule,
+    unit_module2: UnitModule,
+) -> Tuple[IqoalaProcess, IqoalaProcess]:
+    subrt1 = parse_text_subroutine(text1)
+    subrt2 = parse_text_subroutine(text2)
+    iqoala_subrt1 = IqoalaSubroutine("subrt1", subrt1, return_map={})
+    iqoala_subrt2 = IqoalaSubroutine("subrt2", subrt2, return_map={})
+    meta1 = ProgramMeta.empty("alice1")
+    meta1.epr_sockets = {0: "bob"}
+    meta2 = ProgramMeta.empty("alice2")
+    meta2.epr_sockets = {0: "bob"}
+    program1 = create_program(subroutines={"subrt1": iqoala_subrt1}, meta=meta1)
+    program2 = create_program(subroutines={"subrt2": iqoala_subrt2}, meta=meta1)
+    process1 = create_process(1, program1, unit_module1)
+    process2 = create_process(2, program2, unit_module2)
+    interface.memmgr.add_process(process1)
+    interface.memmgr.add_process(process2)
+
+    netqasm_instructions1 = program1.subroutines["subrt1"].subroutine.instructions
+    netqasm_instructions2 = program2.subroutines["subrt2"].subroutine.instructions
+    for i in range(len(netqasm_instructions1)):
+        yield_from(processor.assign(process1, "subrt1", i))
+    for i in range(len(netqasm_instructions2)):
+        yield_from(processor.assign(process2, "subrt2", i))
+
+    return [process1, process2]
+
+
+def test_create_unit_module():
+    top = Topology(comm_ids={0}, mem_ids={0})
+    um = create_unit_module(top)
+
+    assert um == UnitModule(
+        qubit_ids=[0], qubit_traits={0: [CommQubitTrait, MemQubitTrait]}, gate_traits={}
+    )
+
+
+def test_set_reg():
+    qdevice = MockQDevice()
+    interface = MockQnosInterface(qubit_count=2)
+    processor = QnosProcessor(interface)
+
+    subrt = """
+    set R0 17
+    """
+    process = execute_subroutine(processor, interface, subrt)
     assert process.prog_memory.shared_mem.get_reg_value("R0") == 17
 
 
 def test_add():
-    interface = MockQnosInterface()
+    interface = MockQnosInterface(qubit_count=2)
     processor = QnosProcessor(interface)
 
-    subrt_text = """
+    subrt = """
     set R0 2
     set R1 5
     add R2 R0 R1
     """
-    subrt = parse_text_subroutine(subrt_text)
-    iqoala_subrt = IqoalaSubroutine("subrt1", subrt, return_map={})
-
-    meta = ProgramMeta.empty("alice")
-    meta.epr_sockets = {0: "bob"}
-    program = create_program(subroutines={"subrt1": iqoala_subrt}, meta=meta)
-    process = create_process(program)
-
-    netqasm_instructions = program.subroutines["subrt1"].subroutine.instructions
-    for i in range(len(netqasm_instructions)):
-        yield_from(processor.assign(process, "subrt1", i))
-
+    process = execute_subroutine(subrt, interface, processor)
     assert process.prog_memory.shared_mem.get_reg_value("R2") == 7
 
 
@@ -171,26 +244,117 @@ def test_alloc_qubit():
     interface = MockQnosInterface(qubit_count=2)
     processor = GenericProcessor(interface)
 
-    subrt_text = """
+    subrt = """
     set Q0 0
     qalloc Q0
     """
-    subrt = parse_text_subroutine(subrt_text)
-    iqoala_subrt = IqoalaSubroutine("subrt1", subrt, return_map={})
+    process = execute_subroutine(subrt, interface, processor)
 
-    meta = ProgramMeta.empty("alice")
-    meta.epr_sockets = {0: "bob"}
-    program = create_program(subroutines={"subrt1": iqoala_subrt}, meta=meta)
-    process = create_process(program)
+    assert interface.memmgr.phys_id_for(process.pid, 0) == 0
+    assert interface.memmgr.phys_id_for(process.pid, 1) == None
 
-    netqasm_instructions = program.subroutines["subrt1"].subroutine.instructions
-    for i in range(len(netqasm_instructions)):
-        yield_from(processor.assign(process, "subrt1", i))
 
-    assert process.prog_memory.quantum_mem.qubit_mapping == {0: 0, 1: None}
+def test_free_qubit():
+    interface = MockQnosInterface(qubit_count=2)
+    processor = GenericProcessor(interface)
+
+    subrt = """
+    set Q0 0
+    qalloc Q0
+    qfree Q0
+    """
+    process = execute_subroutine(subrt, interface, processor)
+
+    assert interface.memmgr.phys_id_for(process.pid, 0) == None
+    assert interface.memmgr.phys_id_for(process.pid, 1) == None
+
+
+def test_free_non_allocated():
+    interface = MockQnosInterface(qubit_count=2)
+    processor = GenericProcessor(interface)
+
+    subrt = """
+    set Q0 0
+    qfree Q0
+    """
+    with pytest.raises(AllocError):
+        execute_subroutine(subrt, interface, processor)
+
+
+def test_alloc_multiple():
+    interface = MockQnosInterface(qubit_count=2)
+    processor = GenericProcessor(interface)
+
+    subrt = """
+    set Q0 0
+    set Q1 1
+    qalloc Q0
+    qalloc Q1
+    """
+    process = execute_subroutine(subrt, interface, processor)
+
+    assert interface.memmgr.phys_id_for(process.pid, 0) == 0
+    assert interface.memmgr.phys_id_for(process.pid, 1) == 1
+
+
+def test_alloc_multiprocess():
+    interface = MockQnosInterface(qubit_count=2)
+    processor = GenericProcessor(interface)
+
+    subrt1 = """
+    set Q0 0
+    qalloc Q0
+    """
+    subrt2 = """
+    set Q1 1
+    qalloc Q1
+    """
+    process1, process2 = execute_multiple_subroutines(
+        subrt1, subrt2, interface, processor
+    )
+
+    assert interface.memmgr.phys_id_for(process1.pid, 0) == 0
+    assert interface.memmgr.phys_id_for(process1.pid, 1) == None
+    assert interface.memmgr.phys_id_for(process2.pid, 0) == None
+    assert interface.memmgr.phys_id_for(process2.pid, 1) == 1
+
+    assert interface.memmgr._physical_mapping[0].pid == process1.pid
+    assert interface.memmgr._physical_mapping[1].pid == process2.pid
+
+
+def test_alloc_multiprocess_same_virt_id():
+    interface = MockQnosInterface(qubit_count=2)
+    processor = GenericProcessor(interface)
+
+    subrt1 = """
+    set Q0 0
+    qalloc Q0
+    """
+    subrt2 = """
+    set Q0 0
+    qalloc Q0
+    """
+
+    process1, process2 = execute_multiple_subroutines(
+        subrt1, subrt2, interface, processor
+    )
+
+    assert interface.memmgr.phys_id_for(process1.pid, 0) == 0
+    assert interface.memmgr.phys_id_for(process1.pid, 1) == None
+    assert interface.memmgr.phys_id_for(process2.pid, 0) == 1
+    assert interface.memmgr.phys_id_for(process2.pid, 1) == None
+
+    assert interface.memmgr._physical_mapping[0].pid == process1.pid
+    assert interface.memmgr._physical_mapping[1].pid == process2.pid
 
 
 if __name__ == "__main__":
     # test_set_reg()
     # test_add()
-    test_alloc_qubit()
+    # test_alloc_qubit()
+    # test_free_qubit()
+    # test_free_non_allocated()
+    # test_alloc_multiple()
+    # test_alloc_multiprocess()
+    # test_alloc_multiprocess_same_virt_id()
+    test_create_unit_module()

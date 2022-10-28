@@ -24,8 +24,8 @@ from squidasm.qoala.sim.netstack import Netstack, NetstackComponent
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.procnodecomp import ProcNodeComponent
 from squidasm.qoala.sim.qdevice import (
+    GenericPhysicalQuantumMemory,
     NVPhysicalQuantumMemory,
-    PhysicalQuantumMemory,
     QDevice,
     QDeviceType,
 )
@@ -92,7 +92,7 @@ class ProcNode(Protocol):
 
         self._qdevice: QDevice
         if qdevice_type == "generic":
-            physical_memory = PhysicalQuantumMemory(qprocessor.num_positions)
+            physical_memory = GenericPhysicalQuantumMemory(qprocessor.num_positions)
             self._qdevice = QDevice(self._node, QDeviceType.GENERIC, physical_memory)
         elif qdevice_type == "nv":
             physical_memory = NVPhysicalQuantumMemory(qprocessor.num_positions)

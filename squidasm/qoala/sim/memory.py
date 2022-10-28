@@ -238,7 +238,7 @@ class UnitModule:
     def default_generic(cls, num_qubits: int) -> UnitModule:
         return UnitModule(
             qubit_ids=[i for i in range(num_qubits)],
-            qubit_traits={i: CommQubitTrait for i in range(num_qubits)},  # type: ignore
+            qubit_traits={i: [CommQubitTrait, MemQubitTrait] for i in range(num_qubits)},  # type: ignore
             gate_traits={},
         )
 

@@ -4,7 +4,7 @@ from typing import Dict, Optional, Tuple
 
 from squidasm.qoala.sim.hostprocessor import IqoalaProcess
 from squidasm.qoala.sim.logging import LogManager
-from squidasm.qoala.sim.memory import CommQubitTrait, UnitModule
+from squidasm.qoala.sim.memory import CommQubitTrait, MemQubitTrait, UnitModule
 from squidasm.qoala.sim.qdevice import QDevice
 
 
@@ -44,6 +44,10 @@ class MemoryManager:
     def _virt_qubit_is_comm(self, unit_module: UnitModule, virt_id: int) -> bool:
         traits = unit_module.qubit_traits[virt_id]
         return CommQubitTrait in traits
+
+    def _virt_qubit_is_mem(self, unit_module: UnitModule, virt_id: int) -> bool:
+        traits = unit_module.qubit_traits[virt_id]
+        return MemQubitTrait in traits
 
     def _get_free_comm_phys_id(self) -> int:
         for phys_id in self._qdevice.comm_qubit_ids:
@@ -90,6 +94,8 @@ class MemoryManager:
         assert virt_id in self._process_mappings[pid].mapping
 
         phys_id = self._process_mappings[pid].mapping[virt_id]
+        if phys_id is None:
+            raise AllocError
 
         # update mappings
         self._physical_mapping[phys_id] = None
@@ -99,8 +105,17 @@ class MemoryManager:
         self._qdevice.set_mem_pos_in_use(phys_id, False)
 
     def get_unmapped_mem_qubit(self, pid: int) -> int:
+        """returns virt ID"""
         vp_map = self._process_mappings[pid].mapping
-        return min(v for v, p in vp_map.items() if p is not None)
+        unit_module = self._process_mappings[pid].unit_module
+        free_ids = [
+            v
+            for v, p in vp_map.items()
+            if p is None and self._virt_qubit_is_mem(unit_module, v)
+        ]
+        if len(free_ids) == 0:
+            raise AllocError
+        return min(free_ids)
 
     def phys_id_for(self, pid: int, virt_id: int) -> Optional[int]:
         phys_id = self._process_mappings[pid].mapping[virt_id]
@@ -108,6 +123,6 @@ class MemoryManager:
 
     def virt_id_for(self, pid: int, phys_id: int) -> Optional[int]:
         if virt_loc := self._physical_mapping[phys_id]:
-            assert virt_loc.pid == pid
-            return virt_loc.virt_id
+            if virt_loc.pid == pid:
+                return virt_loc.virt_id
         return None
