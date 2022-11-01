@@ -1,12 +1,119 @@
-from squidasm.qoala.lang.iqoala import IqoalaParser
+import pytest
+
+from squidasm.qoala.lang.iqoala import (
+    AssignCValueOp,
+    IqoalaParser,
+    IqoalaProgram,
+    ParseError,
+    ProgramMeta,
+)
 from squidasm.qoala.runtime.config import GenericQDeviceConfig, LinkConfig
 from squidasm.qoala.runtime.program import ProgramInstance
 from squidasm.qoala.runtime.run import run
-from squidasm.sim.stack.common import LogManager
-from squidasm.sim.stack.program import ProgramMeta
 
 
-def test_parse():
+def test_parse_incomplete_meta():
+    program_text = """
+META_START
+name: alice
+parameters: 
+csockets: 0 -> bob
+META_END
+    """
+
+    with pytest.raises(ParseError):
+        IqoalaParser(program_text).parse()
+
+
+def test_parse_meta_no_end():
+    program_text = """
+META_START
+name: alice
+parameters: 
+csockets: 0 -> bob
+epr_sockets: 
+    """
+
+    with pytest.raises(ParseError):
+        IqoalaParser(program_text).parse()
+
+
+def test_parse_meta():
+    program_text = """
+META_START
+name: alice
+parameters: 
+csockets: 0 -> bob
+epr_sockets: 
+META_END
+    """
+
+    parsed = IqoalaParser(program_text).parse()
+
+    assert len(parsed.instructions) == 0
+    assert parsed.meta == ProgramMeta(
+        name="alice", parameters=[], csockets={0: "bob"}, epr_sockets={}
+    )
+
+
+def test_parse_meta_multiple_remotes():
+    program_text = """
+META_START
+name: alice
+parameters: theta1, theta2
+csockets: 0 -> bob, 1 -> charlie
+epr_sockets: 0 -> bob
+META_END
+    """
+
+    parsed = IqoalaParser(program_text).parse()
+
+    assert len(parsed.instructions) == 0
+    assert parsed.meta == ProgramMeta(
+        name="alice",
+        parameters=["theta1", "theta2"],
+        csockets={0: "bob", 1: "charlie"},
+        epr_sockets={0: "bob"},
+    )
+
+
+DEFAULT_META = """
+META_START
+name: alice
+parameters: 
+csockets: 0 -> bob
+epr_sockets: 
+META_END
+"""
+
+
+def test_parse_1_instr():
+    program_text = DEFAULT_META
+    program_text += """
+x = assign_cval() : 1
+    """
+
+    parsed = IqoalaParser(program_text).parse()
+
+    assert len(parsed.instructions) == 1
+    assert parsed.instructions[0] == AssignCValueOp(result="x", value=1)
+
+
+def test_parse_2_instr():
+    program_text = DEFAULT_META
+    program_text += """
+x = assign_cval() : 1
+y = assign_cval() : 17
+    """
+
+    parsed = IqoalaParser(program_text).parse()
+
+    assert len(parsed.instructions) == 2
+    assert parsed.instructions[0] == AssignCValueOp(result="x", value=1)
+    assert parsed.instructions[1] == AssignCValueOp(result="y", value=17)
+
+
+def test_parse_with_subrt():
     program_text = """
 META_START
 name: alice
@@ -42,4 +149,10 @@ SUBROUTINE subrt1
 
 
 if __name__ == "__main__":
-    test_parse()
+    test_parse_incomplete_meta()
+    test_parse_meta_no_end()
+    test_parse_meta()
+    test_parse_meta_multiple_remotes()
+    test_parse_1_instr()
+    test_parse_2_instr()
+    # test_parse_with_subrt()

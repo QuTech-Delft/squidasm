@@ -155,6 +155,13 @@ class ClassicalIqoalaOp:
             s += f" : {attrs}"
         return s
 
+    def __eq__(self, other: ClassicalIqoalaOp) -> bool:
+        return (
+            self.results == other.results
+            and self.arguments == other.arguments
+            and self.attributes == other.attributes
+        )
+
     @classmethod
     def from_generic_args(
         cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
@@ -414,6 +421,10 @@ class EndOfTextException(Exception):
     pass
 
 
+class ParseError(Exception):
+    pass
+
+
 class IqoalaParser:
     def __init__(self, text: str) -> None:
         self._text = text
@@ -423,8 +434,16 @@ class IqoalaParser:
 
     def _next_line(self) -> None:
         self._lineno += 1
-        if self._lineno >= len(self._lines):
-            raise EndOfTextException
+
+    def _read_line(self) -> str:
+        while True:
+            if self._lineno >= len(self._lines):
+                raise EndOfTextException
+            line = self._lines[self._lineno]
+            self._next_line()
+            if len(line) > 0:
+                return line
+            # if no non-empty line, will always break on EndOfLineException
 
     def _parse_var(self, var_str: str) -> Union[str, IqoalaVector]:
         if var_str.startswith("vec<"):
@@ -438,7 +457,7 @@ class IqoalaParser:
             return var_str
 
     def _parse_lhr(self) -> ClassicalIqoalaOp:
-        line = self._lines[self._lineno]
+        line = self._read_line()
 
         attr: Optional[IqoalaValue]
 
@@ -479,14 +498,6 @@ class IqoalaParser:
         lhr_op = LHR_OP_NAMES[op].from_generic_args(result, args, attr)
         return lhr_op
 
-    def _read_line(self) -> str:
-        while True:
-            line = self._lines[self._lineno]
-            self._next_line()
-            if len(line) > 0:
-                return line
-            # if no non-empty line, will always break on EndOfLineException
-
     def _parse_meta_line(self, key: str, line: str) -> List[str]:
         split = line.split(":")
         assert len(split) >= 1
@@ -508,22 +519,26 @@ class IqoalaParser:
         return result_dict
 
     def _parse_meta(self) -> ProgramMeta:
-        start_line = self._read_line()
-        assert start_line == "META_START"
+        try:
+            start_line = self._read_line()
+            assert start_line == "META_START"
 
-        name_values = self._parse_meta_line("name", self._read_line())
-        assert len(name_values) == 1
-        name = name_values[0]
+            name_values = self._parse_meta_line("name", self._read_line())
+            assert len(name_values) == 1
+            name = name_values[0]
 
-        parameters = self._parse_meta_line("parameters", self._read_line())
+            parameters = self._parse_meta_line("parameters", self._read_line())
 
-        csockets_map = self._parse_meta_line("csockets", self._read_line())
-        csockets = self._parse_meta_mapping(csockets_map)
-        epr_sockets_map = self._parse_meta_line("epr_sockets", self._read_line())
-        epr_sockets = self._parse_meta_mapping(epr_sockets_map)
+            csockets_map = self._parse_meta_line("csockets", self._read_line())
+            csockets = self._parse_meta_mapping(csockets_map)
+            epr_sockets_map = self._parse_meta_line("epr_sockets", self._read_line())
+            epr_sockets = self._parse_meta_mapping(epr_sockets_map)
 
-        end_line = self._read_line()
-        assert end_line == "META_END"
+            end_line = self._read_line()
+            if end_line != "META_END":
+                raise ParseError("Could not parse meta.")
+        except AssertionError:
+            raise ParseError
 
         return ProgramMeta(name, parameters, csockets, epr_sockets)
 
@@ -534,10 +549,12 @@ class IqoalaParser:
 
         try:
             meta = self._parse_meta()
+        except EndOfTextException:
+            raise ParseError
+        try:
             while True:
                 instr = self._parse_lhr()
                 instructions.append(instr)
-                self._next_line()
         except EndOfTextException:
             pass
 
