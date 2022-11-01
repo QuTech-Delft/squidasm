@@ -14,13 +14,13 @@ from netqasm.lang.subroutine import Subroutine
 @dataclass
 class ProgramMeta:
     name: str
-    parameters: Dict[str, Type]  # input name -> input type
+    parameters: List[str]  # list of parameter names (all have type int)
     csockets: Dict[int, str]  # socket ID -> remote node name
     epr_sockets: Dict[int, str]  # socket ID -> remote node name
 
     @classmethod
     def empty(cls, name: str) -> ProgramMeta:
-        return ProgramMeta(name=name, parameters={}, csockets={}, epr_sockets={})
+        return ProgramMeta(name=name, parameters=[], csockets={}, epr_sockets={})
 
 
 class IqoalaInstructionType(Enum):
@@ -292,18 +292,19 @@ class RunSubroutineOp(ClassicalIqoalaOp):
     OP_NAME = "run_subroutine"
     TYP = IqoalaInstructionType.CL
 
-    def __init__(self, values: IqoalaVector, subrt: str) -> None:
-        super().__init__(arguments=[values], attributes=[subrt])
+    def __init__(self, result: IqoalaVector, values: IqoalaVector, subrt: str) -> None:
+        super().__init__(results=[result], arguments=[values], attributes=[subrt])
 
     @classmethod
     def from_generic_args(
         cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
     ):
-        assert result is None
+        assert result is not None
+        assert isinstance(result, IqoalaVector)
         assert len(args) == 1
         assert isinstance(args[0], IqoalaVector)
         assert isinstance(attr, str)
-        return cls(args[0], attr)
+        return cls(result, args[0], attr)
 
     @property
     def subroutine(self) -> IqoalaSubroutine:
@@ -425,6 +426,17 @@ class IqoalaParser:
         if self._lineno >= len(self._lines):
             raise EndOfTextException
 
+    def _parse_var(self, var_str: str) -> Union[str, IqoalaVector]:
+        if var_str.startswith("vec<"):
+            vec_values_str = var_str[4:-1]
+            if len(vec_values_str) == 0:
+                vec_values = []
+            else:
+                vec_values = [x.strip() for x in vec_values_str.split(";")]
+            return IqoalaVector(vec_values)
+        else:
+            return var_str
+
     def _parse_lhr(self) -> ClassicalIqoalaOp:
         line = self._lines[self._lineno]
 
@@ -437,7 +449,7 @@ class IqoalaParser:
             result = None
         elif len(assign_parts) == 2:
             value = assign_parts[1]
-            result = assign_parts[0]
+            result = self._parse_var(assign_parts[0])
         value_parts = [x.strip() for x in value.split(":")]
         assert len(value_parts) <= 2
         if len(value_parts) == 2:
@@ -446,7 +458,7 @@ class IqoalaParser:
             try:
                 attr = int(attr_str)
             except ValueError:
-                raise RuntimeError  # TODO: handle
+                attr = attr_str
         else:
             value = value_parts[0]
             attr = None
@@ -456,21 +468,11 @@ class IqoalaParser:
         op = op_parts[0]
         arguments = op_parts[1].rstrip(")")
         if len(arguments) == 0:
-            args = []
+            raw_args = []
         else:
-            args = [x.strip() for x in arguments.split(",")]
+            raw_args = [x.strip() for x in arguments.split(",")]
 
-        def parse_arg(arg: str):
-            if arg.startswith("vec<"):
-                vec_values_str = arg[4:-1]
-                if len(vec_values_str) == 0:
-                    vec_values = []
-                else:
-                    vec_values = [x.strip() for x in vec_values_str.split(";")]
-                return IqoalaVector(vec_values)
-            return arg
-
-        args = [parse_arg(arg) for arg in args]
+        args = [self._parse_var(arg) for arg in raw_args]
 
         # print(f"result = {result}, op = {op}, args = {args}, attr = {attr}")
 
@@ -478,27 +480,123 @@ class IqoalaParser:
         return lhr_op
 
     def _read_line(self) -> str:
-        self._next_line()
-        return self._lines[self._lineno]
+        while True:
+            line = self._lines[self._lineno]
+            self._next_line()
+            if len(line) > 0:
+                return line
+            # if no non-empty line, will always break on EndOfLineException
+
+    def _parse_meta_line(self, key: str, line: str) -> List[str]:
+        split = line.split(":")
+        assert len(split) >= 1
+        assert split[0] == key
+        if len(split) == 1:
+            return []
+        assert len(split) == 2
+        if len(split[1]) == 0:
+            return []
+        values = split[1].split(",")
+        return [v.strip() for v in values]
+
+    def _parse_meta_mapping(self, value_str: str) -> Dict[int, str]:
+        result_dict = {}
+        for v in value_str:
+            key_value = [x.strip() for x in v.split("->")]
+            assert len(key_value) == 2
+            result_dict[int(key_value[0].strip())] = key_value[1].strip()
+        return result_dict
 
     def _parse_meta(self) -> ProgramMeta:
-        # TODO: implement!
-        return ProgramMeta.empty("empty")
+        start_line = self._read_line()
+        assert start_line == "META_START"
+
+        name_values = self._parse_meta_line("name", self._read_line())
+        assert len(name_values) == 1
+        name = name_values[0]
+
+        parameters = self._parse_meta_line("parameters", self._read_line())
+
+        csockets_map = self._parse_meta_line("csockets", self._read_line())
+        csockets = self._parse_meta_mapping(csockets_map)
+        epr_sockets_map = self._parse_meta_line("epr_sockets", self._read_line())
+        epr_sockets = self._parse_meta_mapping(epr_sockets_map)
+
+        end_line = self._read_line()
+        assert end_line == "META_END"
+
+        return ProgramMeta(name, parameters, csockets, epr_sockets)
+
+    def parse(self) -> IqoalaProgram:
+        meta: ProgramMeta
+        instructions = []
+        subroutines: Dict[str, IqoalaSubroutine] = {}
+
+        try:
+            meta = self._parse_meta()
+            while True:
+                instr = self._parse_lhr()
+                instructions.append(instr)
+                self._next_line()
+        except EndOfTextException:
+            pass
+
+        return IqoalaProgram(instructions, subroutines, meta)
+
+
+class IQoalaSubroutineParser:
+    def __init__(self, text: str) -> None:
+        self._text = text
+        lines = [line.strip() for line in text.split("\n")]
+        self._lines = [line for line in lines if len(line) > 0]
+        self._lineno: int = 0
+
+    def _next_line(self) -> None:
+        self._lineno += 1
+        if self._lineno >= len(self._lines):
+            raise EndOfTextException
+
+    def _read_line(self) -> str:
+        while True:
+            line = self._lines[self._lineno]
+            self._next_line()
+            if len(line) > 0:
+                return line
+            # if no non-empty line, will always break on EndOfLineException
+
+    def _parse_meta_line(self, key: str, line: str) -> List[str]:
+        split = line.split(":")
+        assert len(split) >= 1
+        assert split[0] == key
+        if len(split) == 1:
+            return []
+        assert len(split) == 2
+        if len(split[1]) == 0:
+            return []
+        values = split[1].split(",")
+        return [v.strip() for v in values]
+
+    def _parse_nqasm_return_mapping(
+        self, value_str: str
+    ) -> Dict[str, IqoalaSharedMemLoc]:
+        result_dict = {}
+        for v in value_str:
+            key_value = [x.strip() for x in v.split("->")]
+            assert len(key_value) == 2
+            result_dict[key_value[1]] = IqoalaSharedMemLoc(key_value[0])
+        return result_dict
 
     def _parse_subroutine(self) -> IqoalaSubroutine:
         return_map: Dict[str, IqoalaSharedMemLoc] = {}
         name_line = self._read_line()
-        assert name_line.startswith("name: ")
-        name = name_line[6:]
-        while (line := self._read_line()) != "NETQASM_START":
-            ret_text = "return "
-            assert line.startswith(ret_text)
-            map_text = line[len(ret_text) :]
-            map_parts = [x.strip() for x in map_text.split("->")]
-            assert len(map_parts) == 2
-            shared_loc = map_parts[0]
-            variable = map_parts[1]
-            return_map[variable] = IqoalaSharedMemLoc(shared_loc)
+        assert name_line.startswith("SUBROUTINE ")
+        name = name_line[len("SUBROUTINE") + 1 :]
+        params_line = self._parse_meta_line("params", self._read_line())
+        # TODO: use params line?
+        return_map_line = self._parse_meta_line("returns", self._read_line())
+        return_map = self._parse_nqasm_return_mapping(return_map_line)
+        start_line = self._read_line()
+        assert start_line == "NETQASM_START"
         subrt_lines = []
         while True:
             line = self._read_line()
@@ -511,29 +609,6 @@ class IqoalaParser:
         except KeyError:
             subrt = parse_text_subroutine(subrt_text, flavour=NVFlavour())
         return IqoalaSubroutine(name, subrt, return_map)
-
-    def parse(self) -> IqoalaProgram:
-        meta: ProgramMeta
-        instructions = []
-        subroutines: Dict[str, IqoalaSubroutine] = {}
-
-        # TODO: parse ProgramMeta
-
-        try:
-            meta = self._parse_meta()
-            while True:
-                instr = self._parse_lhr()
-                if isinstance(instr, RunSubroutineOp):
-                    subrt = self._parse_subroutine()
-                    subroutines[subrt.name] = subrt
-                    assert isinstance(instr.arguments[0], IqoalaVector)
-                    instr = RunSubroutineOp(instr.arguments[0], subrt.name)
-                instructions.append(instr)
-                self._next_line()
-        except EndOfTextException:
-            pass
-
-        return IqoalaProgram(instructions, subroutines, meta)
 
 
 if __name__ == "__main__":
