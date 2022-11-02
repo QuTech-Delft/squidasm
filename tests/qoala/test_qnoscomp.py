@@ -1,22 +1,9 @@
 from __future__ import annotations
 
-from typing import Generator, List, Optional, Tuple
-
-import netsquid as ns
 from netsquid.nodes import Node
 
-from pydynaa import EventExpression
-from squidasm.qoala.runtime.environment import (
-    GlobalEnvironment,
-    GlobalNodeInfo,
-    LocalEnvironment,
-)
-from squidasm.qoala.sim.csocket import ClassicalSocket
-from squidasm.qoala.sim.hostcomp import HostComponent
-from squidasm.qoala.sim.hostinterface import HostInterface
-from squidasm.qoala.sim.message import Message
+from squidasm.qoala.runtime.environment import GlobalEnvironment, GlobalNodeInfo
 from squidasm.qoala.sim.qnoscomp import QnosComponent
-from squidasm.util.tests import yield_from
 
 
 def create_qnoscomp() -> QnosComponent:

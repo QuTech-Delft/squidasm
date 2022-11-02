@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from squidasm.qoala.sim.hostprocessor import IqoalaProcess
 from squidasm.qoala.sim.logging import LogManager

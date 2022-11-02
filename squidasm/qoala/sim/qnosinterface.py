@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Generator
+from typing import Generator
 
 from pydynaa import EventExpression
 from squidasm.qoala.sim.common import ComponentProtocol, PortListener

@@ -2,7 +2,11 @@
 count = True
 statistics = True
 filename = *.py, *.pyx
-per-file-ignores = */__init__.py:F401
+per-file-ignores =
+    */__init__.py:F401
+    # allow arbitray whitespace in strings for parser tests
+    tests/qoala/test_parser.py:W291
+
 
 # The 'black' formatter already limits code line lengths to 88.
 # Let flake8 allow comments and docstrings to be at most 120 characters, for now.

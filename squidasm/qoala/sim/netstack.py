@@ -29,7 +29,7 @@ from qlink_interface import (
 from qlink_interface.interface import ReqRemoteStatePrep
 
 from pydynaa import EventExpression
-from squidasm.qoala.runtime.environment import GlobalNodeInfo, LocalEnvironment
+from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.sim.common import (
     ComponentProtocol,
     NetstackBreakpointCreateRequest,
@@ -41,7 +41,7 @@ from squidasm.qoala.sim.constants import PI
 from squidasm.qoala.sim.egp import EgpProtocol
 from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.memmgr import AllocError, MemoryManager
-from squidasm.qoala.sim.memory import ProgramMemory, QuantumMemory, SharedMemory
+from squidasm.qoala.sim.memory import SharedMemory
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
 from squidasm.qoala.sim.netstackinterface import NetstackInterface

@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional
 
-import netsquid as ns
-from netqasm.lang.instr.core import SetInstruction
 from netqasm.lang.parsing import parse_text_subroutine
 from netqasm.lang.subroutine import Subroutine
-from netsquid.nodes import Node
 
 from pydynaa import EventExpression
 from squidasm.qoala.lang.iqoala import (
@@ -26,14 +23,8 @@ from squidasm.qoala.lang.iqoala import (
     RunSubroutineOp,
     SendCMsgOp,
 )
-from squidasm.qoala.runtime.environment import (
-    GlobalEnvironment,
-    GlobalNodeInfo,
-    LocalEnvironment,
-)
 from squidasm.qoala.runtime.program import ProgramInput, ProgramInstance, ProgramResult
 from squidasm.qoala.sim.csocket import ClassicalSocket
-from squidasm.qoala.sim.hostcomp import HostComponent
 from squidasm.qoala.sim.hostinterface import HostInterface
 from squidasm.qoala.sim.hostprocessor import HostProcessor
 from squidasm.qoala.sim.memory import ProgramMemory, SharedMemory, UnitModule
@@ -238,7 +229,7 @@ def test_run_subroutine():
     iqoala_subrt = IqoalaSubroutine("subrt1", subrt, return_map={})
 
     program = create_program(
-        instrs=[RunSubroutineOp(IqoalaVector([]), "subrt1")],
+        instrs=[RunSubroutineOp(None, IqoalaVector([]), "subrt1")],
         subroutines={"subrt1": iqoala_subrt},
     )
     process = create_process(program, interface)
@@ -267,7 +258,7 @@ def test_run_subroutine2():
     program = create_program(
         instrs=[
             AssignCValueOp("my_value", 16),
-            RunSubroutineOp(IqoalaVector(["my_value"]), "subrt1"),
+            RunSubroutineOp(None, IqoalaVector(["my_value"]), "subrt1"),
         ],
         subroutines={"subrt1": iqoala_subrt},
     )

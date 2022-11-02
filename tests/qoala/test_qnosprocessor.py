@@ -1,32 +1,16 @@
 from __future__ import annotations
 
-from code import interact
 from dataclasses import dataclass
-from re import M
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from typing import Dict, Generator, List, Optional, Tuple
 
-import netsquid as ns
 import pytest
 from netqasm.lang.parsing import parse_text_subroutine
-from netsquid.nodes import Node
 
 from pydynaa import EventExpression
-from squidasm.qoala.lang.iqoala import (
-    IqoalaProgram,
-    IqoalaSharedMemLoc,
-    IqoalaSubroutine,
-    ProgramMeta,
-)
+from squidasm.qoala.lang.iqoala import IqoalaProgram, IqoalaSubroutine, ProgramMeta
 from squidasm.qoala.runtime.program import ProgramInput, ProgramInstance, ProgramResult
 from squidasm.qoala.sim.memmgr import AllocError, MemoryManager
-from squidasm.qoala.sim.memory import (
-    CommQubitTrait,
-    MemQubitTrait,
-    ProgramMemory,
-    SharedMemory,
-    Topology,
-    UnitModule,
-)
+from squidasm.qoala.sim.memory import ProgramMemory, Topology, UnitModule
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice
@@ -210,7 +194,7 @@ def test_alloc_qubit():
     execute_process(processor, process)
 
     assert processor._interface.memmgr.phys_id_for(process.pid, 0) == 0
-    assert processor._interface.memmgr.phys_id_for(process.pid, 1) == None
+    assert processor._interface.memmgr.phys_id_for(process.pid, 1) is None
 
 
 def test_free_qubit():
@@ -225,8 +209,8 @@ def test_free_qubit():
     processor._interface.memmgr.add_process(process)
     execute_process(processor, process)
 
-    assert processor._interface.memmgr.phys_id_for(process.pid, 0) == None
-    assert processor._interface.memmgr.phys_id_for(process.pid, 1) == None
+    assert processor._interface.memmgr.phys_id_for(process.pid, 0) is None
+    assert processor._interface.memmgr.phys_id_for(process.pid, 1) is None
 
 
 def test_free_non_allocated():
@@ -278,8 +262,8 @@ def test_alloc_multiprocess():
     execute_multiple_processes(processor, [process0, process1])
 
     assert processor._interface.memmgr.phys_id_for(process0.pid, 0) == 0
-    assert processor._interface.memmgr.phys_id_for(process0.pid, 1) == None
-    assert processor._interface.memmgr.phys_id_for(process1.pid, 0) == None
+    assert processor._interface.memmgr.phys_id_for(process0.pid, 1) is None
+    assert processor._interface.memmgr.phys_id_for(process1.pid, 0) is None
     assert processor._interface.memmgr.phys_id_for(process1.pid, 1) == 1
 
     assert processor._interface.memmgr._physical_mapping[0].pid == process0.pid
@@ -305,9 +289,9 @@ def test_alloc_multiprocess_same_virt_id():
     execute_multiple_processes(processor, [process0, process1])
 
     assert processor._interface.memmgr.phys_id_for(process0.pid, 0) == 0
-    assert processor._interface.memmgr.phys_id_for(process0.pid, 1) == None
+    assert processor._interface.memmgr.phys_id_for(process0.pid, 1) is None
     assert processor._interface.memmgr.phys_id_for(process1.pid, 0) == 1
-    assert processor._interface.memmgr.phys_id_for(process1.pid, 1) == None
+    assert processor._interface.memmgr.phys_id_for(process1.pid, 1) is None
 
     assert processor._interface.memmgr._physical_mapping[0].pid == process0.pid
     assert processor._interface.memmgr._physical_mapping[1].pid == process1.pid

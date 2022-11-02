@@ -1,15 +1,20 @@
 import pytest
+from netqasm.lang.instr.core import MeasInstruction, SetInstruction
+from netqasm.lang.operand import Register, Template
+from netqasm.lang.subroutine import Subroutine
 
 from squidasm.qoala.lang.iqoala import (
     AssignCValueOp,
+    IqoalaInstrParser,
+    IqoalaParseError,
     IqoalaParser,
-    IqoalaProgram,
-    ParseError,
+    IqoalaSharedMemLoc,
+    IqoalaSubroutine,
+    IQoalaSubroutineParser,
+    IqoalaVector,
     ProgramMeta,
+    RunSubroutineOp,
 )
-from squidasm.qoala.runtime.config import GenericQDeviceConfig, LinkConfig
-from squidasm.qoala.runtime.program import ProgramInstance
-from squidasm.qoala.runtime.run import run
 
 
 def test_parse_incomplete_meta():
@@ -21,8 +26,8 @@ csockets: 0 -> bob
 META_END
     """
 
-    with pytest.raises(ParseError):
-        IqoalaParser(program_text).parse()
+    with pytest.raises(IqoalaParseError):
+        IqoalaInstrParser(program_text).parse()
 
 
 def test_parse_meta_no_end():
@@ -34,8 +39,8 @@ csockets: 0 -> bob
 epr_sockets: 
     """
 
-    with pytest.raises(ParseError):
-        IqoalaParser(program_text).parse()
+    with pytest.raises(IqoalaParseError):
+        IqoalaInstrParser(program_text).parse()
 
 
 def test_parse_meta():
@@ -48,10 +53,10 @@ epr_sockets:
 META_END
     """
 
-    parsed = IqoalaParser(program_text).parse()
+    meta, instructions = IqoalaInstrParser(program_text).parse()
 
-    assert len(parsed.instructions) == 0
-    assert parsed.meta == ProgramMeta(
+    assert len(instructions) == 0
+    assert meta == ProgramMeta(
         name="alice", parameters=[], csockets={0: "bob"}, epr_sockets={}
     )
 
@@ -66,10 +71,10 @@ epr_sockets: 0 -> bob
 META_END
     """
 
-    parsed = IqoalaParser(program_text).parse()
+    meta, instructions = IqoalaInstrParser(program_text).parse()
 
-    assert len(parsed.instructions) == 0
-    assert parsed.meta == ProgramMeta(
+    assert len(instructions) == 0
+    assert meta == ProgramMeta(
         name="alice",
         parameters=["theta1", "theta2"],
         csockets={0: "bob", 1: "charlie"},
@@ -93,10 +98,10 @@ def test_parse_1_instr():
 x = assign_cval() : 1
     """
 
-    parsed = IqoalaParser(program_text).parse()
+    _, instructions = IqoalaInstrParser(program_text).parse()
 
-    assert len(parsed.instructions) == 1
-    assert parsed.instructions[0] == AssignCValueOp(result="x", value=1)
+    assert len(instructions) == 1
+    assert instructions[0] == AssignCValueOp(result="x", value=1)
 
 
 def test_parse_2_instr():
@@ -106,14 +111,202 @@ x = assign_cval() : 1
 y = assign_cval() : 17
     """
 
-    parsed = IqoalaParser(program_text).parse()
+    _, instructions = IqoalaInstrParser(program_text).parse()
 
-    assert len(parsed.instructions) == 2
-    assert parsed.instructions[0] == AssignCValueOp(result="x", value=1)
-    assert parsed.instructions[1] == AssignCValueOp(result="y", value=17)
+    assert len(instructions) == 2
+    assert instructions[0] == AssignCValueOp(result="x", value=1)
+    assert instructions[1] == AssignCValueOp(result="y", value=17)
 
 
-def test_parse_with_subrt():
+def test_parse_faulty_instr():
+    program_text = DEFAULT_META
+    program_text += """
+x = assign_cval
+    """
+
+    with pytest.raises(IqoalaParseError):
+        IqoalaInstrParser(program_text).parse()
+
+
+def test_parse_vec():
+    program_text = DEFAULT_META
+    program_text += """
+run_subroutine(vec<x>) : subrt1
+    """
+
+    _, instructions = IqoalaInstrParser(program_text).parse()
+    assert len(instructions) == 1
+    assert instructions[0] == RunSubroutineOp(
+        result=None, values=IqoalaVector(["x"]), subrt="subrt1"
+    )
+
+
+def test_parse_vec_2_elements():
+    program_text = DEFAULT_META
+    program_text += """
+run_subroutine(vec<x; y>) : subrt1
+    """
+
+    _, instructions = IqoalaInstrParser(program_text).parse()
+    assert len(instructions) == 1
+    assert instructions[0] == RunSubroutineOp(
+        result=None, values=IqoalaVector(["x", "y"]), subrt="subrt1"
+    )
+
+
+def test_parse_vec_2_elements_and_return():
+    program_text = DEFAULT_META
+    program_text += """
+vec<m> = run_subroutine(vec<x; y>) : subrt1
+    """
+
+    _, instructions = IqoalaInstrParser(program_text).parse()
+    assert len(instructions) == 1
+    assert instructions[0] == RunSubroutineOp(
+        result=IqoalaVector(["m"]), values=IqoalaVector(["x", "y"]), subrt="subrt1"
+    )
+
+
+def test_parse_vec_2_elements_and_return_2_elements():
+    program_text = DEFAULT_META
+    program_text += """
+vec<m1; m2> = run_subroutine(vec<x; y>) : subrt1
+    """
+
+    _, instructions = IqoalaInstrParser(program_text).parse()
+    assert len(instructions) == 1
+    assert instructions[0] == RunSubroutineOp(
+        result=IqoalaVector(["m1", "m2"]),
+        values=IqoalaVector(["x", "y"]),
+        subrt="subrt1",
+    )
+
+
+def test_parse_subrt():
+    text = """
+SUBROUTINE subrt1
+    params: my_value
+    returns: M0 -> m
+  NETQASM_START
+    set Q0 {my_value}
+  NETQASM_END
+    """
+
+    parsed = IQoalaSubroutineParser(text).parse()
+    assert len(parsed) == 1
+    assert "subrt1" in parsed
+    subrt = parsed["subrt1"]
+
+    expected_instrs = [
+        SetInstruction(reg=Register.from_str("Q0"), imm=Template("my_value"))
+    ]
+    expected_args = ["my_value"]
+    assert subrt == IqoalaSubroutine(
+        name="subrt1",
+        subrt=Subroutine(instructions=expected_instrs, arguments=expected_args),
+        return_map={"m": IqoalaSharedMemLoc("M0")},
+    )
+
+
+def test_parse_subrt_2():
+    text = """
+SUBROUTINE my_subroutine
+    params: param1, param2
+    returns: M5 -> result1, M6 -> result2
+  NETQASM_START
+    set R0 {param1}
+    set R1 {param2}
+    meas Q0 M5
+    meas Q1 M6
+  NETQASM_END
+    """
+
+    parsed = IQoalaSubroutineParser(text).parse()
+    assert len(parsed) == 1
+    assert "my_subroutine" in parsed
+    subrt = parsed["my_subroutine"]
+
+    expected_instrs = [
+        SetInstruction(reg=Register.from_str("R0"), imm=Template("param1")),
+        SetInstruction(reg=Register.from_str("R1"), imm=Template("param2")),
+        MeasInstruction(reg0=Register.from_str("Q0"), reg1=Register.from_str("M5")),
+        MeasInstruction(reg0=Register.from_str("Q1"), reg1=Register.from_str("M6")),
+    ]
+    expected_args = ["param1", "param2"]
+    assert subrt == IqoalaSubroutine(
+        name="my_subroutine",
+        subrt=Subroutine(instructions=expected_instrs, arguments=expected_args),
+        return_map={
+            "result1": IqoalaSharedMemLoc("M5"),
+            "result2": IqoalaSharedMemLoc("M6"),
+        },
+    )
+
+
+def test_parse_multiple_subrt():
+    text = """
+SUBROUTINE subrt1
+    params: param1
+    returns: M0 -> m
+  NETQASM_START
+    set R0 {param1}
+    meas Q0 M0
+  NETQASM_END
+
+SUBROUTINE subrt2
+    params: theta
+    returns: 
+  NETQASM_START
+    set R0 {theta}
+  NETQASM_END
+    """
+
+    parsed = IQoalaSubroutineParser(text).parse()
+    assert len(parsed) == 2
+    assert "subrt1" in parsed
+    assert "subrt2" in parsed
+    subrt1 = parsed["subrt1"]
+    subrt2 = parsed["subrt2"]
+
+    expected_instrs_1 = [
+        SetInstruction(reg=Register.from_str("R0"), imm=Template("param1")),
+        MeasInstruction(reg0=Register.from_str("Q0"), reg1=Register.from_str("M0")),
+    ]
+    expected_args_1 = ["param1"]
+    expected_instrs_2 = [
+        SetInstruction(reg=Register.from_str("R0"), imm=Template("theta")),
+    ]
+    expected_args_2 = ["theta"]
+
+    assert subrt1 == IqoalaSubroutine(
+        name="subrt1",
+        subrt=Subroutine(instructions=expected_instrs_1, arguments=expected_args_1),
+        return_map={
+            "m": IqoalaSharedMemLoc("M0"),
+        },
+    )
+    assert subrt2 == IqoalaSubroutine(
+        name="subrt2",
+        subrt=Subroutine(instructions=expected_instrs_2, arguments=expected_args_2),
+        return_map={},
+    )
+
+
+def test_parse_invalid_subrt():
+    text = """
+SUBROUTINE my_subroutine
+    params: param1, param2
+    returns: M5 -> result1, M6 -> result2
+  NETQASM_START
+    set R0 {param3}
+  NETQASM_END
+    """
+
+    with pytest.raises(IqoalaParseError):
+        IQoalaSubroutineParser(text).parse()
+
+
+def test_parse_program():
     program_text = """
 META_START
 name: alice
@@ -121,6 +314,7 @@ parameters:
 csockets: 0 -> bob
 epr_sockets: 
 META_END
+
 my_value = assign_cval() : 1
 remote_id = assign_cval() : 0
 send_cmsg(remote_id, my_value)
@@ -131,7 +325,7 @@ vec<m> = run_subroutine(vec<my_value>) : subrt1
 return_result(m)
     """
 
-    subrt_text = """"
+    subrt_text = """
 SUBROUTINE subrt1
     params: my_value
     returns: M0 -> m
@@ -143,9 +337,36 @@ SUBROUTINE subrt1
   NETQASM_END
     """
 
-    parsed_program = IqoalaParser(program_text).parse()
+    parsed_program = IqoalaParser(program_text, subrt_text).parse()
+    assert len(parsed_program.instructions) == 8
+    assert "subrt1" in parsed_program.subroutines
 
-    print(parsed_program)
+
+def test_parse_program_invalid_subrt_reference():
+    program_text = """
+META_START
+name: alice
+parameters: 
+csockets: 0 -> bob
+epr_sockets: 
+META_END
+
+my_value = assign_cval() : 1
+vec<m> = run_subroutine(vec<my_value>) : non_existing_subrt
+return_result(m)
+    """
+
+    subrt_text = """
+SUBROUTINE subrt1
+    params: my_value
+    returns: M0 -> m
+  NETQASM_START
+    set R0 0
+  NETQASM_END
+    """
+
+    with pytest.raises(IqoalaParseError):
+        IqoalaParser(program_text, subrt_text).parse()
 
 
 if __name__ == "__main__":
@@ -155,4 +376,14 @@ if __name__ == "__main__":
     test_parse_meta_multiple_remotes()
     test_parse_1_instr()
     test_parse_2_instr()
-    # test_parse_with_subrt()
+    test_parse_faulty_instr()
+    test_parse_vec()
+    test_parse_vec_2_elements()
+    test_parse_vec_2_elements_and_return()
+    test_parse_vec_2_elements_and_return_2_elements()
+    test_parse_subrt()
+    test_parse_subrt_2()
+    test_parse_invalid_subrt()
+    test_parse_multiple_subrt()
+    test_parse_program()
+    test_parse_program_invalid_subrt_reference()

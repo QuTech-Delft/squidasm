@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, List, Optional, Type, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from netqasm.lang.instr import NetQASMInstruction
 from netqasm.lang.instr.flavour import NVFlavour
@@ -73,6 +73,13 @@ class IqoalaSubroutine:
         s += "\nNETQASM_END"
         return s
 
+    def __eq__(self, other: IqoalaSubroutine) -> bool:
+        return (
+            self.name == other.name
+            and self.subroutine == other.subroutine
+            and self.return_map == other.return_map
+        )
+
 
 IqoalaValue = Union[int, Template, str]
 
@@ -86,13 +93,9 @@ class IqoalaAttribute:
         return self._value
 
 
+@dataclass(eq=True, frozen=True)
 class IqoalaSharedMemLoc:
-    def __init__(self, loc: str) -> None:
-        self._loc = loc
-
-    @property
-    def loc(self) -> str:
-        return self._loc
+    loc: str
 
     def __str__(self) -> str:
         return str(self.loc)
@@ -108,6 +111,9 @@ class IqoalaVector:
 
     def __str__(self) -> str:
         return f"vec<{','.join(v for v in self.values)}>"
+
+    def __eq__(self, other: IqoalaVector) -> bool:
+        return self.values == other.values
 
 
 class ClassicalIqoalaOp:
@@ -306,16 +312,16 @@ class RunSubroutineOp(ClassicalIqoalaOp):
     def from_generic_args(
         cls, result: Optional[str], args: List[str], attr: Optional[IqoalaValue]
     ):
-        assert result is not None
-        assert isinstance(result, IqoalaVector)
+        if result is not None:
+            assert isinstance(result, IqoalaVector)
         assert len(args) == 1
         assert isinstance(args[0], IqoalaVector)
         assert isinstance(attr, str)
         return cls(result, args[0], attr)
 
     @property
-    def subroutine(self) -> IqoalaSubroutine:
-        assert isinstance(self.attributes[0], IqoalaSubroutine)
+    def subroutine(self) -> str:
+        assert isinstance(self.attributes[0], str)
         return self.attributes[0]
 
     def __str__(self) -> str:
@@ -421,11 +427,11 @@ class EndOfTextException(Exception):
     pass
 
 
-class ParseError(Exception):
+class IqoalaParseError(Exception):
     pass
 
 
-class IqoalaParser:
+class IqoalaInstrParser:
     def __init__(self, text: str) -> None:
         self._text = text
         lines = [line.strip() for line in text.split("\n")]
@@ -536,29 +542,30 @@ class IqoalaParser:
 
             end_line = self._read_line()
             if end_line != "META_END":
-                raise ParseError("Could not parse meta.")
+                raise IqoalaParseError("Could not parse meta.")
         except AssertionError:
-            raise ParseError
+            raise IqoalaParseError
 
         return ProgramMeta(name, parameters, csockets, epr_sockets)
 
-    def parse(self) -> IqoalaProgram:
+    def parse(self) -> Tuple[ProgramMeta, List[ClassicalIqoalaOp]]:
         meta: ProgramMeta
-        instructions = []
-        subroutines: Dict[str, IqoalaSubroutine] = {}
+        instructions: List[ClassicalIqoalaOp] = []
 
         try:
             meta = self._parse_meta()
         except EndOfTextException:
-            raise ParseError
+            raise IqoalaParseError
         try:
             while True:
                 instr = self._parse_lhr()
                 instructions.append(instr)
+        except AssertionError:
+            raise IqoalaParseError
         except EndOfTextException:
             pass
 
-        return IqoalaProgram(instructions, subroutines, meta)
+        return meta, instructions
 
 
 class IQoalaSubroutineParser:
@@ -570,11 +577,11 @@ class IQoalaSubroutineParser:
 
     def _next_line(self) -> None:
         self._lineno += 1
-        if self._lineno >= len(self._lines):
-            raise EndOfTextException
 
     def _read_line(self) -> str:
         while True:
+            if self._lineno >= len(self._lines):
+                raise EndOfTextException
             line = self._lines[self._lineno]
             self._next_line()
             if len(line) > 0:
@@ -625,7 +632,41 @@ class IQoalaSubroutineParser:
             subrt = parse_text_subroutine(subrt_text)
         except KeyError:
             subrt = parse_text_subroutine(subrt_text, flavour=NVFlavour())
+
+        # Check that all templates are declared as params to the subroutine
+        if any(arg not in params_line for arg in subrt.arguments):
+            raise IqoalaParseError
         return IqoalaSubroutine(name, subrt, return_map)
+
+    def parse(self) -> Dict[str, IqoalaSubroutine]:
+        subroutines: Dict[str, IqoalaSubroutine] = {}
+        try:
+            while True:
+                subrt = self._parse_subroutine()
+                subroutines[subrt.name] = subrt
+        except EndOfTextException:
+            return subroutines
+
+
+class IqoalaParser:
+    def __init__(self, instr_text: str, subrt_text: str) -> None:
+        self._instr_text = instr_text
+        self._subrt_text = subrt_text
+        self._instr_parser = IqoalaInstrParser(instr_text)
+        self._subrt_parser = IQoalaSubroutineParser(subrt_text)
+
+    def parse(self) -> IqoalaProgram:
+        meta, instructions = self._instr_parser.parse()
+        subroutines = self._subrt_parser.parse()
+
+        # Check that all references to subroutines (in RunSubroutineOp instructions)
+        # are valid.
+        for instr in instructions:
+            if isinstance(instr, RunSubroutineOp):
+                subrt_name = instr.subroutine
+                if subrt_name not in subroutines:
+                    raise IqoalaParseError
+        return IqoalaProgram(instructions, subroutines, meta)
 
 
 if __name__ == "__main__":
@@ -654,7 +695,7 @@ if __name__ == "__main__":
     print(program)
 
     text = str(program)
-    parsed_program = IqoalaParser(text).parse()
+    parsed_program = IqoalaInstrParser(text).parse()
 
     print("\nto text and parsed back:")
     print(parsed_program)

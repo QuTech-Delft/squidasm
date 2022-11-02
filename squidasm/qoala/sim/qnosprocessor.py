@@ -40,7 +40,6 @@ from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import QDevice
 from squidasm.qoala.sim.qnosinterface import QnosInterface
-from squidasm.qoala.sim.signals import SIGNAL_MEMORY_FREED
 
 
 class QnosProcessor:
@@ -75,7 +74,6 @@ class QnosProcessor:
         pid = process.prog_instance.pid
 
         self._current_prog_mem = process.prog_memory
-        prog_mem = self._prog_mem()
 
         subroutine = iqoala_subrt.subroutine
 
@@ -731,7 +729,6 @@ class NVProcessor(QnosProcessor):
         self, pid: int, instr: core.MeasInstruction
     ) -> Generator[EventExpression, None, None]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
         virt_id = shared_mem.get_reg_value(instr.qreg)
         phys_id = self._interface.memmgr.phys_id_for(pid, virt_id)
 

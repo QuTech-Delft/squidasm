@@ -1,35 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from typing import List, Set, Tuple
 
-import netsquid as ns
 import pytest
-from netqasm.lang.parsing import parse_text_subroutine
-from netsquid.nodes import Node
 
-from pydynaa import EventExpression
-from squidasm.qoala.lang.iqoala import (
-    IqoalaProgram,
-    IqoalaSharedMemLoc,
-    IqoalaSubroutine,
-    ProgramMeta,
-)
+from squidasm.qoala.lang.iqoala import IqoalaProgram, ProgramMeta
 from squidasm.qoala.runtime.program import ProgramInput, ProgramInstance, ProgramResult
 from squidasm.qoala.sim.memmgr import AllocError, MemoryManager
 from squidasm.qoala.sim.memory import (
     CommQubitTrait,
     MemQubitTrait,
     ProgramMemory,
-    SharedMemory,
     UnitModule,
 )
-from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
-from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice
-from squidasm.qoala.sim.qnosinterface import QnosInterface
-from squidasm.qoala.sim.qnosprocessor import GenericProcessor, QnosProcessor
-from squidasm.util.tests import yield_from
+from squidasm.qoala.sim.qdevice import QDevice
 
 
 class MockQDevice(QDevice):
@@ -108,31 +93,31 @@ def setup_manager_multiple_processes(
 def test_alloc_free_0():
     pid, mgr = setup_manager()
 
-    assert mgr.phys_id_for(pid, 0) == None
-    assert mgr.phys_id_for(pid, 1) == None
-    assert mgr.virt_id_for(pid, 0) == None
-    assert mgr.virt_id_for(pid, 1) == None
+    assert mgr.phys_id_for(pid, 0) is None
+    assert mgr.phys_id_for(pid, 1) is None
+    assert mgr.virt_id_for(pid, 0) is None
+    assert mgr.virt_id_for(pid, 1) is None
 
     mgr.allocate(pid, 0)
     assert mgr.phys_id_for(pid, 0) == 0
-    assert mgr.phys_id_for(pid, 1) == None
+    assert mgr.phys_id_for(pid, 1) is None
     assert mgr.virt_id_for(pid, 0) == 0
-    assert mgr.virt_id_for(pid, 1) == None
+    assert mgr.virt_id_for(pid, 1) is None
 
     mgr.free(pid, 0)
-    assert mgr.phys_id_for(pid, 0) == None
-    assert mgr.phys_id_for(pid, 1) == None
-    assert mgr.virt_id_for(pid, 0) == None
-    assert mgr.virt_id_for(pid, 1) == None
+    assert mgr.phys_id_for(pid, 0) is None
+    assert mgr.phys_id_for(pid, 1) is None
+    assert mgr.virt_id_for(pid, 0) is None
+    assert mgr.virt_id_for(pid, 1) is None
 
 
 def test_alloc_free_0_1():
     pid, mgr = setup_manager()
 
-    assert mgr.phys_id_for(pid, 0) == None
-    assert mgr.phys_id_for(pid, 1) == None
-    assert mgr.virt_id_for(pid, 0) == None
-    assert mgr.virt_id_for(pid, 1) == None
+    assert mgr.phys_id_for(pid, 0) is None
+    assert mgr.phys_id_for(pid, 1) is None
+    assert mgr.virt_id_for(pid, 0) is None
+    assert mgr.virt_id_for(pid, 1) is None
 
     mgr.allocate(pid, 0)
     mgr.allocate(pid, 1)
@@ -142,9 +127,9 @@ def test_alloc_free_0_1():
     assert mgr.virt_id_for(pid, 1) == 1
 
     mgr.free(pid, 0)
-    assert mgr.phys_id_for(pid, 0) == None
+    assert mgr.phys_id_for(pid, 0) is None
     assert mgr.phys_id_for(pid, 1) == 1
-    assert mgr.virt_id_for(pid, 0) == None
+    assert mgr.virt_id_for(pid, 0) is None
     assert mgr.virt_id_for(pid, 1) == 1
 
 
@@ -186,14 +171,14 @@ def test_get_unmapped_qubit():
 def test_alloc_multiple_processes():
     [pid0, pid1], mgr = setup_manager_multiple_processes(2)
 
-    assert mgr.phys_id_for(pid0, 0) == None
-    assert mgr.phys_id_for(pid0, 1) == None
-    assert mgr.virt_id_for(pid0, 0) == None
-    assert mgr.virt_id_for(pid0, 1) == None
-    assert mgr.phys_id_for(pid1, 0) == None
-    assert mgr.phys_id_for(pid1, 1) == None
-    assert mgr.virt_id_for(pid1, 0) == None
-    assert mgr.virt_id_for(pid1, 1) == None
+    assert mgr.phys_id_for(pid0, 0) is None
+    assert mgr.phys_id_for(pid0, 1) is None
+    assert mgr.virt_id_for(pid0, 0) is None
+    assert mgr.virt_id_for(pid0, 1) is None
+    assert mgr.phys_id_for(pid1, 0) is None
+    assert mgr.phys_id_for(pid1, 1) is None
+    assert mgr.virt_id_for(pid1, 0) is None
+    assert mgr.virt_id_for(pid1, 1) is None
 
     mgr.allocate(pid0, 0)
     # Should allocate phys ID 0 for virt ID 0 of pid0
@@ -209,12 +194,12 @@ def test_alloc_multiple_processes():
     #   phys ID 0 : (pid0, virt0)
     #   phys ID 1 : (pid1, virt1)
     assert mgr.phys_id_for(pid0, 0) == 0
-    assert mgr.phys_id_for(pid0, 1) == None
+    assert mgr.phys_id_for(pid0, 1) is None
     assert mgr.virt_id_for(pid0, 0) == 0
-    assert mgr.virt_id_for(pid0, 1) == None
-    assert mgr.phys_id_for(pid1, 0) == None
+    assert mgr.virt_id_for(pid0, 1) is None
+    assert mgr.phys_id_for(pid1, 0) is None
     assert mgr.phys_id_for(pid1, 1) == 1
-    assert mgr.virt_id_for(pid1, 0) == None
+    assert mgr.virt_id_for(pid1, 0) is None
     assert mgr.virt_id_for(pid1, 1) == 1
 
 

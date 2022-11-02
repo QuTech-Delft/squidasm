@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Generator
 
-from netqasm.backend.messages import SubroutineMessage
 from netqasm.lang.operand import Register
 from netqasm.lang.parsing.text import NetQASMSyntaxError, parse_register
 

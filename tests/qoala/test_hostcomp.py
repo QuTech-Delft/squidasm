@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generator, List, Optional, Tuple
+from typing import Generator
 
 import netsquid as ns
 from netsquid.nodes import Node
@@ -11,11 +11,9 @@ from squidasm.qoala.runtime.environment import (
     GlobalNodeInfo,
     LocalEnvironment,
 )
-from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.hostcomp import HostComponent
 from squidasm.qoala.sim.hostinterface import HostInterface
 from squidasm.qoala.sim.message import Message
-from squidasm.util.tests import yield_from
 
 
 def create_hostcomp(num_other_nodes: int) -> HostComponent:
@@ -49,8 +47,8 @@ def test_one_other_node():
     assert "qnos_in" in comp.ports
     assert "qnos_out" in comp.ports
 
-    assert f"peer_node_1_in" in comp.ports
-    assert f"peer_node_1_out" in comp.ports
+    assert "peer_node_1_in" in comp.ports
+    assert "peer_node_1_out" in comp.ports
 
     # Test properties
     assert comp.peer_in_port("node_1") == comp.ports["peer_node_1_in"]

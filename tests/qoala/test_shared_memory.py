@@ -1,7 +1,3 @@
-from multiprocessing.shared_memory import SharedMemory
-
-from netqasm.sdk.shared_memory import Arrays, RegisterGroup, setup_registers
-
 from squidasm.qoala.sim.memory import SharedMemory
 
 
