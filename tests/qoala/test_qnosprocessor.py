@@ -131,11 +131,17 @@ def create_process_with_subrt(
     return create_process(pid, program, unit_module)
 
 
-def execute_process(processor: GenericProcessor, process: IqoalaProcess) -> None:
+def execute_process(processor: GenericProcessor, process: IqoalaProcess) -> int:
     subroutines = process.prog_instance.program.subroutines
     netqasm_instructions = subroutines["subrt"].subroutine.instructions
-    for i in range(len(netqasm_instructions)):
-        yield_from(processor.assign(process, "subrt", i))
+
+    instr_count = 0
+
+    instr_idx = 0
+    while instr_idx < len(netqasm_instructions):
+        instr_count += 1
+        instr_idx = yield_from(processor.assign(process, "subrt", instr_idx))
+    return instr_count
 
 
 def execute_multiple_processes(
@@ -154,6 +160,13 @@ def setup_components(topology: Topology) -> Tuple[QnosProcessor, UnitModule]:
     interface = MockQnosInterface(qdevice)
     processor = QnosProcessor(interface)
     return (processor, unit_module)
+
+
+def verify_native(subrt_text: str, num_instr: int) -> bool:
+    # check that the instructions in the subroutine text do not expand
+    # to additional instructions when parsed and compiled
+    parsed_subrt = parse_text_subroutine(subrt_text)
+    assert len(parsed_subrt.instructions) == num_instr
 
 
 def test_set_reg():
@@ -318,13 +331,77 @@ def test_alloc_multiprocess_same_virt_id_trait_not_available():
         execute_multiple_processes(processor, [process0, process1])
 
 
+def test_no_branch():
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={0}))
+
+    subrt = """
+    set R3 3
+    set R0 0
+    beq R3 R0 LABEL1
+    set R1 1
+    add C0 R3 R1
+LABEL1:
+    """
+    verify_native(subrt, 5)
+
+    process = create_process_with_subrt(0, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    instr_count = execute_process(processor, process)
+
+    assert instr_count == 5
+    assert process.prog_memory.shared_mem.get_reg_value("C0") == 4
+
+
+def test_branch():
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={0}))
+
+    subrt = """
+    set R3 3
+    set C3 3
+    beq R3 C3 LABEL1
+    set R1 1
+    add C0 R3 R1
+LABEL1:
+    """
+    verify_native(subrt, 5)
+
+    process = create_process_with_subrt(0, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    instr_count = execute_process(processor, process)
+
+    assert instr_count == 3
+    assert process.prog_memory.shared_mem.get_reg_value("C0") == 0
+
+
+def test_array():
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={0}))
+
+    subrt = """
+    set C10 10
+    array C10 @0
+LABEL1:
+    """
+    verify_native(subrt, 2)
+
+    process = create_process_with_subrt(0, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    instr_count = execute_process(processor, process)
+
+    assert instr_count == 2
+    array = process.prog_memory.shared_mem.get_array(0)
+    assert len(array) == 10
+
+
 if __name__ == "__main__":
-    test_set_reg()
-    test_add()
-    test_alloc_qubit()
-    test_free_qubit()
-    test_free_non_allocated()
-    test_alloc_multiple()
-    test_alloc_multiprocess()
-    test_alloc_multiprocess_same_virt_id()
-    test_alloc_multiprocess_same_virt_id_trait_not_available()
+    # test_set_reg()
+    # test_add()
+    # test_alloc_qubit()
+    # test_free_qubit()
+    # test_free_non_allocated()
+    # test_alloc_multiple()
+    # test_alloc_multiprocess()
+    # test_alloc_multiprocess_same_virt_id()
+    # test_alloc_multiprocess_same_virt_id_trait_not_available()
+    test_no_branch()
+    test_branch()
+    test_array()

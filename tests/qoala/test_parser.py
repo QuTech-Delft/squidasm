@@ -16,6 +16,7 @@ from squidasm.qoala.lang.iqoala import (
     ProgramMeta,
     RunSubroutineOp,
 )
+from squidasm.util.tests import text_equal
 
 
 def test_parse_incomplete_meta():
@@ -331,7 +332,9 @@ SUBROUTINE subrt1
   NETQASM_END
     """
 
-    parsed_program = IqoalaParser(meta_text, program_text, subrt_text).parse()
+    parsed_program = IqoalaParser(
+        meta_text=meta_text, instr_text=program_text, subrt_text=subrt_text
+    ).parse()
     assert len(parsed_program.instructions) == 8
     assert "subrt1" in parsed_program.subroutines
 
@@ -362,7 +365,75 @@ SUBROUTINE subrt1
     """
 
     with pytest.raises(IqoalaParseError):
-        IqoalaParser(meta_text, program_text, subrt_text).parse()
+        IqoalaParser(
+            meta_text=meta_text, instr_text=program_text, subrt_text=subrt_text
+        ).parse()
+
+
+def test_split_text():
+    meta_text = """
+META_START
+name: alice
+parameters: 
+csockets: 0 -> bob
+epr_sockets: 
+META_END
+    """
+
+    instr_text = """
+m = assign_cval() : 1
+return_result(m)
+    """
+
+    subrt_text = """
+SUBROUTINE subrt1
+    params: 
+    returns: 
+  NETQASM_START
+    set Q0 0
+  NETQASM_END
+    """
+
+    text = meta_text + instr_text + subrt_text
+    parser = IqoalaParser(text)
+
+    assert text_equal(parser._meta_text, meta_text)
+    assert text_equal(parser._instr_text, instr_text)
+    assert text_equal(parser._subrt_text, subrt_text)
+
+
+def test_parse_program_single_text():
+    text = """
+META_START
+name: alice
+parameters: 
+csockets: 0 -> bob
+epr_sockets: 
+META_END
+
+my_value = assign_cval() : 1
+remote_id = assign_cval() : 0
+send_cmsg(remote_id, my_value)
+received_value = recv_cmsg(remote_id)
+new_value = assign_cval() : 3
+my_value = add_cval_c(new_value, new_value)
+vec<m> = run_subroutine(vec<my_value>) : subrt1
+return_result(m)
+
+SUBROUTINE subrt1
+    params: my_value
+    returns: M0 -> m
+  NETQASM_START
+    set Q0 0
+    rot_z Q0 {my_value} 4
+    meas Q0 M0
+    ret_reg M0
+  NETQASM_END
+    """
+
+    parsed_program = IqoalaParser(text).parse()
+    assert len(parsed_program.instructions) == 8
+    assert "subrt1" in parsed_program.subroutines
 
 
 if __name__ == "__main__":
@@ -383,3 +454,5 @@ if __name__ == "__main__":
     test_parse_multiple_subrt()
     test_parse_program()
     test_parse_program_invalid_subrt_reference()
+    test_split_text()
+    test_parse_program_single_text()

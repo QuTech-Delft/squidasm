@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from netqasm.lang.instr import NetQASMInstruction
 from netqasm.lang.instr.flavour import NVFlavour
@@ -705,13 +705,42 @@ class IQoalaSubroutineParser:
 
 
 class IqoalaParser:
-    def __init__(self, meta_text: str, instr_text: str, subrt_text: str) -> None:
+    def __init__(
+        self,
+        text: Optional[str] = None,
+        meta_text: Optional[str] = None,
+        instr_text: Optional[str] = None,
+        subrt_text: Optional[str] = None,
+    ) -> None:
+        if text is not None:
+            meta_text, instr_text, subrt_text = self._split_text(text)
+        else:
+            assert meta_text is not None
+            assert instr_text is not None
+            assert subrt_text is not None
         self._meta_text = meta_text
         self._instr_text = instr_text
         self._subrt_text = subrt_text
         self._meta_parser = IqoalaMetaParser(meta_text)
         self._instr_parser = IqoalaInstrParser(instr_text)
         self._subrt_parser = IQoalaSubroutineParser(subrt_text)
+
+    def _split_text(self, text: str) -> Tuple[str, str, str]:
+        lines = [line.strip() for line in text.split("\n")]
+        meta_end_line: int
+        first_subrt_line: int
+        for i, line in enumerate(lines):
+            if "META_END" in line:
+                meta_end_line = i
+                break
+        for i, line in enumerate(lines):
+            if "SUBROUTINE" in line:
+                first_subrt_line = i
+
+        meta_text = "\n".join(lines[0 : meta_end_line + 1])
+        instr_text = "\n".join(lines[meta_end_line + 1 : first_subrt_line])
+        subrt_text = "\n".join(lines[first_subrt_line:])
+        return meta_text, instr_text, subrt_text
 
     def parse(self) -> IqoalaProgram:
         meta = self._meta_parser.parse()

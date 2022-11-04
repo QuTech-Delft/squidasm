@@ -69,7 +69,7 @@ class QnosProcessor:
 
     def assign(
         self, process: IqoalaProcess, subrt_name: str, instr_idx: int
-    ) -> Generator[EventExpression, None, None]:
+    ) -> Generator[EventExpression, None, int]:
         iqoala_subrt = process.subroutines[subrt_name]
         pid = process.prog_instance.pid
 
@@ -83,18 +83,25 @@ class QnosProcessor:
             f"{ns.sim_time()} interpreting instruction {instr} at line {instr_idx}"
         )
 
+        next_instr_idx: int
+
         if (
             isinstance(instr, core.JmpInstruction)
             or isinstance(instr, core.BranchUnaryInstruction)
             or isinstance(instr, core.BranchBinaryInstruction)
         ):
-            self._interpret_branch_instr(pid, instr)
+            if new_line := self._interpret_branch_instr(pid, instr):
+                next_instr_idx = new_line
+            else:
+                next_instr_idx = instr_idx + 1
         else:
             generator = self._interpret_instruction(pid, instr)
             if generator:
                 yield from generator
+            next_instr_idx = instr_idx + 1
 
         self._current_prog_mem = None
+        return next_instr_idx
 
     def _interpret_instruction(
         self, pid: int, instr: NetQASMInstruction
@@ -295,7 +302,8 @@ class QnosProcessor:
             core.BranchBinaryInstruction,
             core.JmpInstruction,
         ],
-    ) -> Optional[Generator[EventExpression, None, None]]:
+    ) -> Optional[int]:
+        """Returns line to jump to, or None if no jump happens."""
         shared_mem = self._prog_mem().shared_mem
         a, b = None, None
         registers = []
@@ -320,14 +328,13 @@ class QnosProcessor:
                 f"Branching to line {jump_address}, since {instr}(a={a}, b={b}) "
                 f"is True, with values from registers {registers}"
             )
-            shared_mem.set_prog_counter(jump_address.value)
+            return jump_address.value
         else:
             self._logger.debug(
                 f"Don't branch, since {instr}(a={a}, b={b}) "
                 f"is False, with values from registers {registers}"
             )
-            shared_mem.increment_prog_counter()
-        return None
+            return None
 
     def _interpret_binary_classical_instr(
         self,
