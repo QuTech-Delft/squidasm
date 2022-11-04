@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 from netqasm.lang.instr import NetQASMInstruction
 from netqasm.lang.instr.flavour import NVFlavour
@@ -72,6 +72,16 @@ class IqoalaSubroutine:
     @property
     def return_map(self) -> Dict[str, IqoalaSharedMemLoc]:
         return self._return_map
+
+    def serialize(self) -> str:
+        s = f"SUBROUTINE {self.name}"
+        s += f"\nparams: {', '.join(self.subroutine.arguments)}"
+        rm = self.return_map  # just to make next line fit on one line
+        s += f"\nreturns: {', '.join(f'{v} -> {k}' for k, v in rm.items())}"
+        s += "\nNETQASM_START\n"
+        s += self.subroutine.print_instructions()
+        s += "\nNETQASM_END"
+        return s
 
     def __str__(self) -> str:
         s = "\n"
@@ -431,6 +441,24 @@ class IqoalaProgram:
 
         # return "\n".join("  " + i for i in instrs)
         return "\n".join("  " + str(i) for i in self.instructions)
+
+    def serialize_meta(self) -> str:
+        return self.meta.serialize()
+
+    def serialize_instructions(self) -> str:
+        return "\n".join("  " + str(i) for i in self.instructions)
+
+    def serialize_subroutines(self) -> str:
+        return "\n".join(s.serialize() for s in self.subroutines.values())
+
+    def serialize(self) -> str:
+        return (
+            self.meta.serialize()
+            + "\n"
+            + self.serialize_instructions()
+            + "\n"
+            + self.serialize_subroutines()
+        )
 
 
 class EndOfTextException(Exception):
