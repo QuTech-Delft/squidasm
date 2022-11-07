@@ -37,8 +37,8 @@ class GenericQDeviceConfig(BaseModel):
         return _from_file(path, GenericQDeviceConfig)  # type: ignore
 
     @classmethod
-    def perfect_config(cls) -> GenericQDeviceConfig:
-        cfg = GenericQDeviceConfig()
+    def perfect_config(cls, num_qubits: int) -> GenericQDeviceConfig:
+        cfg = GenericQDeviceConfig(num_qubits=num_qubits, num_comm_qubits=num_qubits)
         cfg.single_qubit_gate_depolar_prob = 0.0
         cfg.two_qubit_gate_depolar_prob = 0.0
         return cfg
@@ -91,9 +91,9 @@ class NVQDeviceConfig(BaseModel):
         return _from_file(path, NVQDeviceConfig)  # type: ignore
 
     @classmethod
-    def perfect_config(cls) -> NVQDeviceConfig:
+    def perfect_config(cls, num_qubits: int) -> NVQDeviceConfig:
         # get default config
-        cfg = NVQDeviceConfig()
+        cfg = NVQDeviceConfig(num_qubits=num_qubits)
 
         # set all error params to 0
         cfg.electron_init_depolar_prob = 0

@@ -4,11 +4,24 @@ from dataclasses import dataclass
 from typing import Dict, Generator, List, Optional, Tuple
 
 import pytest
+from netqasm.lang.operand import ArraySlice
 from netqasm.lang.parsing import parse_text_subroutine
+from netqasm.sdk.build_epr import (
+    SER_CREATE_IDX_NUMBER,
+    SER_CREATE_IDX_ROTATION_X_REMOTE2,
+    SER_CREATE_IDX_TYPE,
+    SER_RESPONSE_KEEP_IDX_BELL_STATE,
+    SER_RESPONSE_KEEP_IDX_GOODNESS,
+    SER_RESPONSE_KEEP_LEN,
+    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_BASIS,
+    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_OUTCOME,
+    SER_RESPONSE_MEASURE_LEN,
+)
 
 from pydynaa import EventExpression
 from squidasm.qoala.lang.iqoala import IqoalaProgram, IqoalaSubroutine, ProgramMeta
 from squidasm.qoala.runtime.program import ProgramInput, ProgramInstance, ProgramResult
+from squidasm.qoala.sim.common import NetstackCreateRequest, NetstackReceiveRequest
 from squidasm.qoala.sim.memmgr import AllocError, MemoryManager
 from squidasm.qoala.sim.memory import ProgramMemory, Topology, UnitModule
 from squidasm.qoala.sim.message import Message
@@ -47,8 +60,20 @@ class MockQDevice(QDevice):
         pass
 
 
+@dataclass
+class MockNetstackResultInfo:
+    pid: int
+    array_id: int
+    start_idx: int
+    end_idx: int
+
+
 class MockQnosInterface(QnosInterface):
-    def __init__(self, qdevice: QDevice) -> None:
+    def __init__(
+        self,
+        qdevice: QDevice,
+        netstack_result_info: Optional[MockNetstackResultInfo] = None,
+    ) -> None:
         self.send_events: List[InterfaceEvent] = []
         self.recv_events: List[InterfaceEvent] = []
         self.flush_events: List[FlushEvent] = []
@@ -56,6 +81,10 @@ class MockQnosInterface(QnosInterface):
 
         self._qdevice = qdevice
         self._memmgr = MemoryManager("alice", self._qdevice)
+
+        self.netstack_result_info: Optional[
+            MockNetstackResultInfo
+        ] = netstack_result_info
 
     def send_peer_msg(self, peer: str, msg: Message) -> None:
         self.send_events.append(InterfaceEvent(peer, msg))
@@ -78,6 +107,15 @@ class MockQnosInterface(QnosInterface):
 
     def receive_netstack_msg(self) -> Generator[EventExpression, None, Message]:
         self.recv_events.append(InterfaceEvent("netstack", MOCK_MESSAGE))
+        if self.netstack_result_info is not None:
+            mem = self.memmgr._processes[
+                self.netstack_result_info.pid
+            ].prog_memory.shared_mem
+            array_id = self.netstack_result_info.array_id
+            start_idx = self.netstack_result_info.start_idx
+            end_idx = self.netstack_result_info.end_idx
+            for i in range(start_idx, end_idx):
+                mem.set_array_value(array_id, i, 42)
         return MOCK_MESSAGE
         yield  # to make it behave as a generator
 
@@ -154,10 +192,12 @@ def execute_multiple_processes(
             yield_from(processor.assign(proc, "subrt", i))
 
 
-def setup_components(topology: Topology) -> Tuple[QnosProcessor, UnitModule]:
+def setup_components(
+    topology: Topology, netstack_result: Optional[MockNetstackResultInfo] = None
+) -> Tuple[QnosProcessor, UnitModule]:
     qdevice = MockQDevice(topology)
     unit_module = UnitModule.from_topology(topology)
-    interface = MockQnosInterface(qdevice)
+    interface = MockQnosInterface(qdevice, netstack_result)
     processor = QnosProcessor(interface)
     return (processor, unit_module)
 
@@ -379,17 +419,138 @@ def test_array():
     subrt = """
     set C10 10
     array C10 @0
-LABEL1:
+    set R4 4
+    set C8 8
+    store C8 @0[R4]
     """
-    verify_native(subrt, 2)
+    verify_native(subrt, 5)
 
     process = create_process_with_subrt(0, subrt, unit_module)
     processor._interface.memmgr.add_process(process)
     instr_count = execute_process(processor, process)
 
-    assert instr_count == 2
+    assert instr_count == 5
     array = process.prog_memory.shared_mem.get_array(0)
     assert len(array) == 10
+    assert all(
+        process.prog_memory.shared_mem.get_array_value(0, i) is None
+        for i in range(10)
+        if i != 4
+    )
+    assert process.prog_memory.shared_mem.get_array_value(0, 4) == 8
+
+
+def test_create_epr():
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={0}))
+
+    qubit_array = 0
+    arg_array = 1
+    result_array = 2
+
+    qubit_id = 8
+    create_type = 2
+    epr_count = 6
+    rot_x_remote2 = 1
+
+    remote_id = 2
+    epr_sck_id = 4
+
+    pid = 0
+
+    subrt = f"""
+    array 1 @{qubit_array}
+    store {qubit_id} @{qubit_array}[0]
+    array 20 @{arg_array}
+    store {create_type} @{arg_array}[{SER_CREATE_IDX_TYPE}]
+    store {epr_count} @{arg_array}[{SER_CREATE_IDX_NUMBER}]
+    store {rot_x_remote2} @{arg_array}[{SER_CREATE_IDX_ROTATION_X_REMOTE2}]
+    array 10 @{result_array}
+    create_epr({remote_id}, {epr_sck_id}) 0 1 2
+    """
+    process = create_process_with_subrt(pid, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    execute_process(processor, process)
+
+    expected_request = NetstackCreateRequest(
+        pid, remote_id, epr_sck_id, qubit_array, arg_array, result_array
+    )
+
+    assert processor._interface.send_events[0] == InterfaceEvent(
+        "netstack", Message(expected_request)
+    )
+
+    mem = process.prog_memory.shared_mem
+    assert mem.get_array_value(qubit_array, 0) == qubit_id
+    assert mem.get_array_value(arg_array, SER_CREATE_IDX_TYPE) == create_type
+    assert mem.get_array_value(arg_array, SER_CREATE_IDX_NUMBER) == epr_count
+    assert (
+        mem.get_array_value(arg_array, SER_CREATE_IDX_ROTATION_X_REMOTE2)
+        == rot_x_remote2
+    )
+
+
+def test_recv_epr():
+    processor, unit_module = setup_components(Topology(comm_ids={0}, mem_ids={0}))
+
+    qubit_array = 0
+    result_array = 2
+
+    qubit_id = 8
+
+    remote_id = 2
+    epr_sck_id = 4
+
+    pid = 0
+
+    subrt = f"""
+    array 1 @{qubit_array}
+    store {qubit_id} @{qubit_array}[0]
+    array 10 @{result_array}
+    recv_epr({remote_id}, {epr_sck_id}) 0 2
+    """
+    process = create_process_with_subrt(pid, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    execute_process(processor, process)
+
+    expected_request = NetstackReceiveRequest(
+        pid, remote_id, epr_sck_id, qubit_array, result_array
+    )
+
+    assert processor._interface.send_events[0] == InterfaceEvent(
+        "netstack", Message(expected_request)
+    )
+    mem = process.prog_memory.shared_mem
+    assert mem.get_array_value(qubit_array, 0) == qubit_id
+
+
+def test_wait_all():
+    pid = 0
+    array_id = 3
+    start_idx = 5
+    end_idx = 9
+
+    # Let the mock interface write some result to the array such that
+    # our "wait_all" instruction will unblock
+    netstack_result = MockNetstackResultInfo(
+        pid=pid, array_id=array_id, start_idx=start_idx, end_idx=end_idx
+    )
+
+    processor, unit_module = setup_components(
+        Topology(comm_ids={0}, mem_ids={0}), netstack_result
+    )
+
+    subrt = f"""
+    array 10 @{array_id}
+    wait_all @{array_id}[{start_idx}:{end_idx}]
+    """
+    process = create_process_with_subrt(pid, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    execute_process(processor, process)
+
+    mem = process.prog_memory.shared_mem
+    assert all(
+        mem.get_array_value(array_id, i) is not None for i in range(start_idx, end_idx)
+    )
 
 
 if __name__ == "__main__":
@@ -402,6 +563,9 @@ if __name__ == "__main__":
     # test_alloc_multiprocess()
     # test_alloc_multiprocess_same_virt_id()
     # test_alloc_multiprocess_same_virt_id_trait_not_available()
-    test_no_branch()
-    test_branch()
-    test_array()
+    # test_no_branch()
+    # test_branch()
+    # test_array()
+    # test_create_epr()
+    # test_recv_epr()
+    test_wait_all()

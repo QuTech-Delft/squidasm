@@ -8,12 +8,7 @@ from squidasm.qoala.sim.qnoscomp import QnosComponent
 
 def create_qnoscomp() -> QnosComponent:
     node = Node(name="alice", ID=0)
-    env = GlobalEnvironment()
-
-    node_info = GlobalNodeInfo.default_nv(node.name, node.ID, 2)
-    env.add_node(node.ID, node_info)
-
-    return QnosComponent(node, env)
+    return QnosComponent(node)
 
 
 def test_ports():

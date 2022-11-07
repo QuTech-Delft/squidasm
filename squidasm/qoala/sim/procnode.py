@@ -72,24 +72,6 @@ class ProcNode(Protocol):
         self._local_env = LocalEnvironment(global_env, global_env.get_node_id(name))
 
         # Create internal components.
-        self._host = Host(self.host_comp, self._local_env, self.scheduler)
-        self._memmgr = MemoryManager(self.node.name)
-        self._qnos = Qnos(
-            self.qnos_comp, self._local_env, self._memmgr, self.scheduler, self.qdevice
-        )
-        self._nestack = Netstack(
-            self.netstack_comp,
-            self._local_env,
-            self._memmgr,
-            self.scheduler,
-            self.qdevice,
-        )
-
-        if scheduler is None:
-            self._scheduler = Scheduler(self._node.name)
-        else:
-            self._scheduler = scheduler
-
         self._qdevice: QDevice
         if qdevice_type == "generic":
             physical_memory = GenericPhysicalQuantumMemory(qprocessor.num_positions)
@@ -99,6 +81,28 @@ class ProcNode(Protocol):
             self._qdevice = QDevice(self._node, QDeviceType.NV, physical_memory)
         else:
             raise ValueError
+
+        if scheduler is None:
+            self._scheduler = Scheduler(self._node.name)
+        else:
+            self._scheduler = scheduler
+
+        self._host = Host(self.host_comp, self._local_env, self._scheduler)
+        self._memmgr = MemoryManager(self.node.name, self._qdevice)
+        self._qnos = Qnos(
+            self.qnos_comp,
+            self._local_env,
+            self._memmgr,
+            self._scheduler,
+            self._qdevice,
+        )
+        self._nestack = Netstack(
+            self.netstack_comp,
+            self._local_env,
+            self._memmgr,
+            self.scheduler,
+            self.qdevice,
+        )
 
         self._prog_instance_counter: int = 0
         self._batch_counter: int = 0

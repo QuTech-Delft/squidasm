@@ -16,7 +16,7 @@ class QnosComponent(Component):
     which is a subclass of `Protocol`.
     """
 
-    def __init__(self, node: Node, global_env: GlobalEnvironment) -> None:
+    def __init__(self, node: Node) -> None:
         super().__init__(name=f"{node.name}_qnos")
         self._node = node
 

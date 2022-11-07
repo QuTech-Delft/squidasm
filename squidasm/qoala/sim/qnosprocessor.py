@@ -38,7 +38,7 @@ from squidasm.qoala.sim.logging import LogManager
 from squidasm.qoala.sim.memory import ProgramMemory
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
-from squidasm.qoala.sim.qdevice import QDevice
+from squidasm.qoala.sim.qdevice import QDevice, QDeviceCommand
 from squidasm.qoala.sim.qnosinterface import QnosInterface
 
 
@@ -405,6 +405,7 @@ class QnosProcessor:
         prog = QuantumProgram()
         prog.apply(ns_instr, qubit_indices=[phys_id], angle=angle)
         yield from self.qdevice.execute_program(prog)
+        return None
 
     def _interpret_single_rotation_instr(
         self, pid: int, instr: nv.RotXInstruction
@@ -434,6 +435,7 @@ class QnosProcessor:
         prog = QuantumProgram()
         prog.apply(ns_instr, qubit_indices=[phys_id0, phys_id1], angle=angle)
         yield from self.qdevice.execute_program(prog)
+        return None
 
     def _interpret_controlled_rotation_instr(
         self, pid: int, instr: core.ControlledRotationInstruction
@@ -534,7 +536,7 @@ class QnosProcessor:
         )
 
         while True:
-            values = self._prog_mem().get_array_values(addr, start, end)
+            values = shared_mem.get_array_values(addr, start, end)
             if any(v is None for v in values):
                 self._logger.debug(
                     f"waiting for netstack to write to @{addr}[{start}:{end}] "
@@ -548,6 +550,7 @@ class QnosProcessor:
         self._logger.debug("all entries were written")
 
         self._logger.info(f"\nFinished waiting for array slice {instr.slice}")
+        return None
 
     def _interpret_ret_reg(
         self, pid: int, instr: core.RetRegInstruction
@@ -577,16 +580,15 @@ class GenericProcessor(QnosProcessor):
         self, pid: int, instr: core.InitInstruction
     ) -> Generator[EventExpression, None, None]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
         virt_id = shared_mem.get_reg_value(instr.reg)
-        phys_id = q_mem.phys_id_for(virt_id)
+        phys_id = self._interface.memmgr.phys_id_for(pid, virt_id)
         self._logger.debug(
             f"Performing {instr} on virtual qubit "
             f"{virt_id} (physical ID: {phys_id})"
         )
-        prog = QuantumProgram()
-        prog.apply(INSTR_INIT, qubit_indices=[phys_id])
-        yield from self.qdevice.execute_program(prog)
+        commands = [QDeviceCommand(INSTR_INIT, [phys_id])]
+        yield from self.qdevice.execute_commands(commands)
+        return None
 
     def _interpret_meas(
         self, pid: int, instr: core.MeasInstruction
@@ -606,32 +608,29 @@ class GenericProcessor(QnosProcessor):
         yield from self.qdevice.execute_program(prog)
         outcome: int = prog.output["last"][0]
         shared_mem.set_reg_value(instr.creg, outcome)
+        return None
 
     def _interpret_single_qubit_instr(
         self, pid: int, instr: core.SingleQubitInstruction
     ) -> Generator[EventExpression, None, None]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
         virt_id = shared_mem.get_reg_value(instr.qreg)
-        phys_id = q_mem.phys_id_for(virt_id)
+        phys_id = self._interface.memmgr.phys_id_for(pid, virt_id)
         if isinstance(instr, vanilla.GateXInstruction):
-            prog = QuantumProgram()
-            prog.apply(INSTR_X, qubit_indices=[phys_id])
-            yield from self.qdevice.execute_program(prog)
+            commands = [QDeviceCommand(INSTR_X, [phys_id])]
+            yield from self.qdevice.execute_commands(commands)
         elif isinstance(instr, vanilla.GateYInstruction):
-            prog = QuantumProgram()
-            prog.apply(INSTR_Y, qubit_indices=[phys_id])
-            yield from self.qdevice.execute_program(prog)
+            commands = [QDeviceCommand(INSTR_Y, [phys_id])]
+            yield from self.qdevice.execute_commands(commands)
         elif isinstance(instr, vanilla.GateZInstruction):
-            prog = QuantumProgram()
-            prog.apply(INSTR_Z, qubit_indices=[phys_id])
-            yield from self.qdevice.execute_program(prog)
+            commands = [QDeviceCommand(INSTR_Z, [phys_id])]
+            yield from self.qdevice.execute_commands(commands)
         elif isinstance(instr, vanilla.GateHInstruction):
-            prog = QuantumProgram()
-            prog.apply(INSTR_H, qubit_indices=[phys_id])
-            yield from self.qdevice.execute_program(prog)
+            commands = [QDeviceCommand(INSTR_H, [phys_id])]
+            yield from self.qdevice.execute_commands(commands)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
+        return None
 
     def _interpret_single_rotation_instr(
         self, pid: int, instr: nv.RotXInstruction
@@ -644,6 +643,7 @@ class GenericProcessor(QnosProcessor):
             yield from self._do_single_rotation(pid, instr, INSTR_ROT_Z)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
+        return None
 
     def _interpret_controlled_rotation_instr(
         self, pid: int, instr: core.ControlledRotationInstruction
@@ -669,6 +669,7 @@ class GenericProcessor(QnosProcessor):
             yield from self.qdevice.execute_program(prog)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
+        return None
 
 
 class NVProcessor(QnosProcessor):
@@ -688,6 +689,7 @@ class NVProcessor(QnosProcessor):
         prog = QuantumProgram()
         prog.apply(INSTR_INIT, qubit_indices=[phys_id])
         yield from self.qdevice.execute_program(prog)
+        return None
 
     def _measure_electron(self) -> Generator[EventExpression, None, int]:
         prog = QuantumProgram()
@@ -720,6 +722,7 @@ class NVProcessor(QnosProcessor):
         prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
         prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=-PI_OVER_2)
         yield from self.qdevice.execute_program(prog)
+        return None
 
     def _move_electron_to_carbon(
         self, carbon_id: int
@@ -731,6 +734,7 @@ class NVProcessor(QnosProcessor):
         prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=-PI_OVER_2)
         prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
         yield from self.qdevice.execute_program(prog)
+        return None
 
     def _interpret_meas(
         self, pid: int, instr: core.MeasInstruction
@@ -803,6 +807,7 @@ class NVProcessor(QnosProcessor):
             # Free comm qubit.
             memmgr.free(pid, 0)
             self._interface.signal_memory_freed()
+        return None
 
     def _interpret_single_rotation_instr(
         self, pid: int, instr: nv.RotXInstruction

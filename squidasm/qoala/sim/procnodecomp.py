@@ -46,7 +46,7 @@ class ProcNodeComponent(Node):
         super().__init__(name, ID=node_id)
         self.qmemory = qprocessor
 
-        qnos_comp = QnosComponent(self, global_env)
+        qnos_comp = QnosComponent(self)
         self.add_subcomponent(qnos_comp, "qnos")
 
         host_comp = HostComponent(self, global_env)
