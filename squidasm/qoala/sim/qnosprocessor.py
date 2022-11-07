@@ -22,7 +22,6 @@ from netsquid.components.instructions import (
     INSTR_Z,
 )
 from netsquid.components.instructions import Instruction as NsInstr
-from netsquid.components.qprogram import QuantumProgram
 from netsquid.qubits import qubitapi
 
 from pydynaa import EventExpression
@@ -35,6 +34,7 @@ from squidasm.qoala.sim.common import (
 from squidasm.qoala.sim.constants import PI, PI_OVER_2
 from squidasm.qoala.sim.globals import GlobalSimData
 from squidasm.qoala.sim.logging import LogManager
+from squidasm.qoala.sim.memmgr import NotAllocatedError
 from squidasm.qoala.sim.memory import ProgramMemory
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
@@ -391,9 +391,10 @@ class QnosProcessor:
         ns_instr: NsInstr,
     ) -> Generator[EventExpression, None, None]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
         virt_id = shared_mem.get_reg_value(instr.reg)
-        phys_id = q_mem.phys_id_for(virt_id)
+        phys_id = self._interface.memmgr.phys_id_for(pid, virt_id)
+        if phys_id is None:
+            raise NotAllocatedError
         angle = self._get_rotation_angle_from_operands(
             n=instr.angle_num.value,
             d=instr.angle_denom.value,
@@ -402,9 +403,8 @@ class QnosProcessor:
             f"Performing {instr} with angle {angle} on virtual qubit "
             f"{virt_id} (physical ID: {phys_id})"
         )
-        prog = QuantumProgram()
-        prog.apply(ns_instr, qubit_indices=[phys_id], angle=angle)
-        yield from self.qdevice.execute_program(prog)
+        commands = [QDeviceCommand(ns_instr, [phys_id], angle=angle)]
+        yield from self.qdevice.execute_commands(commands)
         return None
 
     def _interpret_single_rotation_instr(
@@ -419,11 +419,14 @@ class QnosProcessor:
         ns_instr: NsInstr,
     ) -> Generator[EventExpression, None, None]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
         virt_id0 = shared_mem.get_reg_value(instr.reg0)
-        phys_id0 = q_mem.phys_id_for(virt_id0)
+        phys_id0 = self._interface.memmgr.phys_id_for(pid, virt_id0)
+        if phys_id0 is None:
+            raise NotAllocatedError
         virt_id1 = shared_mem.get_reg_value(instr.reg1)
-        phys_id1 = q_mem.phys_id_for(virt_id1)
+        phys_id1 = self._interface.memmgr.phys_id_for(pid, virt_id1)
+        if phys_id1 is None:
+            raise NotAllocatedError
         angle = self._get_rotation_angle_from_operands(
             n=instr.angle_num.value,
             d=instr.angle_denom.value,
@@ -432,9 +435,8 @@ class QnosProcessor:
             f"Performing {instr} with angle {angle} on virtual qubits "
             f"{virt_id0} and {virt_id1} (physical IDs: {phys_id0} and {phys_id1})"
         )
-        prog = QuantumProgram()
-        prog.apply(ns_instr, qubit_indices=[phys_id0, phys_id1], angle=angle)
-        yield from self.qdevice.execute_program(prog)
+        commands = [QDeviceCommand(ns_instr, [phys_id0, phys_id1], angle=angle)]
+        yield from self.qdevice.execute_commands(commands)
         return None
 
     def _interpret_controlled_rotation_instr(
@@ -582,6 +584,8 @@ class GenericProcessor(QnosProcessor):
         shared_mem = self._prog_mem().shared_mem
         virt_id = shared_mem.get_reg_value(instr.reg)
         phys_id = self._interface.memmgr.phys_id_for(pid, virt_id)
+        if phys_id is None:
+            raise NotAllocatedError
         self._logger.debug(
             f"Performing {instr} on virtual qubit "
             f"{virt_id} (physical ID: {phys_id})"
@@ -594,19 +598,18 @@ class GenericProcessor(QnosProcessor):
         self, pid: int, instr: core.MeasInstruction
     ) -> Generator[EventExpression, None, None]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
         virt_id = shared_mem.get_reg_value(instr.qreg)
-        phys_id = q_mem.phys_id_for(virt_id)
+        phys_id = self._interface.memmgr.phys_id_for(pid, virt_id)
+        if phys_id is None:
+            raise NotAllocatedError
 
         self._logger.debug(
             f"Measuring qubit {virt_id} (physical ID: {phys_id}), "
             f"placing the outcome in register {instr.creg}"
         )
 
-        prog = QuantumProgram()
-        prog.apply(INSTR_MEASURE, qubit_indices=[phys_id])
-        yield from self.qdevice.execute_program(prog)
-        outcome: int = prog.output["last"][0]
+        commands = [QDeviceCommand(INSTR_MEASURE, [phys_id])]
+        outcome = yield from self.qdevice.execute_commands(commands)
         shared_mem.set_reg_value(instr.creg, outcome)
         return None
 
@@ -616,6 +619,8 @@ class GenericProcessor(QnosProcessor):
         shared_mem = self._prog_mem().shared_mem
         virt_id = shared_mem.get_reg_value(instr.qreg)
         phys_id = self._interface.memmgr.phys_id_for(pid, virt_id)
+        if phys_id is None:
+            raise NotAllocatedError
         if isinstance(instr, vanilla.GateXInstruction):
             commands = [QDeviceCommand(INSTR_X, [phys_id])]
             yield from self.qdevice.execute_commands(commands)
@@ -654,19 +659,20 @@ class GenericProcessor(QnosProcessor):
         self, pid: int, instr: core.SingleQubitInstruction
     ) -> Generator[EventExpression, None, None]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
         virt_id0 = shared_mem.get_reg_value(instr.reg0)
-        phys_id0 = q_mem.phys_id_for(virt_id0)
+        phys_id0 = self._interface.memmgr.phys_id_for(pid, virt_id0)
+        if phys_id0 is None:
+            raise NotAllocatedError
         virt_id1 = shared_mem.get_reg_value(instr.reg1)
-        phys_id1 = q_mem.phys_id_for(virt_id1)
+        phys_id1 = self._interface.memmgr.phys_id_for(pid, virt_id1)
+        if phys_id1 is None:
+            raise NotAllocatedError
         if isinstance(instr, vanilla.CnotInstruction):
-            prog = QuantumProgram()
-            prog.apply(INSTR_CNOT, qubit_indices=[phys_id0, phys_id1])
-            yield from self.qdevice.execute_program(prog)
+            commands = [QDeviceCommand(INSTR_CNOT, [phys_id0, phys_id1])]
+            yield from self.qdevice.execute_commands(commands)
         elif isinstance(instr, vanilla.CphaseInstruction):
-            prog = QuantumProgram()
-            prog.apply(INSTR_CZ, qubit_indices=[phys_id0, phys_id1])
-            yield from self.qdevice.execute_program(prog)
+            commands = [QDeviceCommand(INSTR_CZ, [phys_id0, phys_id1])]
+            yield from self.qdevice.execute_commands(commands)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
         return None
@@ -679,61 +685,63 @@ class NVProcessor(QnosProcessor):
         self, pid: int, instr: core.InitInstruction
     ) -> Generator[EventExpression, None, None]:
         shared_mem = self._prog_mem().shared_mem
-        q_mem = self._prog_mem().quantum_mem
         virt_id = shared_mem.get_reg_value(instr.reg)
-        phys_id = q_mem.phys_id_for(virt_id)
+        phys_id = self._interface.memmgr.phys_id_for(pid, virt_id)
+        if phys_id is None:
+            raise NotAllocatedError
         self._logger.debug(
             f"Performing {instr} on virtual qubit "
             f"{virt_id} (physical ID: {phys_id})"
         )
-        prog = QuantumProgram()
-        prog.apply(INSTR_INIT, qubit_indices=[phys_id])
-        yield from self.qdevice.execute_program(prog)
+        commands = [QDeviceCommand(INSTR_INIT, [phys_id])]
+        yield from self.qdevice.execute_commands(commands)
         return None
 
     def _measure_electron(self) -> Generator[EventExpression, None, int]:
-        prog = QuantumProgram()
-        prog.apply(INSTR_MEASURE, qubit_indices=[0])
-        yield from self.qdevice.execute_program(prog)
-        outcome: int = prog.output["last"][0]
+        commands = [QDeviceCommand(INSTR_MEASURE, [0])]
+        outcome = yield from self.qdevice.execute_commands(commands)
         return outcome
 
     def _move_carbon_to_electron_for_measure(
         self, carbon_id: int
     ) -> Generator[EventExpression, None, None]:
-        prog = QuantumProgram()
-        prog.apply(INSTR_INIT, qubit_indices=[0])
-        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
-        prog.apply(INSTR_CYDIR, qubit_indices=[0, carbon_id], angle=-PI_OVER_2)
-        prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=-PI_OVER_2)
-        prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
-        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=-PI_OVER_2)
-        yield from self.qdevice.execute_program(prog)
+        commands = [
+            QDeviceCommand(INSTR_INIT, [0]),
+            QDeviceCommand(INSTR_ROT_Y, [0], angle=PI_OVER_2),
+            QDeviceCommand(INSTR_CYDIR, [0, carbon_id], angle=-PI_OVER_2),
+            QDeviceCommand(INSTR_ROT_X, [0], angle=-PI_OVER_2),
+            QDeviceCommand(INSTR_CXDIR, [0, carbon_id], angle=PI_OVER_2),
+            QDeviceCommand(INSTR_ROT_Y, [0], angle=-PI_OVER_2),
+        ]
+        yield from self.qdevice.execute_commands(commands)
+        return None
 
     def _move_carbon_to_electron(
         self, carbon_id: int
     ) -> Generator[EventExpression, None, None]:
         # TODO: CHECK SEQUENCE OF GATES!!!
-        prog = QuantumProgram()
-        prog.apply(INSTR_INIT, qubit_indices=[0])
-        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
-        prog.apply(INSTR_CYDIR, qubit_indices=[0, carbon_id], angle=-PI_OVER_2)
-        prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=-PI_OVER_2)
-        prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
-        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=-PI_OVER_2)
-        yield from self.qdevice.execute_program(prog)
+        commands = [
+            QDeviceCommand(INSTR_INIT, [0]),
+            QDeviceCommand(INSTR_ROT_Y, [0], angle=PI_OVER_2),
+            QDeviceCommand(INSTR_CYDIR, [0, carbon_id], angle=-PI_OVER_2),
+            QDeviceCommand(INSTR_ROT_X, [0], angle=-PI_OVER_2),
+            QDeviceCommand(INSTR_CXDIR, [0, carbon_id], angle=PI_OVER_2),
+            QDeviceCommand(INSTR_ROT_Y, [0], angle=-PI_OVER_2),
+        ]
+        yield from self.qdevice.execute_commands(commands)
         return None
 
     def _move_electron_to_carbon(
         self, carbon_id: int
     ) -> Generator[EventExpression, None, None]:
-        prog = QuantumProgram()
-        prog.apply(INSTR_INIT, qubit_indices=[carbon_id])
-        prog.apply(INSTR_ROT_Y, qubit_indices=[0], angle=PI_OVER_2)
-        prog.apply(INSTR_CYDIR, qubit_indices=[0, carbon_id], angle=-PI_OVER_2)
-        prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=-PI_OVER_2)
-        prog.apply(INSTR_CXDIR, qubit_indices=[0, carbon_id], angle=PI_OVER_2)
-        yield from self.qdevice.execute_program(prog)
+        commands = [
+            QDeviceCommand(INSTR_INIT, [carbon_id]),
+            QDeviceCommand(INSTR_ROT_Y, [0], angle=PI_OVER_2),
+            QDeviceCommand(INSTR_CYDIR, [0, carbon_id], angle=-PI_OVER_2),
+            QDeviceCommand(INSTR_ROT_X, [0], angle=-PI_OVER_2),
+            QDeviceCommand(INSTR_CXDIR, [0, carbon_id], angle=PI_OVER_2),
+        ]
+        yield from self.qdevice.execute_commands(commands)
         return None
 
     def _interpret_meas(

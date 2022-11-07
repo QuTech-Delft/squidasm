@@ -1,14 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Generator, List, Optional, Set
-from xml.dom import NOT_SUPPORTED_ERR
+from typing import Generator, List, Optional, Set
 
-import numpy as np
 from netsquid.components.instructions import INSTR_INIT, Instruction
-from netsquid.components.qprocessor import MissingInstructionError, QuantumProcessor
+from netsquid.components.qprocessor import QuantumProcessor
 from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
-from netsquid.qubits import qubitapi
 from netsquid.qubits.qubit import Qubit
 
 from pydynaa import EventExpression
@@ -133,7 +130,7 @@ class QDevice:
                 if cmd.indices[0] in phys_instr.topology:
                     return True
             else:
-                if cmd.indices in phys_instr.topology:
+                if (cmd.indices[0], cmd.indices[1]) in phys_instr.topology:
                     return True
 
         # We didn't find any matching instruction.

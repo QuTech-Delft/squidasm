@@ -1,9 +1,9 @@
-from typing import Generator
+from typing import Generator, List
 
 import netsquid as ns
 import numpy as np
 from netsquid.protocols import Protocol
-from netsquid.qubits import ketstates, qubitapi
+from netsquid.qubits import qubitapi
 from netsquid.qubits.qubit import Qubit
 
 from pydynaa import EventExpression
@@ -45,4 +45,17 @@ def text_equal(text1, text2) -> bool:
 
 
 def has_state(qubit: Qubit, state: np.ndarray, margin: float = 0.001) -> bool:
-    return abs(1.0 - qubitapi.fidelity(qubit, state)) < margin
+    return abs(1.0 - qubitapi.fidelity(qubit, state, squared=True)) < margin
+
+
+def has_multi_state(
+    qubits: List[Qubit], state: np.ndarray, margin: float = 0.001
+) -> bool:
+    return abs(1.0 - qubitapi.fidelity(qubits, state, squared=True)) < margin
+
+
+def has_max_mixed_state(qubit: Qubit, margin: float = 0.001) -> bool:
+    # TODO: fix fidelity calculation with mixed states
+    max_mixed = np.array([[0.5, 0], [0, 0.5]])
+    # qubit_state = qubitapi.reduced_dm(qubit)
+    return np.isclose(qubitapi.reduced_dm(qubit), max_mixed, margin)

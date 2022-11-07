@@ -228,11 +228,13 @@ class ProcNode(Protocol):
 
                 csockets: Dict[int, ClassicalSocket] = {}
                 for i, remote_name in meta.csockets:
+                    # TODO: check for already existing epr sockets
                     csockets[i] = self.host.create_csocket(remote_name)
 
                 epr_sockets: Dict[int, EprSocket] = {}
                 for i, remote_name in meta.epr_sockets:
                     remote_id = self._global_env.get_node_id(remote_name)
+                    # TODO: check for already existing epr sockets
                     epr_sockets[i] = EprSocket(i, remote_id)
 
                 result = ProgramResult(values={})

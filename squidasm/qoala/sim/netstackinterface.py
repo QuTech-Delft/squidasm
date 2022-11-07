@@ -46,22 +46,22 @@ class NetstackInterface(ComponentProtocol):
                 ),
             )
 
-    def _send_qnos_msg(self, msg: Message) -> None:
+    def send_qnos_msg(self, msg: Message) -> None:
         """Send a message to the processor."""
         self._comp.qnos_out_port.tx_output(msg)
 
-    def _receive_qnos_msg(self) -> Generator[EventExpression, None, Message]:
+    def receive_qnos_msg(self) -> Generator[EventExpression, None, Message]:
         """Receive a message from the processor. Block until there is at least one
         message."""
         return (yield from self._receive_msg("qnos", SIGNAL_PROC_NSTK_MSG))
 
-    def _send_peer_msg(self, peer: str, msg: Message) -> None:
+    def send_peer_msg(self, peer: str, msg: Message) -> None:
         """Send a message to the network stack of the other node.
 
         NOTE: for now we assume there is only one other node, which is 'the' peer."""
         self._comp.peer_out_port(peer).tx_output(msg)
 
-    def _receive_peer_msg(self, peer: str) -> Generator[EventExpression, None, Message]:
+    def receive_peer_msg(self, peer: str) -> Generator[EventExpression, None, Message]:
         """Receive a message from the network stack of the other node. Block until
         there is at least one message.
 

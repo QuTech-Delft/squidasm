@@ -3,8 +3,6 @@ from __future__ import annotations
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
-from squidasm.qoala.runtime.environment import GlobalEnvironment
-
 
 class QnosComponent(Component):
     """NetSquid component representing a QNodeOS instance.

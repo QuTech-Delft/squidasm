@@ -9,6 +9,14 @@ from squidasm.qoala.sim.qdevice import QDevice
 
 
 class AllocError(Exception):
+    """Allocating a qubit did not succeed."""
+
+    pass
+
+
+class NotAllocatedError(Exception):
+    """A virtual qubit is not mapped to any physical qubit."""
+
     pass
 
 

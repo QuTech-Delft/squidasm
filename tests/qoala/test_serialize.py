@@ -1,4 +1,3 @@
-import pytest
 from netqasm.lang.instr.core import MeasInstruction, RetRegInstruction, SetInstruction
 from netqasm.lang.instr.vanilla import RotZInstruction
 from netqasm.lang.operand import Register, Template
@@ -7,13 +6,9 @@ from netqasm.lang.subroutine import Subroutine
 from squidasm.qoala.lang.iqoala import (
     AddCValueOp,
     AssignCValueOp,
-    IqoalaInstrParser,
-    IqoalaParseError,
-    IqoalaParser,
     IqoalaProgram,
     IqoalaSharedMemLoc,
     IqoalaSubroutine,
-    IQoalaSubroutineParser,
     IqoalaVector,
     ProgramMeta,
     ReceiveCMsgOp,

@@ -4,18 +4,11 @@ from dataclasses import dataclass
 from typing import Dict, Generator, List, Optional, Tuple
 
 import pytest
-from netqasm.lang.operand import ArraySlice
 from netqasm.lang.parsing import parse_text_subroutine
 from netqasm.sdk.build_epr import (
     SER_CREATE_IDX_NUMBER,
     SER_CREATE_IDX_ROTATION_X_REMOTE2,
     SER_CREATE_IDX_TYPE,
-    SER_RESPONSE_KEEP_IDX_BELL_STATE,
-    SER_RESPONSE_KEEP_IDX_GOODNESS,
-    SER_RESPONSE_KEEP_LEN,
-    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_BASIS,
-    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_OUTCOME,
-    SER_RESPONSE_MEASURE_LEN,
 )
 
 from pydynaa import EventExpression

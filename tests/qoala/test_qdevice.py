@@ -1,15 +1,10 @@
-from typing import Generator
-
 import netsquid as ns
 import pytest
 from netsquid.components import instructions as ns_instr
-from netsquid.components.qprocessor import MissingInstructionError, QuantumProcessor
-from netsquid.components.qprogram import QuantumProgram
+from netsquid.components.qprocessor import MissingInstructionError
 from netsquid.nodes import Node
-from netsquid.protocols import Protocol
-from netsquid.qubits import ketstates, qubitapi
+from netsquid.qubits import ketstates
 
-from pydynaa import EventExpression
 from squidasm.qoala.runtime.config import GenericQDeviceConfig, NVQDeviceConfig
 from squidasm.qoala.sim.build import build_generic_qprocessor, build_nv_qprocessor
 from squidasm.qoala.sim.constants import PI, PI_OVER_2
@@ -17,7 +12,6 @@ from squidasm.qoala.sim.qdevice import (
     GenericPhysicalQuantumMemory,
     NonInitializedQubitError,
     NVPhysicalQuantumMemory,
-    PhysicalQuantumMemory,
     QDevice,
     QDeviceCommand,
     QDeviceType,
@@ -295,9 +289,6 @@ def test_measure_generic():
         QDeviceCommand(ns_instr.INSTR_MEASURE, [0]),
     ]
 
-    # Need to use actual "yield from" (instead of netsquid_run) because we need the
-    # NetSquid simulator itself to yield on the "program finish" event:
-    # only then the measurement outcome is written to prog['last'].
     meas_outcome = netsquid_run(qdevice.execute_commands(commands))
 
     q0 = qdevice.get_local_qubit(0)
@@ -352,9 +343,6 @@ def test_measure_nv():
         QDeviceCommand(ns_instr.INSTR_MEASURE, [0]),
     ]
 
-    # Need to use actual "yield from" (instead of netsquid_run) because we need the
-    # NetSquid simulator itself to yield on the "program finish" event:
-    # only then the measurement outcome is written to prog['last'].
     meas_outcome = netsquid_run(qdevice.execute_commands(commands))
 
     q0 = qdevice.get_local_qubit(0)
@@ -385,6 +373,82 @@ def test_measure_nv():
 
     assert meas_outcome is not None
     assert meas_outcome == 0
+
+
+def test_two_qubit_gates_generic():
+    num_qubits = 3
+    qdevice = perfect_generic_qdevice(num_qubits)
+
+    # All qubits are not initalized yet.
+    assert qdevice.get_local_qubit(0) is None
+    assert qdevice.get_local_qubit(1) is None
+    assert qdevice.get_local_qubit(2) is None
+
+    # Initialize qubits 0 and 2 and apply a CNOT
+    commands = [
+        QDeviceCommand(ns_instr.INSTR_INIT, [0]),
+        QDeviceCommand(ns_instr.INSTR_INIT, [2]),
+        QDeviceCommand(ns_instr.INSTR_CNOT, [0, 2]),
+    ]
+    netsquid_run(qdevice.execute_commands(commands))
+    ns.sim_run()
+
+    [q0, q1, q2] = qdevice.get_local_qubits([0, 1, 2])
+    assert has_state(q0, ketstates.s0)
+    assert q1 is None
+    assert has_state(q2, ketstates.s0)
+
+    # Apply an X to qubit 2, and a do CNOT between 2 and 0.
+    commands = [
+        QDeviceCommand(ns_instr.INSTR_X, [2]),
+        QDeviceCommand(ns_instr.INSTR_CNOT, [2, 0]),
+    ]
+    netsquid_run(qdevice.execute_commands(commands))
+    ns.sim_run()
+
+    [q0, q1, q2] = qdevice.get_local_qubits([0, 1, 2])
+    assert has_state(q0, ketstates.s1)
+    assert q1 is None
+    assert has_state(q2, ketstates.s1)
+
+
+def test_two_qubit_gates_nv():
+    num_qubits = 3
+    qdevice = perfect_nv_qdevice(num_qubits)
+
+    # All qubits are not initalized yet.
+    assert qdevice.get_local_qubit(0) is None
+    assert qdevice.get_local_qubit(1) is None
+    assert qdevice.get_local_qubit(2) is None
+
+    # Initialize qubits 0 and 2 and apply a CXDIR
+    commands = [
+        QDeviceCommand(ns_instr.INSTR_INIT, [0]),
+        QDeviceCommand(ns_instr.INSTR_INIT, [2]),
+        QDeviceCommand(ns_instr.INSTR_CXDIR, [0, 2], angle=PI_OVER_2),
+    ]
+    netsquid_run(qdevice.execute_commands(commands))
+    ns.sim_run()
+
+    # q0 is |0> so q2 was rotated with pi/2 around X
+    [q0, q1, q2] = qdevice.get_local_qubits([0, 1, 2])
+    assert has_state(q0, ketstates.s0)
+    assert q1 is None
+    assert has_state(q2, ketstates.y1)
+
+    # Apply an X to qubit 0, and a do CNOT between 0 and 2.
+    commands = [
+        QDeviceCommand(ns_instr.INSTR_ROT_X, [0], angle=PI),
+        QDeviceCommand(ns_instr.INSTR_CXDIR, [0, 2], angle=PI_OVER_2),
+    ]
+    netsquid_run(qdevice.execute_commands(commands))
+    ns.sim_run()
+
+    # q0 is |1> so q2 was rotated with -pi/2 around X
+    [q0, q1, q2] = qdevice.get_local_qubits([0, 1, 2])
+    assert has_state(q0, ketstates.s1)
+    assert q1 is None
+    assert has_state(q2, ketstates.s0)
 
 
 def test_unsupported_commands_generic():
@@ -428,6 +492,18 @@ def test_unsupported_commands_nv():
         commands = [QDeviceCommand(ns_instr.INSTR_MEASURE, [2])]
         netsquid_run(qdevice.execute_commands(commands))
 
+    with pytest.raises(UnsupportedQDeviceCommandError):
+        commands = [QDeviceCommand(ns_instr.INSTR_CXDIR, [0, 0])]
+        netsquid_run(qdevice.execute_commands(commands))
+
+    with pytest.raises(UnsupportedQDeviceCommandError):
+        commands = [QDeviceCommand(ns_instr.INSTR_CXDIR, [1, 0])]
+        netsquid_run(qdevice.execute_commands(commands))
+
+    with pytest.raises(UnsupportedQDeviceCommandError):
+        commands = [QDeviceCommand(ns_instr.INSTR_CXDIR, [1, 2])]
+        netsquid_run(qdevice.execute_commands(commands))
+
 
 def test_non_initalized():
     num_qubits = 3
@@ -435,6 +511,11 @@ def test_non_initalized():
 
     with pytest.raises(NonInitializedQubitError):
         commands = [QDeviceCommand(ns_instr.INSTR_X, [0])]
+        netsquid_run(qdevice.execute_commands(commands))
+
+    with pytest.raises(NonInitializedQubitError):
+        commands = [QDeviceCommand(ns_instr.INSTR_INIT, [0])]
+        commands = [QDeviceCommand(ns_instr.INSTR_CNOT, [0, 1])]
         netsquid_run(qdevice.execute_commands(commands))
 
 
@@ -447,6 +528,8 @@ if __name__ == "__main__":
     test_rotations_nv()
     test_measure_generic()
     test_measure_nv()
+    test_two_qubit_gates_generic()
+    test_two_qubit_gates_nv()
     test_unsupported_commands_generic()
     test_unsupported_commands_nv()
     test_non_initalized()

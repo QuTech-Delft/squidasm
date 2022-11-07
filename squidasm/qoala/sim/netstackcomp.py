@@ -26,19 +26,22 @@ class NetstackComponent(Component):
     def __init__(self, node: Node, global_env: GlobalEnvironment) -> None:
         super().__init__(f"{node.name}_netstack")
         self._node = node
-        self.add_ports(["qnos_out", "qnos_in"])
 
         self._peer_in_ports: Dict[str, str] = {}  # peer name -> port name
         self._peer_out_ports: Dict[str, str] = {}  # peer name -> port name
 
-        for node in global_env.get_nodes().values():
-            port_in_name = f"peer_{node.name}_in"
-            port_out_name = f"peer_{node.name}_out"
-            self._peer_in_ports[node.name] = port_in_name
-            self._peer_out_ports[node.name] = port_out_name
+        for other_node in global_env.get_nodes().values():
+            if other_node.name == node.name:
+                continue
+            port_in_name = f"peer_{other_node.name}_in"
+            port_out_name = f"peer_{other_node.name}_out"
+            self._peer_in_ports[other_node.name] = port_in_name
+            self._peer_out_ports[other_node.name] = port_out_name
 
         self.add_ports(self._peer_in_ports.values())
         self.add_ports(self._peer_out_ports.values())
+
+        self.add_ports(["qnos_out", "qnos_in"])
 
     @property
     def qnos_in_port(self) -> Port:

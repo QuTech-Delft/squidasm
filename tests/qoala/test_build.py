@@ -2,23 +2,12 @@ import pytest
 from netsquid.components.instructions import (
     INSTR_CNOT,
     INSTR_CXDIR,
-    INSTR_CYDIR,
-    INSTR_CZ,
-    INSTR_H,
     INSTR_INIT,
     INSTR_MEASURE,
     INSTR_ROT_X,
-    INSTR_ROT_Y,
-    INSTR_ROT_Z,
     INSTR_X,
-    INSTR_Y,
-    INSTR_Z,
 )
-from netsquid.components.qprocessor import (
-    MissingInstructionError,
-    PhysicalInstruction,
-    QuantumProcessor,
-)
+from netsquid.components.qprocessor import MissingInstructionError, QuantumProcessor
 
 from squidasm.qoala.runtime.config import GenericQDeviceConfig, NVQDeviceConfig
 from squidasm.qoala.sim.build import build_generic_qprocessor, build_nv_qprocessor

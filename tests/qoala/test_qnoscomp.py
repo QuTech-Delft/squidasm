@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from netsquid.nodes import Node
 
-from squidasm.qoala.runtime.environment import GlobalEnvironment, GlobalNodeInfo
 from squidasm.qoala.sim.qnoscomp import QnosComponent
 
 
