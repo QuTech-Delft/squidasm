@@ -18,7 +18,7 @@ from squidasm.qoala.sim.netstackinterface import NetstackInterface
 
 class MockNetstackInterface(NetstackInterface):
     def __init__(self, comp: NetstackComponent, local_env: LocalEnvironment) -> None:
-        super().__init__(comp, local_env, None, None)
+        super().__init__(comp, local_env, None, None, None)
 
 
 def create_netstackcomp(num_other_nodes: int) -> NetstackComponent:
@@ -38,19 +38,23 @@ def create_netstackcomp(num_other_nodes: int) -> NetstackComponent:
 def test_no_other_nodes():
     comp = create_netstackcomp(num_other_nodes=0)
 
-    # should have qnos_in and qnos_out port
-    assert len(comp.ports) == 2
+    # should have qnos_in, qnos_out, qnos_mem_in, qnos_mem_out ports
+    assert len(comp.ports) == 4
     assert "qnos_in" in comp.ports
     assert "qnos_out" in comp.ports
+    assert "qnos_mem_in" in comp.ports
+    assert "qnos_mem_out" in comp.ports
 
 
 def test_one_other_node():
     comp = create_netstackcomp(num_other_nodes=1)
 
-    # should have 2 qnos ports + 2 peer ports
-    assert len(comp.ports) == 4
+    # should have 4 qnos ports + 2 peer ports
+    assert len(comp.ports) == 6
     assert "qnos_in" in comp.ports
     assert "qnos_out" in comp.ports
+    assert "qnos_mem_in" in comp.ports
+    assert "qnos_mem_out" in comp.ports
 
     assert "peer_node_1_in" in comp.ports
     assert "peer_node_1_out" in comp.ports
@@ -63,10 +67,12 @@ def test_one_other_node():
 def test_many_other_nodes():
     comp = create_netstackcomp(num_other_nodes=5)
 
-    # should have 2 qnos ports + 5 * 2 peer ports
-    assert len(comp.ports) == 12
+    # should have 4 qnos ports + 5 * 2 peer ports
+    assert len(comp.ports) == 14
     assert "qnos_in" in comp.ports
     assert "qnos_out" in comp.ports
+    assert "qnos_mem_in" in comp.ports
+    assert "qnos_mem_out" in comp.ports
 
     for i in range(1, 6):
         assert f"peer_node_{i}_in" in comp.ports

@@ -2,14 +2,26 @@ from __future__ import annotations
 
 from typing import Generator
 
+from qlink_interface.interface import (
+    ReqCreateBase,
+    ResCreate,
+    ResCreateAndKeep,
+    ResMeasureDirectly,
+)
+
 from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.sim.common import ComponentProtocol, PortListener
+from squidasm.qoala.sim.egpmgr import EgpManager
 from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
 from squidasm.qoala.sim.qdevice import QDevice
-from squidasm.qoala.sim.signals import SIGNAL_PEER_NSTK_MSG, SIGNAL_PROC_NSTK_MSG
+from squidasm.qoala.sim.signals import (
+    SIGNAL_MEMORY_FREED,
+    SIGNAL_PEER_NSTK_MSG,
+    SIGNAL_PROC_NSTK_MSG,
+)
 
 
 class NetstackInterface(ComponentProtocol):
@@ -21,6 +33,7 @@ class NetstackInterface(ComponentProtocol):
         local_env: LocalEnvironment,
         qdevice: QDevice,
         memmgr: MemoryManager,
+        egpmgr: EgpManager,
     ) -> None:
         """Network stack protocol constructor. Typically created indirectly through
         constructing a `Qnos` instance.
@@ -33,11 +46,18 @@ class NetstackInterface(ComponentProtocol):
         self._qdevice = qdevice
         self._local_env = local_env
         self._memmgr = memmgr
+        self._egpmgr = egpmgr
 
         self.add_listener(
-            "processor",
+            "qnos",
             PortListener(self._comp.qnos_in_port, SIGNAL_PROC_NSTK_MSG),
         )
+
+        self.add_listener(
+            "qnos_mem",
+            PortListener(self._comp.qnos_mem_in_port, SIGNAL_MEMORY_FREED),
+        )
+
         for peer in self._local_env.get_all_other_node_names():
             self.add_listener(
                 f"peer_{peer}",
@@ -72,6 +92,39 @@ class NetstackInterface(ComponentProtocol):
             )
         )
 
+    def put_request(self, remote_id: int, request: ReqCreateBase) -> None:
+        egp = self._egpmgr.get_egp(remote_id)
+        egp.put(request)
+
+    def await_result_create_keep(
+        self, remote_id: int
+    ) -> Generator[EventExpression, None, ResCreateAndKeep]:
+        egp = self._egpmgr.get_egp(remote_id)
+        yield self.await_signal(
+            sender=egp,
+            signal_label=ResCreateAndKeep.__name__,
+        )
+        result: ResCreateAndKeep = egp.get_signal_result(
+            ResCreateAndKeep.__name__, receiver=self
+        )
+        return result
+
+    def await_result_measure_directly(
+        self, remote_id: int
+    ) -> Generator[EventExpression, None, ResMeasureDirectly]:
+        egp = self._egpmgr.get_egp(remote_id)
+        yield self.await_signal(
+            sender=egp,
+            signal_label=ResMeasureDirectly.__name__,
+        )
+        result: ResMeasureDirectly = egp.get_signal_result(
+            ResMeasureDirectly.__name__, receiver=self
+        )
+        return result
+
+    def await_memory_freed_signal(self) -> Generator[EventExpression, None, None]:
+        yield from self._receive_msg("qnos_mem", SIGNAL_MEMORY_FREED)
+
     @property
     def qdevice(self) -> QDevice:
         return self._qdevice
@@ -79,3 +132,7 @@ class NetstackInterface(ComponentProtocol):
     @property
     def memmgr(self) -> MemoryManager:
         return self._memmgr
+
+    @property
+    def egpmgr(self) -> EgpManager:
+        return self._egpmgr

@@ -11,3 +11,4 @@ class EprSocket:
 
     socket_id: int
     remote_id: int
+    fidelity: float

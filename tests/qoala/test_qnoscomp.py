@@ -13,12 +13,13 @@ def create_qnoscomp() -> QnosComponent:
 def test_ports():
     comp = create_qnoscomp()
 
-    # should have host_in, host_out, nstk_in and nstk_out port
-    assert len(comp.ports) == 4
+    assert len(comp.ports) == 6
     assert "host_in" in comp.ports
     assert "host_out" in comp.ports
     assert "nstk_in" in comp.ports
     assert "nstk_out" in comp.ports
+    assert "nstk_mem_in" in comp.ports
+    assert "nstk_mem_out" in comp.ports
 
 
 if __name__ == "__main__":

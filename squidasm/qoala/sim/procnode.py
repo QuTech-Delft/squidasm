@@ -15,6 +15,8 @@ from squidasm.qoala.runtime.program import (
     ProgramResult,
 )
 from squidasm.qoala.sim.csocket import ClassicalSocket
+from squidasm.qoala.sim.egp import EgpProtocol
+from squidasm.qoala.sim.egpmgr import EgpManager
 from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.host import Host
 from squidasm.qoala.sim.hostcomp import HostComponent
@@ -89,6 +91,7 @@ class ProcNode(Protocol):
 
         self._host = Host(self.host_comp, self._local_env, self._scheduler)
         self._memmgr = MemoryManager(self.node.name, self._qdevice)
+        self._egpmgr = EgpManager()
         self._qnos = Qnos(
             self.qnos_comp,
             self._local_env,
@@ -100,6 +103,7 @@ class ProcNode(Protocol):
             self.netstack_comp,
             self._local_env,
             self._memmgr,
+            self._egpmgr,
             self.scheduler,
             self.qdevice,
         )
@@ -123,7 +127,7 @@ class ProcNode(Protocol):
 
         The same link layer protocol object is used by both nodes sharing a link in
         the network."""
-        self.qnos.assign_ll_protocol(remote_id, prot)
+        self._egpmgr.add_egp(remote_id, EgpProtocol(self.node, prot))
 
     @property
     def node(self) -> ProcNodeComponent:

@@ -39,6 +39,7 @@ from squidasm.qoala.sim.common import (
 )
 from squidasm.qoala.sim.constants import PI
 from squidasm.qoala.sim.egp import EgpProtocol
+from squidasm.qoala.sim.egpmgr import EgpManager
 from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.memmgr import AllocError, MemoryManager
 from squidasm.qoala.sim.memory import SharedMemory
@@ -63,6 +64,7 @@ class Netstack(ComponentProtocol):
         comp: NetstackComponent,
         local_env: LocalEnvironment,
         memmgr: MemoryManager,
+        egpmgr: EgpManager,
         scheduler: Scheduler,
         qdevice: QDevice,
     ) -> None:
@@ -83,18 +85,11 @@ class Netstack(ComponentProtocol):
         self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
 
         # Owned objects.
-        self._interface = NetstackInterface(comp, local_env, qdevice, memmgr)
-        self._egps: Dict[int, EgpProtocol] = {}
+        self._interface = NetstackInterface(comp, local_env, qdevice, memmgr, egpmgr)
 
-    def assign_ll_protocol(
-        self, remote_id: int, prot: MagicLinkLayerProtocolWithSignaling
-    ) -> None:
-        """Set the magic link layer protocol that this network stack uses to produce
-        entangled pairs with the remote node.
-
-        :param prot: link layer protocol instance
-        """
-        self._egps[remote_id] = EgpProtocol(self._comp.node, prot)
+    @property
+    def qdevice(self) -> QuantumProcessor:
+        return self._comp.node.qdevice
 
     def remote_id_to_peer_name(self, remote_id: int) -> str:
         node_info = self._local_env.get_global_env().get_nodes()[remote_id]
@@ -105,26 +100,14 @@ class Netstack(ComponentProtocol):
         prog_mem = self._processes[pid].prog_memory
         return prog_mem.shared_mem
 
-    def start(self) -> None:
-        """Start this protocol. The NetSquid simulator will call and yield on the
-        `run` method. Also start the underlying EGP protocol."""
-        super().start()
-        for egp in self._egps.values():
-            egp.start()
-
-    def stop(self) -> None:
-        """Stop this protocol. The NetSquid simulator will stop calling `run`.
-        Also stop the underlying EGP protocol."""
-        for egp in self._egps.values():
-            egp.stop()
-        super().stop()
-
     def _read_request_args_array(self, pid: int, array_addr: int) -> List[int]:
         shared_mem = self.get_shared_mem(pid)
         # TODO figure out why mypy does not like this
         return shared_mem.get_array(array_addr)  # type: ignore
 
-    def _construct_request(self, remote_id: int, args: List[int]) -> ReqCreateBase:
+    def _create_link_layer_request(
+        self, remote_id: int, args: List[int], epr_socket: EprSocket
+    ) -> ReqCreateBase:
         """Construct a link layer request from application request info.
 
         :param remote_id: ID of remote node
@@ -137,34 +120,27 @@ class Netstack(ComponentProtocol):
         num_pairs = args[SER_CREATE_IDX_NUMBER]
         assert num_pairs is not None
 
-        # TODO
-        MINIMUM_FIDELITY = 0.99
-
         if typ == 0:
             request = ReqCreateAndKeep(
                 remote_node_id=remote_id,
                 number=num_pairs,
-                minimum_fidelity=MINIMUM_FIDELITY,
+                minimum_fidelity=epr_socket.fidelity,
             )
         elif typ == 1:
             request = ReqMeasureDirectly(
                 remote_node_id=remote_id,
                 number=num_pairs,
-                minimum_fidelity=MINIMUM_FIDELITY,
+                minimum_fidelity=epr_socket.fidelity,
             )
         elif typ == 2:
             request = ReqRemoteStatePrep(
                 remote_node_id=remote_id,
                 number=num_pairs,
-                minimum_fidelity=MINIMUM_FIDELITY,
+                minimum_fidelity=epr_socket.fidelity,
             )
         else:
             raise ValueError(f"Unsupported create type {typ}")
         return request
-
-    @property
-    def qdevice(self) -> QuantumProcessor:
-        return self._comp.node.qdevice
 
     def handle_create_ck_request(
         self, req: NetstackCreateRequest, request: ReqCreateAndKeep
@@ -217,26 +193,19 @@ class Netstack(ComponentProtocol):
 
                     # Wait for a signal indicating the communication qubit might be free
                     # again.
-                    yield self.await_signal(
-                        sender=self._qnos.processor, signal_label=SIGNAL_MEMORY_FREED
-                    )
+                    self._interface.await_memory_freed_signal()
                     self._logger.info(
                         "a 'free' happened, trying again to allocate comm qubit..."
                     )
 
             # Put the request to the EGP.
             self._logger.info(f"putting CK request for pair {pair_index}")
-            self._egps[req.remote_node_id].put(request)
+            self._interface.put_request(req.remote_node_id, request)
 
             # Wait for a signal from the EGP.
             self._logger.info(f"waiting for result for pair {pair_index}")
-            yield self.await_signal(
-                sender=self._egps[req.remote_node_id],
-                signal_label=ResCreateAndKeep.__name__,
-            )
-            # Get the EGP's result.
-            result: ResCreateAndKeep = self._egps[req.remote_node_id].get_signal_result(
-                ResCreateAndKeep.__name__, receiver=self
+            result = yield from self._interface.await_result_create_keep(
+                req.remote_node_id
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
 
@@ -313,7 +282,7 @@ class Netstack(ComponentProtocol):
         """
 
         # Put the reqeust to the EGP.
-        self._egps[req.remote_node_id].put(request)
+        self._interface.put_request(req.remote_node_id, request)
 
         results: List[ResMeasureDirectly] = []
 
@@ -325,13 +294,9 @@ class Netstack(ComponentProtocol):
         for _ in range(request.number):
             self._interface.memmgr.allocate(req.pid, 0)
 
-            yield self.await_signal(
-                sender=self._egps[req.remote_node_id],
-                signal_label=ResMeasureDirectly.__name__,
-            )
-            result: ResMeasureDirectly = self._egps[
+            result = yield from self._interface.await_result_measure_directly(
                 req.remote_node_id
-            ].get_signal_result(ResMeasureDirectly.__name__, receiver=self)
+            )
             self._logger.debug(f"bell index: {result.bell_state}")
             results.append(result)
             self._interface.memmgr.free(req.pid, 0)
@@ -372,11 +337,14 @@ class Netstack(ComponentProtocol):
         :param req: request info
         """
 
+        # Check that the corresponding EPR socket exists.
+        epr_socket = self._interface.egpmgr.get_egp(req.remote_node_id)
+
         # Read request parameters from the corresponding NetQASM array.
         args = self._read_request_args_array(req.pid, req.arg_array_addr)
 
         # Create the link layer request object.
-        request = self._construct_request(req.remote_node_id, args)
+        request = self._create_link_layer_request(req.remote_node_id, args, epr_socket)
 
         # Send it to the receiver node and wait for an acknowledgement.
         peer = self.remote_id_to_peer_name(req.remote_node_id)
@@ -440,28 +408,21 @@ class Netstack(ComponentProtocol):
 
                     # Wait for a signal indicating the communication qubit might be free
                     # again.
-                    yield self.await_signal(
-                        sender=self._qnos.processor, signal_label=SIGNAL_MEMORY_FREED
-                    )
+                    self._interface.await_memory_freed_signal()
                     self._logger.info(
                         "a 'free' happened, trying again to allocate comm qubit..."
                     )
 
             # Put the request to the EGP.
             self._logger.info(f"putting CK request for pair {pair_index}")
-            self._egps[req.remote_node_id].put(
-                ReqReceive(remote_node_id=req.remote_node_id)
+            self._interface.put_request(
+                req.remote_node_id, ReqReceive(req.remote_node_id)
             )
             self._logger.info(f"waiting for result for pair {pair_index}")
 
             # Wait for a signal from the EGP.
-            yield self.await_signal(
-                sender=self._egps[req.remote_node_id],
-                signal_label=ResCreateAndKeep.__name__,
-            )
-            # Get the EGP's result.
-            result: ResCreateAndKeep = self._egps[req.remote_node_id].get_signal_result(
-                ResCreateAndKeep.__name__, receiver=self
+            result = yield from self._interface.await_result_create_keep(
+                req.remote_node_id
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
 
@@ -521,22 +482,16 @@ class Netstack(ComponentProtocol):
         """
         assert isinstance(request, ReqMeasureDirectly)
 
-        self._egps[req.remote_node_id].put(
-            ReqReceive(remote_node_id=req.remote_node_id)
-        )
+        self._interface.put_request(req.remote_node_id, ReqReceive(req.remote_node_id))
 
         results: List[ResMeasureDirectly] = []
 
         for _ in range(request.number):
             self._interface.memmgr.allocate(req.pid, 0)
 
-            yield self.await_signal(
-                sender=self._egps[req.remote_node_id],
-                signal_label=ResMeasureDirectly.__name__,
-            )
-            result: ResMeasureDirectly = self._egps[
+            result = yield from self._interface.await_result_measure_directly(
                 req.remote_node_id
-            ].get_signal_result(ResMeasureDirectly.__name__, receiver=self)
+            )
             results.append(result)
 
             self._interface.memmgr.free(req.pid, 0)
@@ -601,45 +556,55 @@ class Netstack(ComponentProtocol):
             yield from self.handle_receive_md_request(req, create_request)
 
     def handle_breakpoint_create_request(
-        self,
+        self, request: NetstackBreakpointCreateRequest
     ) -> Generator[EventExpression, None, None]:
-        # Synchronize with the remote node.
+        # Use epr sockets for this process to get all relevant remote nodes.
+        epr_sockets = self._processes[request.pid].epr_sockets
+        remote_ids = [esck.remote_id for esck in epr_sockets.values()]
+        remote_names = [self.remote_id_to_peer_name(id) for id in remote_ids]
 
-        self._logger.warning("USING EPR SOCKET (0, 0) FOR BREAKPOINT!!!!")
-        peer = self.remote_id_to_peer_name(self._epr_sockets[0][0].remote_id)
+        # Synchronize with the remote nodes.
+        for peer in remote_names:
+            self._interface.send_peer_msg(peer, Message(content="breakpoint start"))
 
-        self._interface.send_peer_msg(peer, Message(content="breakpoint start"))
-        response = yield from self._interface.receive_peer_msg(peer)
-        assert response.content == "breakpoint start"
+        for peer in remote_names:
+            response = yield from self._interface.receive_peer_msg(peer)
+            assert response.content == "breakpoint start"
 
-        # Remote node is now ready. Notify the processor.
+        # Remote nodes are now ready. Notify the processor.
         self._interface.send_qnos_msg(Message(content="breakpoint ready"))
 
         # Wait for the processor to finish handling the breakpoint.
         processor_msg = yield from self._interface.receive_qnos_msg()
         assert processor_msg.content == "breakpoint end"
 
-        # Tell the remote node that the breakpoint has finished.
-        self._interface.send_peer_msg(peer, Message(content="breakpoint end"))
+        # Tell the remote nodes that the breakpoint has finished.
+        for peer in remote_names:
+            self._interface.send_peer_msg(peer, Message(content="breakpoint end"))
 
         # Wait for the remote node to have finsihed as well.
-        response = yield from self._interface.receive_peer_msg(peer)
-        assert response.content == "breakpoint end"
+        for peer in remote_names:
+            response = yield from self._interface.receive_peer_msg(peer)
+            assert response.content == "breakpoint end"
 
         # Notify the processor that we are done.
         self._interface.send_qnos_msg(Message(content="breakpoint finished"))
 
     def handle_breakpoint_receive_request(
-        self,
+        self, request: NetstackBreakpointReceiveRequest
     ) -> Generator[EventExpression, None, None]:
-        # Synchronize with the remote node.
+        # Use epr sockets for this process to get all relevant remote nodes.
+        epr_sockets = self._processes[request.pid].epr_sockets
+        remote_ids = [esck.remote_id for esck in epr_sockets.values()]
+        remote_names = [self.remote_id_to_peer_name(id) for id in remote_ids]
 
-        self._logger.warning("USING EPR SOCKET (0, 0) FOR BREAKPOINT!!!!")
-        peer = self.remote_id_to_peer_name(self._epr_sockets[0][0].remote_id)
+        # Synchronize with the remote nodes.
+        for peer in remote_names:
+            msg = yield from self._interface.receive_peer_msg(peer)
+            assert msg.content == "breakpoint start"
 
-        msg = yield from self._interface.receive_peer_msg(peer)
-        assert msg.content == "breakpoint start"
-        self._interface.send_peer_msg(peer, Message(content="breakpoint start"))
+        for peer in remote_names:
+            self._interface.send_peer_msg(peer, Message(content="breakpoint start"))
 
         # Notify the processor we are ready to handle the breakpoint.
         self._interface.send_qnos_msg(Message(content="breakpoint ready"))
@@ -648,10 +613,13 @@ class Netstack(ComponentProtocol):
         processor_msg = yield from self._interface.receive_qnos_msg()
         assert processor_msg.content == "breakpoint end"
 
-        # Wait for the remote node to finish and tell it we are finished as well.
-        peer_msg = yield from self._interface.receive_peer_msg(peer)
-        assert peer_msg.content == "breakpoint end"
-        self._interface.send_peer_msg(peer, Message(content="breakpoint end"))
+        # Wait for the remote nodes to finish and tell it we are finished as well.
+        for peer in remote_names:
+            peer_msg = yield from self._interface.receive_peer_msg(peer)
+            assert peer_msg.content == "breakpoint end"
+
+        for peer in remote_names:
+            self._interface.send_peer_msg(peer, Message(content="breakpoint end"))
 
         # Notify the processor that we are done.
         self._interface.send_qnos_msg(Message(content="breakpoint finished"))
@@ -672,10 +640,10 @@ class Netstack(ComponentProtocol):
                 yield from self.handle_receive_request(msg)
                 self._logger.debug("receive request done")
             elif isinstance(request, NetstackBreakpointCreateRequest):
-                yield from self.handle_breakpoint_create_request()
+                yield from self.handle_breakpoint_create_request(request)
                 self._logger.debug("breakpoint create request done")
             elif isinstance(request, NetstackBreakpointReceiveRequest):
-                yield from self.handle_breakpoint_receive_request()
+                yield from self.handle_breakpoint_receive_request(request)
                 self._logger.debug("breakpoint receive request done")
 
     def add_process(self, process: IqoalaProcess) -> None:
