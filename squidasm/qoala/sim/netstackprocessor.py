@@ -189,86 +189,112 @@ class NetstackProcessor:
         :param request: link layer request object
         """
         num_pairs = req.num_pairs
-        ll_request = self._create_link_layer_create_request(req)
-
-        shared_mem = process.prog_memory.shared_mem
 
         self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
         self._logger.info(f"qubit IDs specified by application: {req.virt_qubit_ids}")
         self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
-        ll_request.number = 1
 
         start_time = ns.sim_time()
 
         for pair_index in range(num_pairs):
-            self._logger.info(f"trying to allocate comm qubit for pair {pair_index}")
             virt_id = req.virt_qubit_ids[pair_index]
-            while True:
-                try:
-                    self._interface.memmgr.allocate(process.pid, virt_id)
-                    break
-                except AllocError:
-                    self._logger.info("no comm qubit available, waiting...")
+            ll_result = yield from self.create_single_pair(process, req, virt_id)
 
-                    # Wait for a signal indicating the communication qubit might be free
-                    # again.
-                    yield from self._interface.await_memory_freed_signal()
-                    self._logger.info(
-                        "a 'free' happened, trying again to allocate comm qubit..."
-                    )
+            gen_duration = ns.sim_time() - start_time
 
-            # Put the request to the EGP.
-            self._logger.info(f"putting CK request for pair {pair_index}")
-            self._interface.put_request(req.remote_id, ll_request)
-
-            # Wait for a signal from the EGP.
-            self._logger.info(f"waiting for result for pair {pair_index}")
-            result = yield from self._interface.await_result_create_keep(req.remote_id)
-            self._logger.info(f"got result for pair {pair_index}: {result}")
-
-            # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
-            if result.bell_state == BellIndex.B00:
-                pass
-            elif result.bell_state == BellIndex.B01:
-                commands = [QDeviceCommand(INSTR_ROT_X, [0], angle=PI)]
-                yield self._interface.qdevice.execute_commands(commands)
-            elif result.bell_state == BellIndex.B10:
-                commands = [QDeviceCommand(INSTR_ROT_Z, [0], angle=PI)]
-                yield self._interface.qdevice.execute_commands(commands)
-            elif result.bell_state == BellIndex.B11:
-                commands = [
-                    QDeviceCommand(INSTR_ROT_X, [0], angle=PI),
-                    QDeviceCommand(INSTR_ROT_Z, [0], angle=PI),
-                ]
-                yield self._interface.qdevice.execute_commands(commands)
-
-            gen_duration_ns_float = ns.sim_time() - start_time
-            gen_duration_us_int = int(gen_duration_ns_float / 1000)
-            self._logger.info(f"gen duration (us): {gen_duration_us_int}")
-
-            # Length of response array slice for a single pair.
-            slice_len = SER_RESPONSE_KEEP_LEN
-
-            # Populate results array.
-            for i in range(slice_len):
-                # Write -1 to unused array elements.
-                value = -1
-
-                # Write corresponding result value to the other array elements.
-                if i == SER_RESPONSE_KEEP_IDX_GOODNESS:
-                    value = gen_duration_us_int
-                if i == SER_RESPONSE_KEEP_IDX_BELL_STATE:
-                    value = result.bell_state
-
-                # Calculate array element location.
-                arr_index = slice_len * pair_index + i
-
-                shared_mem.set_array_value(req.result_array_addr, arr_index, value)
-            self._logger.debug(
-                f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
-                f"{slice_len * pair_index + slice_len}] for app ID {process.pid}"
+            self.write_pair_result(
+                process,
+                ll_result,
+                pair_index,
+                req.result_array_addr,
+                gen_duration,
             )
+
             self._interface.send_qnos_msg(Message(content="wrote to array"))
+
+    def create_single_pair(
+        self, process: IqoalaProcess, request: NetstackCreateRequest, virt_id: int
+    ) -> Generator[EventExpression, None, ResCreateAndKeep]:
+        ll_request = self._create_link_layer_create_request(request)
+        ll_request.number = 1
+
+        self._logger.info(f"trying to allocate comm qubit")
+        while True:
+            try:
+                self._interface.memmgr.allocate(process.pid, virt_id)
+                break
+            except AllocError:
+                self._logger.info("no comm qubit available, waiting...")
+
+                # Wait for a signal indicating the communication qubit might be free
+                # again.
+                yield from self._interface.await_memory_freed_signal()
+                self._logger.info(
+                    "a 'free' happened, trying again to allocate comm qubit..."
+                )
+
+        # Put the request to the EGP.
+        self._logger.info(f"putting CK request")
+        self._interface.put_request(request.remote_id, ll_request)
+
+        # Wait for a signal from the EGP.
+        self._logger.info(f"waiting for result")
+        result = yield from self._interface.await_result_create_keep(request.remote_id)
+        self._logger.info(f"got result: {result}")
+
+        # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
+        if result.bell_state == BellIndex.B00:
+            pass
+        elif result.bell_state == BellIndex.B01:
+            commands = [QDeviceCommand(INSTR_ROT_X, [0], angle=PI)]
+            yield from self._interface.qdevice.execute_commands(commands)
+        elif result.bell_state == BellIndex.B10:
+            commands = [QDeviceCommand(INSTR_ROT_Z, [0], angle=PI)]
+            yield from self._interface.qdevice.execute_commands(commands)
+        elif result.bell_state == BellIndex.B11:
+            commands = [
+                QDeviceCommand(INSTR_ROT_X, [0], angle=PI),
+                QDeviceCommand(INSTR_ROT_Z, [0], angle=PI),
+            ]
+            yield from self._interface.qdevice.execute_commands(commands)
+
+        return result
+
+    def write_pair_result(
+        self,
+        process: IqoalaProcess,
+        ll_result: ResCreateAndKeep,
+        pair_index: int,
+        array_addr: int,
+        duration: float,  # in ns
+    ) -> None:
+        shared_mem = process.prog_memory.shared_mem
+
+        gen_duration_us_int = int(duration / 1000)
+        self._logger.info(f"gen duration (us): {gen_duration_us_int}")
+
+        # Length of response array slice for a single pair.
+        slice_len = SER_RESPONSE_KEEP_LEN
+
+        # Populate results array.
+        for i in range(slice_len):
+            # Write -1 to unused array elements.
+            value = -1
+
+            # Write corresponding result value to the other array elements.
+            if i == SER_RESPONSE_KEEP_IDX_GOODNESS:
+                value = gen_duration_us_int
+            if i == SER_RESPONSE_KEEP_IDX_BELL_STATE:
+                value = ll_result.bell_state
+
+            # Calculate array element location.
+            arr_index = slice_len * pair_index + i
+
+            shared_mem.set_array_value(array_addr, arr_index, value)
+        self._logger.debug(
+            f"wrote to @{array_addr}[{slice_len * pair_index}:"
+            f"{slice_len * pair_index + slice_len}] for app ID {process.pid}"
+        )
 
     def handle_create_md_request(
         self, req: NetstackCreateRequest, request: ReqMeasureDirectly

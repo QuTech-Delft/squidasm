@@ -1,4 +1,5 @@
-from typing import Generator, Optional
+import re
+from typing import Dict, Generator, List, Optional
 
 from qlink_interface import (
     ReqCreateAndKeep,
@@ -19,7 +20,7 @@ from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackinterface import NetstackInterface
 from squidasm.qoala.sim.netstackprocessor import NetstackProcessor
 from squidasm.qoala.sim.process import IqoalaProcess
-from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice
+from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice, QDeviceCommand
 from squidasm.qoala.sim.requests import EprCreateType, NetstackCreateRequest
 from squidasm.util.tests import netsquid_run
 
@@ -32,12 +33,18 @@ class MockNetstackInterface(NetstackInterface):
         self._memmgr = memmgr
         self._egpmgr = egpmgr
 
+        self._requests_put: Dict[int, List[ReqCreateBase]] = {}
+        self._awaited_result_ck: List[int] = []  # list of remote ids
+
     def put_request(self, remote_id: int, request: ReqCreateBase) -> None:
-        pass
+        if remote_id not in self._requests_put:
+            self._requests_put[remote_id] = []
+        self._requests_put[remote_id].append(request)
 
     def await_result_create_keep(
         self, remote_id: int
     ) -> Generator[EventExpression, None, ResCreateAndKeep]:
+        self._awaited_result_ck.append(remote_id)
         return ResCreateAndKeep()
         yield  # to make this behave as a generator
 
@@ -49,16 +56,16 @@ class MockQDevice(QDevice):
     def __init__(self, topology: Topology) -> None:
         self._memory = PhysicalQuantumMemory(topology.comm_ids, topology.mem_ids)
 
+        self._executed_commands: List[QDeviceCommand] = []
+
     def set_mem_pos_in_use(self, id: int, in_use: bool) -> None:
         pass
 
-
-# class MockEgpProtocol(EgpProtocol):
-#     def __init__(self) -> None:
-#         pass
-
-#     def put(self, request: ReqCreateBase, name: Optional[str] = None) -> None:
-#         pass
+    def execute_commands(
+        self, commands: List[QDeviceCommand]
+    ) -> Generator[EventExpression, None, Optional[int]]:
+        self._executed_commands.extend(commands)
+        yield
 
 
 def create_process(pid: int) -> IqoalaProcess:
@@ -167,7 +174,7 @@ def test_1():
 
     netsquid_run(processor.handle_create_ck_request(process, request))
 
-    print(memmgr.phys_id_for(process.pid, 0))
+    print(memmgr.phys_id_for(process.pid, 1))
 
 
 if __name__ == "__main__":
