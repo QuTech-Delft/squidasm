@@ -3,6 +3,10 @@ from typing import Dict, Generator
 from squidasm.qoala.sim.egp import EgpProtocol
 
 
+class NoEgpError(Exception):
+    pass
+
+
 class EgpManager:
     def __init__(self) -> None:
         self._egps: Dict[int, EgpProtocol] = {}
@@ -11,4 +15,6 @@ class EgpManager:
         self._egps[remote_id] = prot
 
     def get_egp(self, remote_id: int) -> EgpProtocol:
+        if remote_id not in self._egps:
+            raise NoEgpError
         return self._egps[remote_id]

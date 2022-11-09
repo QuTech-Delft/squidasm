@@ -25,12 +25,6 @@ from netsquid.components.instructions import Instruction as NsInstr
 from netsquid.qubits import qubitapi
 
 from pydynaa import EventExpression
-from squidasm.qoala.sim.common import (
-    NetstackBreakpointCreateRequest,
-    NetstackBreakpointReceiveRequest,
-    NetstackCreateRequest,
-    NetstackReceiveRequest,
-)
 from squidasm.qoala.sim.constants import PI, PI_OVER_2
 from squidasm.qoala.sim.globals import GlobalSimData
 from squidasm.qoala.sim.logging import LogManager
@@ -40,6 +34,12 @@ from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import QDevice, QDeviceCommand
 from squidasm.qoala.sim.qnosinterface import QnosInterface
+from squidasm.qoala.sim.requests import (
+    NetstackBreakpointCreateRequest,
+    NetstackBreakpointReceiveRequest,
+    NetstackCreateRequest,
+    NetstackReceiveRequest,
+)
 
 
 class QnosProcessor:

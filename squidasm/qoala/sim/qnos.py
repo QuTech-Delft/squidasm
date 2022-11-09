@@ -5,6 +5,7 @@ from typing import Dict
 from netsquid.protocols import Protocol
 
 from squidasm.qoala.runtime.environment import LocalEnvironment
+from squidasm.qoala.sim.common import ComponentProtocol
 from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice, QDeviceType
@@ -18,7 +19,7 @@ from squidasm.qoala.sim.qnosprocessor import (
 from squidasm.qoala.sim.scheduler import Scheduler
 
 
-class Qnos(Protocol):
+class Qnos(ComponentProtocol):
     """NetSquid protocol representing a QNodeOS instance."""
 
     def __init__(
@@ -50,9 +51,9 @@ class Qnos(Protocol):
         self._processor: QnosProcessor
 
         if qdevice.typ == QDeviceType.GENERIC:
-            self._processor = GenericProcessor()
+            self._processor = GenericProcessor(self._interface)
         elif qdevice.typ == QDeviceType.NV:
-            self._processor = NVProcessor()
+            self._processor = NVProcessor(self._interface)
         else:
             raise ValueError
 

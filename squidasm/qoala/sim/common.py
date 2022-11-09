@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Dict, Generator, List
+from typing import Dict, Generator, List, Union
 
 from netsquid.components.component import Component, Port
 from netsquid.protocols import Protocol
@@ -73,32 +73,3 @@ class ComponentProtocol(Protocol):
         for listener in self._listeners.values():
             listener.stop()
         super().stop()
-
-
-@dataclass
-class NetstackCreateRequest:
-    pid: int
-    remote_node_id: int
-    epr_socket_id: int
-    qubit_array_addr: int
-    arg_array_addr: int
-    result_array_addr: int
-
-
-@dataclass
-class NetstackReceiveRequest:
-    pid: int
-    remote_node_id: int
-    epr_socket_id: int
-    qubit_array_addr: int
-    result_array_addr: int
-
-
-@dataclass
-class NetstackBreakpointCreateRequest:
-    pid: int
-
-
-@dataclass
-class NetstackBreakpointReceiveRequest:
-    pid: int
