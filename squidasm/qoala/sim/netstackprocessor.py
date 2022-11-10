@@ -1,4 +1,5 @@
 import logging
+from asyncio import wait_for
 from typing import Generator, List, Optional
 
 import netsquid as ns
@@ -66,19 +67,9 @@ class NetstackProcessor:
     def qdevice(self) -> QDevice:
         return self._interface.qdevice
 
-    def remote_id_to_peer_name(self, remote_id: int) -> str:
-        node_info = self._local_env.get_global_env().get_nodes()[remote_id]
-        # TODO figure out why mypy does not like this
-        return node_info.name  # type: ignore
-
     def get_shared_mem(self, pid: int) -> SharedMemory:
         prog_mem = self._processes[pid].prog_memory
         return prog_mem.shared_mem
-
-    def _read_request_args_array(self, pid: int, array_addr: int) -> List[int]:
-        shared_mem = self.get_shared_mem(pid)
-        # TODO figure out why mypy does not like this
-        return shared_mem.get_array(array_addr)  # type: ignore
 
     def _create_link_layer_create_request(
         # self, remote_id: int, args: List[int], epr_socket: EprSocket
@@ -120,10 +111,10 @@ class NetstackProcessor:
     ) -> Generator[EventExpression, None, int]:
 
         if isinstance(request, NetstackCreateRequest):
-            yield from self.handle_create_request(request)
+            yield from self.handle_create_request(process, request)
             self._logger.debug("create request done")
         elif isinstance(request, NetstackReceiveRequest):
-            yield from self.handle_receive_request(request)
+            yield from self.handle_receive_request(process, request)
             self._logger.debug("receive request done")
         elif isinstance(request, NetstackBreakpointCreateRequest):
             yield from self.handle_breakpoint_create_request(request)
@@ -133,33 +124,28 @@ class NetstackProcessor:
             self._logger.debug("breakpoint receive request done")
 
     def handle_create_request(
-        self, req: NetstackCreateRequest
+        self, process: IqoalaProcess, req: NetstackCreateRequest
     ) -> Generator[EventExpression, None, None]:
         """Issue a request to create entanglement with a remote node.
 
         :param req: request info
         """
 
-        # Check that the corresponding EPR socket exists.
-        epr_socket = self._interface.egpmgr.get_egp(req.remote_node_id)
+        # Synchronize with the remote node.
 
-        # Read request parameters from the corresponding NetQASM array.
-        args = self._read_request_args_array(req.pid, req.arg_array_addr)
-
-        # Create the link layer request object.
-        request = self._create_link_layer_request(req.remote_node_id, args, epr_socket)
-
-        # Send it to the receiver node and wait for an acknowledgement.
-        peer = self.remote_id_to_peer_name(req.remote_node_id)
-        self._interface.send_peer_msg(peer, Message(content=request))
+        # Send the request to the receiver node and wait for an acknowledgement.
+        peer = self._interface.remote_id_to_peer_name(req.remote_id)
+        self._interface.send_peer_msg(peer, Message(content=req))
         peer_msg = yield from self._interface.receive_peer_msg(peer)
         self._logger.debug(f"received peer msg: {peer_msg}")
 
         # Handle the request.
-        if isinstance(request, ReqCreateAndKeep):
-            yield from self.handle_create_ck_request(req, request)
-        elif isinstance(request, ReqMeasureDirectly):
-            yield from self.handle_create_md_request(req, request)
+        if req.typ == EprCreateType.CREATE_KEEP:
+            yield from self.handle_create_ck_request(process, req)
+        elif req.typ == EprCreateType.MEASURE_DIRECTLY:
+            yield from self.handle_create_md_request(process, req)
+        else:
+            raise RuntimeError
 
     def handle_create_ck_request(
         self, process: IqoalaProcess, req: NetstackCreateRequest
@@ -198,7 +184,9 @@ class NetstackProcessor:
 
         for pair_index in range(num_pairs):
             virt_id = req.virt_qubit_ids[pair_index]
-            ll_result = yield from self.create_single_pair(process, req, virt_id)
+            ll_result = yield from self.create_single_pair(
+                process, req, virt_id, wait_for_free=True
+            )
 
             gen_duration = ns.sim_time() - start_time
 
@@ -213,22 +201,36 @@ class NetstackProcessor:
             self._interface.send_qnos_msg(Message(content="wrote to array"))
 
     def create_single_pair(
-        self, process: IqoalaProcess, request: NetstackCreateRequest, virt_id: int
+        self,
+        process: IqoalaProcess,
+        request: NetstackCreateRequest,
+        virt_id: int,
+        wait_for_free: bool = False,
     ) -> Generator[EventExpression, None, ResCreateAndKeep]:
+        """
+        :param wait_for_free: whether to wait (block) on a "memory free" signal in case
+            of an AllocError
+        """
         ll_request = self._create_link_layer_create_request(request)
         ll_request.number = 1
 
         self._logger.info(f"trying to allocate comm qubit")
         while True:
             try:
-                self._interface.memmgr.allocate(process.pid, virt_id)
+                self._interface.memmgr.allocate_comm(process.pid, virt_id)
                 break
             except AllocError:
+                if not wait_for_free:
+                    raise AllocError
+
+                # else:
                 self._logger.info("no comm qubit available, waiting...")
 
                 # Wait for a signal indicating the communication qubit might be free
                 # again.
-                yield from self._interface.await_memory_freed_signal()
+                yield from self._interface.await_memory_freed_signal(
+                    process.pid, virt_id
+                )
                 self._logger.info(
                     "a 'free' happened, trying again to allocate comm qubit..."
                 )
@@ -372,7 +374,7 @@ class NetstackProcessor:
         self._interface.send_qnos_msg(Message(content="wrote to array"))
 
     def handle_receive_ck_request(
-        self, req: NetstackReceiveRequest, request: ReqCreateAndKeep
+        self, process: IqoalaProcess, req: NetstackReceiveRequest
     ) -> Generator[EventExpression, None, None]:
         """Handle a Create and Keep request as the receiver, until all pairs have
         been created.
@@ -398,11 +400,8 @@ class NetstackProcessor:
         :param req: application request info (app ID and NetQASM array IDs)
         :param request: link layer request object
         """
-        assert isinstance(request, ReqCreateAndKeep)
 
-        num_pairs = request.number
-
-        shared_mem = self.get_shared_mem(req.pid)
+        num_pairs = req.num_pairs
 
         self._logger.info(f"putting CK request to EGP for {num_pairs} pairs")
         self._logger.info(f"splitting request into {num_pairs} 1-pair requests")
@@ -410,61 +409,55 @@ class NetstackProcessor:
         start_time = ns.sim_time()
 
         for pair_index in range(num_pairs):
-            self._logger.info(f"trying to allocate comm qubit for pair {pair_index}")
-            virt_id = shared_mem.get_array_value(req.qubit_array_addr, pair_index)
-            while True:
-                try:
-                    self._interface.memmgr.allocate(req.pid, virt_id)
-                    break
-                except AllocError:
-                    self._logger.info("no comm qubit available, waiting...")
-
-                    # Wait for a signal indicating the communication qubit might be free
-                    # again.
-                    yield from self._interface.await_memory_freed_signal()
-                    self._logger.info(
-                        "a 'free' happened, trying again to allocate comm qubit..."
-                    )
-
-            # Put the request to the EGP.
-            self._logger.info(f"putting CK request for pair {pair_index}")
-            self._interface.put_request(
-                req.remote_node_id, ReqReceive(req.remote_node_id)
+            virt_id = req.virt_qubit_ids[pair_index]
+            ll_result = yield from self.receive_single_pair(
+                process, req, virt_id, wait_for_free=True
             )
-            self._logger.info(f"waiting for result for pair {pair_index}")
 
-            # Wait for a signal from the EGP.
-            result = yield from self._interface.await_result_create_keep(
-                req.remote_node_id
+            gen_duration = ns.sim_time() - start_time
+            self.write_pair_result(
+                process, ll_result, pair_index, req.result_array_addr, gen_duration
             )
-            self._logger.info(f"got result for pair {pair_index}: {result}")
 
-            gen_duration_ns_float = ns.sim_time() - start_time
-            gen_duration_us_int = int(gen_duration_ns_float / 1000)
-            self._logger.info(f"gen duration (us): {gen_duration_us_int}")
-
-            # Length of response array slice for a single pair.
-            slice_len = SER_RESPONSE_KEEP_LEN
-
-            for i in range(slice_len):
-                # Write -1 to unused array elements.
-                value = -1
-
-                # Write corresponding result value to the other array elements.
-                if i == SER_RESPONSE_KEEP_IDX_GOODNESS:
-                    value = gen_duration_us_int
-                if i == SER_RESPONSE_KEEP_IDX_BELL_STATE:
-                    value = result.bell_state.value
-
-                # Calculate array element location.
-                arr_index = slice_len * pair_index + i
-
-                shared_mem.set_array_value(req.result_array_addr, arr_index, value)
-            self._logger.debug(
-                f"wrote to @{req.result_array_addr}[{slice_len * pair_index}:"
-                f"{slice_len * pair_index + slice_len}] for app ID {req.pid}"
-            )
             self._interface.send_qnos_msg(Message(content="wrote to array"))
+
+    def receive_single_pair(
+        self,
+        process: IqoalaProcess,
+        request: NetstackReceiveRequest,
+        virt_id: int,
+        wait_for_free: bool = False,
+    ) -> Generator[EventExpression, None, ResCreateAndKeep]:
+        self._logger.info(f"trying to allocate comm qubit")
+        while True:
+            try:
+                self._interface.memmgr.allocate_comm(process.pid, virt_id)
+                break
+            except AllocError:
+                if not wait_for_free:
+                    raise AllocError
+
+                self._logger.info("no comm qubit available, waiting...")
+
+                # Wait for a signal indicating the communication qubit might be free
+                # again.
+                yield from self._interface.await_memory_freed_signal(
+                    process.pid, virt_id
+                )
+                self._logger.info(
+                    "a 'free' happened, trying again to allocate comm qubit..."
+                )
+
+        # Put the request to the EGP.
+        self._logger.info(f"putting CK request")
+        self._interface.put_request(request.remote_id, ReqReceive(request.remote_id))
+        self._logger.info(f"waiting for result")
+
+        # Wait for a signal from the EGP.
+        result = yield from self._interface.await_result_create_keep(request.remote_id)
+        self._logger.info(f"got result: {result}")
+
+        return result
 
     def handle_receive_md_request(
         self, req: NetstackReceiveRequest, request: ReqMeasureDirectly
@@ -538,12 +531,14 @@ class NetstackProcessor:
             self._interface.send_qnos_msg(Message(content="wrote to array"))
 
     def handle_receive_request(
-        self, req: NetstackReceiveRequest
+        self, process: IqoalaProcess, req: NetstackReceiveRequest
     ) -> Generator[EventExpression, None, None]:
         """Issue a request to receive entanglement from a remote node.
 
         :param req: request info
         """
+
+        # Synchronize with the remote node.
 
         # Wait for the network stack in the remote node to get the corresponding
         # 'create' request from its local application and send it to us.
@@ -551,7 +546,7 @@ class NetstackProcessor:
         # request. Also, we simply block until synchronizing with the other node,
         # and then fully handle the request. There is no support for queueing
         # and/or interleaving multiple different requests.
-        peer = self.remote_id_to_peer_name(req.remote_node_id)
+        peer = self._interface.remote_id_to_peer_name(req.remote_id)
         msg = yield from self._interface.receive_peer_msg(peer)
         create_request = msg.content
         self._logger.debug(f"received {create_request} from peer")
@@ -561,12 +556,12 @@ class NetstackProcessor:
         self._logger.debug("sending 'ready' to peer")
         self._interface.send_peer_msg(peer, Message(content="ready"))
 
-        # Handle the request, based on the type that we now know because of the
-        # other node.
-        if isinstance(create_request, ReqCreateAndKeep):
-            yield from self.handle_receive_ck_request(req, create_request)
-        elif isinstance(create_request, ReqMeasureDirectly):
-            yield from self.handle_receive_md_request(req, create_request)
+        if req.typ == EprCreateType.CREATE_KEEP:
+            yield from self.handle_receive_ck_request(process, req)
+        elif req.typ == EprCreateType.MEASURE_DIRECTLY:
+            yield from self.handle_receive_md_request(process, req)
+        else:
+            raise RuntimeError
 
     def handle_breakpoint_create_request(
         self, request: NetstackBreakpointCreateRequest
@@ -574,7 +569,7 @@ class NetstackProcessor:
         # Use epr sockets for this process to get all relevant remote nodes.
         epr_sockets = self._processes[request.pid].epr_sockets
         remote_ids = [esck.remote_id for esck in epr_sockets.values()]
-        remote_names = [self.remote_id_to_peer_name(id) for id in remote_ids]
+        remote_names = [self._interface.remote_id_to_peer_name(id) for id in remote_ids]
 
         # Synchronize with the remote nodes.
         for peer in remote_names:
@@ -609,7 +604,7 @@ class NetstackProcessor:
         # Use epr sockets for this process to get all relevant remote nodes.
         epr_sockets = self._processes[request.pid].epr_sockets
         remote_ids = [esck.remote_id for esck in epr_sockets.values()]
-        remote_names = [self.remote_id_to_peer_name(id) for id in remote_ids]
+        remote_names = [self._interface.remote_id_to_peer_name(id) for id in remote_ids]
 
         # Synchronize with the remote nodes.
         for peer in remote_names:

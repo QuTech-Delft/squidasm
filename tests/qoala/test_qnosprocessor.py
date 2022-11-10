@@ -14,7 +14,6 @@ from netqasm.sdk.build_epr import (
 from pydynaa import EventExpression
 from squidasm.qoala.lang.iqoala import IqoalaProgram, IqoalaSubroutine, ProgramMeta
 from squidasm.qoala.runtime.program import ProgramInput, ProgramInstance, ProgramResult
-from squidasm.qoala.sim.common import NetstackCreateRequest, NetstackReceiveRequest
 from squidasm.qoala.sim.memmgr import AllocError, MemoryManager
 from squidasm.qoala.sim.memory import ProgramMemory, Topology, UnitModule
 from squidasm.qoala.sim.message import Message
@@ -22,6 +21,11 @@ from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice
 from squidasm.qoala.sim.qnosinterface import QnosInterface
 from squidasm.qoala.sim.qnosprocessor import GenericProcessor, QnosProcessor
+from squidasm.qoala.sim.requests import (
+    EprCreateType,
+    NetstackCreateRequest,
+    NetstackReceiveRequest,
+)
 from squidasm.util.tests import yield_from
 
 MOCK_MESSAGE = Message(content=42)
@@ -441,7 +445,7 @@ def test_create_epr():
     result_array = 2
 
     qubit_id = 8
-    create_type = 2
+    create_type = 2  # RSP
     epr_count = 6
     rot_x_remote2 = 1
 
@@ -449,6 +453,7 @@ def test_create_epr():
     epr_sck_id = 4
 
     pid = 0
+    fidelity = 0.75
 
     subrt = f"""
     array 1 @{qubit_array}
@@ -465,7 +470,13 @@ def test_create_epr():
     execute_process(processor, process)
 
     expected_request = NetstackCreateRequest(
-        pid, remote_id, epr_sck_id, qubit_array, arg_array, result_array
+        remote_id=remote_id,
+        epr_socket_id=epr_sck_id,
+        typ=EprCreateType.REMOTE_STATE_PREP,
+        num_pairs=epr_count,
+        fidelity=1.0,  # TODO: fix hardcoded only allowed value
+        virt_qubit_ids=[8],
+        result_array_addr=result_array,
     )
 
     assert processor._interface.send_events[0] == InterfaceEvent(
@@ -506,7 +517,13 @@ def test_recv_epr():
     execute_process(processor, process)
 
     expected_request = NetstackReceiveRequest(
-        pid, remote_id, epr_sck_id, qubit_array, result_array
+        remote_id=remote_id,
+        epr_socket_id=epr_sck_id,
+        typ=None,  # TODO: fix recv_epr instruction
+        num_pairs=None,  # TODO: fix recv_epr instruction
+        fidelity=1.0,  # TODO: fix hardcoded only allowed value
+        virt_qubit_ids=[8],
+        result_array_addr=result_array,
     )
 
     assert processor._interface.send_events[0] == InterfaceEvent(

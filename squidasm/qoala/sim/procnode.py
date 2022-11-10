@@ -99,13 +99,13 @@ class ProcNode(Protocol):
             self._scheduler,
             self._qdevice,
         )
-        self._nestack = Netstack(
+        self._netstack = Netstack(
             self.netstack_comp,
             self._local_env,
             self._memmgr,
             self._egpmgr,
             self.scheduler,
-            self.qdevice,
+            self._qdevice,
         )
 
         self._prog_instance_counter: int = 0
@@ -151,7 +151,13 @@ class ProcNode(Protocol):
 
     @property
     def qdevice(self) -> QDevice:
-        return self.node.qdevice
+        return self._qdevice
+
+    @qdevice.setter
+    def qdevice(self, qdevice) -> QDevice:
+        self._qdevice = qdevice
+        self.qnos.qdevice = qdevice
+        self.netstack.qdevice = qdevice
 
     @property
     def host(self) -> Host:
@@ -170,8 +176,24 @@ class ProcNode(Protocol):
         self._qnos = qnos
 
     @property
+    def netstack(self) -> Netstack:
+        return self._netstack
+
+    @netstack.setter
+    def netstack(self, netstack: Netstack) -> None:
+        self._netstack = netstack
+
+    @property
     def scheduler(self) -> Scheduler:
         return self._scheduler
+
+    @property
+    def memmgr(self) -> MemoryManager:
+        return self._memmgr
+
+    @property
+    def egpmgr(self) -> EgpManager:
+        return self._egpmgr
 
     @scheduler.setter
     def scheduler(self, scheduler: Scheduler) -> None:
@@ -184,21 +206,28 @@ class ProcNode(Protocol):
         there = other.node.name
         self.node.host_peer_out_port(there).connect(other.node.host_peer_in_port(here))
         self.node.host_peer_in_port(there).connect(other.node.host_peer_out_port(here))
-        self.node.qnos_peer_out_port(there).connect(other.node.qnos_peer_in_port(here))
-        self.node.qnos_peer_in_port(there).connect(other.node.qnos_peer_out_port(here))
+        self.node.netstack_peer_out_port(there).connect(
+            other.node.netstack_peer_in_port(here)
+        )
+        self.node.netstack_peer_in_port(there).connect(
+            other.node.netstack_peer_out_port(here)
+        )
 
     def start(self) -> None:
         assert self._host is not None
         assert self._qnos is not None
-        # assert self._net is not None
+        assert self._netstack is not None
         super().start()
         self._scheduler.start()
         self._host.start()
         self._qnos.start()
+        self._netstack.start()
 
     def stop(self) -> None:
         assert self._host is not None
         assert self._qnos is not None
+        assert self._netstack is not None
+        self._netstack.stop()
         self._qnos.stop()
         self._host.stop()
         self._scheduler.stop()
@@ -252,5 +281,7 @@ class ProcNode(Protocol):
                     result=result,
                 )
 
-                self.host.add_process(process)
-                self.qnos.add_process(process)
+                self.memmgr.add_process(process)
+
+    def add_process(self, process: IqoalaProcess) -> None:
+        self.memmgr.add_process(process)

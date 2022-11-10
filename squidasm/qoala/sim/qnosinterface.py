@@ -59,7 +59,7 @@ class QnosInterface(ComponentProtocol):
         self._listeners["netstack"].buffer.clear()
 
     def signal_memory_freed(self) -> None:
-        self._comp.netstasck_mem_out_port.tx_output(Message(content=None))
+        self._comp.netstack_mem_out_port.tx_output(Message(content=None))
 
     @property
     def qdevice(self) -> QDevice:

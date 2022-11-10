@@ -46,7 +46,7 @@ class QnosComponent(Component):
         return self.ports["nstk_mem_in"]
 
     @property
-    def netstasck_mem_out_port(self) -> Port:
+    def netstack_mem_out_port(self) -> Port:
         return self.ports["nstk_mem_out"]
 
     @property

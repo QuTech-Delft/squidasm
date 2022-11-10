@@ -62,51 +62,53 @@ class ProcNodeComponent(Node):
         self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])
 
         # Ports for communicating with other nodes
-        all_nodes = global_env.get_nodes().values()
-        self._peers: List[str] = list(node.name for node in all_nodes)
-
-        self._qnos_peer_in_ports: Dict[str, str] = {}  # peer name -> port name
-        self._qnos_peer_out_ports: Dict[str, str] = {}  # peer name -> port name
+        self._netstack_peer_in_ports: Dict[str, str] = {}  # peer name -> port name
+        self._netstack_peer_out_ports: Dict[str, str] = {}  # peer name -> port name
         self._host_peer_in_ports: Dict[str, str] = {}  # peer name -> port name
         self._host_peer_out_ports: Dict[str, str] = {}  # peer name -> port name
 
-        for peer in self._peers:
-            qnos_port_in_name = f"qnos_peer_{peer}_in"
-            qnos_port_out_name = f"qnos_peer_{peer}_out"
-            self._qnos_peer_in_ports[peer] = qnos_port_in_name
-            self._qnos_peer_out_ports[peer] = qnos_port_out_name
+        for other_node in global_env.get_nodes().values():
+            if other_node.name == self.name:
+                continue
 
-            host_port_in_name = f"host_peer_{peer}_in"
-            host_port_out_name = f"host_peer_{peer}_out"
-            self._host_peer_in_ports[peer] = host_port_in_name
-            self._host_peer_out_ports[peer] = host_port_out_name
+            netstack_port_in_name = f"netstack_peer_{other_node.name}_in"
+            netstack_port_out_name = f"netstack_peer_{other_node.name}_out"
+            self._netstack_peer_in_ports[other_node.name] = netstack_port_in_name
+            self._netstack_peer_out_ports[other_node.name] = netstack_port_out_name
 
-        self.add_ports(self._qnos_peer_in_ports.values())
-        self.add_ports(self._qnos_peer_out_ports.values())
+            host_port_in_name = f"host_peer_{other_node.name}_in"
+            host_port_out_name = f"host_peer_{other_node.name}_out"
+            self._host_peer_in_ports[other_node.name] = host_port_in_name
+            self._host_peer_out_ports[other_node.name] = host_port_out_name
+
+        self.add_ports(self._netstack_peer_in_ports.values())
+        self.add_ports(self._netstack_peer_out_ports.values())
         self.add_ports(self._host_peer_in_ports.values())
         self.add_ports(self._host_peer_out_ports.values())
 
-        for peer in self._peers:
-            self.qnos_comp.peer_out_port(peer).forward_output(
-                self.qnos_peer_out_port(peer)
+        for other_node in global_env.get_nodes().values():
+            if other_node.name == self.name:
+                continue
+            self.netstack_comp.peer_out_port(other_node.name).forward_output(
+                self.netstack_peer_out_port(other_node.name)
             )
-            self.qnos_peer_in_port(peer).forward_input(
-                self.qnos_comp.peer_in_port(peer)
+            self.netstack_peer_in_port(other_node.name).forward_input(
+                self.netstack_comp.peer_in_port(other_node.name)
             )
-            self.host_comp.peer_out_port(peer).forward_output(
-                self.host_peer_out_port(peer)
+            self.host_comp.peer_out_port(other_node.name).forward_output(
+                self.host_peer_out_port(other_node.name)
             )
-            self.host_peer_in_port(peer).forward_input(
-                self.host_comp.peer_in_port(peer)
+            self.host_peer_in_port(other_node.name).forward_input(
+                self.host_comp.peer_in_port(other_node.name)
             )
-
-    @property
-    def qnos_comp(self) -> QnosComponent:
-        return self.subcomponents["qnos"]
 
     @property
     def host_comp(self) -> HostComponent:
         return self.subcomponents["host"]
+
+    @property
+    def qnos_comp(self) -> QnosComponent:
+        return self.subcomponents["qnos"]
 
     @property
     def netstack_comp(self) -> NetstackComponent:
@@ -128,10 +130,10 @@ class ProcNodeComponent(Node):
         port_name = self._host_peer_out_ports[name]
         return self.ports[port_name]
 
-    def qnos_peer_in_port(self, name: str) -> Port:
-        port_name = self._qnos_peer_in_ports[name]
+    def netstack_peer_in_port(self, name: str) -> Port:
+        port_name = self._netstack_peer_in_ports[name]
         return self.ports[port_name]
 
-    def qnos_peer_out_port(self, name: str) -> Port:
-        port_name = self._qnos_peer_out_ports[name]
+    def netstack_peer_out_port(self, name: str) -> Port:
+        port_name = self._netstack_peer_out_ports[name]
         return self.ports[port_name]

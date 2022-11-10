@@ -82,6 +82,10 @@ class MemoryManager:
         if virt_id not in vmap.unit_module.qubit_ids:
             raise AllocError
 
+        # Check whether this virt ID is already mapped to a physical qubit.
+        if vmap.mapping[virt_id] is not None:
+            raise AllocError
+
         phys_id: int
         if self._virt_qubit_is_comm(vmap.unit_module, virt_id):
             phys_id = self._get_free_comm_phys_id()
@@ -94,6 +98,16 @@ class MemoryManager:
         )
         self._process_mappings[pid].mapping[virt_id] = phys_id
         return phys_id
+
+    def allocate_comm(self, pid: int, virt_id: int) -> int:
+        vmap = self._process_mappings[pid]
+        # Check that the virt ID is indeed a (virtual) comm qubit.
+        if virt_id not in vmap.unit_module.qubit_ids:
+            raise AllocError
+        if not self._virt_qubit_is_comm(vmap.unit_module, virt_id):
+            raise AllocError
+
+        return self.allocate(pid, virt_id)
 
     def free(self, pid: int, virt_id: int) -> None:
         vmap = self._process_mappings[pid]

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, Generator, List, Union
+from typing import Dict, Generator, List, Optional, Union
 
 
 class EprCreateType(Enum):
@@ -28,8 +28,8 @@ class NetstackReceiveRequest:
     # Request parameters.
     remote_id: int
     epr_socket_id: int
-    typ: EprCreateType
-    num_pairs: int
+    typ: Optional[EprCreateType]  # not knowable from recv_epr instruction! TODO
+    num_pairs: Optional[int]  # not knowable from recv_epr instruction! TODO
     fidelity: float
     virt_qubit_ids: List[int]
 

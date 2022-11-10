@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Dict, Generator
 
+from netsquid.protocols import Protocol
+
 from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import LocalEnvironment
 from squidasm.qoala.sim.common import ComponentProtocol
@@ -15,7 +17,7 @@ from squidasm.qoala.sim.qdevice import QDevice
 from squidasm.qoala.sim.scheduler import Scheduler
 
 
-class Netstack(ComponentProtocol):
+class Netstack(Protocol):
     """NetSquid protocol representing the QNodeOS network stack."""
 
     def __init__(
@@ -33,7 +35,7 @@ class Netstack(ComponentProtocol):
         :param comp: NetSquid component representing the network stack
         :param qnos: `Qnos` protocol that owns this protocol
         """
-        super().__init__(name=f"{comp.name}_protocol", comp=comp)
+        super().__init__(name=f"{comp.name}_protocol")
 
         # References to objects.
         self._comp = comp
@@ -54,6 +56,31 @@ class Netstack(ComponentProtocol):
             msg = yield from self._interface.receive_qnos_msg()
             self._logger.debug(f"received new msg from processor: {msg}")
             request = msg.content
+
+    @property
+    def qdevice(self) -> QDevice:
+        return self._interface.qdevice
+
+    @qdevice.setter
+    def qdevice(self, qdevice: QDevice) -> None:
+        self._interface._qdevice = qdevice
+
+    @property
+    def interface(self) -> NetstackInterface:
+        return self._interface
+
+    @interface.setter
+    def interface(self, interface: NetstackInterface) -> None:
+        self._interface = interface
+        self._processor._interface = interface
+
+    @property
+    def processor(self) -> NetstackProcessor:
+        return self._processor
+
+    @processor.setter
+    def processor(self, processor: NetstackProcessor) -> None:
+        self._processor = processor
 
     def add_process(self, process: IqoalaProcess) -> None:
         self._processes[process.prog_instance.pid] = process

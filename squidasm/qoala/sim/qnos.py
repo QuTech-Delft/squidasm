@@ -19,7 +19,7 @@ from squidasm.qoala.sim.qnosprocessor import (
 from squidasm.qoala.sim.scheduler import Scheduler
 
 
-class Qnos(ComponentProtocol):
+class Qnos(Protocol):
     """NetSquid protocol representing a QNodeOS instance."""
 
     def __init__(
@@ -50,12 +50,24 @@ class Qnos(ComponentProtocol):
         self._interface = QnosInterface(comp, qdevice, memmgr)
         self._processor: QnosProcessor
 
-        if qdevice.typ == QDeviceType.GENERIC:
+        self.create_processor(qdevice.typ)
+
+    def create_processor(self, qdevice_type: QDeviceType) -> None:
+        if qdevice_type == QDeviceType.GENERIC:
             self._processor = GenericProcessor(self._interface)
-        elif qdevice.typ == QDeviceType.NV:
+        elif qdevice_type == QDeviceType.NV:
             self._processor = NVProcessor(self._interface)
         else:
             raise ValueError
+
+    @property
+    def qdevice(self) -> QDevice:
+        return self._interface.qdevice
+
+    @qdevice.setter
+    def qdevice(self, qdevice: QDevice) -> None:
+        self._interface._qdevice = qdevice
+        self.create_processor(qdevice.typ)
 
     @property
     def processor(self) -> QnosProcessor:

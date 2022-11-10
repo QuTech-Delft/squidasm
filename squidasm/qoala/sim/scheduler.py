@@ -6,13 +6,14 @@ from typing import Dict, List, Optional
 
 from netsquid.components.component import Component
 from netsquid.nodes import Node
+from netsquid.protocols import Protocol
 
 from squidasm.qoala.lang import iqoala
 from squidasm.qoala.runtime.program import BatchResult, ProgramInstance
 from squidasm.qoala.runtime.schedule import Schedule
 from squidasm.qoala.sim.csocket import ClassicalSocket
-from squidasm.qoala.sim.host import IqoalaProcess
 from squidasm.qoala.sim.logging import LogManager
+from squidasm.qoala.sim.process import IqoalaProcess
 
 
 @dataclass
@@ -40,7 +41,7 @@ class ProgramSchedule:
         self._schedule: Dict[int, int] = {}  # instr index -> time
 
 
-class Scheduler:
+class Scheduler(Protocol):
     def __init__(self, node_name: str) -> None:
         self._node_name = node_name
         self._queued_programs: Dict[int, ProgramInstance] = {}

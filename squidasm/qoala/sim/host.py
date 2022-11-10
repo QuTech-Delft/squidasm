@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, Generator
 
 import netsquid as ns
+from netsquid.protocols import Protocol
 
 from pydynaa import EventExpression, EventType
 from squidasm.qoala.runtime.environment import LocalEnvironment
@@ -16,7 +17,7 @@ from squidasm.qoala.sim.scheduler import Scheduler
 EVENT_WAIT = EventType("SCHEDULER_WAIT", "scheduler wait")
 
 
-class Host(ComponentProtocol):
+class Host(Protocol):
     """NetSquid protocol representing a Host."""
 
     def __init__(
@@ -29,7 +30,7 @@ class Host(ComponentProtocol):
 
         :param comp: NetSquid component representing the Host
         """
-        super().__init__(name=f"{comp.name}_protocol", comp=comp)
+        super().__init__(name=f"{comp.name}_protocol")
 
         # References to objects.
         self._comp = comp
@@ -38,8 +39,17 @@ class Host(ComponentProtocol):
 
         # Owned objects.
         self._interface = HostInterface(comp, local_env)
-        self._processor = HostProcessor(self)
+        self._processor = HostProcessor(self._interface)
         self._processes: Dict[int, IqoalaProcess] = {}
+
+    @property
+    def interface(self) -> HostInterface:
+        return self._interface
+
+    @interface.setter
+    def interface(self, interface: HostInterface) -> None:
+        self._interface = interface
+        self._processor._interface = interface
 
     @property
     def processor(self) -> HostProcessor:

@@ -122,7 +122,10 @@ class NetstackInterface(ComponentProtocol):
         )
         return result
 
-    def await_memory_freed_signal(self) -> Generator[EventExpression, None, None]:
+    def await_memory_freed_signal(
+        self, pid: int, virt_id: int
+    ) -> Generator[EventExpression, None, None]:
+        # TODO: use pid and virt_id?
         yield from self._receive_msg("qnos_mem", SIGNAL_MEMORY_FREED)
 
     @property
@@ -136,3 +139,8 @@ class NetstackInterface(ComponentProtocol):
     @property
     def egpmgr(self) -> EgpManager:
         return self._egpmgr
+
+    def remote_id_to_peer_name(self, remote_id: int) -> str:
+        node_info = self._local_env.get_global_env().get_nodes()[remote_id]
+        # TODO figure out why mypy does not like this
+        return node_info.name  # type: ignore

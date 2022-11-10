@@ -6,6 +6,16 @@ from typing import Generator, Optional, Union
 import netsquid as ns
 from netqasm.lang.instr import NetQASMInstruction, core, nv, vanilla
 from netqasm.lang.operand import Register
+from netqasm.sdk.build_epr import (
+    SER_CREATE_IDX_NUMBER,
+    SER_CREATE_IDX_TYPE,
+    SER_RESPONSE_KEEP_IDX_BELL_STATE,
+    SER_RESPONSE_KEEP_IDX_GOODNESS,
+    SER_RESPONSE_KEEP_LEN,
+    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_BASIS,
+    SER_RESPONSE_MEASURE_IDX_MEASUREMENT_OUTCOME,
+    SER_RESPONSE_MEASURE_LEN,
+)
 from netsquid.components.instructions import (
     INSTR_CNOT,
     INSTR_CXDIR,
@@ -35,6 +45,7 @@ from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import QDevice, QDeviceCommand
 from squidasm.qoala.sim.qnosinterface import QnosInterface
 from squidasm.qoala.sim.requests import (
+    EprCreateType,
     NetstackBreakpointCreateRequest,
     NetstackBreakpointReceiveRequest,
     NetstackCreateRequest,
@@ -475,13 +486,30 @@ class QnosProcessor:
             f"address {result_array_addr}"
         )
 
+        raw_args = shared_mem.get_array(arg_array_addr)
+        raw_typ = raw_args[SER_CREATE_IDX_TYPE]
+        typ = {
+            0: EprCreateType.CREATE_KEEP,
+            1: EprCreateType.MEASURE_DIRECTLY,
+            2: EprCreateType.REMOTE_STATE_PREP,
+        }[raw_typ]
+        num_pairs = raw_args[SER_CREATE_IDX_NUMBER]
+
+        if qubit_array_addr is not None:
+            virt_ids = shared_mem.get_array(qubit_array_addr)
+        else:
+            virt_ids = [0 for _ in range(num_pairs)]
+
+        # TODO: get fidelity from EPR socket
+
         msg = NetstackCreateRequest(
-            pid,
-            remote_node_id,
-            epr_socket_id,
-            qubit_array_addr,
-            arg_array_addr,
-            result_array_addr,
+            remote_id=remote_node_id,
+            epr_socket_id=epr_socket_id,
+            typ=typ,
+            num_pairs=num_pairs,
+            fidelity=1.0,  # for now, always just ask for the best
+            virt_qubit_ids=virt_ids,
+            result_array_addr=result_array_addr,
         )
         self._interface.send_netstack_msg(Message(content=msg))
         # result = yield from self._interface.receive_netstack_msg()
@@ -508,12 +536,19 @@ class QnosProcessor:
             f"address {result_array_addr}"
         )
 
+        # We don't allow None for qubit_array_addr since creating the array manually
+        # requires the number of pairs (for the length), which we don't know.
+        assert qubit_array_addr is not None
+        virt_ids = shared_mem.get_array(qubit_array_addr)
+
         msg = NetstackReceiveRequest(
-            pid,
-            remote_node_id,
-            epr_socket_id,
-            qubit_array_addr,
-            result_array_addr,
+            remote_id=remote_node_id,
+            epr_socket_id=epr_socket_id,
+            typ=None,  # TODO: fix recv_epr instruction
+            num_pairs=None,  # TODO: fix recv_epr instruction
+            fidelity=1.0,  # for now, always just ask for the best
+            virt_qubit_ids=virt_ids,
+            result_array_addr=result_array_addr,
         )
         self._interface.send_netstack_msg(Message(content=msg))
         # result = yield from self._interface.receive_netstack_msg()

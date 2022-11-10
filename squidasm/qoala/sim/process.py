@@ -5,7 +5,7 @@ from squidasm.qoala.lang.iqoala import IqoalaSubroutine
 from squidasm.qoala.runtime.program import ProgramInstance, ProgramResult
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.eprsocket import EprSocket
-from squidasm.qoala.sim.memory import ProgramMemory
+from squidasm.qoala.sim.memory import HostMemory, ProgramMemory, SharedMemory
 
 
 @dataclass
@@ -20,3 +20,11 @@ class IqoalaProcess:
     @property
     def pid(self) -> int:
         return self.prog_instance.pid
+
+    @property
+    def host_mem(self) -> HostMemory:
+        return self.prog_memory.host_mem
+
+    @property
+    def shared_mem(self) -> SharedMemory:
+        return self.prog_memory.shared_mem
