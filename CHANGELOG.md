@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+2022-11-14 (0.10.0)
+------------------
+- Made compatible with NetQASM 0.12.1.
+
 2022-05-23 (0.9.0)
 ------------------
 - Made compatible with NetQASM 0.11.
