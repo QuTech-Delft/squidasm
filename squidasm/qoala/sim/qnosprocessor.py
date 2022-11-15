@@ -56,8 +56,9 @@ from squidasm.qoala.sim.requests import (
 class QnosProcessor:
     """Does not have state itself."""
 
-    def __init__(self, interface: QnosInterface) -> None:
+    def __init__(self, interface: QnosInterface, asynchronous: bool = False) -> None:
         self._interface = interface
+        self._asynchronous = asynchronous
 
         # TODO: rewrite
         self._name = f"{interface.name}_QnosProcessor"

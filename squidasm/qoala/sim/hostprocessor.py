@@ -17,8 +17,9 @@ from squidasm.qoala.sim.process import IqoalaProcess
 class HostProcessor:
     """Does not have state itself. Acts on and changes process objects."""
 
-    def __init__(self, interface: HostInterface) -> None:
+    def __init__(self, interface: HostInterface, asynchronous: bool = False) -> None:
         self._interface = interface
+        self._asynchronous = asynchronous
 
         # TODO: name
         self._name = f"{interface.name}_HostProcessor"
@@ -91,21 +92,34 @@ class HostProcessor:
             self._logger.info(f"instantiating subroutine with values {arg_values}")
             iqoala_subrt.subroutine.instantiate(pid, arg_values)
 
-            self._interface.send_qnos_msg(Message(subrt_name))
-            yield from self._interface.receive_qnos_msg()
-            # Qnos should have updated the shared memory with subroutine results.
+            if self._asynchronous:
+                # Send a message to Qnos asking it to execute the subroutine.
+                self._interface.send_qnos_msg(Message(subrt_name))
+                # Wait for Qnos to finish.
+                yield from self._interface.receive_qnos_msg()
+                # Qnos should have updated the shared memory with subroutine results.
+                self.copy_subroutine_results(process, subrt_name)
+            else:
+                # Let the scheduler make sure that Qnos executes the subroutine at
+                # some point. The scheduler is also responsible for copying subroutine
+                # results to the Host memory.
+                pass
 
-            for key, mem_loc in iqoala_subrt.return_map.items():
-                try:
-                    reg: Register = parse_register(mem_loc.loc)
-                    value = shared_mem.get_register(reg)
-                    self._logger.debug(
-                        f"writing shared memory value {value} from location "
-                        f"{mem_loc} to variable {key}"
-                    )
-                    host_mem.write(key, value)
-                except NetQASMSyntaxError:
-                    pass
         elif isinstance(instr, iqoala.ReturnResultOp):
             value = instr.arguments[0]
             process.result.values[value] = host_mem.read(value)
+
+    def copy_subroutine_results(self, process: IqoalaProcess, subrt_name: str) -> None:
+        iqoala_subrt = process.subroutines[subrt_name]
+
+        for key, mem_loc in iqoala_subrt.return_map.items():
+            try:
+                reg: Register = parse_register(mem_loc.loc)
+                value = process.shared_mem.get_register(reg)
+                self._logger.debug(
+                    f"writing shared memory value {value} from location "
+                    f"{mem_loc} to variable {key}"
+                )
+                process.host_mem.write(key, value)
+            except NetQASMSyntaxError:
+                pass  # TODO: needed?

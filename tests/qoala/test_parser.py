@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from netqasm.lang.instr.core import MeasInstruction, SetInstruction
 from netqasm.lang.operand import Register, Template
@@ -402,6 +404,45 @@ SUBROUTINE subrt1
     assert text_equal(parser._subrt_text, subrt_text)
 
 
+def test_split_text_multiple_subroutines():
+    meta_text = """
+META_START
+name: alice
+parameters: 
+csockets: 0 -> bob
+epr_sockets: 
+META_END
+    """
+
+    instr_text = """
+m = assign_cval() : 1
+return_result(m)
+    """
+
+    subrt_text = """
+SUBROUTINE subrt1
+    params: 
+    returns: 
+  NETQASM_START
+    set Q0 0
+  NETQASM_END
+
+SUBROUTINE subrt2
+    params: 
+    returns: 
+  NETQASM_START
+    set Q7 7
+  NETQASM_END
+    """
+
+    text = meta_text + instr_text + subrt_text
+    parser = IqoalaParser(text)
+
+    assert text_equal(parser._meta_text, meta_text)
+    assert text_equal(parser._instr_text, instr_text)
+    assert text_equal(parser._subrt_text, subrt_text)
+
+
 def test_parse_program_single_text():
     text = """
 META_START
@@ -436,23 +477,38 @@ SUBROUTINE subrt1
     assert "subrt1" in parsed_program.subroutines
 
 
+def test_parse_file():
+    path = os.path.join(os.path.dirname(__file__), "program.iqoala")
+    with open(path) as file:
+        text = file.read()
+    parsed_program = IqoalaParser(text).parse()
+    assert len(parsed_program.instructions) == 11
+    assert "create_epr_1" in parsed_program.subroutines
+    assert "create_epr_2" in parsed_program.subroutines
+    assert "local_cphase" in parsed_program.subroutines
+    assert "meas_qubit_1" in parsed_program.subroutines
+    assert "meas_qubit_2" in parsed_program.subroutines
+
+
 if __name__ == "__main__":
-    test_parse_incomplete_meta()
-    test_parse_meta_no_end()
-    test_parse_meta()
-    test_parse_meta_multiple_remotes()
-    test_parse_1_instr()
-    test_parse_2_instr()
-    test_parse_faulty_instr()
-    test_parse_vec()
-    test_parse_vec_2_elements()
-    test_parse_vec_2_elements_and_return()
-    test_parse_vec_2_elements_and_return_2_elements()
-    test_parse_subrt()
-    test_parse_subrt_2()
-    test_parse_invalid_subrt()
-    test_parse_multiple_subrt()
-    test_parse_program()
-    test_parse_program_invalid_subrt_reference()
-    test_split_text()
-    test_parse_program_single_text()
+    # test_parse_incomplete_meta()
+    # test_parse_meta_no_end()
+    # test_parse_meta()
+    # test_parse_meta_multiple_remotes()
+    # test_parse_1_instr()
+    # test_parse_2_instr()
+    # test_parse_faulty_instr()
+    # test_parse_vec()
+    # test_parse_vec_2_elements()
+    # test_parse_vec_2_elements_and_return()
+    # test_parse_vec_2_elements_and_return_2_elements()
+    # test_parse_subrt()
+    # test_parse_subrt_2()
+    # test_parse_invalid_subrt()
+    # test_parse_multiple_subrt()
+    # test_parse_program()
+    # test_parse_program_invalid_subrt_reference()
+    # test_split_text()
+    # test_split_text_multiple_subroutines()
+    # test_parse_program_single_text()
+    test_parse_file()

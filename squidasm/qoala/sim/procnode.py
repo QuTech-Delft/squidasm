@@ -48,6 +48,7 @@ class ProcNode(Protocol):
         qdevice_type: Optional[str] = "generic",
         node_id: Optional[int] = None,
         scheduler: Optional[Scheduler] = None,
+        asynchronous: bool = False,
     ) -> None:
         """ProcNode constructor.
 
@@ -72,6 +73,7 @@ class ProcNode(Protocol):
 
         self._global_env = global_env
         self._local_env = LocalEnvironment(global_env, global_env.get_node_id(name))
+        self._asynchronous = asynchronous
 
         # Create internal components.
         self._qdevice: QDevice
@@ -89,7 +91,9 @@ class ProcNode(Protocol):
         else:
             self._scheduler = scheduler
 
-        self._host = Host(self.host_comp, self._local_env, self._scheduler)
+        self._host = Host(
+            self.host_comp, self._local_env, self._scheduler, self._asynchronous
+        )
         self._memmgr = MemoryManager(self.node.name, self._qdevice)
         self._egpmgr = EgpManager()
         self._qnos = Qnos(
@@ -98,6 +102,7 @@ class ProcNode(Protocol):
             self._memmgr,
             self._scheduler,
             self._qdevice,
+            self._asynchronous,
         )
         self._netstack = Netstack(
             self.netstack_comp,

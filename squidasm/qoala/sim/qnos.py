@@ -29,6 +29,7 @@ class Qnos(Protocol):
         memmgr: MemoryManager,
         scheduler: Scheduler,
         qdevice: QDevice,
+        asynchronous: bool = False,
     ) -> None:
         """Qnos protocol constructor.
 
@@ -49,14 +50,15 @@ class Qnos(Protocol):
         # Owned objects.
         self._interface = QnosInterface(comp, qdevice, memmgr)
         self._processor: QnosProcessor
+        self._asynchronous = asynchronous
 
         self.create_processor(qdevice.typ)
 
     def create_processor(self, qdevice_type: QDeviceType) -> None:
         if qdevice_type == QDeviceType.GENERIC:
-            self._processor = GenericProcessor(self._interface)
+            self._processor = GenericProcessor(self._interface, self._asynchronous)
         elif qdevice_type == QDeviceType.NV:
-            self._processor = NVProcessor(self._interface)
+            self._processor = NVProcessor(self._interface, self._asynchronous)
         else:
             raise ValueError
 

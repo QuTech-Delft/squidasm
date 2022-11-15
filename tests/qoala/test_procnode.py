@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple, Type
 
 import netsquid as ns
 import pytest
@@ -340,22 +340,37 @@ def create_qprocessor(name: str, num_qubits: int) -> QuantumProcessor:
 def create_global_env(num_qubits: int) -> GlobalEnvironment:
     alice_node_id = 0
     bob_node_id = 1
+    charlie_node_id = 2
 
     env = GlobalEnvironment()
     env.add_node(
         alice_node_id, GlobalNodeInfo.default_nv("alice", alice_node_id, num_qubits)
     )
     env.add_node(bob_node_id, GlobalNodeInfo.default_nv("bob", bob_node_id, num_qubits))
+    env.add_node(
+        charlie_node_id,
+        GlobalNodeInfo.default_nv("charlie", charlie_node_id, num_qubits),
+    )
 
     return env
 
 
-def create_procnode(name: str, env: GlobalEnvironment, num_qubits: int) -> ProcNode:
-    alice_qprocessor = create_qprocessor("alice", num_qubits)
+def create_procnode(
+    name: str,
+    env: GlobalEnvironment,
+    num_qubits: int,
+    procnode_cls: Type[ProcNode] = ProcNode,
+    asynchronous: bool = False,
+) -> ProcNode:
+    alice_qprocessor = create_qprocessor(name, num_qubits)
 
     node_id = env.get_node_id(name)
-    procnode = ProcNode(
-        name="alice", global_env=env, qprocessor=alice_qprocessor, node_id=node_id
+    procnode = procnode_cls(
+        name=name,
+        global_env=env,
+        qprocessor=alice_qprocessor,
+        node_id=node_id,
+        asynchronous=asynchronous,
     )
 
     return procnode
@@ -494,6 +509,76 @@ SUBROUTINE subrt1
         result_array_addr=0,
     )
 
+    def qnos_run() -> Generator[EventExpression, None, None]:
+        yield from qnos_processor.assign(process, "subrt1", 0)
+        # Mock sending signal back to Host that subroutine has finished.
+        qnos_processor._interface.send_host_msg(Message(None))
+
+    netsquid_run(host_processor.assign(process, instr_idx=0))
+    netsquid_run(qnos_processor.assign(process, "subrt1", 0))
+    host_processor.copy_subroutine_results(process, "subrt1")
+
+    assert process.host_mem.read("result") == 42
+    assert process.shared_mem.get_reg_value("R5") == 42
+
+
+def test_2_async():
+    num_qubits = 3
+    topology = Topology(comm_ids={0, 1, 2}, mem_ids={0, 1, 2})
+
+    global_env = create_global_env(num_qubits)
+    local_env = LocalEnvironment(global_env, global_env.get_node_id("alice"))
+    procnode = create_procnode("alice", global_env, num_qubits, asynchronous=True)
+    procnode.qdevice = MockQDevice(topology)
+
+    # procnode.host.interface = MockHostInterface()
+
+    # mock_result = ResCreateAndKeep(bell_state=BellIndex.B01)
+    # procnode.netstack.interface = MockNetstackInterface(
+    #     local_env, procnode.qdevice, procnode.memmgr, mock_result
+    # )
+
+    host_processor = procnode.host.processor
+    qnos_processor = procnode.qnos.processor
+    netstack_processor = procnode.netstack.processor
+
+    unit_module = UnitModule.default_generic(num_qubits)
+
+    instrs = [RunSubroutineOp(None, IqoalaVector([]), "subrt1")]
+    subroutines = parse_iqoala_subroutines(
+        """
+SUBROUTINE subrt1
+    params: 
+    returns: R5 -> result
+  NETQASM_START
+    set R5 42
+    ret_reg R5
+  NETQASM_END
+    """
+    )
+
+    program = create_program(instrs=instrs, subroutines=subroutines)
+    process = create_process(
+        pid=0,
+        program=program,
+        unit_module=unit_module,
+        host_interface=procnode.host._interface,
+        inputs={"x": 1, "theta": 3.14, "name": "alice"},
+    )
+    procnode.add_process(process)
+
+    host_processor.initialize(process)
+
+    request = NetstackCreateRequest(
+        remote_id=1,
+        epr_socket_id=0,
+        typ=EprCreateType.CREATE_KEEP,
+        num_pairs=1,
+        fidelity=1.0,
+        virt_qubit_ids=[0],
+        result_array_addr=0,
+    )
+
     def host_run() -> Generator[EventExpression, None, None]:
         yield from host_processor.assign(process, instr_idx=0)
 
@@ -511,6 +596,245 @@ SUBROUTINE subrt1
     assert process.shared_mem.get_reg_value("R5") == 42
 
 
+def test_classical_comm():
+    num_qubits = 3
+    topology = Topology(comm_ids={0, 1, 2}, mem_ids={0, 1, 2})
+
+    global_env = create_global_env(num_qubits)
+    alice_id = global_env.get_node_id("alice")
+    bob_id = global_env.get_node_id("bob")
+
+    class TestProcNode(ProcNode):
+        def run(self) -> Generator[EventExpression, None, None]:
+            process = self.memmgr.get_process(0)
+            yield from self.host.processor.assign(process, 0)
+
+    alice_procnode = create_procnode(
+        "alice", global_env, num_qubits, procnode_cls=TestProcNode
+    )
+    bob_procnode = create_procnode(
+        "bob", global_env, num_qubits, procnode_cls=TestProcNode
+    )
+
+    alice_host_processor = alice_procnode.host.processor
+    bob_host_processor = bob_procnode.host.processor
+
+    unit_module = UnitModule.default_generic(num_qubits)
+
+    alice_instrs = [SendCMsgOp("csocket_id", "message")]
+    alice_meta = ProgramMeta(
+        name="alice",
+        parameters=["csocket_id", "message"],
+        csockets={0: "bob"},
+        epr_sockets={},
+    )
+    alice_program = create_program(instrs=alice_instrs, meta=alice_meta)
+    alice_process = create_process(
+        pid=0,
+        program=alice_program,
+        unit_module=unit_module,
+        host_interface=alice_procnode.host._interface,
+        inputs={"csocket_id": 0, "message": 1337},
+    )
+    alice_procnode.add_process(alice_process)
+    alice_host_processor.initialize(alice_process)
+
+    bob_instrs = [ReceiveCMsgOp("csocket_id", "result")]
+    bob_meta = ProgramMeta(
+        name="bob", parameters=["csocket_id"], csockets={0: "alice"}, epr_sockets={}
+    )
+    bob_program = create_program(instrs=bob_instrs, meta=bob_meta)
+    bob_process = create_process(
+        pid=0,
+        program=bob_program,
+        unit_module=unit_module,
+        host_interface=bob_procnode.host._interface,
+        inputs={"csocket_id": 0},
+    )
+    bob_procnode.add_process(bob_process)
+    bob_host_processor.initialize(bob_process)
+
+    alice_procnode.connect_to(bob_procnode)
+
+    # First start Bob, since Alice won't yield on anything (she only does a Send
+    # instruction) and therefore calling 'start()' on alice completes her whole
+    # protocol while Bob's interface has not even been started.
+    bob_procnode.start()
+    alice_procnode.start()
+    ns.sim_run()
+
+    assert bob_process.host_mem.read("result") == 1337
+
+
+def test_classical_comm_three_nodes():
+    num_qubits = 3
+    topology = Topology(comm_ids={0, 1, 2}, mem_ids={0, 1, 2})
+
+    global_env = create_global_env(num_qubits)
+
+    class SenderProcNode(ProcNode):
+        def run(self) -> Generator[EventExpression, None, None]:
+            process = self.memmgr.get_process(0)
+            yield from self.host.processor.assign(process, 0)
+
+    class ReceiverProcNode(ProcNode):
+        def run(self) -> Generator[EventExpression, None, None]:
+            process = self.memmgr.get_process(0)
+            yield from self.host.processor.assign(process, 0)
+            yield from self.host.processor.assign(process, 1)
+
+    alice_procnode = create_procnode(
+        "alice", global_env, num_qubits, procnode_cls=SenderProcNode
+    )
+    bob_procnode = create_procnode(
+        "bob", global_env, num_qubits, procnode_cls=SenderProcNode
+    )
+    charlie_procnode = create_procnode(
+        "charlie", global_env, num_qubits, procnode_cls=ReceiverProcNode
+    )
+
+    alice_host_processor = alice_procnode.host.processor
+    bob_host_processor = bob_procnode.host.processor
+    charlie_host_processor = charlie_procnode.host.processor
+
+    unit_module = UnitModule.default_generic(num_qubits)
+
+    alice_instrs = [SendCMsgOp("csocket_id", "message")]
+    alice_meta = ProgramMeta(
+        name="alice",
+        parameters=["csocket_id", "message"],
+        csockets={0: "charlie"},
+        epr_sockets={},
+    )
+    alice_program = create_program(instrs=alice_instrs, meta=alice_meta)
+    alice_process = create_process(
+        pid=0,
+        program=alice_program,
+        unit_module=unit_module,
+        host_interface=alice_procnode.host._interface,
+        inputs={"csocket_id": 0, "message": 1337},
+    )
+    alice_procnode.add_process(alice_process)
+    alice_host_processor.initialize(alice_process)
+
+    bob_instrs = [SendCMsgOp("csocket_id", "message")]
+    bob_meta = ProgramMeta(
+        name="bob",
+        parameters=["csocket_id", "message"],
+        csockets={0: "charlie"},
+        epr_sockets={},
+    )
+    bob_program = create_program(instrs=bob_instrs, meta=bob_meta)
+    bob_process = create_process(
+        pid=0,
+        program=bob_program,
+        unit_module=unit_module,
+        host_interface=bob_procnode.host._interface,
+        inputs={"csocket_id": 0, "message": 42},
+    )
+    bob_procnode.add_process(bob_process)
+    bob_host_processor.initialize(bob_process)
+
+    charlie_instrs = [
+        ReceiveCMsgOp("csocket_id_alice", "result_alice"),
+        ReceiveCMsgOp("csocket_id_bob", "result_bob"),
+    ]
+    charlie_meta = ProgramMeta(
+        name="bob",
+        parameters=["csocket_id_alice", "csocket_id_bob"],
+        csockets={0: "alice", 1: "bob"},
+        epr_sockets={},
+    )
+    charlie_program = create_program(instrs=charlie_instrs, meta=charlie_meta)
+    charlie_process = create_process(
+        pid=0,
+        program=charlie_program,
+        unit_module=unit_module,
+        host_interface=charlie_procnode.host._interface,
+        inputs={"csocket_id_alice": 0, "csocket_id_bob": 1},
+    )
+    charlie_procnode.add_process(charlie_process)
+    charlie_host_processor.initialize(charlie_process)
+
+    alice_procnode.connect_to(charlie_procnode)
+    bob_procnode.connect_to(charlie_procnode)
+
+    # First start Charlie, since Alice and Bob don't yield on anything.
+    charlie_procnode.start()
+    alice_procnode.start()
+    bob_procnode.start()
+    ns.sim_run()
+
+    assert charlie_process.host_mem.read("result_alice") == 1337
+    assert charlie_process.host_mem.read("result_bob") == 42
+
+
+def test_batch():
+    num_qubits = 3
+    topology = Topology(comm_ids={0, 1, 2}, mem_ids={0, 1, 2})
+
+    global_env = create_global_env(num_qubits)
+    local_env = LocalEnvironment(global_env, global_env.get_node_id("alice"))
+    procnode = create_procnode("alice", global_env, num_qubits)
+    procnode.qdevice = MockQDevice(topology)
+
+    host_processor = procnode.host.processor
+    qnos_processor = procnode.qnos.processor
+    netstack_processor = procnode.netstack.processor
+
+    unit_module = UnitModule.default_generic(num_qubits)
+
+    instrs = [RunSubroutineOp(None, IqoalaVector([]), "subrt1")]
+    subroutines = parse_iqoala_subroutines(
+        """
+SUBROUTINE subrt1
+    params: 
+    returns: R5 -> result
+  NETQASM_START
+    set R5 42
+    ret_reg R5
+  NETQASM_END
+    """
+    )
+
+    program = create_program(instrs=instrs, subroutines=subroutines)
+    process = create_process(
+        pid=0,
+        program=program,
+        unit_module=unit_module,
+        host_interface=procnode.host._interface,
+        inputs={"x": 1, "theta": 3.14, "name": "alice"},
+    )
+    procnode.add_process(process)
+
+    host_processor.initialize(process)
+
+    request = NetstackCreateRequest(
+        remote_id=1,
+        epr_socket_id=0,
+        typ=EprCreateType.CREATE_KEEP,
+        num_pairs=1,
+        fidelity=1.0,
+        virt_qubit_ids=[0],
+        result_array_addr=0,
+    )
+
+    def qnos_run() -> Generator[EventExpression, None, None]:
+        yield from qnos_processor.assign(process, "subrt1", 0)
+        # Mock sending signal back to Host that subroutine has finished.
+        qnos_processor._interface.send_host_msg(Message(None))
+
+    netsquid_run(host_processor.assign(process, instr_idx=0))
+    netsquid_run(qnos_processor.assign(process, "subrt1", 0))
+    host_processor.copy_subroutine_results(process, "subrt1")
+
+    assert process.host_mem.read("result") == 42
+    assert process.shared_mem.get_reg_value("R5") == 42
+
+
 if __name__ == "__main__":
     # test_initialize()
-    test_2()
+    # test_2()
+    # test_2_async()
+    # test_classical_comm()
+    test_classical_comm_three_nodes()

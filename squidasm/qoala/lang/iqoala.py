@@ -736,6 +736,7 @@ class IqoalaParser:
         for i, line in enumerate(lines):
             if "SUBROUTINE" in line:
                 first_subrt_line = i
+                break
 
         meta_text = "\n".join(lines[0 : meta_end_line + 1])
         instr_text = "\n".join(lines[meta_end_line + 1 : first_subrt_line])

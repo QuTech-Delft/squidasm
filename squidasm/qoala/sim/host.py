@@ -25,6 +25,7 @@ class Host(Protocol):
         comp: HostComponent,
         local_env: LocalEnvironment,
         scheduler: Scheduler,
+        asynchronous: bool = False,
     ) -> None:
         """Host protocol constructor.
 
@@ -39,7 +40,7 @@ class Host(Protocol):
 
         # Owned objects.
         self._interface = HostInterface(comp, local_env)
-        self._processor = HostProcessor(self._interface)
+        self._processor = HostProcessor(self._interface, asynchronous)
         self._processes: Dict[int, IqoalaProcess] = {}
 
     @property
@@ -60,13 +61,14 @@ class Host(Protocol):
         return self._local_env
 
     def run(self) -> Generator[EventExpression, None, None]:
-        while True:
-            task = self._scheduler.next_host_task()
-            if task.no_more_tasks:
-                break
+        pass
+        # while True:
+        #     task = self._scheduler.next_host_task()
+        #     if task.no_more_tasks:
+        #         break
 
-            process = self._processes[task.pid]
-            yield from self.processor.assign(process, task.instr_idx)
+        #     process = self._processes[task.pid]
+        #     yield from self.processor.assign(process, task.instr_idx)
 
     def start(self) -> None:
         assert self._interface is not None

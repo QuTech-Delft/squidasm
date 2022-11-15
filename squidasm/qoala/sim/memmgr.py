@@ -76,6 +76,9 @@ class MemoryManager:
             unit_module, {x: None for x in unit_module.qubit_ids}
         )
 
+    def get_process(self, pid: int) -> IqoalaProcess:
+        return self._processes[pid]
+
     def allocate(self, pid: int, virt_id: int) -> int:
         vmap = self._process_mappings[pid]
         # Check if the virtual ID is in the unit module
