@@ -11,11 +11,15 @@ from squidasm.qoala.sim.memory import HostMemory, ProgramMemory, SharedMemory
 @dataclass
 class IqoalaProcess:
     prog_instance: ProgramInstance
+
+    # Mutable
     prog_memory: ProgramMemory
+    result: ProgramResult
+
+    # Immutable
     csockets: Dict[int, ClassicalSocket]
     epr_sockets: Dict[int, EprSocket]
     subroutines: Dict[str, IqoalaSubroutine]
-    result: ProgramResult
 
     @property
     def pid(self) -> int:

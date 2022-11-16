@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, Generator, List, Optional, Union
+from typing import List, Optional, Union
 
 
 class EprCreateType(Enum):
@@ -47,7 +47,7 @@ class NetstackBreakpointReceiveRequest:
     pid: int
 
 
-T_NetstackReqeust = Union[
+T_NetstackRequest = Union[
     NetstackCreateRequest,
     NetstackReceiveRequest,
     NetstackBreakpointCreateRequest,

@@ -7,12 +7,10 @@ from netsquid.protocols import Protocol
 
 from pydynaa import EventExpression, EventType
 from squidasm.qoala.runtime.environment import LocalEnvironment
-from squidasm.qoala.sim.common import ComponentProtocol
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.hostcomp import HostComponent
 from squidasm.qoala.sim.hostinterface import HostInterface
 from squidasm.qoala.sim.hostprocessor import HostProcessor, IqoalaProcess
-from squidasm.qoala.sim.scheduler import Scheduler
 
 EVENT_WAIT = EventType("SCHEDULER_WAIT", "scheduler wait")
 
@@ -24,7 +22,6 @@ class Host(Protocol):
         self,
         comp: HostComponent,
         local_env: LocalEnvironment,
-        scheduler: Scheduler,
         asynchronous: bool = False,
     ) -> None:
         """Host protocol constructor.
@@ -35,7 +32,6 @@ class Host(Protocol):
 
         # References to objects.
         self._comp = comp
-        self._scheduler = scheduler
         self._local_env = local_env
 
         # Owned objects.
@@ -59,16 +55,6 @@ class Host(Protocol):
     @property
     def local_env(self) -> LocalEnvironment:
         return self._local_env
-
-    def run(self) -> Generator[EventExpression, None, None]:
-        pass
-        # while True:
-        #     task = self._scheduler.next_host_task()
-        #     if task.no_more_tasks:
-        #         break
-
-        #     process = self._processes[task.pid]
-        #     yield from self.processor.assign(process, task.instr_idx)
 
     def start(self) -> None:
         assert self._interface is not None

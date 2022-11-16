@@ -86,21 +86,13 @@ class ProcNode(Protocol):
         else:
             raise ValueError
 
-        if scheduler is None:
-            self._scheduler = Scheduler(self._node.name)
-        else:
-            self._scheduler = scheduler
-
-        self._host = Host(
-            self.host_comp, self._local_env, self._scheduler, self._asynchronous
-        )
+        self._host = Host(self.host_comp, self._local_env, self._asynchronous)
         self._memmgr = MemoryManager(self.node.name, self._qdevice)
         self._egpmgr = EgpManager()
         self._qnos = Qnos(
             self.qnos_comp,
             self._local_env,
             self._memmgr,
-            self._scheduler,
             self._qdevice,
             self._asynchronous,
         )
@@ -109,9 +101,15 @@ class ProcNode(Protocol):
             self._local_env,
             self._memmgr,
             self._egpmgr,
-            self.scheduler,
             self._qdevice,
         )
+
+        if scheduler is None:
+            self._scheduler = Scheduler(
+                self._node.name, self._host, self._qnos, self._netstack
+            )
+        else:
+            self._scheduler = scheduler
 
         self._prog_instance_counter: int = 0
         self._batch_counter: int = 0

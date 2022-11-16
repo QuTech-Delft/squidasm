@@ -22,7 +22,18 @@ from netsquid.components import QuantumProcessor
 from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z
 from netsquid.nodes import Node
 from netsquid.protocols import Protocol
+from netsquid.qubits import ketstates
 from netsquid.qubits.ketstates import BellIndex
+from netsquid_magic.link_layer import (
+    MagicLinkLayerProtocol,
+    MagicLinkLayerProtocolWithSignaling,
+    SingleClickTranslationUnit,
+)
+from netsquid_magic.magic_distributor import (
+    DepolariseWithFailureMagicDistributor,
+    DoubleClickMagicDistributor,
+    PerfectStateMagicDistributor,
+)
 from qlink_interface import (
     ReqCreateAndKeep,
     ReqCreateBase,
@@ -87,7 +98,7 @@ from squidasm.qoala.sim.requests import (
     NetstackCreateRequest,
     NetstackReceiveRequest,
 )
-from squidasm.util.tests import netsquid_run, yield_from
+from squidasm.util.tests import has_multi_state, has_state, netsquid_run, yield_from
 
 MOCK_MESSAGE = Message(content=42)
 MOCK_QNOS_RET_REG = "R0"
@@ -383,6 +394,16 @@ def simple_subroutine(name: str, subrt_text: str) -> IqoalaSubroutine:
 
 def parse_iqoala_subroutines(subrt_text: str) -> IqoalaSubroutine:
     return IQoalaSubroutineParser(subrt_text).parse()
+
+
+def create_egp_protocols(node1: Node, node2: Node) -> Tuple[EgpProtocol, EgpProtocol]:
+    link_dist = PerfectStateMagicDistributor(nodes=[node1, node2], state_delay=1000.0)
+    link_prot = MagicLinkLayerProtocolWithSignaling(
+        nodes=[node1, node2],
+        magic_distributor=link_dist,
+        translation_unit=SingleClickTranslationUnit(),
+    )
+    return EgpProtocol(node1, link_prot), EgpProtocol(node2, link_prot)
 
 
 def test_initialize():
@@ -769,48 +790,69 @@ def test_classical_comm_three_nodes():
     assert charlie_process.host_mem.read("result_bob") == 42
 
 
-def test_batch():
+def test_epr():
     num_qubits = 3
     topology = Topology(comm_ids={0, 1, 2}, mem_ids={0, 1, 2})
 
     global_env = create_global_env(num_qubits)
-    local_env = LocalEnvironment(global_env, global_env.get_node_id("alice"))
-    procnode = create_procnode("alice", global_env, num_qubits)
-    procnode.qdevice = MockQDevice(topology)
+    alice_id = global_env.get_node_id("alice")
+    bob_id = global_env.get_node_id("bob")
 
-    host_processor = procnode.host.processor
-    qnos_processor = procnode.qnos.processor
-    netstack_processor = procnode.netstack.processor
+    class TestProcNode(ProcNode):
+        def run(self) -> Generator[EventExpression, None, None]:
+            process = self.memmgr.get_process(0)
+            request = process.prog_memory.requests[0]
+            yield from self.netstack.processor.assign(process, request)
+
+    alice_procnode = create_procnode(
+        "alice", global_env, num_qubits, procnode_cls=TestProcNode
+    )
+    bob_procnode = create_procnode(
+        "bob", global_env, num_qubits, procnode_cls=TestProcNode
+    )
+
+    alice_host_processor = alice_procnode.host.processor
+    bob_host_processor = bob_procnode.host.processor
 
     unit_module = UnitModule.default_generic(num_qubits)
 
-    instrs = [RunSubroutineOp(None, IqoalaVector([]), "subrt1")]
-    subroutines = parse_iqoala_subroutines(
-        """
-SUBROUTINE subrt1
-    params: 
-    returns: R5 -> result
-  NETQASM_START
-    set R5 42
-    ret_reg R5
-  NETQASM_END
-    """
+    alice_instrs = [SendCMsgOp("csocket_id", "message")]
+    alice_meta = ProgramMeta(
+        name="alice",
+        parameters=["csocket_id", "message"],
+        csockets={0: "bob"},
+        epr_sockets={},
     )
-
-    program = create_program(instrs=instrs, subroutines=subroutines)
-    process = create_process(
+    alice_program = create_program(instrs=alice_instrs, meta=alice_meta)
+    alice_process = create_process(
         pid=0,
-        program=program,
+        program=alice_program,
         unit_module=unit_module,
-        host_interface=procnode.host._interface,
-        inputs={"x": 1, "theta": 3.14, "name": "alice"},
+        host_interface=alice_procnode.host._interface,
+        inputs={"csocket_id": 0, "message": 1337},
     )
-    procnode.add_process(process)
+    alice_procnode.add_process(alice_process)
+    alice_host_processor.initialize(alice_process)
 
-    host_processor.initialize(process)
+    bob_instrs = [ReceiveCMsgOp("csocket_id", "result")]
+    bob_meta = ProgramMeta(
+        name="bob", parameters=["csocket_id"], csockets={0: "alice"}, epr_sockets={}
+    )
+    bob_program = create_program(instrs=bob_instrs, meta=bob_meta)
+    bob_process = create_process(
+        pid=0,
+        program=bob_program,
+        unit_module=unit_module,
+        host_interface=bob_procnode.host._interface,
+        inputs={"csocket_id": 0},
+    )
+    bob_procnode.add_process(bob_process)
+    bob_host_processor.initialize(bob_process)
 
-    request = NetstackCreateRequest(
-        remote_id=1,
+    alice_procnode.connect_to(bob_procnode)
+
+    alice_request = NetstackCreateRequest(
+        remote_id=bob_id,
         epr_socket_id=0,
         typ=EprCreateType.CREATE_KEEP,
         num_pairs=1,
@@ -819,17 +861,35 @@ SUBROUTINE subrt1
         result_array_addr=0,
     )
 
-    def qnos_run() -> Generator[EventExpression, None, None]:
-        yield from qnos_processor.assign(process, "subrt1", 0)
-        # Mock sending signal back to Host that subroutine has finished.
-        qnos_processor._interface.send_host_msg(Message(None))
+    bob_request = NetstackReceiveRequest(
+        remote_id=alice_id,
+        epr_socket_id=0,
+        typ=EprCreateType.CREATE_KEEP,
+        num_pairs=1,
+        fidelity=1.0,
+        virt_qubit_ids=[0],
+        result_array_addr=0,
+    )
 
-    netsquid_run(host_processor.assign(process, instr_idx=0))
-    netsquid_run(qnos_processor.assign(process, "subrt1", 0))
-    host_processor.copy_subroutine_results(process, "subrt1")
+    alice_egp, bob_egp = create_egp_protocols(alice_procnode.node, bob_procnode.node)
+    alice_procnode.egpmgr.add_egp(bob_id, alice_egp)
+    bob_procnode.egpmgr.add_egp(alice_id, bob_egp)
+    alice_process.prog_memory.requests = [alice_request]
+    bob_process.prog_memory.requests = [bob_request]
 
-    assert process.host_mem.read("result") == 42
-    assert process.shared_mem.get_reg_value("R5") == 42
+    # First start Bob, since Alice won't yield on anything (she only does a Send
+    # instruction) and therefore calling 'start()' on alice completes her whole
+    # protocol while Bob's interface has not even been started.
+    bob_procnode.start()
+    alice_procnode.start()
+    ns.sim_run()
+
+    assert alice_procnode.memmgr.phys_id_for(pid=0, virt_id=0) == 0
+    assert bob_procnode.memmgr.phys_id_for(pid=0, virt_id=0) == 0
+
+    alice_qubit = alice_procnode.qdevice.get_local_qubit(0)
+    bob_qubit = bob_procnode.qdevice.get_local_qubit(0)
+    assert has_multi_state([alice_qubit, bob_qubit], ketstates.b00)
 
 
 if __name__ == "__main__":
@@ -837,4 +897,5 @@ if __name__ == "__main__":
     # test_2()
     # test_2_async()
     # test_classical_comm()
-    test_classical_comm_three_nodes()
+    # test_classical_comm_three_nodes()
+    test_epr()

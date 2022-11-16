@@ -5,7 +5,6 @@ from typing import Dict
 from netsquid.protocols import Protocol
 
 from squidasm.qoala.runtime.environment import LocalEnvironment
-from squidasm.qoala.sim.common import ComponentProtocol
 from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import PhysicalQuantumMemory, QDevice, QDeviceType
@@ -16,7 +15,6 @@ from squidasm.qoala.sim.qnosprocessor import (
     NVProcessor,
     QnosProcessor,
 )
-from squidasm.qoala.sim.scheduler import Scheduler
 
 
 class Qnos(Protocol):
@@ -27,7 +25,6 @@ class Qnos(Protocol):
         comp: QnosComponent,
         local_env: LocalEnvironment,
         memmgr: MemoryManager,
-        scheduler: Scheduler,
         qdevice: QDevice,
         asynchronous: bool = False,
     ) -> None:
@@ -40,7 +37,6 @@ class Qnos(Protocol):
 
         # References to objects.
         self._comp = comp
-        self._scheduler = scheduler
         self._local_env = local_env
 
         # Values are references to objects created elsewhere

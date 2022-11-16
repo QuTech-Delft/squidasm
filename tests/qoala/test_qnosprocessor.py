@@ -190,12 +190,14 @@ def execute_multiple_processes(
 
 
 def setup_components(
-    topology: Topology, netstack_result: Optional[MockNetstackResultInfo] = None
+    topology: Topology,
+    netstack_result: Optional[MockNetstackResultInfo] = None,
+    asynchronous: bool = False,
 ) -> Tuple[QnosProcessor, UnitModule]:
     qdevice = MockQDevice(topology)
     unit_module = UnitModule.from_topology(topology)
     interface = MockQnosInterface(qdevice, netstack_result)
-    processor = QnosProcessor(interface)
+    processor = QnosProcessor(interface, asynchronous)
     return (processor, unit_module)
 
 
@@ -479,6 +481,62 @@ def test_create_epr():
         result_array_addr=result_array,
     )
 
+    assert process.prog_memory.requests[0] == expected_request
+
+    mem = process.prog_memory.shared_mem
+    assert mem.get_array_value(qubit_array, 0) == qubit_id
+    assert mem.get_array_value(arg_array, SER_CREATE_IDX_TYPE) == create_type
+    assert mem.get_array_value(arg_array, SER_CREATE_IDX_NUMBER) == epr_count
+    assert (
+        mem.get_array_value(arg_array, SER_CREATE_IDX_ROTATION_X_REMOTE2)
+        == rot_x_remote2
+    )
+
+
+def test_create_epr_async():
+    processor, unit_module = setup_components(
+        Topology(comm_ids={0}, mem_ids={0}), asynchronous=True
+    )
+
+    qubit_array = 0
+    arg_array = 1
+    result_array = 2
+
+    qubit_id = 8
+    create_type = 2  # RSP
+    epr_count = 6
+    rot_x_remote2 = 1
+
+    remote_id = 2
+    epr_sck_id = 4
+
+    pid = 0
+    fidelity = 0.75
+
+    subrt = f"""
+    array 1 @{qubit_array}
+    store {qubit_id} @{qubit_array}[0]
+    array 20 @{arg_array}
+    store {create_type} @{arg_array}[{SER_CREATE_IDX_TYPE}]
+    store {epr_count} @{arg_array}[{SER_CREATE_IDX_NUMBER}]
+    store {rot_x_remote2} @{arg_array}[{SER_CREATE_IDX_ROTATION_X_REMOTE2}]
+    array 10 @{result_array}
+    create_epr({remote_id}, {epr_sck_id}) 0 1 2
+    """
+    process = create_process_with_subrt(pid, subrt, unit_module)
+    processor._interface.memmgr.add_process(process)
+    execute_process(processor, process)
+
+    expected_request = NetstackCreateRequest(
+        remote_id=remote_id,
+        epr_socket_id=epr_sck_id,
+        typ=EprCreateType.REMOTE_STATE_PREP,
+        num_pairs=epr_count,
+        fidelity=1.0,  # TODO: fix hardcoded only allowed value
+        virt_qubit_ids=[8],
+        result_array_addr=result_array,
+    )
+
     assert processor._interface.send_events[0] == InterfaceEvent(
         "netstack", Message(expected_request)
     )
@@ -526,9 +584,8 @@ def test_recv_epr():
         result_array_addr=result_array,
     )
 
-    assert processor._interface.send_events[0] == InterfaceEvent(
-        "netstack", Message(expected_request)
-    )
+    assert process.prog_memory.requests[0] == expected_request
+
     mem = process.prog_memory.shared_mem
     assert mem.get_array_value(qubit_array, 0) == qubit_id
 
@@ -576,6 +633,7 @@ if __name__ == "__main__":
     # test_no_branch()
     # test_branch()
     # test_array()
-    # test_create_epr()
-    # test_recv_epr()
-    test_wait_all()
+    test_create_epr()
+    test_create_epr_async()
+    test_recv_epr()
+    # test_wait_all()

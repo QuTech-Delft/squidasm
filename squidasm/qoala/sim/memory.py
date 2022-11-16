@@ -7,6 +7,8 @@ from netqasm.lang import operand
 from netqasm.lang.encoding import RegisterName
 from netqasm.sdk.shared_memory import Arrays, RegisterGroup, setup_registers
 
+from squidasm.qoala.sim.requests import T_NetstackRequest
+
 
 class RegisterMeta:
     @classmethod
@@ -285,6 +287,8 @@ class ProgramMemory:
         self._qnos_memory = QnosMemory(pid)
         self._quantum_memory = QuantumMemory(pid, unit_module)
 
+        self._requests: List[T_NetstackRequest] = []
+
         self._prog_counter: int = 0
 
     @property
@@ -302,6 +306,14 @@ class ProgramMemory:
     @property
     def quantum_mem(self) -> QuantumMemory:
         return self._quantum_memory
+
+    @property
+    def requests(self) -> List[T_NetstackRequest]:
+        return self._requests
+
+    @requests.setter
+    def requests(self, requests) -> None:
+        self._requests = requests
 
     @property
     def prog_counter(self) -> int:

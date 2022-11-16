@@ -1,4 +1,4 @@
-from typing import Dict, Generator
+from typing import Dict
 
 from squidasm.qoala.sim.egp import EgpProtocol
 

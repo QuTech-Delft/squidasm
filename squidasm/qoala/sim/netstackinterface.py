@@ -4,7 +4,6 @@ from typing import Generator
 
 from qlink_interface.interface import (
     ReqCreateBase,
-    ResCreate,
     ResCreateAndKeep,
     ResMeasureDirectly,
 )

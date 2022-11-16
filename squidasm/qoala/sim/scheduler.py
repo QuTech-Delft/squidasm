@@ -12,8 +12,11 @@ from squidasm.qoala.lang import iqoala
 from squidasm.qoala.runtime.program import BatchResult, ProgramInstance
 from squidasm.qoala.runtime.schedule import Schedule
 from squidasm.qoala.sim.csocket import ClassicalSocket
+from squidasm.qoala.sim.host import Host
 from squidasm.qoala.sim.logging import LogManager
+from squidasm.qoala.sim.netstack import Netstack
 from squidasm.qoala.sim.process import IqoalaProcess
+from squidasm.qoala.sim.qnos import Qnos
 
 
 @dataclass
@@ -42,8 +45,15 @@ class ProgramSchedule:
 
 
 class Scheduler(Protocol):
-    def __init__(self, node_name: str) -> None:
+    def __init__(
+        self, node_name: str, host: Host, qnos: Qnos, netstack: Netstack
+    ) -> None:
         self._node_name = node_name
+
+        self._host = host
+        self._qnos = qnos
+        self._netstack = netstack
+
         self._queued_programs: Dict[int, ProgramInstance] = {}
         self._program_counter: int = 0
         self._batch_counter: int = 0

@@ -238,13 +238,36 @@ def test_run_subroutine():
     for i in range(len(program.instructions)):
         yield_from(processor.assign(process, i))
 
+    # Non-async host processor should not have done any communciation.
+    assert len(interface.send_events) == 0
+    assert len(interface.recv_events) == 0
+
+
+def test_run_subroutine_async():
+    interface = MockHostInterface()
+    processor = HostProcessor(interface, asynchronous=True)
+
+    subrt = Subroutine()
+    iqoala_subrt = IqoalaSubroutine("subrt1", subrt, return_map={})
+
+    program = create_program(
+        instrs=[RunSubroutineOp(None, IqoalaVector([]), "subrt1")],
+        subroutines={"subrt1": iqoala_subrt},
+    )
+    process = create_process(program, interface)
+    processor.initialize(process)
+
+    for i in range(len(program.instructions)):
+        yield_from(processor.assign(process, i))
+
+    # Async host processor should have communicated with the qnos processor.
     assert interface.send_events[0] == InterfaceEvent("qnos", Message("subrt1"))
     assert interface.recv_events[0] == InterfaceEvent("qnos", MOCK_MESSAGE)
 
 
-def test_run_subroutine2():
+def test_run_subroutine_async_2():
     interface = MockHostInterface()
-    processor = HostProcessor(interface)
+    processor = HostProcessor(interface, asynchronous=True)
 
     subrt_text = """
     set R0 {my_value}
@@ -303,5 +326,6 @@ if __name__ == "__main__":
     test_multiply_const()
     test_bit_cond_mult()
     test_run_subroutine()
-    test_run_subroutine2()
+    test_run_subroutine_async()
+    test_run_subroutine_async_2()
     test_return_result()

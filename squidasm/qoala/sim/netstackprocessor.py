@@ -1,11 +1,8 @@
 import logging
-from asyncio import wait_for
 from typing import Generator, List, Optional
 
 import netsquid as ns
 from netqasm.sdk.build_epr import (
-    SER_CREATE_IDX_NUMBER,
-    SER_CREATE_IDX_TYPE,
     SER_RESPONSE_KEEP_IDX_BELL_STATE,
     SER_RESPONSE_KEEP_IDX_GOODNESS,
     SER_RESPONSE_KEEP_LEN,
@@ -27,9 +24,8 @@ from qlink_interface import (
 
 from pydynaa import EventExpression
 from squidasm.qoala.sim.constants import PI
-from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.logging import LogManager
-from squidasm.qoala.sim.memmgr import AllocError, MemoryManager
+from squidasm.qoala.sim.memmgr import AllocError
 from squidasm.qoala.sim.memory import ProgramMemory, SharedMemory
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.netstackinterface import NetstackInterface
@@ -41,7 +37,7 @@ from squidasm.qoala.sim.requests import (
     NetstackBreakpointReceiveRequest,
     NetstackCreateRequest,
     NetstackReceiveRequest,
-    T_NetstackReqeust,
+    T_NetstackRequest,
 )
 
 
@@ -107,7 +103,7 @@ class NetstackProcessor:
         return ll_request
 
     def assign(
-        self, process: IqoalaProcess, request: T_NetstackReqeust
+        self, process: IqoalaProcess, request: T_NetstackRequest
     ) -> Generator[EventExpression, None, int]:
 
         if isinstance(request, NetstackCreateRequest):
@@ -214,7 +210,7 @@ class NetstackProcessor:
         ll_request = self._create_link_layer_create_request(request)
         ll_request.number = 1
 
-        self._logger.info(f"trying to allocate comm qubit")
+        self._logger.info("trying to allocate comm qubit")
         while True:
             try:
                 self._interface.memmgr.allocate_comm(process.pid, virt_id)
@@ -236,11 +232,11 @@ class NetstackProcessor:
                 )
 
         # Put the request to the EGP.
-        self._logger.info(f"putting CK request")
+        self._logger.info("putting CK request")
         self._interface.put_request(request.remote_id, ll_request)
 
         # Wait for a signal from the EGP.
-        self._logger.info(f"waiting for result")
+        self._logger.info("waiting for result")
         result = yield from self._interface.await_result_create_keep(request.remote_id)
         self._logger.info(f"got result: {result}")
 
@@ -428,7 +424,7 @@ class NetstackProcessor:
         virt_id: int,
         wait_for_free: bool = False,
     ) -> Generator[EventExpression, None, ResCreateAndKeep]:
-        self._logger.info(f"trying to allocate comm qubit")
+        self._logger.info("trying to allocate comm qubit")
         while True:
             try:
                 self._interface.memmgr.allocate_comm(process.pid, virt_id)
@@ -449,9 +445,9 @@ class NetstackProcessor:
                 )
 
         # Put the request to the EGP.
-        self._logger.info(f"putting CK request")
+        self._logger.info("putting CK request")
         self._interface.put_request(request.remote_id, ReqReceive(request.remote_id))
-        self._logger.info(f"waiting for result")
+        self._logger.info("waiting for result")
 
         # Wait for a signal from the EGP.
         result = yield from self._interface.await_result_create_keep(request.remote_id)

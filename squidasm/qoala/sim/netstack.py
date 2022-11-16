@@ -6,7 +6,6 @@ from netsquid.protocols import Protocol
 
 from pydynaa import EventExpression
 from squidasm.qoala.runtime.environment import LocalEnvironment
-from squidasm.qoala.sim.common import ComponentProtocol
 from squidasm.qoala.sim.egpmgr import EgpManager
 from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.netstackcomp import NetstackComponent
@@ -14,7 +13,6 @@ from squidasm.qoala.sim.netstackinterface import NetstackInterface
 from squidasm.qoala.sim.netstackprocessor import NetstackProcessor
 from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import QDevice
-from squidasm.qoala.sim.scheduler import Scheduler
 
 
 class Netstack(Protocol):
@@ -26,7 +24,6 @@ class Netstack(Protocol):
         local_env: LocalEnvironment,
         memmgr: MemoryManager,
         egpmgr: EgpManager,
-        scheduler: Scheduler,
         qdevice: QDevice,
     ) -> None:
         """Network stack protocol constructor. Typically created indirectly through
@@ -39,7 +36,6 @@ class Netstack(Protocol):
 
         # References to objects.
         self._comp = comp
-        self._scheduler = scheduler
         self._local_env = local_env
 
         # Values are references to objects created elsewhere
@@ -55,7 +51,7 @@ class Netstack(Protocol):
             # Wait for a new message.
             msg = yield from self._interface.receive_qnos_msg()
             self._logger.debug(f"received new msg from processor: {msg}")
-            request = msg.content
+            # request = msg.content
 
     @property
     def qdevice(self) -> QDevice:

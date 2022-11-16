@@ -38,7 +38,6 @@ class HostProcessor:
     ) -> Generator[EventExpression, None, None]:
         csockets = process.csockets
         host_mem = process.prog_memory.host_mem
-        shared_mem = process.prog_memory.shared_mem
         pid = process.prog_instance.pid
         program = process.prog_instance.program
 
