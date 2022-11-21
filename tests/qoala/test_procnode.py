@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type
 
 import netsquid as ns
 import pytest
+from netqasm.lang.instr.core import CreateEPRInstruction, RecvEPRInstruction
 from netqasm.lang.parsing import parse_text_subroutine
 from netqasm.lang.subroutine import Subroutine
 from netqasm.sdk.build_epr import (
@@ -50,7 +52,9 @@ from squidasm.qoala.lang.iqoala import (
     AssignCValueOp,
     BitConditionalMultiplyConstantCValueOp,
     ClassicalIqoalaOp,
+    IqoalaParser,
     IqoalaProgram,
+    IqoalaRequest,
     IqoalaSharedMemLoc,
     IqoalaSubroutine,
     IQoalaSubroutineParser,
@@ -305,15 +309,21 @@ class MockHostInterface(HostInterface):
 def create_program(
     instrs: Optional[List[ClassicalIqoalaOp]] = None,
     subroutines: Optional[Dict[str, IqoalaSubroutine]] = None,
+    requests: Optional[Dict[str, IqoalaRequest]] = None,
     meta: Optional[ProgramMeta] = None,
 ) -> IqoalaProgram:
     if instrs is None:
         instrs = []
     if subroutines is None:
         subroutines = {}
+
+    if requests is None:
+        requests = {}
     if meta is None:
         meta = ProgramMeta.empty("prog")
-    return IqoalaProgram(instructions=instrs, subroutines=subroutines, meta=meta)
+    return IqoalaProgram(
+        instructions=instrs, subroutines=subroutines, meta=meta, requests=requests
+    )
 
 
 def create_process(
@@ -338,6 +348,7 @@ def create_process(
         },
         epr_sockets=program.meta.epr_sockets,
         subroutines=program.subroutines,
+        requests=program.requests,
         result=ProgramResult(values={}),
     )
     return process
@@ -348,21 +359,13 @@ def create_qprocessor(name: str, num_qubits: int) -> QuantumProcessor:
     return build_generic_qprocessor(name=f"{name}_processor", cfg=cfg)
 
 
-def create_global_env(num_qubits: int) -> GlobalEnvironment:
-    alice_node_id = 0
-    bob_node_id = 1
-    charlie_node_id = 2
+def create_global_env(
+    num_qubits: int, names: List[str] = ["alice", "bob", "charlie"]
+) -> GlobalEnvironment:
 
     env = GlobalEnvironment()
-    env.add_node(
-        alice_node_id, GlobalNodeInfo.default_nv("alice", alice_node_id, num_qubits)
-    )
-    env.add_node(bob_node_id, GlobalNodeInfo.default_nv("bob", bob_node_id, num_qubits))
-    env.add_node(
-        charlie_node_id,
-        GlobalNodeInfo.default_nv("charlie", charlie_node_id, num_qubits),
-    )
-
+    for i, name in enumerate(names):
+        env.add_node(i, GlobalNodeInfo.default_nv(name, i, num_qubits))
     return env
 
 
@@ -501,6 +504,7 @@ def test_2():
 SUBROUTINE subrt1
     params: 
     returns: R5 -> result
+    request:
   NETQASM_START
     set R5 42
     ret_reg R5
@@ -571,6 +575,7 @@ def test_2_async():
 SUBROUTINE subrt1
     params: 
     returns: R5 -> result
+    request:
   NETQASM_START
     set R5 42
     ret_reg R5
@@ -892,10 +897,157 @@ def test_epr():
     assert has_multi_state([alice_qubit, bob_qubit], ketstates.b00)
 
 
+def test_whole_program():
+    server_text = """
+META_START
+    name: server
+    parameters: client_id
+    csockets: 0 -> client
+    epr_sockets: 0 -> client
+META_END
+
+remote_id = assign_cval() : {client_id}
+run_subroutine(vec<remote_id>) : subrt1
+
+SUBROUTINE subrt1
+    params: remote_id
+    returns:
+    request: req1
+  NETQASM_START
+    array 10 @0
+    recv_epr C15 C0 C1 C0
+    wait_all @0[0:10]
+  NETQASM_END
+
+REQUEST req1
+  role: receive
+  remote_id: {client_id}
+  epr_socket_id: 0
+  typ: create_keep
+  num_pairs: 1
+  fidelity: 1.0
+  virt_qubit_ids: 0
+  result_array_addr: 0
+    """
+    server_program = IqoalaParser(server_text).parse()
+
+    num_qubits = 3
+    unit_module = UnitModule.default_generic(num_qubits)
+    global_env = create_global_env(num_qubits, names=["client", "server"])
+    server_id = global_env.get_node_id("server")
+    client_id = global_env.get_node_id("client")
+
+    class TestProcNode(ProcNode):
+        def run(self) -> Generator[EventExpression, None, None]:
+            process = self.memmgr.get_process(0)
+            self.scheduler.initialize(process)
+
+            subrt1 = process.subroutines["subrt1"]
+            epr_instr_idx = None
+            for i, instr in enumerate(subrt1.subroutine.instructions):
+                if isinstance(instr, CreateEPRInstruction) or isinstance(
+                    instr, RecvEPRInstruction
+                ):
+                    epr_instr_idx = i
+                    break
+
+            for i in range(epr_instr_idx):
+                yield from self.qnos.processor.assign(process, "subrt1", i)
+
+            request = process.requests["req1"].request
+            print("hello 1?")
+            yield from self.netstack.processor.assign(process, request)
+
+            # wait instr
+            yield from self.qnos.processor.assign(process, "subrt1", epr_instr_idx + 1)
+            print("hello 2?")
+            # yield from self.netstack.processor.assign(process, request)
+
+    server_procnode = create_procnode(
+        "server", global_env, num_qubits, procnode_cls=TestProcNode
+    )
+    server_process = create_process(
+        pid=0,
+        program=server_program,
+        unit_module=unit_module,
+        host_interface=server_procnode.host._interface,
+        inputs={"client_id": client_id, "csocket_id": 0, "message": 1337},
+    )
+    server_procnode.add_process(server_process)
+
+    client_text = """
+META_START
+    name: client
+    parameters: server_id
+    csockets: 0 -> server
+    epr_sockets: 0 -> server
+META_END
+
+remote_id = assign_cval() : {server_id}
+run_subroutine(vec<remote_id>) : subrt1
+
+SUBROUTINE subrt1
+    params: remote_id
+    returns:
+    request: req1
+  NETQASM_START
+    set C10 10
+    array C10 @0
+    create_epr C15 C0 C1 C2 C0
+    wait_all @0[0:10]
+  NETQASM_END
+
+REQUEST req1
+  role: create
+  remote_id: {server_id}
+  epr_socket_id: 0
+  typ: create_keep
+  num_pairs: 1
+  fidelity: 1.0
+  virt_qubit_ids: 0
+  result_array_addr: 0
+    """
+    client_program = IqoalaParser(client_text).parse()
+    client_procnode = create_procnode(
+        "client", global_env, num_qubits, procnode_cls=TestProcNode
+    )
+    client_process = create_process(
+        pid=0,
+        program=client_program,
+        unit_module=unit_module,
+        host_interface=client_procnode.host._interface,
+        inputs={"server_id": server_id, "csocket_id": 0, "message": 1337},
+    )
+    client_procnode.add_process(client_process)
+
+    client_egp, server_egp = create_egp_protocols(
+        client_procnode.node, server_procnode.node
+    )
+    client_procnode.egpmgr.add_egp(server_id, client_egp)
+    server_procnode.egpmgr.add_egp(client_id, server_egp)
+
+    client_procnode.connect_to(server_procnode)
+
+    # client_egp._ll_prot.start()
+    server_procnode.start()
+    client_procnode.start()
+    ns.sim_run()
+
+    assert client_procnode.memmgr.phys_id_for(pid=0, virt_id=0) == 0
+    assert server_procnode.memmgr.phys_id_for(pid=0, virt_id=0) == 0
+    client_qubit = client_procnode.qdevice.get_local_qubit(0)
+    server_qubit = server_procnode.qdevice.get_local_qubit(0)
+    assert has_multi_state([client_qubit, server_qubit], ketstates.b00)
+
+    # assert client_procnode.memmgr.phys_id_for(pid=0, virt_id=1) == 1
+    # assert server_procnode.memmgr.phys_id_for(pid=0, virt_id=1) == 1
+
+
 if __name__ == "__main__":
     # test_initialize()
     # test_2()
     # test_2_async()
     # test_classical_comm()
     # test_classical_comm_three_nodes()
-    test_epr()
+    # test_epr()
+    test_whole_program()

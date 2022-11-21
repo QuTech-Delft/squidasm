@@ -84,7 +84,11 @@ class Netstack(Protocol):
     def start(self) -> None:
         super().start()
         self._interface.start()
+        for egp in self._interface.egpmgr.egps.values():
+            egp.start()
 
     def stop(self) -> None:
+        for egp in self._interface.egpmgr.egps.values():
+            egp.stop()
         self._interface.stop()
         super().stop()

@@ -458,101 +458,101 @@ class QnosProcessor:
     def _interpret_create_epr(
         self, pid: int, instr: core.CreateEPRInstruction
     ) -> Optional[Generator[EventExpression, None, None]]:
-        shared_mem = self._prog_mem().shared_mem
-        remote_node_id = shared_mem.get_reg_value(instr.remote_node_id)
-        epr_socket_id = shared_mem.get_reg_value(instr.epr_socket_id)
-        qubit_array_addr = shared_mem.get_reg_value(instr.qubit_addr_array)
-        arg_array_addr = shared_mem.get_reg_value(instr.arg_array)
-        result_array_addr = shared_mem.get_reg_value(instr.ent_results_array)
-        assert remote_node_id is not None
-        assert epr_socket_id is not None
-        # qubit_array_addr can be None
-        assert arg_array_addr is not None
-        assert result_array_addr is not None
-        self._logger.debug(
-            f"Creating EPR pair with remote node id {remote_node_id} "
-            f"and EPR socket ID {epr_socket_id}, "
-            f"using qubit addresses stored in array with address {qubit_array_addr}, "
-            f"using arguments stored in array with address {arg_array_addr}, "
-            f"placing the entanglement information in array at "
-            f"address {result_array_addr}"
-        )
+        # shared_mem = self._prog_mem().shared_mem
+        # remote_node_id = shared_mem.get_reg_value(instr.remote_node_id)
+        # epr_socket_id = shared_mem.get_reg_value(instr.epr_socket_id)
+        # qubit_array_addr = shared_mem.get_reg_value(instr.qubit_addr_array)
+        # arg_array_addr = shared_mem.get_reg_value(instr.arg_array)
+        # result_array_addr = shared_mem.get_reg_value(instr.ent_results_array)
+        # assert remote_node_id is not None
+        # assert epr_socket_id is not None
+        # # qubit_array_addr can be None
+        # assert arg_array_addr is not None
+        # assert result_array_addr is not None
+        # self._logger.debug(
+        #     f"Creating EPR pair with remote node id {remote_node_id} "
+        #     f"and EPR socket ID {epr_socket_id}, "
+        #     f"using qubit addresses stored in array with address {qubit_array_addr}, "
+        #     f"using arguments stored in array with address {arg_array_addr}, "
+        #     f"placing the entanglement information in array at "
+        #     f"address {result_array_addr}"
+        # )
 
-        raw_args = shared_mem.get_array(arg_array_addr)
-        raw_typ = raw_args[SER_CREATE_IDX_TYPE]
-        typ = {
-            0: EprCreateType.CREATE_KEEP,
-            1: EprCreateType.MEASURE_DIRECTLY,
-            2: EprCreateType.REMOTE_STATE_PREP,
-        }[raw_typ]
-        num_pairs = raw_args[SER_CREATE_IDX_NUMBER]
+        # raw_args = shared_mem.get_array(arg_array_addr)
+        # raw_typ = raw_args[SER_CREATE_IDX_TYPE]
+        # typ = {
+        #     0: EprCreateType.CREATE_KEEP,
+        #     1: EprCreateType.MEASURE_DIRECTLY,
+        #     2: EprCreateType.REMOTE_STATE_PREP,
+        # }[raw_typ]
+        # num_pairs = raw_args[SER_CREATE_IDX_NUMBER]
 
-        if qubit_array_addr is not None:
-            virt_ids = shared_mem.get_array(qubit_array_addr)
-        else:
-            virt_ids = [0 for _ in range(num_pairs)]
+        # if qubit_array_addr is not None:
+        #     virt_ids = shared_mem.get_array(qubit_array_addr)
+        # else:
+        #     virt_ids = [0 for _ in range(num_pairs)]
 
-        # TODO: get fidelity from EPR socket
+        # # TODO: get fidelity from EPR socket
 
-        request = NetstackCreateRequest(
-            remote_id=remote_node_id,
-            epr_socket_id=epr_socket_id,
-            typ=typ,
-            num_pairs=num_pairs,
-            fidelity=1.0,  # for now, always just ask for the best
-            virt_qubit_ids=virt_ids,
-            result_array_addr=result_array_addr,
-        )
+        # request = NetstackCreateRequest(
+        #     remote_id=remote_node_id,
+        #     epr_socket_id=epr_socket_id,
+        #     typ=typ,
+        #     num_pairs=num_pairs,
+        #     fidelity=1.0,  # for now, always just ask for the best
+        #     virt_qubit_ids=virt_ids,
+        #     result_array_addr=result_array_addr,
+        # )
 
-        if self._asynchronous:
-            self._interface.send_netstack_msg(Message(content=request))
-            # result = yield from self._interface.receive_netstack_msg()
-            # self._logger.debug(f"result from netstack: {result}")
-        else:
-            self._prog_mem().requests = [request]
+        # if self._asynchronous:
+        #     self._interface.send_netstack_msg(Message(content=request))
+        #     # result = yield from self._interface.receive_netstack_msg()
+        #     # self._logger.debug(f"result from netstack: {result}")
+        # else:
+        #     self._prog_mem().requests = [request]
         return None
 
     def _interpret_recv_epr(
         self, pid: int, instr: core.RecvEPRInstruction
     ) -> Optional[Generator[EventExpression, None, None]]:
-        shared_mem = self._prog_mem().shared_mem
-        remote_node_id = shared_mem.get_reg_value(instr.remote_node_id)
-        epr_socket_id = shared_mem.get_reg_value(instr.epr_socket_id)
-        qubit_array_addr = shared_mem.get_reg_value(instr.qubit_addr_array)
-        result_array_addr = shared_mem.get_reg_value(instr.ent_results_array)
-        assert remote_node_id is not None
-        assert epr_socket_id is not None
-        # qubit_array_addr can be None
-        assert result_array_addr is not None
-        self._logger.debug(
-            f"Receiving EPR pair with remote node id {remote_node_id} "
-            f"and EPR socket ID {epr_socket_id}, "
-            f"using qubit addresses stored in array with address {qubit_array_addr}, "
-            f"placing the entanglement information in array at "
-            f"address {result_array_addr}"
-        )
+        # shared_mem = self._prog_mem().shared_mem
+        # remote_node_id = shared_mem.get_reg_value(instr.remote_node_id)
+        # epr_socket_id = shared_mem.get_reg_value(instr.epr_socket_id)
+        # qubit_array_addr = shared_mem.get_reg_value(instr.qubit_addr_array)
+        # result_array_addr = shared_mem.get_reg_value(instr.ent_results_array)
+        # assert remote_node_id is not None
+        # assert epr_socket_id is not None
+        # # qubit_array_addr can be None
+        # assert result_array_addr is not None
+        # self._logger.debug(
+        #     f"Receiving EPR pair with remote node id {remote_node_id} "
+        #     f"and EPR socket ID {epr_socket_id}, "
+        #     f"using qubit addresses stored in array with address {qubit_array_addr}, "
+        #     f"placing the entanglement information in array at "
+        #     f"address {result_array_addr}"
+        # )
 
-        # We don't allow None for qubit_array_addr since creating the array manually
-        # requires the number of pairs (for the length), which we don't know.
-        assert qubit_array_addr is not None
-        virt_ids = shared_mem.get_array(qubit_array_addr)
+        # # We don't allow None for qubit_array_addr since creating the array manually
+        # # requires the number of pairs (for the length), which we don't know.
+        # assert qubit_array_addr is not None
+        # virt_ids = shared_mem.get_array(qubit_array_addr)
 
-        request = NetstackReceiveRequest(
-            remote_id=remote_node_id,
-            epr_socket_id=epr_socket_id,
-            typ=None,  # TODO: fix recv_epr instruction
-            num_pairs=None,  # TODO: fix recv_epr instruction
-            fidelity=1.0,  # for now, always just ask for the best
-            virt_qubit_ids=virt_ids,
-            result_array_addr=result_array_addr,
-        )
+        # request = NetstackReceiveRequest(
+        #     remote_id=remote_node_id,
+        #     epr_socket_id=epr_socket_id,
+        #     typ=None,  # TODO: fix recv_epr instruction
+        #     num_pairs=None,  # TODO: fix recv_epr instruction
+        #     fidelity=1.0,  # for now, always just ask for the best
+        #     virt_qubit_ids=virt_ids,
+        #     result_array_addr=result_array_addr,
+        # )
 
-        if self._asynchronous:
-            self._interface.send_netstack_msg(Message(content=request))
-            # result = yield from self._interface.receive_netstack_msg()
-            # self._logger.debug(f"result from netstack: {result}")
-        else:
-            self._prog_mem().requests = [request]
+        # if self._asynchronous:
+        #     self._interface.send_netstack_msg(Message(content=request))
+        #     # result = yield from self._interface.receive_netstack_msg()
+        #     # self._logger.debug(f"result from netstack: {result}")
+        # else:
+        #     self._prog_mem().requests = [request]
         return None
 
     def _interpret_wait_all(

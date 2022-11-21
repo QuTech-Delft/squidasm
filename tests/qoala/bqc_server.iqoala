@@ -1,0 +1,101 @@
+META_START
+    name: server
+    parameters: client_id
+    csockets: 0 -> client
+    epr_sockets: 0 -> client
+META_END
+
+csocket = assign_cval() : 0
+
+run_subroutine(vec<>) : create_epr_0
+run_subroutine(vec<>) : create_epr_1
+run_subroutine(vec<>) : local_cphase
+
+delta1 = recv_cmsg(csocket)
+
+vec<m1> = run_subroutine(vec<delta1>) : meas_qubit_1
+
+send_cmsg(csocket, m1)
+delta2 = recv_cmsg(csocket)
+
+vec<m2> = run_subroutine(vec<delta2>) : meas_qubit_0
+
+return_result(m1)
+return_result(m2)
+
+
+SUBROUTINE create_epr_0
+    params: 
+    returns:
+    request: req0
+  NETQASM_START
+    array 10 @0
+    recv_epr C15 C0 C1 C0
+    wait_all @0[0:10]
+  NETQASM_END
+
+SUBROUTINE create_epr_1
+    params: 
+    returns:
+    request: req1
+  NETQASM_START
+    array 10 @1
+    recv_epr C15 C0 C3 C2
+    wait_all @1[0:10]
+  NETQASM_END
+
+SUBROUTINE local_cphase
+    params: 
+    returns: 
+    request: 
+  NETQASM_START
+    set Q0 1
+    set Q1 0
+    cphase Q0 Q1
+  NETQASM_END
+
+SUBROUTINE meas_qubit_1
+    params: delta1
+    returns: M0 -> m1
+    request: 
+  NETQASM_START
+    set Q1 1
+    rot_z Q1 {delta1} 4
+    h Q1
+    meas Q1 M0
+    qfree Q1
+    ret_reg M0
+  NETQASM_END
+
+SUBROUTINE meas_qubit_0
+    params: delta2
+    returns: M0 -> m2
+    request: 
+  NETQASM_START
+    set Q0 0
+    rot_z Q0 {delta2} 4
+    h Q0
+    meas Q0 M0
+    qfree Q0
+    ret_reg M0
+  NETQASM_END
+
+REQUEST req0
+  role: receive
+  remote_id: {client_id}
+  epr_socket_id: 0
+  typ: create_keep
+  num_pairs: 1
+  fidelity: 1.0
+  virt_qubit_ids: 0
+  result_array_addr: 0
+
+REQUEST req1
+  role: receive
+  remote_id: {client_id}
+  epr_socket_id: 0
+  typ: create_keep
+  num_pairs: 1
+  fidelity: 1.0
+  virt_qubit_ids: 1
+  result_array_addr: 1

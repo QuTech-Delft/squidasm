@@ -287,8 +287,6 @@ class ProgramMemory:
         self._qnos_memory = QnosMemory(pid)
         self._quantum_memory = QuantumMemory(pid, unit_module)
 
-        self._requests: List[T_NetstackRequest] = []
-
         self._prog_counter: int = 0
 
     @property

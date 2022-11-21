@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+from netqasm.lang.operand import Register, Template
 from netsquid.components.component import Component
 from netsquid.nodes import Node
 from netsquid.protocols import Protocol
@@ -77,3 +78,15 @@ class Scheduler(Protocol):
 
     def next_host_task(self) -> HostTask:
         pass
+
+    def initialize(self, process: IqoalaProcess) -> None:
+        host_mem = process.prog_memory.host_mem
+        inputs = process.prog_instance.inputs
+        for name, value in inputs.values.items():
+            host_mem.write(name, value)
+
+        for req in process.requests.values():
+            # TODO: support for other request parameters being templates?
+            remote_id = req.request.remote_id
+            if isinstance(remote_id, Template):
+                req.request.remote_id = inputs.values[remote_id.name]

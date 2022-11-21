@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import Enum, auto
+from lib2to3.pgen2.parse import ParseError
 from typing import Dict, List, Optional, Tuple, Union
 
 from netqasm.lang.instr import NetQASMInstruction
@@ -9,6 +11,14 @@ from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.operand import Template
 from netqasm.lang.parsing.text import parse_text_subroutine
 from netqasm.lang.subroutine import Subroutine
+
+from squidasm.qoala.sim.requests import (
+    EprCreateRole,
+    EprCreateType,
+    NetstackCreateRequest,
+    NetstackReceiveRequest,
+    T_NetstackRequest,
+)
 
 
 @dataclass
@@ -55,11 +65,16 @@ class DynamicIqoalaProgramInfo:
 
 class IqoalaSubroutine:
     def __init__(
-        self, name: str, subrt: Subroutine, return_map: Dict[str, IqoalaSharedMemLoc]
+        self,
+        name: str,
+        subrt: Subroutine,
+        return_map: Dict[str, IqoalaSharedMemLoc],
+        request_name: Optional[str] = None,
     ) -> None:
         self._name = name
         self._subrt = subrt
         self._return_map = return_map
+        self._request_name = request_name
 
     @property
     def name(self) -> str:
@@ -72,6 +87,14 @@ class IqoalaSubroutine:
     @property
     def return_map(self) -> Dict[str, IqoalaSharedMemLoc]:
         return self._return_map
+
+    @property
+    def request_name(self) -> Optional[str]:
+        return self._request_name
+
+    @property
+    def subroutine(self) -> Subroutine:
+        return self._subrt
 
     def serialize(self) -> str:
         s = f"SUBROUTINE {self.name}"
@@ -97,6 +120,49 @@ class IqoalaSubroutine:
             self.name == other.name
             and self.subroutine == other.subroutine
             and self.return_map == other.return_map
+        )
+
+
+class IqoalaRequest:
+    def __init__(
+        self, name: str, role: EprCreateRole, request: T_NetstackRequest
+    ) -> None:
+        self._name = name
+        self._role = role
+        self._request = request
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def role(self) -> str:
+        return self._role
+
+    @property
+    def request(self) -> T_NetstackRequest:
+        return self._request
+
+    def serialize(self) -> str:
+        s = f"REQUEST {self.name}"
+        s += f"role: {self.role}"
+        s += f"remote_id: {self.request.remote_id}"
+        s += f"epr_socket_id: {self.request.epr_socket_id}"
+        s += f"typ: {self.request.typ.name}"
+        s += f"num_pairs: {self.request.num_pairs}"
+        s += f"fidelity: {self.request.fidelity}"
+        s += f"virt_qubit_ids: {','.join(self.request.virt_qubit_ids)}"
+        s += f"result_array_addr: {self.request.result_array_addr}"
+        return s
+
+    def __str__(self) -> str:
+        return self.serialize()
+
+    def __eq__(self, other: IqoalaRequest) -> bool:
+        return (
+            self.name == other.name
+            and self.role == other.role
+            and self.request == other.request
         )
 
 
@@ -392,10 +458,16 @@ class IqoalaProgram:
         instructions: List[ClassicalIqoalaOp],
         subroutines: Dict[str, IqoalaSubroutine],
         meta: ProgramMeta,
+        requests: Optional[Dict[str, IqoalaRequest]] = None,
     ) -> None:
         self._instructions: List[ClassicalIqoalaOp] = instructions
         self._subroutines: Dict[str, IqoalaSubroutine] = subroutines
         self._meta: ProgramMeta = meta
+
+        if requests is None:
+            self._requests: Dict[str, IqoalaRequest] = {}
+        else:
+            self._requests: Dict[str, IqoalaRequest] = requests
 
     @property
     def meta(self) -> ProgramMeta:
@@ -429,6 +501,14 @@ class IqoalaProgram:
     @subroutines.setter
     def subroutines(self, new_subroutines: Dict[str, IqoalaSubroutine]) -> None:
         self._subroutines = new_subroutines
+
+    @property
+    def requests(self) -> Dict[str, IqoalaRequest]:
+        return self._requests
+
+    @requests.setter
+    def requests(self, new_requests: Dict[str, IqoalaRequest]) -> None:
+        self._requests = new_requests
 
     def __str__(self) -> str:
         # self.me
@@ -675,6 +755,10 @@ class IQoalaSubroutineParser:
         # TODO: use params line?
         return_map_line = self._parse_subrt_meta_line("returns", self._read_line())
         return_map = self._parse_nqasm_return_mapping(return_map_line)
+        request_line = self._parse_subrt_meta_line("request", self._read_line())
+        assert len(request_line) in [0, 1]
+        request_name = None if len(request_line) == 0 else request_line[0]
+
         start_line = self._read_line()
         assert start_line == "NETQASM_START"
         subrt_lines = []
@@ -692,7 +776,7 @@ class IQoalaSubroutineParser:
         # Check that all templates are declared as params to the subroutine
         if any(arg not in params_line for arg in subrt.arguments):
             raise IqoalaParseError
-        return IqoalaSubroutine(name, subrt, return_map)
+        return IqoalaSubroutine(name, subrt, return_map, request_name)
 
     def parse(self) -> Dict[str, IqoalaSubroutine]:
         subroutines: Dict[str, IqoalaSubroutine] = {}
@@ -704,6 +788,132 @@ class IQoalaSubroutineParser:
             return subroutines
 
 
+class IQoalaRequestParser:
+    def __init__(self, text: str) -> None:
+        self._text = text
+        lines = [line.strip() for line in text.split("\n")]
+        self._lines = [line for line in lines if len(line) > 0]
+        self._lineno: int = 0
+
+    def _next_line(self) -> None:
+        self._lineno += 1
+
+    def _read_line(self) -> str:
+        while True:
+            if self._lineno >= len(self._lines):
+                raise EndOfTextException
+            line = self._lines[self._lineno]
+            self._next_line()
+            if len(line) > 0:
+                return line
+            # if no non-empty line, will always break on EndOfLineException
+
+    def _parse_request_line(self, key: str, line: str) -> List[str]:
+        split = line.split(":")
+        assert len(split) >= 1
+        assert split[0] == key
+        if len(split) == 1:
+            return []
+        assert len(split) == 2
+        if len(split[1]) == 0:
+            return []
+        values = split[1].split(",")
+        return [v.strip() for v in values]
+
+    def _parse_single_int_value(
+        self, key: str, line: str, allow_template: bool = False
+    ) -> Union[int, Template]:
+        strings = self._parse_request_line(key, line)
+        if len(strings) != 1:
+            raise IqoalaParseError
+        value = strings[0]
+        if allow_template:
+            if value.startswith("{") and value.endswith("}"):
+                value = value.strip("{}").strip()
+                return Template(value)
+        return int(value)
+
+    def _parse_int_list_value(self, key: str, line: str) -> int:
+        strings = self._parse_request_line(key, line)
+        return [int(s) for s in strings]
+
+    def _parse_single_float_value(self, key: str, line: str) -> int:
+        strings = self._parse_request_line(key, line)
+        if len(strings) != 1:
+            raise IqoalaParseError
+        return float(strings[0])
+
+    def _parse_epr_create_role_value(self, key: str, line: str) -> int:
+        strings = self._parse_request_line(key, line)
+        if len(strings) != 1:
+            raise IqoalaParseError
+        try:
+            return EprCreateRole[strings[0].upper()]
+        except KeyError:
+            raise IqoalaParseError
+
+    def _parse_epr_create_type_value(self, key: str, line: str) -> int:
+        strings = self._parse_request_line(key, line)
+        if len(strings) != 1:
+            raise IqoalaParseError
+        try:
+            return EprCreateType[strings[0].upper()]
+        except KeyError:
+            raise IqoalaParseError
+
+    def _parse_request(self) -> IqoalaRequest:
+        name_line = self._read_line()
+        if not name_line.startswith("REQUEST "):
+            raise IqoalaParseError
+        name = name_line[len("REQUEST") + 1 :]
+
+        role = self._parse_epr_create_role_value("role", self._read_line())
+        remote_id = self._parse_single_int_value(
+            "remote_id", self._read_line(), allow_template=True
+        )
+        epr_socket_id = self._parse_single_int_value("epr_socket_id", self._read_line())
+        typ = self._parse_epr_create_type_value("typ", self._read_line())
+        num_pairs = self._parse_single_int_value("num_pairs", self._read_line())
+        fidelity = self._parse_single_float_value("fidelity", self._read_line())
+        virt_qubit_ids = self._parse_int_list_value("virt_qubit_ids", self._read_line())
+        result_array_addr = self._parse_single_int_value(
+            "result_array_addr", self._read_line()
+        )
+
+        if role == EprCreateRole.CREATE:
+            request = NetstackCreateRequest(
+                remote_id=remote_id,
+                epr_socket_id=epr_socket_id,
+                typ=typ,
+                num_pairs=num_pairs,
+                fidelity=fidelity,
+                virt_qubit_ids=virt_qubit_ids,
+                result_array_addr=result_array_addr,
+            )
+        else:
+            assert role == EprCreateRole.RECEIVE
+            request = NetstackReceiveRequest(
+                remote_id=remote_id,
+                epr_socket_id=epr_socket_id,
+                typ=typ,
+                num_pairs=num_pairs,
+                fidelity=fidelity,
+                virt_qubit_ids=virt_qubit_ids,
+                result_array_addr=result_array_addr,
+            )
+
+        return IqoalaRequest(name=name, role=role, request=request)
+
+    def parse(self) -> Dict[str, IqoalaRequest]:
+        requests: Dict[str, IqoalaRequest] = {}
+        try:
+            while True:
+                request = self._parse_request()
+                requests[request.name] = request
+        except EndOfTextException:
+            return requests
+
+
 class IqoalaParser:
     def __init__(
         self,
@@ -711,24 +921,29 @@ class IqoalaParser:
         meta_text: Optional[str] = None,
         instr_text: Optional[str] = None,
         subrt_text: Optional[str] = None,
+        req_text: Optional[str] = None,
     ) -> None:
         if text is not None:
-            meta_text, instr_text, subrt_text = self._split_text(text)
+            meta_text, instr_text, subrt_text, req_text = self._split_text(text)
         else:
             assert meta_text is not None
             assert instr_text is not None
             assert subrt_text is not None
+            assert req_text is not None
         self._meta_text = meta_text
         self._instr_text = instr_text
         self._subrt_text = subrt_text
+        self._req_text = req_text
         self._meta_parser = IqoalaMetaParser(meta_text)
         self._instr_parser = IqoalaInstrParser(instr_text)
         self._subrt_parser = IQoalaSubroutineParser(subrt_text)
+        self._req_parser = IQoalaRequestParser(req_text)
 
-    def _split_text(self, text: str) -> Tuple[str, str, str]:
+    def _split_text(self, text: str) -> Tuple[str, str, str, str]:
         lines = [line.strip() for line in text.split("\n")]
         meta_end_line: int
         first_subrt_line: int
+        first_req_line: Optional[int] = None
         for i, line in enumerate(lines):
             if "META_END" in line:
                 meta_end_line = i
@@ -737,16 +952,27 @@ class IqoalaParser:
             if "SUBROUTINE" in line:
                 first_subrt_line = i
                 break
+        for i, line in enumerate(lines):
+            if "REQUEST" in line:
+                first_req_line = i
+                break
 
         meta_text = "\n".join(lines[0 : meta_end_line + 1])
         instr_text = "\n".join(lines[meta_end_line + 1 : first_subrt_line])
-        subrt_text = "\n".join(lines[first_subrt_line:])
-        return meta_text, instr_text, subrt_text
+        if first_req_line is None:
+            subrt_text = "\n".join(lines[first_subrt_line:])
+            req_text = ""
+        else:
+            subrt_text = "\n".join(lines[first_subrt_line:first_req_line])
+            req_text = "\n".join(lines[first_req_line:])
+
+        return meta_text, instr_text, subrt_text, req_text
 
     def parse(self) -> IqoalaProgram:
-        meta = self._meta_parser.parse()
         instructions = self._instr_parser.parse()
         subroutines = self._subrt_parser.parse()
+        requests = self._req_parser.parse()
+        meta = self._meta_parser.parse()
 
         # Check that all references to subroutines (in RunSubroutineOp instructions)
         # are valid.
@@ -755,38 +981,4 @@ class IqoalaParser:
                 subrt_name = instr.subroutine
                 if subrt_name not in subroutines:
                     raise IqoalaParseError
-        return IqoalaProgram(instructions, subroutines, meta)
-
-
-if __name__ == "__main__":
-    ops: List[ClassicalIqoalaOp] = []
-    ops.append(AssignCValueOp("socket_id", 0))
-    ops.append(SendCMsgOp("socket_id", "my_value"))
-    ops.append(ReceiveCMsgOp("socket_id", "received_value"))
-    ops.append(AssignCValueOp("new_value", 3))
-    ops.append(AddCValueOp("my_value", "new_value", "new_value"))
-
-    subrt_text = """
-    set Q0 0
-    rot_z Q0 {my_value} 4
-    meas Q0 M0
-    ret_reg M0
-    """
-    subrt = parse_text_subroutine(subrt_text)
-    lhr_subrt = IqoalaSubroutine(subrt, {"m": IqoalaSharedMemLoc("M0")})
-    ops.append(RunSubroutineOp(IqoalaVector(["my_value"]), lhr_subrt))
-    ops.append(ReturnResultOp("m"))
-
-    meta = ProgramMeta(name="alice", parameters={}, csockets={}, epr_sockets={})
-
-    program = IqoalaProgram(instructions=ops, subroutines={"subrt1": subrt}, meta=meta)
-    print("original program:")
-    print(program)
-
-    text = str(program)
-    parsed_program = IqoalaInstrParser(text).parse()
-
-    print("\nto text and parsed back:")
-    print(parsed_program)
-
-    print(parsed_program.get_instr_signatures())
+        return IqoalaProgram(instructions, subroutines, meta, requests)

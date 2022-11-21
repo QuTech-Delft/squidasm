@@ -118,6 +118,8 @@ class NetstackProcessor:
         elif isinstance(request, NetstackBreakpointReceiveRequest):
             yield from self.handle_breakpoint_receive_request(request)
             self._logger.debug("breakpoint receive request done")
+        else:
+            raise RuntimeError
 
     def handle_create_request(
         self, process: IqoalaProcess, req: NetstackCreateRequest

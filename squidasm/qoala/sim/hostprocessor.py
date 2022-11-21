@@ -52,6 +52,7 @@ class HostProcessor:
             csck = csockets[csck_id]
             value = host_mem.read(instr.arguments[1])
             self._logger.info(f"sending msg {value}")
+            print(f"sending {instr.arguments[1]} = {value}")
             csck.send_int(value)
         elif isinstance(instr, iqoala.ReceiveCMsgOp):
             csck_id = host_mem.read(instr.arguments[0])
@@ -59,6 +60,7 @@ class HostProcessor:
             msg = yield from csck.recv_int()
             host_mem.write(instr.results[0], msg)
             self._logger.info(f"received msg {msg}")
+            print(f"received {instr.results[0]} = {msg}")
         elif isinstance(instr, iqoala.AddCValueOp):
             arg0 = host_mem.read(instr.arguments[0])
             arg1 = host_mem.read(instr.arguments[1])
@@ -119,6 +121,7 @@ class HostProcessor:
                     f"writing shared memory value {value} from location "
                     f"{mem_loc} to variable {key}"
                 )
+                # print(f"subrt result {key} = {value}")
                 process.host_mem.write(key, value)
             except NetQASMSyntaxError:
                 pass  # TODO: needed?

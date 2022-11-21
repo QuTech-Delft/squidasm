@@ -1,0 +1,97 @@
+META_START
+    name: client
+    parameters: server_id, alpha, beta, theta1, theta2
+    csockets: 0 -> server
+    epr_sockets: 0 -> server
+META_END
+
+csocket = assign_cval() : 0
+
+run_subroutine(vec<>) : create_epr_0
+vec<p2> = run_subroutine(vec<theta2>) : post_epr_0
+run_subroutine(vec<>) : create_epr_1
+vec<p1> = run_subroutine(vec<theta1>) : post_epr_1
+
+x = mult_const(p1) : 16
+minus_theta1 = mult_const(theta1) : -1
+delta1 = add_cval_c(minus_theta1, x)
+delta1 = add_cval_c(delta1, alpha)
+send_cmsg(csocket, delta1)
+m1 = recv_cmsg(csocket)
+
+y = mult_const(p2) : 16
+minus_theta2 = mult_const(theta2) : -1
+beta = bcond_mult_const(beta, m1) : -1
+delta2 = add_cval_c(beta, minus_theta2)
+delta2 = add_cval_c(delta2, y)
+send_cmsg(csocket, delta2)
+
+return_result(p1)
+return_result(p2)
+
+
+SUBROUTINE create_epr_0
+    params:
+    returns:
+    request: req0
+  NETQASM_START
+    array 10 @0
+    create_epr C15 C0 C1 C2 C0
+    wait_all @0[0:10]
+  NETQASM_END
+
+SUBROUTINE post_epr_0
+    params: theta2
+    returns: M0 -> p2
+    request:
+  NETQASM_START
+    set Q0 0
+    rot_z Q0 {theta2} 4
+    h Q0
+    set Q0 0
+    meas Q0 M0
+    qfree Q0
+  NETQASM_END
+
+SUBROUTINE create_epr_1
+    params: 
+    returns:
+    request: req1
+  NETQASM_START
+    array 10 @1
+    create_epr C15 C0 C4 C5 C3
+    wait_all @1[0:10]
+  NETQASM_END
+
+SUBROUTINE post_epr_1
+    params: theta1
+    returns: M1 -> p1
+    request:
+  NETQASM_START
+    set Q0 0
+    rot_z Q0 {theta1} 4
+    h Q0
+    set Q0 0
+    meas Q0 M1
+    qfree Q0
+  NETQASM_END
+
+REQUEST req1
+  role: create
+  remote_id: {server_id}
+  epr_socket_id: 0
+  typ: create_keep
+  num_pairs: 1
+  fidelity: 1.0
+  virt_qubit_ids: 0
+  result_array_addr: 1
+
+REQUEST req0
+  role: create
+  remote_id: {server_id}
+  epr_socket_id: 0
+  typ: create_keep
+  num_pairs: 1
+  fidelity: 1.0
+  virt_qubit_ids: 0
+  result_array_addr: 0

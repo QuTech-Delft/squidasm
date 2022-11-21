@@ -18,3 +18,7 @@ class EgpManager:
         if remote_id not in self._egps:
             raise NoEgpError
         return self._egps[remote_id]
+
+    @property
+    def egps(self) -> Dict[int, EgpProtocol]:
+        return self._egps

@@ -9,6 +9,11 @@ class EprCreateType(Enum):
     REMOTE_STATE_PREP = auto()
 
 
+class EprCreateRole(Enum):
+    CREATE = 0
+    RECEIVE = auto()
+
+
 @dataclass
 class NetstackCreateRequest:
     # Request parameters.

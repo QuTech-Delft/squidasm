@@ -150,6 +150,7 @@ def create_process(
         csockets={},
         epr_sockets=program.meta.epr_sockets,
         subroutines=program.subroutines,
+        requests={},
         result=ProgramResult(values={}),
     )
     return process
