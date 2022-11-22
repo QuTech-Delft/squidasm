@@ -28,6 +28,8 @@ class BatchInfo:
     inputs: List[ProgramInput]  # dict of inputs for each iteration
     num_iterations: int
     deadline: float
+    tasks: ProgramTaskList
+    num_qubits: int  # TODO: replace this by unit module
 
 
 @dataclass

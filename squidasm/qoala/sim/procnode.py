@@ -244,7 +244,7 @@ class ProcNode(Protocol):
                 pid=self._prog_instance_counter,
                 program=batch_info.program,
                 inputs=input,
-                tasks=ProgramTaskList.empty(batch_info.program),
+                tasks=batch_info.tasks,
             )
             self._prog_instance_counter += 1
             prog_instances.append(instance)
@@ -259,20 +259,22 @@ class ProcNode(Protocol):
         for batch in self._batches.values():
             for prog_instance in batch.instances:
                 prog_memory = ProgramMemory(
-                    prog_instance.pid, unit_module=UnitModule.default_generic()
+                    prog_instance.pid,
+                    unit_module=UnitModule.default_generic(batch.info.num_qubits),
                 )
                 meta = prog_instance.program.meta
 
                 csockets: Dict[int, ClassicalSocket] = {}
-                for i, remote_name in meta.csockets:
+                for i, remote_name in meta.csockets.items():
                     # TODO: check for already existing epr sockets
                     csockets[i] = self.host.create_csocket(remote_name)
 
                 epr_sockets: Dict[int, EprSocket] = {}
-                for i, remote_name in meta.epr_sockets:
+                for i, remote_name in meta.epr_sockets.items():
                     remote_id = self._global_env.get_node_id(remote_name)
                     # TODO: check for already existing epr sockets
-                    epr_sockets[i] = EprSocket(i, remote_id)
+                    # TODO: fidelity
+                    epr_sockets[i] = EprSocket(i, remote_id, 1.0)
 
                 result = ProgramResult(values={})
 
@@ -282,10 +284,12 @@ class ProcNode(Protocol):
                     csockets=csockets,
                     epr_sockets=epr_sockets,
                     subroutines={},
+                    requests={},
                     result=result,
                 )
 
                 self.add_process(process)
+                self.scheduler.initialize(process)
 
     def add_process(self, process: IqoalaProcess) -> None:
         self.memmgr.add_process(process)
