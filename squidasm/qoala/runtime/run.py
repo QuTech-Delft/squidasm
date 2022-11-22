@@ -8,7 +8,6 @@ from squidasm.qoala.runtime.config import ProcNodeNetworkConfig
 from squidasm.qoala.runtime.context import SimulationContext
 from squidasm.qoala.runtime.environment import GlobalEnvironment
 from squidasm.qoala.runtime.program import ProgramInstance
-from squidasm.qoala.runtime.schedule import Schedule
 from squidasm.qoala.sim.build import build_network
 from squidasm.qoala.sim.globals import GlobalSimData
 from squidasm.qoala.sim.network import ProcNodeNetwork

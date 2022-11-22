@@ -1,36 +1,10 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum, auto
-from optparse import Option
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Tuple
 
-# CL: host 0
-# CL: host 1
-# QC: netstack "create_epr_0"
-# CL: host 2
-# QC: netstack "create_epr_1"
-# CL: host 3
-# QL: qnos "local_cphase" 0
-# QL: qnos "local_cphase" 1
-# QL: qnos "local_cphase" 2
-# CC: host 4
-# CL: host 5
-# QL: qnos "meas_qubit_1" 0
-# QL: qnos "meas_qubit_1" 1
-# QL: qnos "meas_qubit_1" 2
-# QL: qnos "meas_qubit_1" 3
-# QL: qnos "meas_qubit_1" 4
-# QL: qnos "meas_qubit_1" 5
-# CC: host 6
-# CC: host 7
-# CL: host 8
-# QL: qnos "meas_qubit_0" 0
-# QL: qnos "meas_qubit_0" 1
-# QL: qnos "meas_qubit_0" 2
-# QL: qnos "meas_qubit_0" 3
-# QL: qnos "meas_qubit_0" 4
-# QL: qnos "meas_qubit_0" 5
-# CL: host 9
-# CL: host 10
+from squidasm.qoala.lang.iqoala import IqoalaProgram
 
 
 class ProcessorType(Enum):
@@ -59,7 +33,8 @@ class QnosTask:
 
 @dataclass
 class NetstackTask:
-    request_name: str
+    # request_name: str  # TODO: needed?
+    subrt_name: str
 
 
 @dataclass
@@ -69,6 +44,7 @@ class ProgramTask:
     instr_index: Optional[int]
     subrt_name: Optional[str]
     request_name: Optional[str]
+    duration: int
 
     def as_host_task(self) -> HostTask:
         assert self.processor_type == ProcessorType.HOST
@@ -82,46 +58,77 @@ class ProgramTask:
 
     def as_netstack_task(self) -> NetstackTask:
         assert self.processor_type == ProcessorType.NETSTACK
-        assert self.request_name is not None
-        return NetstackTask(self.request_name)
+        assert self.subrt_name is not None
+        return NetstackTask(self.subrt_name)
 
 
 class TaskBuilder:
     @classmethod
-    def host_task(cls, index: int) -> ProgramTask:
+    def CC(cls, duration, index: int) -> ProgramTask:
         return ProgramTask(
-            instr_type=ProcessorType.HOST,
+            instr_type=InstructionType.CC,
+            processor_type=ProcessorType.HOST,
             instr_index=index,
             subrt_name=None,
             request_name=None,
+            duration=duration,
         )
 
     @classmethod
-    def qnos_task(cls, subrt_name: str, index: int) -> ProgramTask:
+    def CL(cls, duration, index: int) -> ProgramTask:
         return ProgramTask(
-            instr_type=ProcessorType.QNOS,
+            instr_type=InstructionType.CL,
+            processor_type=ProcessorType.HOST,
+            instr_index=index,
+            subrt_name=None,
+            request_name=None,
+            duration=duration,
+        )
+
+    @classmethod
+    def QL(cls, duration, subrt_name: str, index: int) -> ProgramTask:
+        return ProgramTask(
+            instr_type=InstructionType.QL,
+            processor_type=ProcessorType.QNOS,
             instr_index=index,
             subrt_name=subrt_name,
             request_name=None,
+            duration=duration,
         )
 
     @classmethod
-    def netstack_task(cls, request_name: str) -> ProgramTask:
+    def QC(cls, duration, subrt_name: str) -> ProgramTask:
         return ProgramTask(
-            instr_type=ProcessorType.NETSTACK,
+            instr_type=InstructionType.QC,
+            processor_type=ProcessorType.NETSTACK,
             instr_index=None,
-            subrt_name=None,
-            request_name=request_name,
+            subrt_name=subrt_name,
+            request_name=None,
+            duration=duration,
         )
 
 
+@dataclass
+class ProgramTaskList:
+    program: IqoalaProgram
+    tasks: Dict[int, ProgramTask]  # task index -> task
+
+    @classmethod
+    def empty(cls, program: IqoalaProgram) -> ProgramTaskList:
+        return ProgramTaskList(program, {})
+
+
+@dataclass(eq=True, frozen=True)
+class ScheduleEntry:
+    pid: int
+    task_index: int
+
+
+@dataclass(eq=True, frozen=True)
+class ScheduleTime:
+    time: Optional[int]  # None means "earliest time possible"
+
+
+@dataclass
 class Schedule:
-    def __init__(self, timeslot_length: int) -> None:
-        self._program = Dict[int, ProgramTask] = {}  # task index -> task
-        self._schedule: Dict[int, int] = {}  # task index -> time
-
-        self._timeslot_length = timeslot_length
-
-    def next_slot(self, now: float) -> int:
-        slot = int(now / self._timeslot_length)
-        return (slot + 1) * self._timeslot_length
+    entries: List[Tuple[ScheduleTime, ScheduleEntry]]  # list of (time, entry)

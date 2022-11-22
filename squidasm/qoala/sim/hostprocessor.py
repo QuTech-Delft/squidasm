@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Generator
+from typing import Generator, Optional
 
 from netqasm.lang.operand import Register
 from netqasm.lang.parsing.text import NetQASMSyntaxError, parse_register
@@ -52,7 +52,7 @@ class HostProcessor:
             csck = csockets[csck_id]
             value = host_mem.read(instr.arguments[1])
             self._logger.info(f"sending msg {value}")
-            print(f"sending {instr.arguments[1]} = {value}")
+            # print(f"sending {instr.arguments[1]} = {value}")
             csck.send_int(value)
         elif isinstance(instr, iqoala.ReceiveCMsgOp):
             csck_id = host_mem.read(instr.arguments[0])
@@ -60,7 +60,7 @@ class HostProcessor:
             msg = yield from csck.recv_int()
             host_mem.write(instr.results[0], msg)
             self._logger.info(f"received msg {msg}")
-            print(f"received {instr.results[0]} = {msg}")
+            # print(f"received {instr.results[0]} = {msg}")
         elif isinstance(instr, iqoala.AddCValueOp):
             arg0 = host_mem.read(instr.arguments[0])
             arg1 = host_mem.read(instr.arguments[1])

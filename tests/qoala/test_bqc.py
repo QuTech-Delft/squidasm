@@ -21,6 +21,7 @@ from squidasm.qoala.lang.iqoala import IqoalaParser, IqoalaProgram
 from squidasm.qoala.runtime.config import GenericQDeviceConfig
 from squidasm.qoala.runtime.environment import GlobalEnvironment, GlobalNodeInfo
 from squidasm.qoala.runtime.program import ProgramInput, ProgramInstance, ProgramResult
+from squidasm.qoala.runtime.schedule import ProgramTaskList
 from squidasm.qoala.sim.build import build_generic_qprocessor
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.egp import EgpProtocol
@@ -41,7 +42,12 @@ def create_process(
     if inputs is None:
         inputs = {}
     prog_input = ProgramInput(values=inputs)
-    instance = ProgramInstance(pid=pid, program=program, inputs=prog_input)
+    instance = ProgramInstance(
+        pid=pid,
+        program=program,
+        inputs=prog_input,
+        tasks=ProgramTaskList.empty(program),
+    )
     mem = ProgramMemory(pid=0, unit_module=unit_module)
 
     process = IqoalaProcess(

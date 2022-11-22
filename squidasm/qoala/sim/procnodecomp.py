@@ -10,7 +10,6 @@ from squidasm.qoala.runtime.environment import GlobalEnvironment
 from squidasm.qoala.sim.hostcomp import HostComponent
 from squidasm.qoala.sim.netstack import NetstackComponent
 from squidasm.qoala.sim.qnoscomp import QnosComponent
-from squidasm.qoala.sim.scheduler import SchedulerComponent
 
 
 class ProcNodeComponent(Node):
@@ -20,7 +19,6 @@ class ProcNodeComponent(Node):
     This component has three subcomponents:
         - a QnosComponent
         - a HostComponent
-        - a SchedulerComponent
 
     Has communications ports between
      - the Host component on this node and the Host components on other nodes
@@ -54,9 +52,6 @@ class ProcNodeComponent(Node):
 
         netstack_comp = NetstackComponent(self, global_env)
         self.add_subcomponent(netstack_comp, "netstack")
-
-        scheduler_comp = SchedulerComponent(self)
-        self.add_subcomponent(scheduler_comp, "scheduler")
 
         self.host_comp.ports["qnos_out"].connect(self.qnos_comp.ports["host_in"])
         self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])

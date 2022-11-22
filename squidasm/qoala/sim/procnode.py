@@ -14,6 +14,7 @@ from squidasm.qoala.runtime.program import (
     ProgramInstance,
     ProgramResult,
 )
+from squidasm.qoala.runtime.schedule import ProgramTaskList, Schedule
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.egp import EgpProtocol
 from squidasm.qoala.sim.egpmgr import EgpManager
@@ -33,7 +34,7 @@ from squidasm.qoala.sim.qdevice import (
 )
 from squidasm.qoala.sim.qnos import Qnos
 from squidasm.qoala.sim.qnoscomp import QnosComponent
-from squidasm.qoala.sim.scheduler import Scheduler, SchedulerComponent
+from squidasm.qoala.sim.scheduler import Scheduler
 
 
 class ProcNode(Protocol):
@@ -106,7 +107,7 @@ class ProcNode(Protocol):
 
         if scheduler is None:
             self._scheduler = Scheduler(
-                self._node.name, self._host, self._qnos, self._netstack
+                self._node.name, self._host, self._qnos, self._netstack, self._memmgr
             )
         else:
             self._scheduler = scheduler
@@ -122,6 +123,9 @@ class ProcNode(Protocol):
         self._scheduler.install_schedule(self._local_env._local_schedule)
         for instance in self._local_env._programs:
             self._scheduler.init_new_program(instance)
+
+    def install_schedule(self, schedule: Schedule) -> None:
+        self.scheduler.install_schedule(schedule)
 
     def assign_ll_protocol(
         self, remote_id: int, prot: MagicLinkLayerProtocolWithSignaling
@@ -147,10 +151,6 @@ class ProcNode(Protocol):
     @property
     def netstack_comp(self) -> NetstackComponent:
         return self.node.netstack_comp
-
-    @property
-    def scheduler_comp(self) -> SchedulerComponent:
-        return self.node.scheduler_comp
 
     @property
     def qdevice(self) -> QDevice:
@@ -221,19 +221,19 @@ class ProcNode(Protocol):
         assert self._qnos is not None
         assert self._netstack is not None
         super().start()
-        self._scheduler.start()
         self._host.start()
         self._qnos.start()
         self._netstack.start()
+        self._scheduler.start()
 
     def stop(self) -> None:
         assert self._host is not None
         assert self._qnos is not None
         assert self._netstack is not None
+        self._scheduler.stop()
         self._netstack.stop()
         self._qnos.stop()
         self._host.stop()
-        self._scheduler.stop()
         super().stop()
 
     def submit_batch(self, batch_info: BatchInfo) -> None:
@@ -244,6 +244,7 @@ class ProcNode(Protocol):
                 pid=self._prog_instance_counter,
                 program=batch_info.program,
                 inputs=input,
+                tasks=ProgramTaskList.empty(batch_info.program),
             )
             self._prog_instance_counter += 1
             prog_instances.append(instance)
@@ -284,7 +285,7 @@ class ProcNode(Protocol):
                     result=result,
                 )
 
-                self.memmgr.add_process(process)
+                self.add_process(process)
 
     def add_process(self, process: IqoalaProcess) -> None:
         self.memmgr.add_process(process)

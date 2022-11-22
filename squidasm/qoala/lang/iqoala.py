@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from enum import Enum, auto
-from lib2to3.pgen2.parse import ParseError
 from typing import Dict, List, Optional, Tuple, Union
 
 from netqasm.lang.instr import NetQASMInstruction
@@ -91,10 +89,6 @@ class IqoalaSubroutine:
     @property
     def request_name(self) -> Optional[str]:
         return self._request_name
-
-    @property
-    def subroutine(self) -> Subroutine:
-        return self._subrt
 
     def serialize(self) -> str:
         s = f"SUBROUTINE {self.name}"

@@ -12,8 +12,6 @@ from squidasm.qoala.sim.hostcomp import HostComponent
 from squidasm.qoala.sim.hostinterface import HostInterface
 from squidasm.qoala.sim.hostprocessor import HostProcessor, IqoalaProcess
 
-EVENT_WAIT = EventType("SCHEDULER_WAIT", "scheduler wait")
-
 
 class Host(Protocol):
     """NetSquid protocol representing a Host."""
@@ -37,7 +35,6 @@ class Host(Protocol):
         # Owned objects.
         self._interface = HostInterface(comp, local_env)
         self._processor = HostProcessor(self._interface, asynchronous)
-        self._processes: Dict[int, IqoalaProcess] = {}
 
     @property
     def interface(self) -> HostInterface:
@@ -67,16 +64,3 @@ class Host(Protocol):
 
     def create_csocket(self, remote_name: str) -> ClassicalSocket:
         return ClassicalSocket(self._interface, remote_name)
-
-    def add_process(self, process: IqoalaProcess) -> None:
-        self._processes[process.prog_instance.pid] = process
-
-    def wait_until_next_slot(self) -> Generator[EventExpression, None, None]:
-        now = ns.sim_time()
-        next_slot = self._local_schedule.next_slot(now)
-        delta = next_slot - now
-        self._logger.warning(f"next slot = {next_slot}")
-        self._logger.warning(f"delta = {delta}")
-        self._schedule_after(delta, EVENT_WAIT)
-        event_expr = EventExpression(source=self, event_type=EVENT_WAIT)
-        yield event_expr

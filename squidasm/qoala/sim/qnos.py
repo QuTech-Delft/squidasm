@@ -39,10 +39,6 @@ class Qnos(Protocol):
         self._comp = comp
         self._local_env = local_env
 
-        # Values are references to objects created elsewhere
-        self._processes: Dict[int, IqoalaProcess] = {}  # program ID -> process
-        # TODO: make self._processes fully referenced object?
-
         # Owned objects.
         self._interface = QnosInterface(comp, qdevice, memmgr)
         self._processor: QnosProcessor
@@ -78,9 +74,6 @@ class Qnos(Protocol):
     @property
     def physical_memory(self) -> PhysicalQuantumMemory:
         return self._interface.qdevice.memory
-
-    def add_process(self, process: IqoalaProcess) -> None:
-        self._processes[process.prog_instance.pid] = process
 
     def start(self) -> None:
         super().start()

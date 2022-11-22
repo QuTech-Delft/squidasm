@@ -3,6 +3,7 @@ from typing import Dict
 
 from squidasm.qoala.lang.iqoala import IqoalaRequest, IqoalaSubroutine
 from squidasm.qoala.runtime.program import ProgramInstance, ProgramResult
+from squidasm.qoala.runtime.schedule import ProgramTaskList
 from squidasm.qoala.sim.csocket import ClassicalSocket
 from squidasm.qoala.sim.eprsocket import EprSocket
 from squidasm.qoala.sim.memory import HostMemory, ProgramMemory, SharedMemory

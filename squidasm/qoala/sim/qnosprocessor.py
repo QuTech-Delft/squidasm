@@ -6,7 +6,6 @@ from typing import Generator, Optional, Union
 import netsquid as ns
 from netqasm.lang.instr import NetQASMInstruction, core, nv, vanilla
 from netqasm.lang.operand import Register
-from netqasm.sdk.build_epr import SER_CREATE_IDX_NUMBER, SER_CREATE_IDX_TYPE
 from netsquid.components.instructions import (
     INSTR_CNOT,
     INSTR_CXDIR,
@@ -36,11 +35,8 @@ from squidasm.qoala.sim.process import IqoalaProcess
 from squidasm.qoala.sim.qdevice import QDevice, QDeviceCommand
 from squidasm.qoala.sim.qnosinterface import QnosInterface
 from squidasm.qoala.sim.requests import (
-    EprCreateType,
     NetstackBreakpointCreateRequest,
     NetstackBreakpointReceiveRequest,
-    NetstackCreateRequest,
-    NetstackReceiveRequest,
 )
 
 

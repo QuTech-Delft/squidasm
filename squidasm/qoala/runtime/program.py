@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from squidasm.qoala.lang.iqoala import IqoalaProgram
+from squidasm.qoala.runtime.schedule import ProgramTaskList
 
 
 class ProgramContext(abc.ABC):
@@ -36,6 +37,7 @@ class ProgramInstance:
     pid: int
     program: IqoalaProgram
     inputs: ProgramInput
+    tasks: ProgramTaskList
 
 
 @dataclass

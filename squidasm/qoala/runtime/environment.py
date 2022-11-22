@@ -10,8 +10,6 @@ from squidasm.qoala.runtime.config import (
 )
 from squidasm.qoala.runtime.program import ProgramInstance
 
-from .schedule import Schedule
-
 
 @dataclass
 class GlobalNodeInfo:
@@ -140,7 +138,6 @@ class LocalEnvironment:
         self,
         global_env: GlobalEnvironment,
         node_id: int,
-        local_schedule: Optional[Schedule] = None,
     ) -> None:
         self._global_env: GlobalEnvironment = global_env
 
@@ -150,8 +147,6 @@ class LocalEnvironment:
         self._programs: List[ProgramInstance] = []
         self._csockets: List[str] = []
         self._epr_sockets: List[str] = []
-
-        self._local_schedule = local_schedule
 
     def get_global_env(self) -> GlobalEnvironment:
         return self._global_env
@@ -164,9 +159,6 @@ class LocalEnvironment:
 
     def open_epr_socket(self) -> None:
         pass
-
-    def install_local_schedule(self, schedule: Schedule) -> None:
-        self._local_schedule = schedule
 
     def get_all_node_names(self) -> List[str]:
         return [info.name for info in self.get_global_env().get_nodes().values()]
