@@ -424,26 +424,25 @@ def test_bqc():
 
     # angles are in multiples of pi/16
 
-    LogManager.set_log_level("DEBUG")
-    LogManager.log_to_file("test_run.log")
+    # LogManager.set_log_level("DEBUG")
+    # LogManager.log_to_file("test_run.log")
 
     def check(alpha, beta, theta1, theta2, expected):
         ns.sim_reset()
         bqc_result = run_bqc(
-            alpha=alpha, beta=beta, theta1=theta1, theta2=theta2, num_iterations=1
+            alpha=alpha, beta=beta, theta1=theta1, theta2=theta2, num_iterations=20
         )
 
         server_batch_results = bqc_result.server_results
         for batch_id, batch_results in server_batch_results.items():
             program_results = batch_results.results
             m2s = [result.values["m2"] for result in program_results]
-            # assert all(m2 == expected for m2 in m2s)
-            print(len([m2 for m2 in m2s if m2 == expected]))
+            assert all(m2 == expected for m2 in m2s)
 
     check(alpha=8, beta=8, theta1=0, theta2=0, expected=0)
-    # check(alpha=8, beta=24, theta1=0, theta2=0, expected=1)
-    # check(alpha=8, beta=8, theta1=13, theta2=27, expected=0)
-    # check(alpha=8, beta=24, theta1=2, theta2=22, expected=1)
+    check(alpha=8, beta=24, theta1=0, theta2=0, expected=1)
+    check(alpha=8, beta=8, theta1=13, theta2=27, expected=0)
+    check(alpha=8, beta=24, theta1=2, theta2=22, expected=1)
 
 
 if __name__ == "__main__":

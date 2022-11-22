@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Generator, List, Optional, Tuple, Type
 
@@ -184,13 +185,27 @@ class Scheduler(Protocol):
 
                 result = ProgramResult(values={})
 
+                # Important: create a deep copy of the subroutines for each process,
+                # since each process should be able to instantiate their subroutines
+                # without affecting the subroutines of other processes.
+                subroutines = {
+                    name: deepcopy(subrt)
+                    for name, subrt in prog_instance.program.subroutines.items()
+                }
+
+                # Same holds for requests.
+                requests = {
+                    name: deepcopy(req)
+                    for name, req in prog_instance.program.requests.items()
+                }
+
                 process = IqoalaProcess(
                     prog_instance=prog_instance,
                     prog_memory=prog_memory,
                     csockets=csockets,
                     epr_sockets=epr_sockets,
-                    subroutines=prog_instance.program.subroutines,
-                    requests=prog_instance.program.requests,
+                    subroutines=subroutines,
+                    requests=requests,
                     result=result,
                 )
 
@@ -300,17 +315,18 @@ class Scheduler(Protocol):
             task = task_list.tasks[entry.task_index]
 
             if schedule_time.time is None:  # no time constraint
+                # print(f"{self.name} executing task {task}")
                 yield from self.execute_task(process, task)
             else:
                 ns_time = ns.sim_time()
                 delta = schedule_time.time - ns.sim_time()
-                print(
-                    f"{self.name} next scheduled time = {schedule_time.time}, delta = {delta}"
-                )
+                # print(
+                #     f"{self.name} next scheduled time = {schedule_time.time}, delta = {delta}"
+                # )
                 yield from self.wait(delta)
-                print(f"{self.name} ns_time: {ns_time}, executing task {task}")
+                # print(f"{self.name} ns_time: {ns_time}, executing task {task}")
                 yield from self.execute_task(process, task)
-                print(f"{self.name} s_time: {ns_time}, finished task {task}")
+                # print(f"{self.name} s_time: {ns_time}, finished task {task}")
 
-        print(f"{self.name} finished with schedule\n\n")
+        # print(f"{self.name} finished with schedule\n\n")
         self.collect_batch_results()

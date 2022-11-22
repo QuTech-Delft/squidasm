@@ -61,6 +61,9 @@ class ProgramTask:
         assert self.subrt_name is not None
         return NetstackTask(self.subrt_name)
 
+    def __str__(self) -> str:
+        return f"{self.processor_type.name} {self.subrt_name} {self.instr_index}"
+
 
 class TaskBuilder:
     @classmethod
