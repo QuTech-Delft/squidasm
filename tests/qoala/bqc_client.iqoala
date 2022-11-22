@@ -48,7 +48,6 @@ SUBROUTINE post_epr_0
     set Q0 0
     rot_z Q0 {theta2} 4
     h Q0
-    set Q0 0
     meas Q0 M0
     qfree Q0
   NETQASM_END
@@ -71,7 +70,6 @@ SUBROUTINE post_epr_1
     set Q0 0
     rot_z Q0 {theta1} 4
     h Q0
-    set Q0 0
     meas Q0 M1
     qfree Q0
   NETQASM_END

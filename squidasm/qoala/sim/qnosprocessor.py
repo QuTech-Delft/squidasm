@@ -47,6 +47,9 @@ class QnosProcessor:
         self._interface = interface
         self._asynchronous = asynchronous
 
+        # TODO: add way to set instr latency through constructor
+        self._instr_latency: float = 0.0
+
         # TODO: rewrite
         self._name = f"{interface.name}_QnosProcessor"
 
@@ -65,6 +68,14 @@ class QnosProcessor:
     @property
     def qdevice(self) -> QDevice:
         return self._interface.qdevice
+
+    @property
+    def instr_latency(self) -> float:
+        return self._instr_latency
+
+    @instr_latency.setter
+    def instr_latency(self, latency: float) -> None:
+        self._instr_latency = latency
 
     def assign(
         self, process: IqoalaProcess, subrt_name: str, instr_idx: int
@@ -201,6 +212,7 @@ class QnosProcessor:
         self._logger.debug(f"Set register {instr.reg} to {instr.imm}")
         shared_mem = self._prog_mem().shared_mem
         shared_mem.set_reg_value(instr.reg, instr.imm.value)
+        yield from self._interface.wait(self._instr_latency)
         return None
 
     def _interpret_qalloc(

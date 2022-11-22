@@ -118,6 +118,32 @@ class ProgramTaskList:
         return ProgramTaskList(program, {})
 
 
+@dataclass
+class SchedulerInput:
+    global_schedule: List[int]
+    timeslot_len: int
+    num_programs: int
+    deadlines: List[int]
+    num_executions: List[int]
+    num_instructions: List[int]
+    instr_durations: List[List[int]]
+    instr_types: List[List[InstructionType]]
+
+
+@dataclass
+class SchedulerOutputEntry:
+    app_index: int
+    ex_index: int
+    instr_index: int
+    start_time: Optional[int]  # None means "earliest time possible"
+    end_time: int
+
+
+@dataclass
+class SchedulerOutput:
+    entries: List[SchedulerOutputEntry]
+
+
 @dataclass(eq=True, frozen=True)
 class ScheduleEntry:
     pid: int
@@ -132,3 +158,9 @@ class ScheduleTime:
 @dataclass
 class Schedule:
     entries: List[Tuple[ScheduleTime, ScheduleEntry]]  # list of (time, entry)
+
+
+class ScheduleSolver:
+    @classmethod
+    def solve(cls, input: SchedulerInput) -> SchedulerOutput:
+        raise NotImplementedError

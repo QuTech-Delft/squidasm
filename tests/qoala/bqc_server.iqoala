@@ -64,7 +64,6 @@ SUBROUTINE meas_qubit_1
     h Q1
     meas Q1 M0
     qfree Q1
-    ret_reg M0
   NETQASM_END
 
 SUBROUTINE meas_qubit_0
@@ -77,7 +76,6 @@ SUBROUTINE meas_qubit_0
     h Q0
     meas Q0 M0
     qfree Q0
-    ret_reg M0
   NETQASM_END
 
 REQUEST req0

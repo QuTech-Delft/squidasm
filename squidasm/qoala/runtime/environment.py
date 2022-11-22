@@ -46,6 +46,20 @@ class GlobalNodeInfo:
         )
 
     @classmethod
+    def dummy(cls, name: str, id: int, num_qubits: int) -> GlobalNodeInfo:
+        # TODO: remove this
+        return GlobalNodeInfo(
+            name=name,
+            id=id,
+            num_qubits=num_qubits,
+            num_comm_qubits=1,
+            comm_T1=1e9,
+            comm_T2=1e9,
+            mem_T1=1e10,
+            mem_T2=1e10,
+        )
+
+    @classmethod
     def from_config(
         cls, name: str, id: int, config: Union[GenericQDeviceConfig, NVQDeviceConfig]
     ) -> GlobalNodeInfo:

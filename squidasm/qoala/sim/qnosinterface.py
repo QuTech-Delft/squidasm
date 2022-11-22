@@ -4,6 +4,7 @@ from typing import Generator
 
 from pydynaa import EventExpression
 from squidasm.qoala.sim.common import ComponentProtocol, PortListener
+from squidasm.qoala.sim.events import EVENT_WAIT
 from squidasm.qoala.sim.memmgr import MemoryManager
 from squidasm.qoala.sim.message import Message
 from squidasm.qoala.sim.qdevice import QDevice
@@ -68,3 +69,8 @@ class QnosInterface(ComponentProtocol):
     @property
     def memmgr(self) -> MemoryManager:
         return self._memmgr
+
+    def wait(self, delta_time: int) -> Generator[EventExpression, None, None]:
+        self._schedule_after(delta_time, EVENT_WAIT)
+        event_expr = EventExpression(source=self, event_type=EVENT_WAIT)
+        yield event_expr

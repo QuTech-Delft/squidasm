@@ -107,22 +107,15 @@ class ProcNode(Protocol):
 
         if scheduler is None:
             self._scheduler = Scheduler(
-                self._node.name, self._host, self._qnos, self._netstack, self._memmgr
+                self._node.name,
+                self._host,
+                self._qnos,
+                self._netstack,
+                self._memmgr,
+                self._local_env,
             )
         else:
             self._scheduler = scheduler
-
-        self._prog_instance_counter: int = 0
-        self._batch_counter: int = 0
-        self._batches: Dict[int, ProgramBatch] = {}  # batch ID -> batch
-
-        self._prog_results: Dict[int, ProgramResult] = {}  # program ID -> result
-        self._batch_result: Dict[int, BatchResult] = {}  # batch ID -> result
-
-    def install_environment(self) -> None:
-        self._scheduler.install_schedule(self._local_env._local_schedule)
-        for instance in self._local_env._programs:
-            self._scheduler.init_new_program(instance)
 
     def install_schedule(self, schedule: Schedule) -> None:
         self.scheduler.install_schedule(schedule)
@@ -134,7 +127,7 @@ class ProcNode(Protocol):
 
         The same link layer protocol object is used by both nodes sharing a link in
         the network."""
-        self._egpmgr.add_egp(remote_id, EgpProtocol(self.node, prot))
+        self.egpmgr.add_egp(remote_id, EgpProtocol(self.node, prot))
 
     @property
     def node(self) -> ProcNodeComponent:
@@ -237,59 +230,10 @@ class ProcNode(Protocol):
         super().stop()
 
     def submit_batch(self, batch_info: BatchInfo) -> None:
-        prog_instances: List[ProgramInstance] = []
-
-        for input in batch_info.inputs:
-            instance = ProgramInstance(
-                pid=self._prog_instance_counter,
-                program=batch_info.program,
-                inputs=input,
-                tasks=batch_info.tasks,
-            )
-            self._prog_instance_counter += 1
-            prog_instances.append(instance)
-
-        batch = ProgramBatch(
-            batch_id=self._batch_counter, info=batch_info, instances=prog_instances
-        )
-        self._batches[batch.batch_id] = batch
-        self._batch_counter += 1
+        self.scheduler.submit_batch(batch_info)
 
     def initialize_runtime(self) -> None:
-        for batch in self._batches.values():
-            for prog_instance in batch.instances:
-                prog_memory = ProgramMemory(
-                    prog_instance.pid,
-                    unit_module=UnitModule.default_generic(batch.info.num_qubits),
-                )
-                meta = prog_instance.program.meta
-
-                csockets: Dict[int, ClassicalSocket] = {}
-                for i, remote_name in meta.csockets.items():
-                    # TODO: check for already existing epr sockets
-                    csockets[i] = self.host.create_csocket(remote_name)
-
-                epr_sockets: Dict[int, EprSocket] = {}
-                for i, remote_name in meta.epr_sockets.items():
-                    remote_id = self._global_env.get_node_id(remote_name)
-                    # TODO: check for already existing epr sockets
-                    # TODO: fidelity
-                    epr_sockets[i] = EprSocket(i, remote_id, 1.0)
-
-                result = ProgramResult(values={})
-
-                process = IqoalaProcess(
-                    prog_instance=prog_instance,
-                    prog_memory=prog_memory,
-                    csockets=csockets,
-                    epr_sockets=epr_sockets,
-                    subroutines={},
-                    requests={},
-                    result=result,
-                )
-
-                self.add_process(process)
-                self.scheduler.initialize(process)
+        self.scheduler.create_processes_for_batches()
 
     def add_process(self, process: IqoalaProcess) -> None:
         self.memmgr.add_process(process)
