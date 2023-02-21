@@ -11,12 +11,3 @@ build:
 
 
 
-python:
-   install:
-     - method: pip
-       path: .
-       extra_requirements:
-         - rtd
-     - method: pip
-       path: package
-
