@@ -10,4 +10,4 @@ The package contains the following modules
    :maxdepth: 2
    :caption: Contents:
 
-   modules/processor
+   modules/qnodeos

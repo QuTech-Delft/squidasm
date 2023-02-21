@@ -1,22 +1,16 @@
 How to build the docs
 =====================
+Install the package as specified in squidasm root README.md file.
 
-First build the docs by:
+Keep the terminal current directory at the root of SquidASM package for all steps.
 
+Install the extra requirements for building documentation:
 ```bash
-make build
+pip install .[rtd]
 ```
 
-This will first install any required dependencies and build the html files. (the next time you can simply do `make html`).
-
-To open the built docs, do:
-
+Then build the docs using:
 ```bash
-make open
+make docs html
 ```
-which makes use of the command `open`. If you're on Linux and `open` does not work you can add `alias open='xdg-open` to you rc-file.
-
-To both build the html files and open them, do:
-```bash
-make see
-```
+The html output can be viewed by opening: docs\build\html\index.html
