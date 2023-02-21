@@ -6,8 +6,8 @@ build:
     python: "3.8"
   jobs:
     pre_install:
-      - ${READTHEDOCS_VIRTUALENV_PATH}/bin/python -m pip install --upgrade --no-cache-dir pip "setuptools<58.3.0"
-      - ${READTHEDOCS_VIRTUALENV_PATH}/bin/python -m pip install .[rtd] --extra-index-url=https://${NETSQUIDPYPI_USER}:${NETSQUIDPYPI_PWD}@pypi.netsquid.org --exists-action=w --no-cache-dir
+      - python -m pip install --upgrade --no-cache-dir pip "setuptools<58.3.0"
+      - python -m pip install .[rtd] --extra-index-url=https://${NETSQUIDPYPI_USER}:${NETSQUIDPYPI_PWD}@pypi.netsquid.org --exists-action=w --no-cache-dir
 
 
 
