@@ -1,30 +1,40 @@
-.. squidasm documentation master file, created by
-   sphinx-quickstart on Mon Feb 20 16:04:18 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to squidasm's documentation!
+Welcome to SquidASM's documentation!
 ====================================
+This is the documentation for SquidASM, a simulator based on NetSquid that can execute applications written using NetQASM.
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+To get started with SquidASM follow see the :ref:`install <label_installation>` guide.
+Afterwards a :ref:`tutorial <label_start_tutorial>` is available to introduce SquidASM.
+We also provide :ref:`API <label_api_overview>` documentation.
 
 .. toctree::
    :maxdepth: 1
    :caption: Installation
+   :hidden:
 
    installation
 
 .. toctree::
    :maxdepth: 2
+   :caption: Tutorial:
+   :hidden:
+   :glob:
+
+   tutorial/*
+
+
+
+.. toctree::
+   :maxdepth: 2
    :caption: API reference
+   :hidden:
 
    api
+
+TODO decide if we want to keep the following:
+
 
 Indices and tables
 ==================
 
-* :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`

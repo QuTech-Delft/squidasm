@@ -1,3 +1,5 @@
+.. _label_api_overview:
+
 API
 ===
 
