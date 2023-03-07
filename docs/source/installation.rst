@@ -12,12 +12,12 @@ For Windows users it is recommended to either use a virtual machine or use `Wind
 TODO: we need to describe that you need to clone the repo if you want to do the make and have the examples.
 
 The SquidASM install script requires the NetSquid user name and password to be set into environment variables.
-This can be done by executing:
+This can be done by executing the following code, but with your own user name and password:
 
 .. code-block:: bash
 
-    export NETSQUIDPYPI_USER={your NetSquid forum user name}
-    export NETSQUIDPYPI_PWD={your NetSquid forum password}
+    export NETSQUIDPYPI_USER=user1234
+    export NETSQUIDPYPI_PWD=password1234
 
 For a more permanent solution, if SquidASM is installed more than once, these lines can be added to ``~\.bashrc``.
 
@@ -32,3 +32,5 @@ To verify the installation, do:
 .. code-block:: bash
 
    make verify
+
+If this commands completes without errors, it means that SquidASM has been successfully installed and should work properly.

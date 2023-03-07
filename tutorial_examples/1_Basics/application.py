@@ -1,4 +1,4 @@
-from netqasm.sdk.classical_communication.message import StructuredMessage
+from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
@@ -26,22 +26,10 @@ class AliceProgram(Program):
         # get connection to quantum device controller
         connection = context.connection
 
-        # Classical communication Alice
-
         # send a string message via a classical channel
-        message = "start protocol at time: xx:xx"
+        message = "Hello"
         csocket.send(message)
         print(f"Alice sends message: {message}")
-
-        # receive the structured message
-        callback_message = yield from csocket.recv_structured()
-        assert isinstance(callback_message, StructuredMessage)
-        print(f"Alice receives a structured message with header: {callback_message.header}"
-              f" and payload: {callback_message.payload}")
-
-        # Check the handshake received from Bob
-        if callback_message.header != "echo" or callback_message.payload != message:
-            raise Exception("Classical communication handshake failed")
 
         # Register a request to create an EPR pair, then apply a Hadamard gate on qubit and measure
         qubit = epr_socket.create_keep()[0]
@@ -49,6 +37,21 @@ class AliceProgram(Program):
         result = qubit.measure()
         yield from connection.flush()
         print(f"Alice measures local EPR qubit: {result}")
+
+        # Qubits on a local node can be obtained, but require the connection to be initialized
+        q0 = Qubit(connection)
+        q1 = Qubit(connection)
+
+        # Apply a Hadamard gate
+        q0.H()
+        # Apply CNOT gate where q0 is the control qubit, q1 is the target qubit
+        q0.cnot(q1)
+
+        r0 = q0.measure()
+        r1 = q1.measure()
+
+        yield from connection.flush()
+        print(f"Alice measures local qubits: {r0}, {r1}")
 
         return {}
 
@@ -77,13 +80,6 @@ class BobProgram(Program):
         # Bob listens for messages on his classical socket
         message = yield from csocket.recv()
         print(f"Bob receives message: {message}")
-
-        # Bob sends confirmation by echoing the message from Alice, but with a StructuredMessage
-        assert isinstance(message, str)
-        callback_message = StructuredMessage(header="echo", payload=message)
-        csocket.send_structured(callback_message)
-        print(f"Bob sends structured message with header: {callback_message.header}"
-              f" and payload: {callback_message.payload}")
 
         # Listen for request to create EPR pair, apply a Hadamard gate on qubit and measure
         qubit = epr_socket.recv_keep()[0]
