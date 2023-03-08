@@ -1,4 +1,4 @@
-.. _label_netqasm_connection:
+.. _label_netqasm:
 
 ************************
 NetQASM

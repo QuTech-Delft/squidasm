@@ -1,3 +1,6 @@
+.. _label_tutorial_basics:
+
+
 ************************
 Basics
 ************************
@@ -24,19 +27,21 @@ Afterwards one may run the simulation using:
 
 Program basics
 ==============
-A SquidASM program receives the objects it needs to send instructions to the quantum device controller or communications to other nodes via a ProgramContext object.
-For this section we do not go into the details of ProgramContext and ProgramMeta.
-This will be discussed in section :ref:`label_program_interface`.
+In this section we will explain the basics of writing an application for SquidASM.
+In the examples of this tutorial the ``application.py`` file will contain the programs that run on each node.
+We define a separate meanings to program and application.
+A program is the code running on a host on a single node.
+An application is the complete set of programs to achieve a specific purpose.
+For example BQC is an application, but it consists of two programs, one program for the client and another for the server.
 
+In this tutorial we will be creating a ``AliceProgram`` and a ``BobProgram`` that will run on a Alice and Bob node respectively.
+Both the Alice and Bob program start with an unpacking of a ``ProgramContex`` object into ``csocket`` (a classical socket), ``epr_socket`` and ``connection`` (a NetQASM connection).
 
 .. code-block:: python
-   :caption: application.py
+   :caption: Alice
 
    class AliceProgram(Program):
        PEER_NAME = "Bob"
-
-       @property
-       def meta(self) -> ProgramMeta:
 
        def run(self, context: ProgramContext):
            # get classical socket to peer
@@ -45,6 +50,29 @@ This will be discussed in section :ref:`label_program_interface`.
            epr_socket = context.epr_sockets[self.PEER_NAME]
            # get connection to quantum device controller
            connection = context.connection
+
+
+In order to understand the role of each of these objects, it is important to distinguish that the program will run on the host.
+The host can be any type of classical computer.
+The host is connected to a quantum network processing unit,
+that is responsible for local qubit operations and EPR pair generation with remote nodes.
+The link between the host and quantum network processing unit is called a NetQASM connection.
+The variable ``connection`` represents this NetQASM connection.
+
+The NetQASM connection is used to communicate all instructions regarding qubit operations and entanglement generation.
+For many of these operations, this dependency is not explicit in the program code,
+but for certain actions it is required explicitly.
+
+The ``csocket`` is a classical socket.
+A socket represents the end point for sending and receiving data across a network to the socket of another node.
+Note that the socket connects to one specific other node and socket.
+The classical socket can be used to send classical information to the host of another node.
+
+The ``epr_socket`` is instead a socket for generating entangled qubits on both nodes.
+Behind the scenes the communication requests are sent to the quantum network processing unit.
+
+.. image:: img/programContextOverview.png
+   :align: center
 
 
 Sending classical information
@@ -110,7 +138,7 @@ but a request for multiple EPR pairs may be placed using ``create_keep(number=n)
 
 After the EPR pair is ready, we apply a Hadamard gate and measure the qubit.
 It is then required to send these instructions to the quantum network controller using ``yield from connection.flush()`` for both Alice and Bob.
-The next section, :ref:`label_netqasm_connection`, will go into more details regarding the connection.
+The next section, :ref:`label_netqasm`, will go into more details regarding the connection.
 
 Running the simulation results in either:
 
