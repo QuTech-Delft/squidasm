@@ -9,10 +9,10 @@ Terminology
 ``Application``
     A collection of Programs on multiple nodes working together to achieve a certain result.
 
-``Quantum Network controller``
-    The software that is responsible for both operations on local qubits as well as creating EPR pairs with remote nodes.
-    This software is sent these instructions using the `NetQASM language <https://github.com/QuTech-Delft/netqasm>`_.
-    An example of such a system is QNodeOS.
+``quantum network processing unit (QNPU)``
+    The software and device that are responsible for both operations on local qubits as well as creating EPR pairs with remote nodes.
+    The software is sent these instructions using the `NetQASM language <https://github.com/QuTech-Delft/netqasm>`_.
+    An example of the software is QNodeOS.
 
 ``Host``
     The device running a program. This can be any type of classical computer.

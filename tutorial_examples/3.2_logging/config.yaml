@@ -1,0 +1,22 @@
+# Perfect 2 node network, no noise from either computation on the nodes or communication between nodes
+stacks:
+  - name: Alice
+    qdevice_typ: generic
+    qdevice_cfg:
+      dummy: null
+  - name: Bob
+    qdevice_typ: generic
+    qdevice_cfg:
+      dummy: null
+
+link_cfg: &link_cfg
+  fidelity: 0.9
+  prob_success: 1
+  t_cycle: 1e1
+
+links:
+  - stack1: Alice
+    stack2: Bob
+    typ: depolarise
+    cfg:
+      <<: *link_cfg

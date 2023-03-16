@@ -23,7 +23,7 @@ In order to encourage modularity we split the code into three separate files, in
 
 ``config.yaml``
     The file that specifies the network.
-    It controls the network layout and end node labels moreover, it specifies the link and node types and properties.
+    It controls the network layout and end node labels. Moreover, it specifies the link and node types and properties.
 
 ``run_simulation.py``
     The executable file that will run the simulation.
@@ -43,6 +43,6 @@ We do not recommend starting with the NetQASM tutorial,
 as there are differences in syntax between what the NetQASM tutorial introduces and what SquidASM requires from its applications.
 Thus this tutorial, in the first two sections, will be introducing NetQASM as well.
 
-While suggest avoiding the NetQASM tutorial, as it will likely cause confusion,
+While we suggest avoiding the NetQASM tutorial, as it will likely cause confusion,
 we do recommend using the NetQASM API documentation after completing the tutorial.
 

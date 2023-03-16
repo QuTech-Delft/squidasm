@@ -30,7 +30,7 @@ Program basics
 In this section we will explain the basics of writing an application for SquidASM.
 In the examples of this tutorial the ``application.py`` file will contain the programs that run on each node.
 We define a separate meanings to program and application.
-A program is the code running on a host on a single node.
+A program is the code running on a single node.
 An application is the complete set of programs to achieve a specific purpose.
 For example BQC is an application, but it consists of two programs, one program for the client and another for the server.
 
@@ -48,13 +48,13 @@ Both the Alice and Bob program start with an unpacking of a ``ProgramContex`` ob
            csocket = context.csockets[self.PEER_NAME]
            # get EPR socket to peer
            epr_socket = context.epr_sockets[self.PEER_NAME]
-           # get connection to quantum device controller
+           # get connection to quantum network processing unit
            connection = context.connection
 
 
 In order to understand the role of each of these objects, it is important to distinguish that the program will run on the host.
 The host can be any type of classical computer.
-The host is connected to a quantum network processing unit,
+The host is connected to a quantum network processing unit(QNPU),
 that is responsible for local qubit operations and EPR pair generation with remote nodes.
 The link between the host and quantum network processing unit is called a NetQASM connection.
 The variable ``connection`` represents this NetQASM connection.
@@ -137,7 +137,7 @@ but a request for multiple EPR pairs may be placed using ``create_keep(number=n)
    print(f"Bob measures local EPR qubit: {result}")
 
 After the EPR pair is ready, we apply a Hadamard gate and measure the qubit.
-It is then required to send these instructions to the quantum network controller using ``yield from connection.flush()`` for both Alice and Bob.
+It is then required to send these instructions to the QNPU using ``yield from connection.flush()`` for both Alice and Bob.
 The next section, :ref:`label_netqasm`, will go into more details regarding the connection.
 
 Running the simulation results in either:
@@ -160,7 +160,7 @@ Creating local Qubits
 It is possible to request and use local qubits, without generating entanglement with a remote node.
 This is done by initializing a  ``Qubit`` object from ``netqasm.sdk.qubit``.
 This initialization requires the user to pass the NetQASM connection,
-as instructions need to be sent to the quantum network controller that a particular qubit is reset and marked as in use.
+as instructions need to be sent to the QNPU that a particular qubit is reset and marked as in use.
 We can use the ``Qubit`` object to create an EPR pair with both qubits on the same node:
 
 .. code-block:: python

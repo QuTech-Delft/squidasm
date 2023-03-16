@@ -23,7 +23,7 @@ class AliceProgram(Program):
         csocket = context.csockets[self.PEER_NAME]
         # get EPR socket to peer
         epr_socket = context.epr_sockets[self.PEER_NAME]
-        # get connection to quantum device controller
+        # get connection to quantum network processing unit
         connection = context.connection
 
         # send a string message via a classical channel
@@ -74,7 +74,7 @@ class BobProgram(Program):
         csocket: Socket = context.csockets[self.PEER_NAME]
         # get EPR socket to peer
         epr_socket: EPRSocket = context.epr_sockets[self.PEER_NAME]
-        # get connection to quantum device controller
+        # get connection to quantum network processing unit
         connection: BaseNetQASMConnection = context.connection
 
         # Bob listens for messages on his classical socket
