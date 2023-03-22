@@ -1,0 +1,6 @@
+# Fidelity between the EPR pair qubits
+fidelity: 0.9
+# Time in nanoseconds for an attempt to generated entanglement
+t_cycle: 10.
+# Chance for each attempt at entanglement to succeed
+prob_success: 0.8

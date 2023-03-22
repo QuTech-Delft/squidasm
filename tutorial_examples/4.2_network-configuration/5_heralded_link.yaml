@@ -1,0 +1,35 @@
+# A configuration with a perfect generic qdevice and a link with a heralded model using a two click protocol
+stacks:
+  - name: Alice
+    qdevice_typ: generic
+    qdevice_cfg:
+      dummy: null
+  - name: Bob
+    qdevice_typ: generic
+    qdevice_cfg:
+      dummy: null
+
+link_cfg: &link_cfg
+    # total length [km] of heralded connection (i.e. sum of fibers on both sides on midpoint station).
+    length: 1.0
+    # probability that photons are lost when entering connection the connection on either side.
+    p_loss_init: 0
+    # attenuation coefficient [dB/km] of fiber on either side.
+    p_loss_length: 0.25
+    # speed of light [km/s] in fiber on either side.
+    speed_of_light: 200_000
+    # dark-count probability per detection
+    dark_count_probability: 0
+    # probability that the presence of a photon leads to a detection event
+    detector_efficiency: 1.0
+    # Hong-Ou-Mandel visibility of photons that are being interfered (measure of photon indistinguishability)
+    visibility: 1.0
+    # determines whether photon-number-resolving detectors are used for the Bell-state measurement
+    num_resolving: False
+
+links:
+  - stack1: Alice
+    stack2: Bob
+    typ: heralded
+    cfg:
+      <<: *link_cfg

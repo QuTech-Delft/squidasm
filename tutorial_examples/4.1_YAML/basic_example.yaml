@@ -1,0 +1,16 @@
+# Simple dictionary entries:
+intro-text: "Hello world"
+pi: 3.14
+
+# Creates an entry that is itself a dictionary
+settings:
+  alpha: 2.56
+  beta: 78.2
+
+# Creates an entry that is a list using the - character for each list entry
+famous-scientists:
+  - "Albert Einstein"
+  - "Isaac Newton"
+  - "Marie Curie"
+  - "Enrico Fermi"
+

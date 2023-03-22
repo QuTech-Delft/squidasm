@@ -162,8 +162,6 @@ These dictionaries are returned to the ``run_simulation.py`` file as the return 
 In the ``run_simulation.py`` file below we show how we can use the output of the programs
 and determine an error rate by comparing what EPR measurements are different.
 
-
-
 .. code-block:: python
    :caption: tutorial_examples\\3.1_output\\run_simulation.py
 

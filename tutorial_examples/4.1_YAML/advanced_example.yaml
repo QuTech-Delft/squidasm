@@ -1,0 +1,21 @@
+
+bob-owner: &bob
+  name: "Bob"
+  address: "Fermi street 10"
+
+
+cars:
+  - type: "Audi"
+    condition:
+      vehicle-kilometers: 20_000
+      state: "good"
+    owner:
+      <<: *bob
+
+  - type: "Porsche"
+    condition:
+      vehicle-kilometers: 500
+      state: "bad"
+    owner:
+      <<: *bob
+
