@@ -9,8 +9,8 @@ In this tutorial you will be introduced to the objects and concepts necessary to
 In order to start the tutorial it is recommended to first install SquidASM and the required components. This process is described in :ref:`label_installation`.
 
 The tutorial sections are accompanied by code examples in the SquidASM package that are located in ``tutorial_examples`` folder of SquidASM.
-The code snippets that are shown in this tutorial are part of these examples.
-It is recommended to browse through the examples when reading the tutorial to obtain the full context of the snippets.
+The code examples shown in this tutorial are part of these examples.
+It is may be useful to browse through the examples when reading the tutorial to obtain the full context of the snippets.
 
 Files
 ==========
@@ -33,7 +33,7 @@ In order to encourage modularity we split the code into three separate files, in
 This tutorial will introduce the concepts and files one by one.
 The :ref:`first<label_tutorial_basics>` and :ref:`second<label_netqasm>` section will focus exclusively on ``application.py``.
 The :ref:`third<label_program_interface>` section will explain ``run_simulation.py``.
-The :ref:`fourth<label_network_configuration>` section will explain the network specification and the ``config.yaml`` file.
+The :ref:`fourth<label_network_configuration>` section will explain the network specification using the ``config.yaml`` file.
 
 NetQASM
 =========
@@ -43,6 +43,6 @@ We do not recommend starting with the NetQASM tutorial,
 as there are differences in syntax between what the NetQASM tutorial introduces and what SquidASM requires from its applications.
 Thus this tutorial, in the first two sections, will be introducing NetQASM as well.
 
-While we suggest avoiding the NetQASM tutorial, as it will likely cause confusion,
+While we suggest avoiding the NetQASM tutorial initially, as it will likely cause confusion,
 we do recommend using the NetQASM API documentation after completing the tutorial.
 

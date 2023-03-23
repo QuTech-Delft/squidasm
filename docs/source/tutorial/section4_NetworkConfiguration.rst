@@ -23,7 +23,7 @@ The first YAML example shows the basics of YAML:
     :caption: tutorial_examples/4.1_YAML/basic_example.yaml
 
 The YAML files translate directly into python.
-By using statements of the form: ``key: value``, a python dictionary is created containing with this key and value.
+By using statements of the form: ``key: value``, a python dictionary is created containing this key and value.
 By using indents after a key, such as with ``settings:`` in the example, a nested dictionary is created.
 It is also possible to create list instead of dictionaries, this is done by using the syntax: ``- value``.
 
@@ -126,7 +126,7 @@ All times are in nano seconds.
 
 The gate operations noise is modeled using randomly applied pauli gates.
 The ``single_qubit_gate_depolar_prob`` and ``two_qubit_gate_depolar_prob``
-control the chance that a random pauli gate is applied to each qubit involved in the operation.
+control the chance that a random pauli gate is applied to the one or two qubits involved in the operation.
 
 .. literalinclude:: ../../../tutorial_examples/4.2_network-configuration/2_generic_qdevice.yaml
     :language: yaml
@@ -174,7 +174,7 @@ The depolarise link is a simple link model that simulates EPR pairs being genera
 The noise in the resulting EPR pairs,
 is simulated via the ``fidelity`` parameter it controls how well entangled the successfully generated EPR pairs are.
 The ``t_cycle`` controls how long the EPR generation takes, in nanoseconds, for a single attempt.
-and ``prob_success`` controls the likelihood of each attempt succeeding.
+``prob_success`` controls the likelihood of each attempt succeeding.
 
 
 .. literalinclude:: ../../../tutorial_examples/4.2_network-configuration/4_depolarise_link.yaml
@@ -203,7 +203,7 @@ In following example, we have a setup that is comparable to the earlier examples
 The application will generate EPR pairs and measure them after a Hadamard gate.
 Our goal is to use ``run_simulation.py`` to modify the network of ``config.yaml``,
 replace its link with a depolarize link, perform multiple simulations with varying fidelity for the link
-and generate an image of the fidelity vs error rate.
+and generate an graph of the fidelity vs error rate.
 
 .. literalinclude:: ../../../tutorial_examples/4.3_parameter-sweeping/run_simulation.py
     :language: python
@@ -243,7 +243,7 @@ This link object is used to replace the original links inside the configuration:
     # Replace link from YAML file with new depolarise link
     cfg.links = [link]
 
-Running the simulation will result in an image with the name:
+Running the simulation will result in a basic graph inside the image with the name:
 ``output_error_vs_fid.png`` being generated that looks similar to:
 
 .. image:: img/output_error_vs_fid.png

@@ -25,8 +25,8 @@ Afterwards one may run the simulation using:
 
    python3 run_simulation.py
 
-Program basics
-==============
+Application basics
+===================
 In this section we will explain the basics of writing an application for SquidASM.
 In the examples of this tutorial the ``application.py`` file will contain the programs that run on each node.
 We define a separate meanings to program and application.
@@ -35,24 +35,22 @@ An application is the complete set of programs to achieve a specific purpose.
 For example BQC is an application, but it consists of two programs, one program for the client and another for the server.
 
 In this tutorial we will be creating a ``AliceProgram`` and a ``BobProgram`` that will run on a Alice and Bob node respectively.
-Both the Alice and Bob program start with an unpacking of a ``ProgramContex`` object into ``csocket`` (a classical socket), ``epr_socket`` and ``connection`` (a NetQASM connection).
+Both the Alice and Bob program start with an unpacking of a ``ProgramContex`` object into
+``csocket`` (a classical socket), ``epr_socket`` and ``connection`` (a NetQASM connection).
 
-.. code-block:: python
-   :caption: Alice
+The full ``AliceProgram`` is shown below, for now we will focus on introducing the objects in the highlighted section:
 
-   class AliceProgram(Program):
-       PEER_NAME = "Bob"
-
-       def run(self, context: ProgramContext):
-           # get classical socket to peer
-           csocket = context.csockets[self.PEER_NAME]
-           # get EPR socket to peer
-           epr_socket = context.epr_sockets[self.PEER_NAME]
-           # get connection to quantum network processing unit
-           connection = context.connection
+.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+   :language: python
+   :caption: tutorial_examples/1_Basics/application.py AliceProgram
+   :pyobject: AliceProgram
+   :emphasize-lines:  14-20
 
 
-In order to understand the role of each of these objects, it is important to distinguish that the program will run on the host.
+In order to understand the role of ``csocket``, ``epr_socket`` and ``connection``,
+we must introduce some overview context and concepts.
+
+An important note is that the program runs on a host.
 The host can be any type of classical computer.
 The host is connected to a quantum network processing unit(QNPU),
 that is responsible for local qubit operations and EPR pair generation with remote nodes.
@@ -74,6 +72,10 @@ Behind the scenes the communication requests are sent to the quantum network pro
 .. image:: img/programContextOverview.png
    :align: center
 
+.. note::
+   Most NetQASM objects, such as qubits and epr sockets, are initialized using a NetQASM connection
+   and they store this NetQASM connection reference internally.
+   These objects then forward instructions to a NetQASM connection behind the scenes.
 
 Sending classical information
 ==============================
@@ -82,7 +84,7 @@ The Socket objects represent an open connection to a peer.
 So sending a classical message to a peer may be done by using the ``send()`` method of the classical socket.
 
 .. code-block:: python
-   :caption: Alice
+   :caption: tutorial_examples/1_Basics/application.py AliceProgram
 
    message = "Hello"
    csocket.send(message)
@@ -91,13 +93,12 @@ So sending a classical message to a peer may be done by using the ``send()`` met
 In order for Bob to receive the message, he must be waiting for a classical message at the same time using the ``recv()`` method.
 
 .. code-block:: python
-   :caption: Bob
+   :caption: tutorial_examples/1_Basics/application.py BobProgram
 
    message = yield from csocket.recv()
    print(f"Bob receives message: {message}")
 
 It is mandatory to include the ``yield from`` keywords when receiving messages for the application to work with SquidASM.
-For the full reason why this is required see section: :ref:`label_yield_from`.
 
 Running the simulation should results in:
 
@@ -118,7 +119,7 @@ By default the request only creates a single EPR pair,
 but a request for multiple EPR pairs may be placed using ``create_keep(number=n)``.
 
 .. code-block:: python
-   :caption: Alice
+   :caption: tutorial_examples/1_Basics/application.py AliceProgram
 
    qubit = epr_socket.create_keep()[0]
    qubit.H()
@@ -128,7 +129,7 @@ but a request for multiple EPR pairs may be placed using ``create_keep(number=n)
 
 
 .. code-block:: python
-   :caption: Bob
+   :caption: tutorial_examples/1_Basics/application.py BobProgram
 
    qubit = epr_socket.recv_keep()[0]
    qubit.H()
@@ -164,7 +165,7 @@ as instructions need to be sent to the QNPU that a particular qubit is reset and
 We can use the ``Qubit`` object to create an EPR pair with both qubits on the same node:
 
 .. code-block:: python
-   :caption: Alice
+   :caption: tutorial_examples/1_Basics/application.py AliceProgram
 
    q0 = Qubit(connection)
    q1 = Qubit(connection)

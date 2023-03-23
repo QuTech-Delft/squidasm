@@ -6,8 +6,6 @@ NetQASM
 In this section we go into details of NetQASM and its role for writing applications that can be simulated using SquidASM.
 We explain the NetQASMConnection object and the importance of ``connection.flush()`` code.
 
-This section has two examples: ``tutorial_examples\2.1_NetQASM-language`` and ``tutorial_examples\2.2_Future-objects``.
-
 NetQASM language
 =================
 NetQASM is an instruction set architecture that allows one to interface with quantum network processing units(QNPU) and run applications on a quantum network.
@@ -24,11 +22,20 @@ The NetQASM SDK provides methods that allow us to first compile the NetQASM inst
 When we replace ``connection.flush()`` in Alice's program with the following code:
 
 .. code-block:: python
-   :caption: application.py Alice
 
    subroutine = connection.compile()
    print(f"Alice's subroutine:\n\n{subroutine}\n")
    yield from connection.commit_subroutine(subroutine)
+
+This changes the example to:
+
+.. literalinclude:: ../../../tutorial_examples/2.1_NetQASM-language/application.py
+   :language: python
+   :caption: tutorial_examples/2.1_NetQASM-language/application.py
+   :pyobject: AliceProgram
+   :emphasize-lines:  23-26
+
+
 
 The application will run as it did previously, except that we get to view the proto subroutine that Alice sends to the QNPU:
 
@@ -72,31 +79,11 @@ To deal with this situation, the output of ``qubit.measure()`` is a ``netqasm.sd
 These object behave akin to a placeholder or pointer before the flush, but as a normal integer afterwards.
 Due to this many operations using a ``Future`` object will cause an error if done before a flush:
 
-.. code-block:: python
-   :caption: application.py Alice
-
-   result_list = []
-   qubit = epr_socket.create_keep()[0]
-   qubit.H()
-   result = qubit.measure()
-
-   # These operations work fine, as they do not attempt a value access
-   result_list.append(result)
-   print(type(result))
-
-   # Uncomment will cause an error:
-   # print(result_list)
-
-   # Uncomment will cause an error:
-   # result += 1
-
-   # Uncomment will cause an error:
-   # a = 5 if result else 0
-
-   yield from connection.flush()
-
-   print(result_list)
-   print(f"Alice measures local EPR qubit: {result_list[0]}")
+.. literalinclude:: ../../../tutorial_examples/2.2_Future-objects/application.py
+   :language: python
+   :caption: tutorial_examples/2.2_Future-objects/application.py
+   :pyobject: AliceProgram
+   :emphasize-lines:  19-37
 
 Removing any of the commented out code will result in the following error:
 
@@ -110,5 +97,10 @@ More generally using native python ``if``, ``for`` or ``while`` statements do no
 
 In order to create NetQASM routines with control flow,
 special methods in the NetQASM SDK need to be used, such as ``if_eq(a, b, body)`` that is a method of the ``BaseNetQASMConnection`` object.
-A future section will go into more detail regarding using such methods :ref:`label_creating_netqasm_subroutines`.
+A `NetQASM tutorial <https://netqasm.readthedocs.io/en/latest/quickstart/using-sdk.html#simple-classical-logic>`_
+goes into more detail regarding using such methods.
 
+.. warning::
+    The NetQASM language supports many features, such as specifying the measurement basis in a measurement,
+    but not all of these features are currently supported in SquidASM.
+    It is advisable to be careful when using features not shown in this tutorial.
