@@ -14,7 +14,8 @@ author = 'Axel Dahlberg, Michal van Hooft'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ['sphinx_rtd_theme',
-              "sphinx.ext.autodoc"
+              "sphinx.ext.autodoc",
+              "sphinx_autodoc_typehints"
               ]
 
 

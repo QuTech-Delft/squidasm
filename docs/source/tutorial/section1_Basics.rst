@@ -83,20 +83,19 @@ Classical information is done via the ``Socket`` object from ``netqasm.sdk``.
 The Socket objects represent an open connection to a peer.
 So sending a classical message to a peer may be done by using the ``send()`` method of the classical socket.
 
-.. code-block:: python
+.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+   :language: python
    :caption: tutorial_examples/1_Basics/application.py AliceProgram
-
-   message = "Hello"
-   csocket.send(message)
-   print(f"Alice sends message: {message}")
+   :pyobject: AliceProgram
+   :lines:  22-25
 
 In order for Bob to receive the message, he must be waiting for a classical message at the same time using the ``recv()`` method.
 
-.. code-block:: python
+.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+   :language: python
    :caption: tutorial_examples/1_Basics/application.py BobProgram
-
-   message = yield from csocket.recv()
-   print(f"Bob receives message: {message}")
+   :pyobject: BobProgram
+   :lines:  22-24
 
 It is mandatory to include the ``yield from`` keywords when receiving messages for the application to work with SquidASM.
 
@@ -118,24 +117,18 @@ Both ``create_keep()`` and  ``recv_keep()`` return a list of qubits so we select
 By default the request only creates a single EPR pair,
 but a request for multiple EPR pairs may be placed using ``create_keep(number=n)``.
 
-.. code-block:: python
+.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+   :language: python
    :caption: tutorial_examples/1_Basics/application.py AliceProgram
+   :pyobject: AliceProgram
+   :lines:  28-32
 
-   qubit = epr_socket.create_keep()[0]
-   qubit.H()
-   result = qubit.measure()
-   yield from connection.flush()
-   print(f"Alice measures local EPR qubit: {result}")
-
-
-.. code-block:: python
+.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+   :language: python
    :caption: tutorial_examples/1_Basics/application.py BobProgram
+   :pyobject: BobProgram
+   :lines:  28-31
 
-   qubit = epr_socket.recv_keep()[0]
-   qubit.H()
-   result = qubit.measure()
-   yield from connection.flush()
-   print(f"Bob measures local EPR qubit: {result}")
 
 After the EPR pair is ready, we apply a Hadamard gate and measure the qubit.
 It is then required to send these instructions to the QNPU using ``yield from connection.flush()`` for both Alice and Bob.
@@ -155,6 +148,13 @@ or:
    Alice measures local EPR qubit: 1
    Bob measures local EPR qubit: 1
 
+.. note::
+
+    The EPR pairs as presented to the application are in the
+    :math:`\ket{\Phi^+} = \frac{1}{\sqrt{2}}(\ket{00} + \ket{11}` state.
+    Behind the scenes the EPR pair might have been initially generated in a different bell state,
+    but by applying the appropriate Pauli gates on both nodes,
+    the state will be transformed into the :math:`\ket{\Phi^+}` state.
 
 Creating local Qubits
 =====================
@@ -164,29 +164,17 @@ This initialization requires the user to pass the NetQASM connection,
 as instructions need to be sent to the QNPU that a particular qubit is reset and marked as in use.
 We can use the ``Qubit`` object to create an EPR pair with both qubits on the same node:
 
-.. code-block:: python
+.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+   :language: python
    :caption: tutorial_examples/1_Basics/application.py AliceProgram
-
-   q0 = Qubit(connection)
-   q1 = Qubit(connection)
-
-   # Apply a Hadamard gate
-   q0.H()
-   # Apply CNOT gate where q0 is the control qubit, q1 is the target qubit
-   q0.cnot(q1)
-
-   r0 = q0.measure()
-   r1 = q1.measure()
-
-   yield from connection.flush()
-   print(f"Alice measures local qubits: {r0}, {r1}")
+   :pyobject: AliceProgram
+   :lines:  33-47
 
 The result of this code segment is either:
 
 .. code-block:: text
 
    Alice measures local qubits: 0, 0
-
 
 or:
 

@@ -79,6 +79,8 @@ This is useful to avoid duplication.
 
 More advanced tutorials for YAML can be found easily online.
 
+.. _label_configuration_file:
+
 Configuration file
 ===================
 
@@ -147,6 +149,7 @@ Moreover the model has less native gates than the generic qdevice.
 For example, it does not have native Hadamard gates and qubit measurements can only be made on the electron qubit.
 
 These effects do not demand different program code,
+so one is allowed to use a Hadamard gate and measure all qubits in the application code,
 but will cause differences in the simulation, as for example the absence of a native Hadamard gate,
 will result in the Hadamard being performed using two XY or YZ rotation gates.
 This in turn will apply gate depolarisation noise twice instead of once.

@@ -31,24 +31,24 @@ class AliceProgram(Program):
         csocket.send(message)
         print(f"Alice sends message: {message}")
 
-        # Register a request to create an EPR pair, then apply a Hadamard gate on qubit and measure
-        qubit = epr_socket.create_keep()[0]
-        qubit.H()
-        result = qubit.measure()
+        # Register a request to create an EPR pair, then apply a Hadamard gate on the epr qubit and measure
+        epr_qubit = epr_socket.create_keep()[0]
+        epr_qubit.H()
+        result = epr_qubit.measure()
         yield from connection.flush()
         print(f"Alice measures local EPR qubit: {result}")
 
         # Qubits on a local node can be obtained, but require the connection to be initialized
-        q0 = Qubit(connection)
-        q1 = Qubit(connection)
+        local_qubit0 = Qubit(connection)
+        local_qubit1 = Qubit(connection)
 
         # Apply a Hadamard gate
-        q0.H()
+        local_qubit0.H()
         # Apply CNOT gate where q0 is the control qubit, q1 is the target qubit
-        q0.cnot(q1)
+        local_qubit0.cnot(local_qubit1)
 
-        r0 = q0.measure()
-        r1 = q1.measure()
+        r0 = local_qubit0.measure()
+        r1 = local_qubit1.measure()
 
         yield from connection.flush()
         print(f"Alice measures local qubits: {r0}, {r1}")
@@ -81,10 +81,10 @@ class BobProgram(Program):
         message = yield from csocket.recv()
         print(f"Bob receives message: {message}")
 
-        # Listen for request to create EPR pair, apply a Hadamard gate on qubit and measure
-        qubit = epr_socket.recv_keep()[0]
-        qubit.H()
-        result = qubit.measure()
+        # Listen for request to create EPR pair, apply a Hadamard gate on the epr qubit and measure
+        epr_qubit = epr_socket.recv_keep()[0]
+        epr_qubit.H()
+        result = epr_qubit.measure()
         yield from connection.flush()
         print(f"Bob measures local EPR qubit: {result}")
 
