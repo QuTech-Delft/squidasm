@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from netsquid_magic.magic_distributor import DoubleClickMagicDistributor
 from typing import TYPE_CHECKING, Dict, Generator, List, Optional
 
 import netsquid as ns
@@ -337,14 +338,16 @@ class Netstack(ComponentProtocol):
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
 
+            # This code is commented out for a hotfix as it was found that heralded link did not return
+            # Phi+ bell state. The issue needs to be investigated.
+            if isinstance(self._egp._ll_prot._magic_distributor, DoubleClickMagicDistributor):
+                pass
             # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
-            if result.bell_state == BellIndex.B00:
+            elif result.bell_state == BellIndex.B00:
                 pass
             elif result.bell_state == BellIndex.B01:
                 prog = QuantumProgram()
-                # This code is commented out for a hotfix as it was found that heralded link did not return
-                # Phi+ bell state. Removing this code fixed the issue. The issue needs to be investigated
-                # prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
                 yield self.qdevice.execute_program(prog)
             elif result.bell_state == BellIndex.B10:
                 prog = QuantumProgram()
@@ -352,10 +355,8 @@ class Netstack(ComponentProtocol):
                 yield self.qdevice.execute_program(prog)
             elif result.bell_state == BellIndex.B11:
                 prog = QuantumProgram()
-                # This code is commented out for a hotfix as it was found that heralded link did not return
-                # Phi+ bell state. Removing this code fixed the issue. The issue needs to be investigated
-                # prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-                # prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
+                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+                prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
                 yield self.qdevice.execute_program(prog)
 
             virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
