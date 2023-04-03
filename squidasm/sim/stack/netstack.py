@@ -342,7 +342,9 @@ class Netstack(ComponentProtocol):
                 pass
             elif result.bell_state == BellIndex.B01:
                 prog = QuantumProgram()
-                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+                # This code is commented out for a hotfix as it was found that heralded link did not return
+                # Phi+ bell state. Removing this code fixed the issue. The issue needs to be investigated
+                # prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
                 yield self.qdevice.execute_program(prog)
             elif result.bell_state == BellIndex.B10:
                 prog = QuantumProgram()
@@ -350,8 +352,10 @@ class Netstack(ComponentProtocol):
                 yield self.qdevice.execute_program(prog)
             elif result.bell_state == BellIndex.B11:
                 prog = QuantumProgram()
-                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-                prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
+                # This code is commented out for a hotfix as it was found that heralded link did not return
+                # Phi+ bell state. Removing this code fixed the issue. The issue needs to be investigated
+                # prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
+                # prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
                 yield self.qdevice.execute_program(prog)
 
             virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)

@@ -22,19 +22,19 @@ class GenericQDeviceConfig(BaseModel):
     """Number of communication qubits. Not used."""
 
     # coherence times (same for each qubit)
-    T1: int = 10_000_000_000
+    T1: float = 10_000_000_000
     """Energy or longitudinal relaxation time in nanoseconds."""
-    T2: int = 1_000_000_000
+    T2: float = 1_000_000_000
     """Dephasing or transverse relaxation time in nanoseconds."""
 
     # gate execution times
-    init_time: int = 10_000
+    init_time: float = 10_000
     """Qubit initialization time in nanoseconds."""
-    single_qubit_gate_time: int = 1_000
+    single_qubit_gate_time: float = 1_000
     """Single qubit gate execution time in nanoseconds."""
-    two_qubit_gate_time: int = 100_000
+    two_qubit_gate_time: float = 100_000
     """Two qubit gate execution time in nanoseconds."""
-    measure_time: int = 10_000
+    measure_time: float = 10_000
     """Qubit measurement time in nanoseconds."""
 
     # noise model
@@ -91,37 +91,37 @@ class NVQDeviceConfig(BaseModel):
     """Probability of error during native NV two qubit operation between electron and carbon."""
 
     # coherence times
-    electron_T1: int = 1_000_000_000
+    electron_T1: float = 1_000_000_000
     """Energy or longitudinal relaxation time in nanoseconds for the electron."""
-    electron_T2: int = 300_000_000
+    electron_T2: float = 300_000_000
     """Dephasing or transverse relaxation time in nanoseconds for the electron."""
-    carbon_T1: int = 150_000_000_000
+    carbon_T1: float = 150_000_000_000
     """Energy or longitudinal relaxation time in nanoseconds for carbon qubits."""
-    carbon_T2: int = 1_500_000_000
+    carbon_T2: float = 1_500_000_000
     """Dephasing or transverse relaxation time in nanoseconds for carbon qubits.."""
 
     # gate execution times
-    carbon_init: int = 310_000
+    carbon_init: float = 310_000
     """Carbon qubit initialization time in nanoseconds."""
-    carbon_rot_x: int = 500_000
+    carbon_rot_x: float = 500_000
     """Carbon x rotation gate time in nanoseconds."""
-    carbon_rot_y: int = 500_000
+    carbon_rot_y: float = 500_000
     """Carbon y rotation gate time in nanoseconds."""
-    carbon_rot_z: int = 500_000
+    carbon_rot_z: float = 500_000
     """Carbon z rotation gate time in nanoseconds."""
-    electron_init: int = 2_000
+    electron_init: float = 2_000
     """Electron qubit initialization time in nanoseconds."""
-    electron_rot_x: int = 5
+    electron_rot_x: float = 5
     """Electron x rotation gate time in nanoseconds."""
-    electron_rot_y: int = 5
+    electron_rot_y: float = 5
     """Electron y rotation gate time in nanoseconds."""
-    electron_rot_z: int = 5
+    electron_rot_z: float = 5
     """Electron z rotation gate time in nanoseconds."""
-    ec_controlled_dir_x: int = 500_000
+    ec_controlled_dir_x: float = 500_000
     """Two qubit controlled x rotation gate time in nanoseconds."""
-    ec_controlled_dir_y: int = 500_000
+    ec_controlled_dir_y: float = 500_000
     """Two qubit controlled y rotation gate time in nanoseconds."""
-    measure: int = 3_700
+    measure: float = 3_700
     """Electron measurement time in nanoseconds."""
 
     @classmethod

@@ -1,7 +1,7 @@
 .. _label_api_overview:
 
-API
-===
+Overview
+========
 
 API documentation for squidasm.
 Many of the objects used for application writing are from the NetQASM SDK.

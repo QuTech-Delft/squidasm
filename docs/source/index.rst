@@ -25,4 +25,4 @@ We also provide :ref:`API <label_api_overview>` documentation.
    :maxdepth: 2
    :caption: API
 
-   api
+   api_overview
