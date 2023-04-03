@@ -16,6 +16,7 @@ class GenericQDeviceConfig(BaseModel):
     """
     The configuration for a generic quantum device.
     """
+
     num_qubits: int = 2
     """Number of qubits in the quantum device."""
     num_comm_qubits: int = 2
@@ -65,6 +66,7 @@ class NVQDeviceConfig(BaseModel):
     """
     The configuration for a NV quantum device.
     """
+
     # number of qubits per NV
     num_qubits: int = 2
     """Number of qubits in the quantum device."""
@@ -148,6 +150,7 @@ class NVQDeviceConfig(BaseModel):
 
 class StackConfig(BaseModel):
     """Configuration for a single stack (i.e. end node)."""
+
     name: str
     """Name of the stack."""
     qdevice_typ: str
@@ -172,6 +175,7 @@ class StackConfig(BaseModel):
 
 class DepolariseLinkConfig(BaseModel):
     """Simple model for a link to generate EPR pairs."""
+
     fidelity: float
     """Fidelity of successfully generated EPR pairs."""
     prob_success: float
@@ -204,6 +208,7 @@ class HeraldedLinkConfig(BaseModel):
     the midpoint station will send out a signal to both nodes, heralding successful entanglement.
     The heralded link uses the double click model as developed and described by:
     https://arxiv.org/abs/2207.10579"""
+
     length: float
     """Total length of the heralded connection in km. (i.e. sum of fibers on both sides on midpoint station)"""
     p_loss_init: float = 0
@@ -229,6 +234,7 @@ class HeraldedLinkConfig(BaseModel):
 
 class LinkConfig(BaseModel):
     """Configuration for a single link."""
+
     stack1: str
     """Name of the first stack being connected via link."""
     stack2: str
@@ -251,6 +257,7 @@ class LinkConfig(BaseModel):
 
 class StackNetworkConfig(BaseModel):
     """Full network configuration."""
+
     stacks: List[StackConfig]
     """List of all the stacks in the network."""
     links: List[LinkConfig]

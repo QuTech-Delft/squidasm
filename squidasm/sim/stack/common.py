@@ -23,6 +23,7 @@ class LogManager:
     Class for setting up and obtaining a logger that has been setup for SquidASM use.
     Logger for SquidASM has a default format that includes the time inside the simulation for each message.
     """
+
     STACK_LOGGER = "Stack"
     _LOGGER_HAS_BEEN_SETUP = False
 
@@ -70,7 +71,7 @@ class LogManager:
     @classmethod
     def log_to_file(cls, path: str) -> None:
         """Sets up sending the logs to an output file. Does not affect other log output methods.
-        
+
         :param path: Location of output file. Overwrites existing file.
         """
         fileHandler = logging.FileHandler(path, mode="w")

@@ -9,6 +9,7 @@ from netqasm.sdk.epr_socket import EPRSocket
 
 class ProgramContext:
     """Container object for providing the correct NetQASM connection and sockets to a program."""
+
     def __init__(
         self,
         netqasm_connection: BaseNetQASMConnection,
@@ -29,7 +30,7 @@ class ProgramContext:
     @property
     def csockets(self) -> Dict[str, Socket]:
         """Returns a dictionary of available classical sockets for the program.
-         The dictionary keys are the stack names."""
+        The dictionary keys are the stack names."""
         return self._csockets
 
     @property
@@ -46,6 +47,7 @@ class ProgramContext:
 @dataclass
 class ProgramMeta:
     """Contains various meta information regarding the program."""
+
     name: str
     """Name of the program."""
     parameters: Dict[str, Any]
@@ -62,6 +64,7 @@ class Program(abc.ABC):
     """
     Base class defining an interface for application programs to adhere to.
     """
+
     @property
     def meta(self) -> ProgramMeta:
         """Request program meta information."""

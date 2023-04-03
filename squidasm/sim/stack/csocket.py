@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 class ClassicalSocket(Socket):
     """Classical socket, used for simulating classical data exchange between programs."""
+
     def __init__(
         self,
         host: Host,
