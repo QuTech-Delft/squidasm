@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from netsquid_magic.magic_distributor import DoubleClickMagicDistributor
 from typing import TYPE_CHECKING, Dict, Generator, List, Optional
 
 import netsquid as ns
@@ -23,6 +22,7 @@ from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
 from netsquid.qubits.ketstates import BellIndex
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
+from netsquid_magic.magic_distributor import DoubleClickMagicDistributor
 from qlink_interface import (
     ReqCreateAndKeep,
     ReqCreateBase,
@@ -340,7 +340,9 @@ class Netstack(ComponentProtocol):
 
             # This code is commented out for a hotfix as it was found that heralded link did not return
             # Phi+ bell state. The issue needs to be investigated.
-            if isinstance(self._egp._ll_prot._magic_distributor, DoubleClickMagicDistributor):
+            if isinstance(
+                self._egp._ll_prot._magic_distributor, DoubleClickMagicDistributor
+            ):
                 pass
             # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
             elif result.bell_state == BellIndex.B00:
