@@ -6,13 +6,20 @@ SquidASM
 Installation
 ============
 SquidASM uses the `NetSquid <https://netsquid.org/>`_ Python package.
-To install and use NetSquid, you need to first create an account for it.
+To install and use NetSquid, you need to `first create an account for the netsquid forum <https://forum.netsquid.org/ucp.php?mode=register>`_.
 The username and password for this account are also needed to install ``squidasm``.
 
 Because NetSquid only supports Linux and MacOS, SquidASM also requires a Linux or MacOS system.
-For Windows users it is recommended to either use a virtual machine or use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/install>`_.
+For Windows users it is recommended to either use a virtual machine or
+use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/install>`_.
 
-TODO: we need to describe that you need to clone the repo if you want to do the make and have the examples.
+Next the SquidASM repository needs to be cloned using git.
+If git is not installed, instructions on installing it can be found `on this website <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_.
+Afterward, go to your desired directory and execute:
+
+.. code-block:: bash
+
+    git clone https://github.com/QuTech-Delft/squidasm.git
 
 The SquidASM install script requires the NetSquid user name and password to be set into environment variables.
 This can be done by executing the following code, but with your own user name and password:
