@@ -81,7 +81,6 @@ class ServerProgram(Program):
         epr_socket = context.epr_sockets[self.PEER]
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
-
         epr = epr_socket.recv_keep()[0]
         # yield from conn.flush()
         subroutine = conn.compile()
