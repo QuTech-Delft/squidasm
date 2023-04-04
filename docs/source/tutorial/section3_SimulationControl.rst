@@ -63,7 +63,7 @@ An identical principle applies to the EPR sockets.
 .. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
    :language: python
    :caption: tutorial_examples/1_Basics/application.py AliceProgram
-   :lines: 8-27
+   :lines: 8-26
 
 .. note::
    While currently unsupported, for multi node applications it would be required
@@ -143,7 +143,7 @@ The following AliceProgram uses logging by moving away from print statements to 
    :language: python
    :caption: tutorial_examples/3.2_logging/application.py AliceProgram
    :pyobject: AliceProgram
-   :emphasize-lines: 22, 25, 27, 36, 44, 46
+   :emphasize-lines: 21, 24, 26, 35, 43, 45
 
 
 The AliceProgram is initialized with the message it must send to Bob.

@@ -146,7 +146,6 @@ class AliceProgram(QkdProgram):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="alice_program",
-            parameters={"num_bits": self._num_bits},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=1,
@@ -208,7 +207,6 @@ class BobProgram(QkdProgram):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="bob_program",
-            parameters={"num_bits": self._num_bits},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=1,

@@ -31,7 +31,6 @@ class ClientProgram(Program):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="client_program",
-            parameters={"theta1": self._theta1, "alpha": self._alpha, "r1": self._r1},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=2,
@@ -70,7 +69,6 @@ class ServerProgram(Program):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="server_program",
-            parameters={},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=2,
@@ -82,6 +80,7 @@ class ServerProgram(Program):
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
         csocket: ClassicalSocket = context.csockets[self.PEER]
+
 
         epr = epr_socket.recv_keep()[0]
         # yield from conn.flush()

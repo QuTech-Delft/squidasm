@@ -44,7 +44,7 @@ The full ``AliceProgram`` is shown below, for now we will focus on introducing t
    :language: python
    :caption: tutorial_examples/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
-   :emphasize-lines:  14-20
+   :emphasize-lines:  13-19
 
 
 In order to understand the role of ``csocket``, ``epr_socket`` and ``connection``,
@@ -87,7 +87,7 @@ So sending a classical message to a peer may be done by using the ``send()`` met
    :language: python
    :caption: tutorial_examples/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
-   :lines:  22-25
+   :lines:  21-24
 
 In order for Bob to receive the message, he must be waiting for a classical message at the same time using the ``recv()`` method.
 
@@ -95,7 +95,7 @@ In order for Bob to receive the message, he must be waiting for a classical mess
    :language: python
    :caption: tutorial_examples/1_Basics/application.py BobProgram
    :pyobject: BobProgram
-   :lines:  22-24
+   :lines:  21-23
 
 It is mandatory to include the ``yield from`` keywords when receiving messages for the application to work with SquidASM.
 
@@ -121,13 +121,13 @@ but a request for multiple EPR pairs may be placed using ``create_keep(number=n)
    :language: python
    :caption: tutorial_examples/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
-   :lines:  28-32
+   :lines:  27-31
 
 .. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
    :language: python
    :caption: tutorial_examples/1_Basics/application.py BobProgram
    :pyobject: BobProgram
-   :lines:  28-31
+   :lines:  27-30
 
 
 After the EPR pair is ready, we apply a Hadamard gate and measure the qubit.
@@ -168,7 +168,7 @@ We can use the ``Qubit`` object to create an EPR pair with both qubits on the sa
    :language: python
    :caption: tutorial_examples/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
-   :lines:  33-47
+   :lines:  32-46
 
 The result of this code segment is either:
 

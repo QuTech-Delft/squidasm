@@ -99,7 +99,6 @@ class ClientProgram(FidelityVsRateProgram):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="client_program",
-            parameters={"num_repetitions": self._num_repetitions},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=1,
@@ -146,7 +145,6 @@ class ServerProgram(FidelityVsRateProgram):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="server_program",
-            parameters={"num_repetitions": self._num_repetitions},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=1,

@@ -12,7 +12,6 @@ class AliceProgram(Program):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="tutorial_program",
-            parameters={},
             csockets=[self.PEER_NAME],
             epr_sockets=[self.PEER_NAME],
             max_qubits=1,
@@ -56,7 +55,6 @@ class BobProgram(Program):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="tutorial_program",
-            parameters={},
             csockets=[self.PEER_NAME],
             epr_sockets=[self.PEER_NAME],
             max_qubits=1,

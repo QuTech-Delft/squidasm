@@ -50,8 +50,6 @@ class ProgramMeta:
 
     name: str
     """Name of the program."""
-    parameters: Dict[str, Any]
-    """Parameters that the program uses."""
     csockets: List[str]
     """List of nodes names with whom the program uses a classical connection."""
     epr_sockets: List[str]
