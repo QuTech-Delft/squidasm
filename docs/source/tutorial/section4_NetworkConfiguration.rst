@@ -168,6 +168,13 @@ The various gate execution times function similar to the generic qdevice, but th
     :language: yaml
     :caption: tutorial_examples/4.2_network-configuration/3_nv_qdevice.yaml
 
+.. note::
+    The decoherence models, using ``T1`` and ``T2`` are only applied to qubits that are idle in memory.
+    When a qubit is participating in an active operation, such as initialization, a gate or a measurement,
+    it is not subject to the decoherence model that is specified via ``T1`` and ``T2``.
+    The decoherence as well as all other noise sources during the operation
+    are described via the noise parameter for these operations.
+
 Link types
 +++++++++++
 
