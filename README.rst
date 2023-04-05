@@ -47,6 +47,11 @@ If this commands completes without errors, it means that SquidASM has been succe
 
 .. installation-end-inclusion-marker-do-not-remove
 
+Getting started
+================
+A tutorial introducing SquidASM and API documentation can be found on https://squidasm.readthedocs.io/en/latest/index.html.
+
+
 Simulator variants
 =====================
 SquidASM currently has 3 ways of simulating applications: ``multithread``, ``singlethread`` and ``stack``. Each of these can run applications written using the NetQASM SDK, but the way they must be written, and what kind of results they can give, is slightly different.
