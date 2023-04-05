@@ -1,0 +1,47 @@
+# Trapped ion configuration based on Appendix A.6 of https://arxiv.org/abs/2207.10579
+
+qdevice_cfg: &qdevice_cfg
+  num_qubits: 2
+
+  # coherence times (same for each qubit), all in ns
+  T1: 1e99  # Disabled amplitude dampening
+  T2: 85e6  # 85 ms
+
+  # gate execution times, all in ns
+  init_time: 36_000
+  single_qubit_gate_time: 26_600
+  two_qubit_gate_time: 107_000
+  measure_time: 1_500_000
+
+  # noise model, all probabilities
+  single_qubit_gate_depolar_prob: 0.02
+  two_qubit_gate_depolar_prob: 0.1
+
+
+stacks:
+  - name: Alice
+    qdevice_typ: generic
+    qdevice_cfg:
+      <<: *qdevice_cfg
+  - name: Bob
+    qdevice_typ: generic
+    qdevice_cfg:
+      <<: *qdevice_cfg
+
+
+link_cfg: &link_cfg
+    length: 1.0  # km
+    p_loss_init: 0.889 #  probability  1 - 0.111
+    p_loss_length: 0.25  # dB/km
+    speed_of_light: 214_000  # km/s
+    dark_count_probability: 1.4e-5  #  probability
+    detector_efficiency: 1.0  #  probability
+    visibility: 0.89
+    num_resolving: False
+
+links:
+  - stack1: Alice
+    stack2: Bob
+    typ: heralded
+    cfg:
+      <<: *link_cfg
