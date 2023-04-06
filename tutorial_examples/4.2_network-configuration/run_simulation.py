@@ -1,9 +1,9 @@
 import numpy as np
 import os
 
+from application import AliceProgram, BobProgram
 from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
-from application import AliceProgram, BobProgram
 
 # Find all configuration files in the same directory as this file
 files = os.listdir()

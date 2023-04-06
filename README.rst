@@ -7,7 +7,7 @@ Installation
 ============
 SquidASM uses the `NetSquid <https://netsquid.org/>`_ Python package.
 To install and use NetSquid, you need to `first create an account for the netsquid forum <https://forum.netsquid.org/ucp.php?mode=register>`_.
-The username and password for this account are also needed to install ``squidasm``.
+The username and password for this account are also needed to install SquidASM.
 
 Because NetSquid only supports Linux and MacOS, SquidASM also requires a Linux or MacOS system.
 For Windows users it is recommended to either use a virtual machine or

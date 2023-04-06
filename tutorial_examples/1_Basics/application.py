@@ -1,7 +1,8 @@
-from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
+from netqasm.sdk.qubit import Qubit
+
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 

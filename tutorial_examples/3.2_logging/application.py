@@ -1,13 +1,10 @@
-import bit_array_converter
-
-from typing import List
-
-from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
-from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
+from typing import List
+
 from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
 def from_bit_string(string: str) -> List[int]:

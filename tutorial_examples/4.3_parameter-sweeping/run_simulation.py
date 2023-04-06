@@ -1,9 +1,9 @@
 import numpy as np
 from matplotlib import pyplot
 
+from application import AliceProgram, BobProgram
 from squidasm.run.stack.config import StackNetworkConfig, LinkConfig, DepolariseLinkConfig
 from squidasm.run.stack.run import run
-from application import AliceProgram, BobProgram
 
 # import network configuration from file
 cfg = StackNetworkConfig.from_file("config.yaml")

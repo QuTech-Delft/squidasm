@@ -1,8 +1,8 @@
 import numpy as np
 
+from application import AliceProgram, BobProgram
 from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
-from application import AliceProgram, BobProgram
 
 # import network configuration from file
 cfg = StackNetworkConfig.from_file("config.yaml")
