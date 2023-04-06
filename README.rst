@@ -93,12 +93,12 @@ Usage
 =========
 
 Multithread simulator
--------------
+-------------------------
 The multithread simulator is used as one of the backends of the ``netqasm`` package.
 See the ``netqasm`` package for more documentation on how to write NetQASM applications and run them using SquidASM.
 
 Stack simulator
--------------
+----------------
 
 The main interface for the stack simulator is the ``run`` function in ``squidasm.run.stack.run``. See ``examples/stack`` for examples of using the stack simulator.
 
