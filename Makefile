@@ -60,7 +60,9 @@ install: _check_variables
 install-dev: _check_variables
 	@$(PYTHON3) -m pip install -e .[dev] ${PIP_FLAGS}
 
-verify: clean lint tests examples _verified
+verify: clean tests examples _verified
+
+verify-dev: clean lint tests examples _verified
 
 _verified:
 	@echo "Everything works!"

@@ -7,7 +7,7 @@ Installation
 ============
 SquidASM uses the `NetSquid <https://netsquid.org/>`_ Python package.
 To install and use NetSquid, you need to `first create an account for the netsquid forum <https://forum.netsquid.org/ucp.php?mode=register>`_.
-The username and password for this account are also needed to install SquidASM.
+The username and password for this account are needed to install SquidASM.
 
 Because NetSquid only supports Linux and MacOS, SquidASM also requires a Linux or MacOS system.
 For Windows users it is recommended to either use a virtual machine or
@@ -21,6 +21,8 @@ Afterward, go to your desired directory and execute:
 
     git clone https://github.com/QuTech-Delft/squidasm.git
 
+This will create a new folder with the name squidasm and download the squidasm package to that folder.
+
 The SquidASM install script requires the NetSquid user name and password to be set into environment variables.
 This can be done by executing the following code, but with your own user name and password:
 
@@ -31,7 +33,7 @@ This can be done by executing the following code, but with your own user name an
 
 For a more permanent solution, if SquidASM is installed more than once, these lines can be added to ``~\.bashrc``.
 
-Then, to install squidasm do:
+Then, to install squidasm execute the following command inside the newly created squidasm folder:
 
 .. code-block:: bash
 
@@ -44,6 +46,17 @@ To verify the installation, do:
    make verify
 
 If this commands completes without errors, it means that SquidASM has been successfully installed and should work properly.
+
+.. note::
+    SquidASM can be installed installed inside a virtual environment for python.
+    This can be done by activating the virtual environment before the command ``make install``.
+
+    Virtual environments allow a user to install python packages in such a way
+    that the installed package and its dependencies are kept separate from the "base" python and other projects.
+    For example, with SquidASM this would prevent the SquidASM installation from
+    changing the NetSquid version in another project and vice versa.
+    For more information regarding virtual environments and how to use them see: https://docs.python.org/3/library/venv.html.
+
 
 .. installation-end-inclusion-marker-do-not-remove
 
