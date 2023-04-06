@@ -1,0 +1,25 @@
+# A configuration with a perfect generic qdevice and a link with depolarizing noise model
+stacks:
+  - name: Alice
+    qdevice_typ: generic
+    qdevice_cfg:
+      dummy: null
+  - name: Bob
+    qdevice_typ: generic
+    qdevice_cfg:
+      dummy: null
+
+link_cfg: &link_cfg
+  # Fidelity between the EPR pair qubits
+  fidelity: 0.9
+  # Time in nanoseconds for an attempt to generated entanglement
+  t_cycle: 10.
+  # Chance for each attempt at entanglement to succeed
+  prob_success: 0.8
+
+links:
+  - stack1: Alice
+    stack2: Bob
+    typ: depolarise
+    cfg:
+      <<: *link_cfg

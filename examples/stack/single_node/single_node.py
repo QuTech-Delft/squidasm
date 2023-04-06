@@ -29,7 +29,6 @@ class ClientProgram(Program):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="client_program",
-            parameters={},
             csockets=[],
             epr_sockets=[],
             max_qubits=1,

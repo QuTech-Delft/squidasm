@@ -1,0 +1,61 @@
+# Configuration with perfect link and NV qdevice with noise
+qdevice_cfq: &qdevice_cfg
+    # number of qubits per NV
+    num_qubits: 2
+
+    # initialization error of the electron spin
+    electron_init_depolar_prob: 0.05
+
+    # error of the single-qubit gate
+    electron_single_qubit_depolar_prob: 0.01
+
+    # measurement errors (prob_error_X is the probability that outcome X is flipped to 1 - X)
+    # Chance of 0 being measured as 1
+    prob_error_0: 0.05
+    # Chance of 1 being measured as 0
+    prob_error_1: 0.005
+
+    # initialization error of the carbon nuclear spin
+    carbon_init_depolar_prob: 0.05
+
+    # error of the Z-rotation gate on the carbon nuclear spin
+    carbon_z_rot_depolar_prob: 0.001
+
+    # error of the native NV two-qubit gate
+    ec_gate_depolar_prob: 0.008
+
+    # coherence times
+    electron_T1: 1_000_000_000
+    electron_T2: 300_000_000
+    carbon_T1: 150_000_000_000
+    carbon_T2: 1_500_000_000
+
+    # gate execution times
+    carbon_init: 310_000
+    carbon_rot_x: 500_000
+    carbon_rot_y: 500_000
+    carbon_rot_z: 500_000
+    electron_init: 2_000
+    electron_rot_x: 5
+    electron_rot_y: 5
+    electron_rot_z: 5
+    ec_controlled_dir_x: 500_000
+    ec_controlled_dir_y: 500_000
+    measure: 3_700
+
+stacks:
+  - name: Alice
+    qdevice_typ: nv
+    qdevice_cfg:
+      <<: *qdevice_cfg
+  - name: Bob
+    qdevice_typ: nv
+    qdevice_cfg:
+      <<: *qdevice_cfg
+
+links:
+  - stack1: Alice
+    stack2: Bob
+    typ: perfect
+    cfg:
+      dummy: null

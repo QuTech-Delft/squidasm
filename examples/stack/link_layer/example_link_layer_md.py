@@ -21,7 +21,6 @@ class ClientProgram(Program):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="client_program",
-            parameters={"basis": self._basis, "num_pairs": self._num_pairs},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=1,
@@ -53,7 +52,6 @@ class ServerProgram(Program):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="server_program",
-            parameters={"basis": self._basis, "num_pairs": self._num_pairs},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=1,

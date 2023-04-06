@@ -45,7 +45,6 @@ class TestSdkSingleNode(unittest.TestCase):
             def meta(self) -> ProgramMeta:
                 return ProgramMeta(
                     name="test_program",
-                    parameters={},
                     csockets=[],
                     epr_sockets=[],
                     max_qubits=2,
@@ -72,7 +71,6 @@ class TestSdkSingleNode(unittest.TestCase):
             def meta(self) -> ProgramMeta:
                 return ProgramMeta(
                     name="test_program",
-                    parameters={},
                     csockets=[],
                     epr_sockets=[],
                     max_qubits=2,
@@ -103,7 +101,6 @@ class TestSdkSingleNode(unittest.TestCase):
             def meta(self) -> ProgramMeta:
                 return ProgramMeta(
                     name="test_program",
-                    parameters={},
                     csockets=[],
                     epr_sockets=[],
                     max_qubits=2,
@@ -190,7 +187,6 @@ class TestSdkTwoNodes(unittest.TestCase):
             def meta(self) -> ProgramMeta:
                 return ProgramMeta(
                     name="client_program",
-                    parameters={},
                     csockets=["bob"],
                     epr_sockets=["bob"],
                     max_qubits=2,
@@ -223,7 +219,6 @@ class TestSdkTwoNodes(unittest.TestCase):
             def meta(self) -> ProgramMeta:
                 return ProgramMeta(
                     name="server_program",
-                    parameters={},
                     csockets=["alice"],
                     epr_sockets=["alice"],
                     max_qubits=2,

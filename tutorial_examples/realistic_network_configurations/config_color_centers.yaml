@@ -1,0 +1,61 @@
+# color center configuration based on Appendix A.5 of https://arxiv.org/abs/2207.10579
+
+qdevice_cfq: &qdevice_cfg
+    # number of qubits per NV
+    num_qubits: 2
+
+    # gate error/noise probabilities, all probabilities
+    electron_init_depolar_prob: 0.01
+    electron_single_qubit_depolar_prob: 0.01
+    prob_error_0: 0.07
+    prob_error_1: 0.005
+    carbon_init_depolar_prob: 0.02
+    carbon_z_rot_depolar_prob: 0.002
+    ec_gate_depolar_prob: 0.06
+
+    # coherence times, all in ns
+    electron_T1: 3.6e12 # 1h
+    electron_T2: 5e8 # 0.5s
+    carbon_T1: 3.6e13 # 10h
+    carbon_T2: 1e9 # 1s
+
+    # gate execution times, all in ns
+    carbon_init: 300_000
+    carbon_rot_x: 20_000
+    carbon_rot_y: 20_000
+    carbon_rot_z: 20_000
+    electron_init: 2_000
+    electron_rot_x: 5
+    electron_rot_y: 5
+    electron_rot_z: 5
+    ec_controlled_dir_x: 500_000
+    ec_controlled_dir_y: 500_000
+    measure: 3_700
+
+
+stacks:
+  - name: Alice
+    qdevice_typ: nv
+    qdevice_cfg:
+      <<: *qdevice_cfg
+  - name: Bob
+    qdevice_typ: nv
+    qdevice_cfg:
+      <<: *qdevice_cfg
+
+link_cfg: &link_cfg
+    length: 1.0  # km
+    p_loss_init: 0.99949  # probability, 1 - 5.1e−4
+    p_loss_length: 0.25  # dB/km
+    speed_of_light: 214_000  # km/s
+    dark_count_probability: 1.5e-7  # probability
+    detector_efficiency: 1.0  # probability
+    visibility: 0.9
+    num_resolving: False
+
+links:
+  - stack1: Alice
+    stack2: Bob
+    typ: heralded
+    cfg:
+      <<: *link_cfg

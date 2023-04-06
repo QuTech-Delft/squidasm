@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+2023-04-06 (0.11.0)
+------------------
+- Added documentation, specifically a tutorial for readthedocs
+- Hotfix for heralded connection resulting EPR pairs not in Phi+ state
+- Changed parameters in configuration to use float instead of int
+- Removed parameters argument in ProgramMeta
+
 2022-11-14 (0.10.0)
 ------------------
 - Made compatible with NetQASM 0.12.1.

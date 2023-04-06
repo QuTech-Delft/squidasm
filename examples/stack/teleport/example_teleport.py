@@ -34,10 +34,6 @@ class SenderProgram(Program):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="sender_program",
-            parameters={
-                "theta": self._theta,
-                "phi": self._phi,
-            },
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=2,
@@ -79,7 +75,6 @@ class ReceiverProgram(Program):
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
             name="receiver_program",
-            parameters={},
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
             max_qubits=1,
