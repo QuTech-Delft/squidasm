@@ -139,13 +139,13 @@ class Netstack(ComponentProtocol):
         self._egp: Optional[EgpProtocol] = None
         self._epr_sockets: Dict[int, List[EprSocket]] = {}  # app ID -> [socket]
 
-    def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
+    def assign_egp(self, egp: EgpProtocol) -> None:
         """Set the magic link layer protocol that this network stack uses to produce
         entangled pairs with the remote node.
 
-        :param prot: link layer protocol instance
+        :param egp:
         """
-        self._egp = EgpProtocol(self._comp.node, prot)
+        self._egp = egp
 
     def open_epr_socket(self, app_id: int, socket_id: int, remote_node_id: int) -> None:
         """Create a new EPR socket with the specified remote node.

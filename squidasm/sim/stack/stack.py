@@ -11,6 +11,7 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocol,
     MagicLinkLayerProtocolWithSignaling,
 )
+from squidasm.sim.stack.egp import EgpProtocol
 
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent
@@ -38,12 +39,14 @@ class ProcessingNode(Node):
         self,
         name: str,
         qdevice: QuantumProcessor,
+        qdevice_type: str,
         node_id: Optional[int] = None,
     ) -> None:
         """ProcessingNode constructor. Typically created indirectly through
         constructing a `NodeStack`."""
         super().__init__(name, ID=node_id)
         self.qmemory = qdevice
+        self.qmemory_typ = qdevice_type
 
         qnos_comp = QnosComponent(self)
         self.add_subcomponent(qnos_comp, "qnos")
@@ -90,6 +93,12 @@ class ProcessingNode(Node):
     @property
     def qnos_peer_out_port(self) -> Port:
         return self.ports["qnos_peer_out"]
+
+    def connect(self, other: ProcessingNode):
+        self.host_peer_out_port.connect(other.host_peer_in_port)
+        self.host_peer_in_port.connect(other.host_peer_out_port)
+        self.qnos_peer_out_port.connect(other.qnos_peer_in_port)
+        self.qnos_peer_in_port.connect(other.qnos_peer_out_port)
 
 
 class NodeStack(Protocol):
@@ -141,12 +150,12 @@ class NodeStack(Protocol):
             self._host = Host(self.host_comp, qdevice_type)
             self._qnos = Qnos(self.qnos_comp, qdevice_type)
 
-    def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
+    def assign_egp(self, egp: EgpProtocol):
         """Set the link layer protocol to use for entanglement generation.
 
         The same link layer protocol object is used by both nodes sharing a link in
         the network."""
-        self.qnos.assign_ll_protocol(prot)
+        self.qnos.assign_egp(egp)
 
     @property
     def node(self) -> ProcessingNode:
@@ -179,14 +188,6 @@ class NodeStack(Protocol):
     @qnos.setter
     def qnos(self, qnos: Qnos) -> None:
         self._qnos = qnos
-
-    def connect_to(self, other: NodeStack) -> None:
-        """Create connections between ports of this NodeStack and those of
-        another NodeStack."""
-        self.node.host_peer_out_port.connect(other.node.host_peer_in_port)
-        self.node.host_peer_in_port.connect(other.node.host_peer_out_port)
-        self.node.qnos_peer_out_port.connect(other.node.qnos_peer_in_port)
-        self.node.qnos_peer_in_port.connect(other.node.qnos_peer_out_port)
 
     def start(self) -> None:
         assert self._host is not None

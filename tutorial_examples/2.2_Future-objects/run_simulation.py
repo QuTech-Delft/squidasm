@@ -1,5 +1,5 @@
 from application import AliceProgram, BobProgram
-from squidasm.run.stack.config import StackNetworkConfig
+from blueprint.base_configs import StackNetworkConfig
 from squidasm.run.stack.run import run
 
 # import network configuration from file

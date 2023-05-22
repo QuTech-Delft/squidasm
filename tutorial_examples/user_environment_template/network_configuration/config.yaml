@@ -1,0 +1,33 @@
+qdevice_cfg: &qdevice_cfg
+  num_qubits: 2
+  num_comm_qubits: 2
+  T1: 1.e+8
+  T2: 1.e+8
+  init_time: 1.e+4
+  single_qubit_gate_time: 1.e+3
+  two_qubit_gate_time: 1.e+5
+  measurement_time: 1.e+4
+
+stacks:
+  - name: client
+    qdevice_typ: generic
+    qdevice_cfg: 
+      <<: *qdevice_cfg
+  - name: server
+    qdevice_typ: generic
+    qdevice_cfg: 
+      <<: *qdevice_cfg
+  
+link_cfg: &link_cfg
+  length: 100
+  p_loss_length: 0.2
+  dark_count_probability: 0
+  detector_efficiency: 1
+  visibility: 1
+
+links:
+  - stack1: client
+    stack2: server
+    typ: heralded
+    cfg:
+      <<: *link_cfg

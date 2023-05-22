@@ -13,6 +13,7 @@ from squidasm.sim.stack.common import (
     NVPhysicalQuantumMemory,
     PhysicalQuantumMemory,
 )
+from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.handler import Handler, HandlerComponent
 from squidasm.sim.stack.netstack import Netstack, NetstackComponent
 from squidasm.sim.stack.processor import (
@@ -149,8 +150,8 @@ class Qnos(Protocol):
                 return app_id, virt_id
         raise RuntimeError(f"no virtual ID found for physical ID {phys_id}")
 
-    def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
-        self.netstack.assign_ll_protocol(prot)
+    def assign_egp(self, egp: EgpProtocol):
+        self.netstack.assign_egp(egp)
 
     @property
     def handler(self) -> Handler:
