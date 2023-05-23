@@ -41,6 +41,7 @@ class ProcessingNode(Node):
         qdevice: QuantumProcessor,
         qdevice_type: str,
         node_id: Optional[int] = None,
+        hacky_is_squidasm_flag=True
     ) -> None:
         """ProcessingNode constructor. Typically created indirectly through
         constructing a `NodeStack`."""
@@ -48,23 +49,26 @@ class ProcessingNode(Node):
         self.qmemory = qdevice
         self.qmemory_typ = qdevice_type
 
-        qnos_comp = QnosComponent(self)
-        self.add_subcomponent(qnos_comp, "qnos")
-
-        host_comp = HostComponent(self)
-        self.add_subcomponent(host_comp, "host")
-
-        self.host_comp.ports["qnos_out"].connect(self.qnos_comp.ports["host_in"])
-        self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])
-
-        # Ports for communicating with other nodes
-        self.add_ports(["qnos_peer_out", "qnos_peer_in"])
+        self.hacky_is_squidasm_flag = hacky_is_squidasm_flag
         self.add_ports(["host_peer_out", "host_peer_in"])
 
-        self.qnos_comp.peer_out_port.forward_output(self.qnos_peer_out_port)
-        self.qnos_peer_in_port.forward_input(self.qnos_comp.peer_in_port)
-        self.host_comp.peer_out_port.forward_output(self.host_peer_out_port)
-        self.host_peer_in_port.forward_input(self.host_comp.peer_in_port)
+        if hacky_is_squidasm_flag:
+            qnos_comp = QnosComponent(self)
+            self.add_subcomponent(qnos_comp, "qnos")
+
+            host_comp = HostComponent(self)
+            self.add_subcomponent(host_comp, "host")
+
+            self.host_comp.ports["qnos_out"].connect(self.qnos_comp.ports["host_in"])
+            self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])
+
+            # Ports for communicating with other nodes
+            self.add_ports(["qnos_peer_out", "qnos_peer_in"])
+
+            self.qnos_comp.peer_out_port.forward_output(self.qnos_peer_out_port)
+            self.qnos_peer_in_port.forward_input(self.qnos_comp.peer_in_port)
+            self.host_comp.peer_out_port.forward_output(self.host_peer_out_port)
+            self.host_peer_in_port.forward_input(self.host_comp.peer_in_port)
 
     @property
     def qnos_comp(self) -> QnosComponent:
@@ -97,8 +101,9 @@ class ProcessingNode(Node):
     def connect(self, other: ProcessingNode):
         self.host_peer_out_port.connect(other.host_peer_in_port)
         self.host_peer_in_port.connect(other.host_peer_out_port)
-        self.qnos_peer_out_port.connect(other.qnos_peer_in_port)
-        self.qnos_peer_in_port.connect(other.qnos_peer_out_port)
+        if self.hacky_is_squidasm_flag:
+            self.qnos_peer_out_port.connect(other.qnos_peer_in_port)
+            self.qnos_peer_in_port.connect(other.qnos_peer_out_port)
 
 
 class NodeStack(Protocol):

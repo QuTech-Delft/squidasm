@@ -184,14 +184,10 @@ class Netstack(ComponentProtocol):
         """Start this protocol. The NetSquid simulator will call and yield on the
         `run` method. Also start the underlying EGP protocol."""
         super().start()
-        if self._egp:
-            self._egp.start()
 
     def stop(self) -> None:
         """Stop this protocol. The NetSquid simulator will stop calling `run`.
         Also stop the underlying EGP protocol."""
-        if self._egp:
-            self._egp.stop()
         super().stop()
 
     def _read_request_args_array(self, app_id: int, array_addr: int) -> List[int]:

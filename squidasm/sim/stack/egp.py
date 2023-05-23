@@ -57,6 +57,12 @@ class EGPService(ServiceProtocol, metaclass=ABCMeta):
         self._current_create_id += 1
         return create_id
 
+    def start(self) -> None:
+        super().start()
+
+    def stop(self) -> None:
+        super().stop()
+
 
 class EgpProtocol(EGPService):
     def __init__(self, node, magic_link_layer_protocol, name=None):

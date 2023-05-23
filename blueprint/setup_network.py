@@ -35,25 +35,54 @@ def fidelity_to_prob_max_mixed(fid: float) -> float:
     return (1 - fid) * 4.0 / 3.0
 
 
+class ProtocolContext:
+    def __init__(self, node: ProcessingNode,
+                 links: Dict[str, MagicLinkLayerProtocolWithSignaling],
+                 egp: Dict[str, EgpProtocol],
+                 node_id_mapping: Dict[str, int]):
+        self.node = node
+        self.links = links
+        self.egp = egp
+        self.node_id_mapping = node_id_mapping
+
+
 class Network:
     def __init__(self):
         self.nodes: Dict[str, ProcessingNode] = {}
         self.links: Dict[(str, str), MagicLinkLayerProtocolWithSignaling] = {}
         self.egp: Dict[(str, str), EgpProtocol] = {}
+        self.node_name_id_mapping: Dict[str, int] = {}
 
-    # def get_links(self, node_id: str) -> List[MagicLinkLayerProtocol]:
-    #     keys = self.links.keys()
-    #     keys = filter(lambda key_tuple: key_tuple[0] == node_id or key_tuple[1] == node_id, keys)
-    #     return [self.links[key] for key in keys]
+    def get_protocol_context(self, node_id: str) -> ProtocolContext:
+        node = self.nodes[node_id]
+        links = self.filter_for_id(node_id, self.links)
+        egp = self.filter_for_id(node_id, self.egp)
+
+        return ProtocolContext(node, links, egp, self.node_name_id_mapping)
+
+    @staticmethod
+    def filter_for_id(node_id: str, dictionary: Dict[(str, str), any]) -> Dict[str, any]:
+        keys = dictionary.keys()
+        keys = filter(lambda key_tuple: key_tuple[0] == node_id or key_tuple[1] == node_id, keys)
+        return {key[1]: dictionary[key] for key in keys}
 
 
 
 class NetworkBuilder:
 
     @classmethod
-    def build(cls, config: StackNetworkConfig) -> Network:
+    def build(cls, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Network:
         network = Network()
 
+        network.nodes = NodeBuilder.build(config, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
+
+        ClassicalConnectionBuilder.build(config, network.nodes)
+
+        network.links = LinkBuilder.build(config, network.nodes)
+
+        network.egp = EGPBuilder.build(network)
+
+        network.node_name_id_mapping = {node_id: node.ID for node_id, node in network.nodes.items()}
 
         return network
 
@@ -61,10 +90,10 @@ class NetworkBuilder:
 class NodeBuilder:
 
     @classmethod
-    def build(cls, config: StackNetworkConfig) -> List[ProcessingNode]:
+    def build(cls, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Dict[str, ProcessingNode]:
         # TODO ProcessingNode is a very SquidASM centric object
 
-        qdevice_nodes = []
+        qdevice_nodes = {}
         for cfg in config.stacks:
             if cfg.qdevice_typ == "nv":
                 qdevice_cfg = cfg.qdevice_cfg
@@ -78,27 +107,28 @@ class NodeBuilder:
                 qdevice = build_generic_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
             else:
                 raise Exception("TODO")
-            qdevice_nodes.append(ProcessingNode(cfg.name, qdevice=qdevice, qdevice_type=cfg.qdevice_typ))
+            qdevice_nodes[cfg.name] = ProcessingNode(cfg.name, qdevice=qdevice, qdevice_type=cfg.qdevice_typ,
+                                                     hacky_is_squidasm_flag=hacky_is_squidasm_flag)
         return qdevice_nodes
 
 
 class ClassicalConnectionBuilder:
     @classmethod
-    def build(cls, config: StackNetworkConfig, nodes: List[ProcessingNode]):
-        for s1, s2 in itertools.combinations(nodes, 2):
+    def build(cls, config: StackNetworkConfig, nodes: Dict[str, ProcessingNode]):
+        node_list = [nodes[key] for key in nodes.keys()]
+        for s1, s2 in itertools.combinations(node_list, 2):
             s1.connect(s2)
 
 
 class LinkBuilder:
     @classmethod
-    def build(cls, config: StackNetworkConfig, nodes: List[ProcessingNode])\
-            -> Dict[str, List[(str, MagicLinkLayerProtocolWithSignaling)]]:
-        node_dict = {node.name: node for node in nodes}
-        link_dict = {node.name: [] for node in nodes}
+    def build(cls, config: StackNetworkConfig, nodes: Dict[str, ProcessingNode])\
+            -> Dict[(str, str), MagicLinkLayerProtocolWithSignaling]:
+        link_dict = {}
 
         for link in config.links:
-            node1 = node_dict[link.stack1]
-            node2 = node_dict[link.stack2]
+            node1 = nodes[link.stack1]
+            node2 = nodes[link.stack2]
             if link.typ == "perfect":
                 link_dist = PerfectStateMagicDistributor(
                     nodes=[node1, node2], state_delay=1000.0
@@ -145,8 +175,8 @@ class LinkBuilder:
                 translation_unit=SingleClickTranslationUnit(),
             )
             ProtocolController.register(link_prot)
-            link_dict[node1.name].append((node2.name, link_prot))
-            link_dict[node2.name].append((node1.name, link_prot))
+            link_dict[(node1.name, node2.name)] = link_prot
+            link_dict[(node2.name, node1.name)] = link_prot
 
         return link_dict
 
@@ -154,14 +184,16 @@ class LinkBuilder:
 class EGPBuilder:
 
     @classmethod
-    def build(cls, node: ProcessingNode, links: Dict[str, (str, MagicLinkLayerProtocolWithSignaling)]) -> Dict[str, EgpProtocol]:
-        if node.name not in links.keys():
-            raise Exception("TODO")
-        peer_egp_dict = {}
-        for peer, link_layer in links[node.name]:
+    def build(cls, network: Network) -> Dict[(str, str), EgpProtocol]:
+
+        egp_dict = {}
+        for id_tuple, link_layer in network.links.items():
+            node_id, peer_node_id = id_tuple
+            node = network.nodes[node_id]
             egp = EgpProtocol(node, link_layer)
-            peer_egp_dict[peer] = egp
-        return peer_egp_dict
+            egp_dict[(node_id, peer_node_id)] = egp
+            ProtocolController.register(egp)
+        return egp_dict
 
 
 class ProtocolController:

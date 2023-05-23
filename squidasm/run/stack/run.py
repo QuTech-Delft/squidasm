@@ -1,35 +1,14 @@
 from __future__ import annotations
 
-import itertools
 from typing import Any, Dict, List
 
 import netsquid as ns
 from netsquid_magic.link_layer import (
     MagicLinkLayerProtocol,
-    MagicLinkLayerProtocolWithSignaling,
-    SingleClickTranslationUnit,
 )
-from netsquid_magic.magic_distributor import (
-    DepolariseWithFailureMagicDistributor,
-    DoubleClickMagicDistributor,
-    PerfectStateMagicDistributor,
-)
-from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
-from netsquid_physlayer.heralded_connection import MiddleHeraldedConnection
 
-from blueprint.setup_network import NodeBuilder, ClassicalConnectionBuilder, LinkBuilder, EGPBuilder, ProtocolController
-from blueprint.links import (
-    DepolariseLinkConfig,
-    HeraldedLinkConfig,
-    NVLinkConfig,
-)
-from blueprint.qdevices import (
-    GenericQDeviceConfig,
-    NVQDeviceConfig,
-    build_nv_qdevice,
-    build_generic_qdevice,
-)
-from blueprint.base_configs import LinkConfig, StackConfig, StackNetworkConfig
+from blueprint.base_configs import StackNetworkConfig
+from blueprint.setup_network import ProtocolController, NetworkBuilder
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
@@ -44,26 +23,21 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
     assert len(config.stacks) <= 2
     assert len(config.links) <= 1
 
+    network = NetworkBuilder.build(config)
+
     stacks: Dict[str, NodeStack] = {}
-    link_prots: List[MagicLinkLayerProtocol] = []
 
-    qdevice_nodes = NodeBuilder.build(config)
-
-    for node in qdevice_nodes:
+    for node_id, node in network.nodes.items():
         assert isinstance(node, ProcessingNode)
-        stack = NodeStack(name=node.name, node=node, qdevice_type=node.qmemory_typ)
-        NetSquidContext.add_node(stack.node.ID, node.name)
-        stacks[node.name] = stack
+        stack = NodeStack(name=node_id, node=node, qdevice_type=node.qmemory_typ)
+        NetSquidContext.add_node(stack.node.ID, node_id)
+        stacks[node_id] = stack
 
-    ClassicalConnectionBuilder.build(config, qdevice_nodes)
+    for id_tuple, egp in network.egp.items():
+        node_id, peer_id = id_tuple
+        stacks[node_id].assign_egp(egp)
 
-    link_dict = LinkBuilder.build(config, qdevice_nodes)
-
-    for node in qdevice_nodes:
-        egp_dict = EGPBuilder.build(node, link_dict)
-        assert len(egp_dict) == 1
-        for peer_name, egp in egp_dict.items():
-            stacks[node.name].assign_egp(egp)
+    link_prots: List[MagicLinkLayerProtocol] = []
 
     return StackNetwork(stacks, link_prots)
 
