@@ -2,7 +2,7 @@ from typing import Generator
 
 from netsquid.protocols import Protocol, Signals
 
-from blueprint.setup_network import ProtocolContext
+from blueprint.network import ProtocolContext
 from pydynaa import EventExpression
 
 

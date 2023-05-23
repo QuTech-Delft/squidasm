@@ -1,7 +1,7 @@
 from typing import Generator
 
 import netsquid as ns
-from blueprint.setup_network import ProtocolContext
+from blueprint.network import ProtocolContext
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Qubit
 from netsquid.protocols import Protocol, Signals

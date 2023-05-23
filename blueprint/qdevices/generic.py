@@ -16,10 +16,10 @@ from netsquid.components.instructions import (
 from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qprocessor import PhysicalInstruction, QuantumProcessor
 
-from blueprint.yaml_loadable import YamlLoadable
+from blueprint.qdevices.interface import IQDeviceConfig, IQDeviceBuilder
 
 
-class GenericQDeviceConfig(YamlLoadable):
+class GenericQDeviceConfig(IQDeviceConfig):
     """
     The configuration for a generic quantum device.
     """
@@ -64,68 +64,74 @@ class GenericQDeviceConfig(YamlLoadable):
         return cfg
 
 
-def build_generic_qdevice(name: str, cfg: GenericQDeviceConfig) -> QuantumProcessor:
-    phys_instructions = []
+class GenericQDeviceBuilder(IQDeviceBuilder):
+    @classmethod
+    def build(cls, name: str, qdevice_cfg: GenericQDeviceConfig) -> QuantumProcessor:
+        if isinstance(qdevice_cfg, dict):
+            qdevice_cfg = GenericQDeviceConfig(**qdevice_cfg)
 
-    single_qubit_gate_noise = DepolarNoiseModel(
-        depolar_rate=cfg.single_qubit_gate_depolar_prob, time_independent=True
-    )
+        phys_instructions = []
 
-    two_qubit_gate_noise = DepolarNoiseModel(
-        depolar_rate=cfg.two_qubit_gate_depolar_prob, time_independent=True
-    )
+        single_qubit_gate_noise = DepolarNoiseModel(
+            depolar_rate=qdevice_cfg.single_qubit_gate_depolar_prob, time_independent=True
+        )
 
-    phys_instructions.append(
-        PhysicalInstruction(
-            INSTR_INIT,
+        two_qubit_gate_noise = DepolarNoiseModel(
+            depolar_rate=qdevice_cfg.two_qubit_gate_depolar_prob, time_independent=True
+        )
+
+        phys_instructions.append(
+            PhysicalInstruction(
+                INSTR_INIT,
+                parallel=False,
+                duration=qdevice_cfg.init_time,
+            )
+        )
+
+        for instr in [
+            INSTR_ROT_X,
+            INSTR_ROT_Y,
+            INSTR_ROT_Z,
+            INSTR_X,
+            INSTR_Y,
+            INSTR_Z,
+            INSTR_H,
+        ]:
+            phys_instructions.append(
+                PhysicalInstruction(
+                    instr,
+                    parallel=False,
+                    quantum_noise_model=single_qubit_gate_noise,
+                    apply_q_noise_after=True,
+                    duration=qdevice_cfg.single_qubit_gate_time,
+                )
+            )
+
+        for instr in [INSTR_CNOT, INSTR_CZ]:
+            phys_instructions.append(
+                PhysicalInstruction(
+                    instr,
+                    parallel=False,
+                    quantum_noise_model=two_qubit_gate_noise,
+                    apply_q_noise_after=True,
+                    duration=qdevice_cfg.two_qubit_gate_time,
+                )
+            )
+
+        phys_instr_measure = PhysicalInstruction(
+            INSTR_MEASURE,
             parallel=False,
-            duration=cfg.init_time,
+            duration=qdevice_cfg.measure_time,
         )
-    )
+        phys_instructions.append(phys_instr_measure)
 
-    for instr in [
-        INSTR_ROT_X,
-        INSTR_ROT_Y,
-        INSTR_ROT_Z,
-        INSTR_X,
-        INSTR_Y,
-        INSTR_Z,
-        INSTR_H,
-    ]:
-        phys_instructions.append(
-            PhysicalInstruction(
-                instr,
-                parallel=False,
-                quantum_noise_model=single_qubit_gate_noise,
-                apply_q_noise_after=True,
-                duration=cfg.single_qubit_gate_time,
-            )
+        electron_qubit_noise = T1T2NoiseModel(T1=qdevice_cfg.T1, T2=qdevice_cfg.T2)
+        mem_noise_models = [electron_qubit_noise] * qdevice_cfg.num_qubits
+        qmem = QuantumProcessor(
+            name=name,
+            num_positions=qdevice_cfg.num_qubits,
+            mem_noise_models=mem_noise_models,
+            phys_instructions=phys_instructions,
         )
+        return qmem
 
-    for instr in [INSTR_CNOT, INSTR_CZ]:
-        phys_instructions.append(
-            PhysicalInstruction(
-                instr,
-                parallel=False,
-                quantum_noise_model=two_qubit_gate_noise,
-                apply_q_noise_after=True,
-                duration=cfg.two_qubit_gate_time,
-            )
-        )
-
-    phys_instr_measure = PhysicalInstruction(
-        INSTR_MEASURE,
-        parallel=False,
-        duration=cfg.measure_time,
-    )
-    phys_instructions.append(phys_instr_measure)
-
-    electron_qubit_noise = T1T2NoiseModel(T1=cfg.T1, T2=cfg.T2)
-    mem_noise_models = [electron_qubit_noise] * cfg.num_qubits
-    qmem = QuantumProcessor(
-        name=name,
-        num_positions=cfg.num_qubits,
-        mem_noise_models=mem_noise_models,
-        phys_instructions=phys_instructions,
-    )
-    return qmem

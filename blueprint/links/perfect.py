@@ -4,34 +4,27 @@ from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_magic.link_layer import (
     SingleClickTranslationUnit,
 )
-from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
+from netsquid_magic.magic_distributor import (
+    PerfectStateMagicDistributor,
+)
 
 from blueprint.links.interface import ILinkConfig, ILinkBuilder
 from squidasm.sim.stack.stack import ProcessingNode
 
 
-class NVLinkConfig(ILinkConfig):
-    length_A: float
-    length_B: float
-    full_cycle: float
-    cycle_time: float
-    alpha: float
+class PerfectLinkConfig(ILinkConfig):
+    state_delay: float = 1000.
 
 
-class NVLinkBuilder(ILinkBuilder):
+class PerfectLinkBuilder(ILinkBuilder):
     @classmethod
     def build(cls, node1: ProcessingNode, node2: ProcessingNode,
-              link_cfg: NVLinkConfig) -> MagicLinkLayerProtocolWithSignaling:
+              link_cfg: PerfectLinkConfig) -> MagicLinkLayerProtocolWithSignaling:
         if isinstance(link_cfg, dict):
-            link_cfg = NVLinkConfig(**link_cfg)
+            link_cfg = PerfectLinkConfig(**link_cfg)
 
-        link_dist = NVSingleClickMagicDistributor(
-            nodes=[node1, node2],
-            length_A=link_cfg.length_A,
-            length_B=link_cfg.length_B,
-            full_cycle=link_cfg.full_cycle,
-            cycle_time=link_cfg.cycle_time,
-            alpha=link_cfg.alpha,
+        link_dist = PerfectStateMagicDistributor(
+            nodes=[node1, node2], state_delay=link_cfg.state_delay
         )
         link_prot = MagicLinkLayerProtocolWithSignaling(
             nodes=[node1, node2],
