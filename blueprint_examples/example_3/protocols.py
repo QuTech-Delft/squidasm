@@ -1,10 +1,7 @@
 from typing import Generator
 
-import netsquid as ns
-from blueprint.network import ProtocolContext
+from netsquid.components import INSTR_X
 from netsquid.components import QuantumProcessor
-from netsquid.components.component import Qubit
-from netsquid.components import Message, INSTR_Z, INSTR_X
 from netsquid.protocols import Protocol, Signals
 from qlink_interface import (
     ReqCreateAndKeep,
@@ -12,9 +9,8 @@ from qlink_interface import (
     ResCreateAndKeep,
 )
 
+from blueprint.network import ProtocolContext
 from pydynaa import EventExpression
-from squidasm.sim.stack.egp import EgpProtocol
-from squidasm.sim.stack.stack import ProcessingNode
 
 
 class AliceProtocol(Protocol):
@@ -41,8 +37,6 @@ class AliceProtocol(Protocol):
         qdevice.execute_instruction(instruction=INSTR_X, qubit_mapping=[received_qubit_mem_pos])
         yield self.await_program(qdevice)
 
-        qubit: Qubit = qdevice.peek(positions=[received_qubit_mem_pos])[0]
-        print(ns.qubits.qubitapi.reduced_dm(qubit.qstate.qubits))
 
     def start(self) -> None:
         super().start()
