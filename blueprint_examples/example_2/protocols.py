@@ -14,9 +14,8 @@ class AliceProtocol(Protocol):
         self.add_signal(Signals.FINISHED)
 
     def run(self) -> Generator[EventExpression, None, None]:
-        node = self.context.node
 
-        node.host_peer_out_port.tx_output("Hello from Alice")
+        self.context.out_ports[self.PEER].tx_output("Hello from Alice")
         yield self.await_timer(10)
 
     def start(self) -> None:
@@ -34,10 +33,10 @@ class BobProtocol(Protocol):
         self.add_signal(Signals.FINISHED)
 
     def run(self) -> Generator[EventExpression, None, None]:
-        node = self.context.node
 
-        yield self.await_port_input(node.host_peer_in_port)
-        message = node.host_peer_in_port.rx_input()
+        in_port = self.context.in_ports[self.PEER]
+        yield self.await_port_input(in_port)
+        message = in_port.rx_input()
         print(f"Bob receives: {message.items[0]}")
 
     def start(self) -> None:

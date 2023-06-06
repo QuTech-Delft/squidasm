@@ -5,7 +5,7 @@ from matplotlib import pyplot
 from blueprint.base_configs import StackNetworkConfig
 from blueprint.links.depolarise import DepolariseLinkConfig
 from blueprint.network_builder import NetworkBuilder
-from network_generation import create_2_node_network
+from blueprint_examples.network_generation import create_2_node_network
 from protocols import AliceProtocol, BobProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)

@@ -24,7 +24,7 @@ def create_2_node_network(link_typ: str, link_cfg: ILinkConfig) -> StackNetworkC
 
 
 def create_multi_node_network(num_nodes: int, link_typ: str, link_cfg: ILinkConfig) -> StackNetworkConfig:
-    network_config = StackNetworkConfig()
+    network_config = StackNetworkConfig(stacks=[], links=[])
 
     node_names = [f"node_{i}" for i in range(num_nodes)]
     for node_name in node_names:

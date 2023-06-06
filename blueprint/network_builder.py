@@ -3,6 +3,8 @@ from __future__ import annotations
 import itertools
 from typing import Dict, List, Type
 
+from netsquid.components import Port
+
 from blueprint.base_configs import StackNetworkConfig
 from blueprint.links import (
     DepolariseLinkConfig,
@@ -35,7 +37,6 @@ from blueprint.links.heralded import HeraldedLinkBuilder
 from blueprint.links.depolarise import DepolariseLinkBuilder
 
 
-
 class NetworkBuilder:
     def __init__(self):
         self.protocol_controller = ProtocolController()
@@ -59,7 +60,7 @@ class NetworkBuilder:
 
         network.nodes = self.node_builder.build(config, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
 
-        self.classical_connection_builder.build(config, network.nodes)
+        self.classical_connection_builder.build(config, network)
 
         network.links = self.link_builder.build(config, network.nodes)
 
@@ -96,10 +97,23 @@ class NodeBuilder:
 
 
 class ClassicalConnectionBuilder:
-    def build(self, config: StackNetworkConfig, nodes: Dict[str, ProcessingNode]):
+    def build(self, config: StackNetworkConfig, network: Network):
+        nodes = network.nodes
         node_list = [nodes[key] for key in nodes.keys()]
         for s1, s2 in itertools.combinations(node_list, 2):
-            s1.connect(s2)
+
+            s1_in_port: Port = s1.add_ports([f"host_{s2.name}_in"])[0]
+            s1_out_port: Port = s1.add_ports([f"host_{s2.name}_out"])[0]
+            s2_in_port: Port = s2.add_ports([f"host_{s1.name}_in"])[0]
+            s2_out_port: Port = s2.add_ports([f"host_{s1.name}_out"])[0]
+
+            s1_in_port.connect(s2_out_port)
+            s1_out_port.connect(s2_in_port)
+            network.in_ports[(s1.name, s2.name)] = s1_in_port
+            network.out_ports[(s1.name, s2.name)] = s1_out_port
+            network.in_ports[(s2.name, s1.name)] = s2_in_port
+            network.out_ports[(s2.name, s1.name)] = s2_out_port
+
 
 
 class LinkBuilder:
