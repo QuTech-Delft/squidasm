@@ -60,7 +60,7 @@ class NetworkBuilder:
 
         network.nodes = self.node_builder.build(config, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
 
-        self.classical_connection_builder.build(config, network)
+        self.classical_connection_builder.build(config, network, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
 
         network.links = self.link_builder.build(config, network.nodes)
 
@@ -97,15 +97,15 @@ class NodeBuilder:
 
 
 class ClassicalConnectionBuilder:
-    def build(self, config: StackNetworkConfig, network: Network):
+    def build(self, config: StackNetworkConfig, network: Network, hacky_is_squidasm_flag):
         nodes = network.nodes
         node_list = [nodes[key] for key in nodes.keys()]
         for s1, s2 in itertools.combinations(node_list, 2):
 
-            s1_in_port: Port = s1.add_ports([f"host_{s2.name}_in"])[0]
-            s1_out_port: Port = s1.add_ports([f"host_{s2.name}_out"])[0]
-            s2_in_port: Port = s2.add_ports([f"host_{s1.name}_in"])[0]
-            s2_out_port: Port = s2.add_ports([f"host_{s1.name}_out"])[0]
+            s1_in_port: Port = s1.add_ports([f"host_{s2.ID}_in"])[0]
+            s1_out_port: Port = s1.add_ports([f"host_{s2.ID}_out"])[0]
+            s2_in_port: Port = s2.add_ports([f"host_{s1.ID}_in"])[0]
+            s2_out_port: Port = s2.add_ports([f"host_{s1.ID}_out"])[0]
 
             s1_in_port.connect(s2_out_port)
             s1_out_port.connect(s2_in_port)
@@ -114,6 +114,11 @@ class ClassicalConnectionBuilder:
             network.in_ports[(s2.name, s1.name)] = s2_in_port
             network.out_ports[(s2.name, s1.name)] = s2_out_port
 
+            if hacky_is_squidasm_flag:
+                s1.register_peer(s2.ID)
+                s2.register_peer(s1.ID)
+                s1.qnos_peer_out_port(s2.ID).connect(s2.qnos_peer_in_port(s1.ID))
+                s1.qnos_peer_in_port(s2.ID).connect(s2.qnos_peer_out_port(s1.ID))
 
 
 class LinkBuilder:

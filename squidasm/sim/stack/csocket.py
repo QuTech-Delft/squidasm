@@ -4,19 +4,21 @@ from typing import TYPE_CHECKING, Generator
 
 from netqasm.sdk.classical_communication.message import StructuredMessage
 from netqasm.sdk.classical_communication.socket import Socket
+from netsquid.components import Port
+from netsquid.protocols import Protocol
 
 from pydynaa import EventExpression
+from squidasm.sim.stack.common import PortListener
+from squidasm.sim.stack.signals import SIGNAL_PEER_RECV_MSG
 
-if TYPE_CHECKING:
-    from squidasm.sim.stack.host import Host
 
-
-class ClassicalSocket(Socket):
+class ClassicalSocket(Socket, Protocol):
     """Classical socket, used for simulating classical data exchange between programs."""
 
     def __init__(
         self,
-        host: Host,
+        in_port: Port,
+        out_port: Port,
         app_name: str,
         remote_app_name: str,
         socket_id: int = 0,
@@ -24,15 +26,24 @@ class ClassicalSocket(Socket):
         super().__init__(
             app_name=app_name, remote_app_name=remote_app_name, socket_id=socket_id
         )
-        self._host = host
+        self.in_port = in_port
+        self.out_port = out_port
+
+        self.listener = PortListener(self.in_port, SIGNAL_PEER_RECV_MSG)
 
     def send(self, msg: str) -> None:
         """Sends a string message to the remote node."""
-        self._host.send_peer_msg(msg)
+        self.out_port.tx_output(msg)
 
     def recv(self) -> Generator[EventExpression, None, str]:
-        """Receive a string message to the remote node."""
-        return (yield from self._host.receive_peer_msg())
+        return (yield from self._receive_msg(SIGNAL_PEER_RECV_MSG))
+
+    def _receive_msg(
+        self, wake_up_signal: str
+    ) -> Generator[EventExpression, None, str]:
+        if len(self.listener.buffer) == 0:
+            yield self.await_signal(sender=self.listener, signal_label=wake_up_signal)
+        return self.listener.buffer.pop(0)
 
     def send_int(self, value: int) -> None:
         """Send an integer value to the remote node."""
@@ -60,3 +71,11 @@ class ClassicalSocket(Socket):
         """Receive an structured message to the remote node."""
         value = yield from self.recv()
         return value
+
+    def start(self):
+        Protocol.start(self)
+        self.listener.start()
+
+    def stop(self):
+        Protocol.stop(self)
+        self.listener.stop()

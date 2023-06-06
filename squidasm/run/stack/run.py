@@ -6,13 +6,15 @@ import netsquid as ns
 from netsquid_magic.link_layer import (
     MagicLinkLayerProtocol,
 )
+from squidasm.sim.stack.csocket import ClassicalSocket
 
 from blueprint.base_configs import StackNetworkConfig
-from blueprint.setup_network import ProtocolController, NetworkBuilder
+from blueprint.network_builder import NetworkBuilder
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.stack import NodeStack, StackNetwork, ProcessingNode
+import itertools
 
 
 def fidelity_to_prob_max_mixed(fid: float) -> float:
@@ -20,26 +22,44 @@ def fidelity_to_prob_max_mixed(fid: float) -> float:
 
 
 def _setup_network(config: StackNetworkConfig) -> StackNetwork:
-    assert len(config.stacks) <= 2
-    assert len(config.links) <= 1
-
-    network = NetworkBuilder.build(config)
+    builder = NetworkBuilder()
+    network = builder.build(config)
 
     stacks: Dict[str, NodeStack] = {}
 
-    for node_id, node in network.nodes.items():
+    for node_name, node in network.nodes.items():
         assert isinstance(node, ProcessingNode)
-        stack = NodeStack(name=node_id, node=node, qdevice_type=node.qmemory_typ)
-        NetSquidContext.add_node(stack.node.ID, node_id)
-        stacks[node_id] = stack
+        stack = NodeStack(name=node_name, node=node, qdevice_type=node.qmemory_typ)
+        NetSquidContext.add_node(stack.node.ID, node_name)
+        stacks[node_name] = stack
 
     for id_tuple, egp in network.egp.items():
-        node_id, peer_id = id_tuple
-        stacks[node_id].assign_egp(egp)
+        node_name, peer_name = id_tuple
+        stacks[node_name].assign_egp(network.node_name_id_mapping[peer_name], egp)
+
+    for s1, s2 in itertools.combinations(stacks.values(), 2):
+        s1.qnos.netstack.register_peer(s2.node.ID)
+        s1.qnos_comp.register_peer(s2.node.ID)
+        s2.qnos.netstack.register_peer(s1.node.ID)
+        s2.qnos_comp.register_peer(s1.node.ID)
+
+    csockets: Dict[(str, str): ClassicalSocket] = {}
+    for node_pair in network.in_ports.keys():
+        node_name = node_pair[0]
+        peer_name = node_pair[1]
+        in_port = network.in_ports[(node_name, peer_name)]
+        out_port = network.out_ports[(node_name, peer_name)]
+
+        # TODO app name is unknown here
+        csocket = ClassicalSocket(in_port, out_port, app_name=node_name, remote_app_name=peer_name)
+        csockets[(node_name, peer_name)] = csocket
+        stacks[node_name].host.register_csocket(peer_name, csocket)
 
     link_prots: List[MagicLinkLayerProtocol] = []
+    # TODO cheaty start protocols here
+    builder.protocol_controller.start_all()
 
-    return StackNetwork(stacks, link_prots)
+    return StackNetwork(stacks, link_prots, csockets)
 
 
 def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
@@ -50,15 +70,19 @@ def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
     :param network: `StackNetwork` representing the nodes and links
     :return: final results of the programs
     """
-    assert len(network.stacks) <= 2
-    assert len(network.links) <= 1
+    #assert len(network.stacks) <= 2
+    #assert len(network.links) <= 1
 
     # start all link layer protocols
-    ProtocolController.start_all()
+    # TODO used to be start protocols here
+    #ProtocolController.start_all()
 
     # Start the node protocols.
     for _, stack in network.stacks.items():
         stack.start()
+
+    for csocket in network.csockets.values():
+        csocket.start()
 
     # Start the NetSquid simulation.
     ns.sim_run()

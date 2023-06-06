@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, List, Optional
+from squidasm.sim.stack.csocket import ClassicalSocket
 
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Port
@@ -50,7 +51,7 @@ class ProcessingNode(Node):
         self.qmemory_typ = qdevice_type
 
         self.hacky_is_squidasm_flag = hacky_is_squidasm_flag
-        self.add_ports(["host_peer_out", "host_peer_in"])
+        # TODO remove self.add_ports(["host_peer_out", "host_peer_in"])
 
         if hacky_is_squidasm_flag:
             qnos_comp = QnosComponent(self)
@@ -65,10 +66,9 @@ class ProcessingNode(Node):
             # Ports for communicating with other nodes
             self.add_ports(["qnos_peer_out", "qnos_peer_in"])
 
-            self.qnos_comp.peer_out_port.forward_output(self.qnos_peer_out_port)
-            self.qnos_peer_in_port.forward_input(self.qnos_comp.peer_in_port)
-            self.host_comp.peer_out_port.forward_output(self.host_peer_out_port)
-            self.host_peer_in_port.forward_input(self.host_comp.peer_in_port)
+            # TODO remove self.qnos_comp.peer_out_port.forward_output(self.qnos_peer_out_port)
+            # TODO remove self.qnos_peer_in_port.forward_input(self.qnos_comp.peer_in_port)
+
 
     @property
     def qnos_comp(self) -> QnosComponent:
@@ -82,28 +82,17 @@ class ProcessingNode(Node):
     def qdevice(self) -> QuantumProcessor:
         return self.qmemory
 
-    @property
-    def host_peer_in_port(self) -> Port:
-        return self.ports["host_peer_in"]
+    def qnos_peer_in_port(self, peer_id: int) -> Port:
+        return self.ports[f"qnos_peer_{peer_id}_in"]
 
-    @property
-    def host_peer_out_port(self) -> Port:
-        return self.ports["host_peer_out"]
+    def qnos_peer_out_port(self, peer_id: int) -> Port:
+        return self.ports[f"qnos_peer_{peer_id}_out"]
 
-    @property
-    def qnos_peer_in_port(self) -> Port:
-        return self.ports["qnos_peer_in"]
-
-    @property
-    def qnos_peer_out_port(self) -> Port:
-        return self.ports["qnos_peer_out"]
-
-    def connect(self, other: ProcessingNode):
-        self.host_peer_out_port.connect(other.host_peer_in_port)
-        self.host_peer_in_port.connect(other.host_peer_out_port)
-        if self.hacky_is_squidasm_flag:
-            self.qnos_peer_out_port.connect(other.qnos_peer_in_port)
-            self.qnos_peer_in_port.connect(other.qnos_peer_out_port)
+    def register_peer(self, peer_id: int):
+        self.add_ports([f"qnos_peer_{peer_id}_in", f"qnos_peer_{peer_id}_out"])
+        self.qnos_comp.register_peer(peer_id)
+        self.qnos_comp.peer_out_port(peer_id).forward_output(self.qnos_peer_out_port(peer_id))
+        self.qnos_peer_in_port(peer_id).forward_input(self.qnos_comp.peer_in_port(peer_id))
 
 
 class NodeStack(Protocol):
@@ -155,12 +144,12 @@ class NodeStack(Protocol):
             self._host = Host(self.host_comp, qdevice_type)
             self._qnos = Qnos(self.qnos_comp, qdevice_type)
 
-    def assign_egp(self, egp: EgpProtocol):
+    def assign_egp(self, remote_node_id: int,  egp: EgpProtocol) -> None:
         """Set the link layer protocol to use for entanglement generation.
 
         The same link layer protocol object is used by both nodes sharing a link in
         the network."""
-        self.qnos.assign_egp(egp)
+        self.qnos.assign_egp(remote_node_id, egp)
 
     @property
     def node(self) -> ProcessingNode:
@@ -214,7 +203,8 @@ class StackNetwork(Network):
     `MagicLinkLayerProtocol`s."""
 
     def __init__(
-        self, stacks: Dict[str, NodeStack], links: List[MagicLinkLayerProtocol]
+        self, stacks: Dict[str, NodeStack], links: List[MagicLinkLayerProtocol],
+            csockets: Dict[(str, str), ClassicalSocket]
     ) -> None:
         """StackNetwork constructor.
 
@@ -225,6 +215,7 @@ class StackNetwork(Network):
         """
         self._stacks = stacks
         self._links = links
+        self._csockets = csockets
 
     @property
     def stacks(self) -> Dict[str, NodeStack]:
@@ -233,6 +224,10 @@ class StackNetwork(Network):
     @property
     def links(self) -> List[MagicLinkLayerProtocol]:
         return self._links
+
+    @property
+    def csockets(self) -> Dict[(str, str), ClassicalSocket]:
+        return self._csockets
 
     @property
     def qdevices(self) -> Dict[str, QuantumProcessor]:
