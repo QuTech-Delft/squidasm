@@ -4,6 +4,7 @@ from matplotlib import pyplot
 
 from blueprint.base_configs import StackNetworkConfig
 from blueprint.links.perfect import PerfectLinkConfig
+from blueprint.clinks.default import DefaultCLinkConfig
 from blueprint.network_builder import NetworkBuilder
 from blueprint_examples.network_generation import create_multi_node_network
 from protocols import ServerProtocol, ClientProtocol
@@ -12,7 +13,8 @@ ns.set_qstate_formalism(ns.QFormalism.DM)
 num_nodes = 5
 
 builder = NetworkBuilder()
-cfg = create_multi_node_network(num_nodes, "perfect", PerfectLinkConfig())
+cfg = create_multi_node_network(num_nodes, "perfect", PerfectLinkConfig(),
+                                clink_typ="default", clink_cfg=DefaultCLinkConfig(delay=100))
 network = builder.build(cfg, hacky_is_squidasm_flag=False)
 
 clients = [f"node_{i}" for i in range(1, num_nodes)]

@@ -1,5 +1,5 @@
 from typing import Generator
-
+import netsquid as ns
 from netsquid.protocols import Protocol, Signals
 
 from blueprint.network import ProtocolContext
@@ -14,8 +14,9 @@ class AliceProtocol(Protocol):
         self.add_signal(Signals.FINISHED)
 
     def run(self) -> Generator[EventExpression, None, None]:
-
-        self.context.out_ports[self.PEER].tx_output("Hello from Alice")
+        msg = "Hello from Alice"
+        print(f"{ns.sim_time()} ns: Alice sends: {msg}")
+        self.context.ports[self.PEER].tx_output(msg)
         yield self.await_timer(10)
 
     def start(self) -> None:
@@ -34,10 +35,10 @@ class BobProtocol(Protocol):
 
     def run(self) -> Generator[EventExpression, None, None]:
 
-        in_port = self.context.in_ports[self.PEER]
-        yield self.await_port_input(in_port)
-        message = in_port.rx_input()
-        print(f"Bob receives: {message.items[0]}")
+        port = self.context.ports[self.PEER]
+        yield self.await_port_input(port)
+        message = port.rx_input()
+        print(f"{ns.sim_time()} ns: Bob receives: {message.items[0]}")
 
     def start(self) -> None:
         super().start()

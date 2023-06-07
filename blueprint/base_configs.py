@@ -22,6 +22,24 @@ class LinkConfig(YamlLoadable):
         return LinkConfig(stack1=stack1, stack2=stack2, typ="perfect", cfg=None)
 
 
+class CLinkConfig(YamlLoadable):
+    """Configuration for a single clink."""
+
+    stack1: str
+    """Name of the first stack being connected via clink."""
+    stack2: str
+    """Name of the second stack being connected via clink."""
+    typ: str
+    """Type of the clink."""
+    cfg: Any
+    """Configuration of the clink, allowed configuration depends on type."""
+
+    @classmethod
+    def perfect_config(cls, stack1: str, stack2: str) -> LinkConfig:
+        """Create a configuration for a link without any noise or errors."""
+        return LinkConfig(stack1=stack1, stack2=stack2, typ="instant", cfg=None)
+
+
 class StackConfig(YamlLoadable):
     """Configuration for a single stack (i.e. end node)."""
 
@@ -40,4 +58,5 @@ class StackNetworkConfig(YamlLoadable):
     """List of all the stacks in the network."""
     links: List[LinkConfig]
     """List of all the links connecting the stacks in the network."""
-
+    clinks: List[CLinkConfig]
+    """List of all the clinks connecting the stacks in the network."""

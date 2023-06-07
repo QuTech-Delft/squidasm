@@ -32,3 +32,10 @@ links:
     typ: perfect
     cfg:
       dummy: null
+
+clinks:
+  - stack1: Alice
+    stack2: Bob
+    typ: instant
+    cfg:
+      dummy: null

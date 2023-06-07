@@ -6,26 +6,15 @@ from typing import Dict, List, Type
 from netsquid.components import Port
 
 from blueprint.base_configs import StackNetworkConfig
-from blueprint.links import (
-    DepolariseLinkConfig,
-    HeraldedLinkConfig,
-    NVLinkConfig,
-)
+
 from blueprint.links.interface import ILinkBuilder
+from blueprint.clinks.interface import ICLinkBuilder
 from blueprint.network import Network
 
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocol,
-    MagicLinkLayerProtocolWithSignaling,
-    SingleClickTranslationUnit,
-)
-from netsquid_magic.magic_distributor import (
-    DepolariseWithFailureMagicDistributor,
-    DoubleClickMagicDistributor,
-    PerfectStateMagicDistributor,
-)
-from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
-from netsquid_physlayer.heralded_connection import MiddleHeraldedConnection
+from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
+from blueprint.clinks.default import DefaultCLinkBuilder
+from blueprint.clinks.instant import InstantCLinkBuilder
+
 from squidasm.sim.stack.stack import NodeStack, StackNetwork, ProcessingNode
 from squidasm.sim.stack.egp import EgpProtocol
 from blueprint.qdevices.interface import IQDeviceBuilder
@@ -54,6 +43,10 @@ class NetworkBuilder:
         self.link_builder.register("depolarise", DepolariseLinkBuilder)
         self.link_builder.register("heralded", HeraldedLinkBuilder)
         self.link_builder.register("nv", NVLinkBuilder)
+
+        # default clink models registration
+        self.classical_connection_builder.register_model("instant", InstantCLinkBuilder)
+        self.classical_connection_builder.register_model("default", DefaultCLinkBuilder)
 
     def build(self, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Network:
         network = Network()
@@ -97,28 +90,38 @@ class NodeBuilder:
 
 
 class ClassicalConnectionBuilder:
+    def __init__(self):
+        self.clink_builders: Dict[str, Type[ICLinkBuilder]] = {}
+
+    def register_model(self, key: str, builder: Type[ICLinkBuilder]):
+        self.clink_builders[key] = builder
+
     def build(self, config: StackNetworkConfig, network: Network, hacky_is_squidasm_flag):
         nodes = network.nodes
         node_list = [nodes[key] for key in nodes.keys()]
-        for s1, s2 in itertools.combinations(node_list, 2):
+        for clink in config.clinks:
+            s1 = nodes[clink.stack1]
+            s2 = nodes[clink.stack2]
+            clink_builder = self.clink_builders[clink.typ]
+            connection = clink_builder.build(s1, s2, link_cfg=clink.cfg)
 
-            s1_in_port: Port = s1.add_ports([f"host_{s2.ID}_in"])[0]
-            s1_out_port: Port = s1.add_ports([f"host_{s2.ID}_out"])[0]
-            s2_in_port: Port = s2.add_ports([f"host_{s1.ID}_in"])[0]
-            s2_out_port: Port = s2.add_ports([f"host_{s1.ID}_out"])[0]
+            s1_port: Port = s1.add_ports([f"host_{s2.ID}"])[0]
+            s2_port: Port = s2.add_ports([f"host_{s1.ID}"])[0]
 
-            s1_in_port.connect(s2_out_port)
-            s1_out_port.connect(s2_in_port)
-            network.in_ports[(s1.name, s2.name)] = s1_in_port
-            network.out_ports[(s1.name, s2.name)] = s1_out_port
-            network.in_ports[(s2.name, s1.name)] = s2_in_port
-            network.out_ports[(s2.name, s1.name)] = s2_out_port
+            # link
+            s1_port.connect(connection.port_A)
+            s2_port.connect(connection.port_B)
+
+            network.ports[(s1.name, s2.name)] = s1_port
+            network.ports[(s2.name, s1.name)] = s2_port
 
             if hacky_is_squidasm_flag:
                 s1.register_peer(s2.ID)
                 s2.register_peer(s1.ID)
-                s1.qnos_peer_out_port(s2.ID).connect(s2.qnos_peer_in_port(s1.ID))
-                s1.qnos_peer_in_port(s2.ID).connect(s2.qnos_peer_out_port(s1.ID))
+                connection_qnos = clink_builder.build(s1, s2, link_cfg=clink.cfg)
+
+                s1.qnos_peer_port(s2.ID).connect(connection_qnos.port_A)
+                s2.qnos_peer_port(s1.ID).connect(connection_qnos.port_B)
 
 
 class LinkBuilder:

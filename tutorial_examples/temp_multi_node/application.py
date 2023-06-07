@@ -1,5 +1,6 @@
 from typing import List
 
+import netsquid as ns
 from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
@@ -9,7 +10,8 @@ from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
 class ClientProgram(Program):
-    def __init__(self, server_name: str):
+    def __init__(self, name: str, server_name: str):
+        self.name = name
         self.server_name = server_name
 
     @property
@@ -31,14 +33,14 @@ class ClientProgram(Program):
 
         # Bob listens for messages on his classical socket
         message = yield from csocket.recv()
-        print(f"Client receives message: {message}")
+        print(f"{ns.sim_time()} ns: Client: {self.name} receives message: {message}")
 
         # Listen for request to create EPR pair, apply a Hadamard gate on the epr qubit and measure
         epr_qubit = epr_socket.recv_keep()[0]
         epr_qubit.H()
         result = epr_qubit.measure()
         yield from connection.flush()
-        print(f"Client measures local EPR qubit: {result}")
+        print(f"{ns.sim_time()} ns: Client: {self.name} measures local EPR qubit: {result}")
 
         return {}
 
@@ -65,15 +67,15 @@ class ServerProgram(Program):
             epr_socket: EPRSocket = context.epr_sockets[client]
 
             # send a string message via a classical channel
-            message = f"Hello from server, client: {client} you may start"
+            message = f"Client: {client} you may start"
             csocket.send(message)
-            print(f"Server sends message: {message}")
+            print(f"{ns.sim_time()} ns: Server sends message: {message}")
 
             # Register a request to create an EPR pair, then apply a Hadamard gate on the epr qubit and measure
             epr_qubit = epr_socket.create_keep()[0]
             epr_qubit.H()
             result = epr_qubit.measure()
             yield from connection.flush()
-            print(f"Server measures local EPR qubit: {result}")
+            print(f"{ns.sim_time()} ns: Server measures local EPR qubit: {result}")
 
         return {}

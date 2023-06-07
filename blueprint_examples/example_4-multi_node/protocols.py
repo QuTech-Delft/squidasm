@@ -25,10 +25,10 @@ class ServerProtocol(Protocol):
 
         for client in self.clients:
 
-            self.context.out_ports[client].tx_output("Start entanglement")
-            in_port = self.context.in_ports[client]
+            self.context.ports[client].tx_output("Start entanglement")
+            in_port = self.context.ports[client]
             yield self.await_port_input(in_port)
-            print(f"Server receives from {client}: {in_port.rx_input().items[0]}")
+            print(f"{ns.sim_time()} ns: Server receives from {client}: {in_port.rx_input().items[0]}")
 
             egp = self.context.egp[client]
 
@@ -45,7 +45,7 @@ class ServerProtocol(Protocol):
             # TODO Look into fix possibility of getting frozen situation due to memory full
             self.context.node.qdevice.discard(received_qubit_mem_pos)
 
-            print(f"Server Created EPR with {client} and measures {result}")
+            print(f"{ns.sim_time()} ns: Server Created EPR with {client} and measures {result}")
 
     def start(self) -> None:
         super().start()
@@ -63,11 +63,11 @@ class ClientProtocol(Protocol):
     def run(self) -> Generator[EventExpression, None, None]:
         egp = self.context.egp[self.server_name]
 
-        in_port = self.context.in_ports[self.server_name]
+        in_port = self.context.ports[self.server_name]
         yield self.await_port_input(in_port)
-        print(f"{self.context.node.name} receives from {self.server_name}: {in_port.rx_input().items[0]}")
+        print(f"{ns.sim_time()} ns: {self.context.node.name} receives from {self.server_name}: {in_port.rx_input().items[0]}")
         egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.server_name]))
-        self.context.out_ports[self.server_name].tx_output("Ready to start entanglement")
+        self.context.ports[self.server_name].tx_output("Ready to start entanglement")
 
         qdevice = self.context.node.qdevice
 
@@ -78,7 +78,7 @@ class ClientProtocol(Protocol):
 
         result = qdevice.measure(positions=[received_qubit_mem_pos])[0]
         qdevice.discard(received_qubit_mem_pos)
-        print(f"{self.context.node.name} measures {result}")
+        print(f"{ns.sim_time()} ns: {self.context.node.name} measures {result}")
 
     def start(self) -> None:
         super().start()
