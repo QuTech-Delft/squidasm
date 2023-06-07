@@ -44,14 +44,13 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
         s2.qnos_comp.register_peer(s1.node.ID)
 
     csockets: Dict[(str, str): ClassicalSocket] = {}
-    for node_pair in network.in_ports.keys():
+    for node_pair in network.ports.keys():
         node_name = node_pair[0]
         peer_name = node_pair[1]
-        in_port = network.in_ports[(node_name, peer_name)]
-        out_port = network.out_ports[(node_name, peer_name)]
+        port = network.ports[(node_name, peer_name)]
 
         # TODO app name is unknown here
-        csocket = ClassicalSocket(in_port, out_port, app_name=node_name, remote_app_name=peer_name)
+        csocket = ClassicalSocket(port, app_name=node_name, remote_app_name=peer_name)
         csockets[(node_name, peer_name)] = csocket
         stacks[node_name].host.register_csocket(peer_name, csocket)
 

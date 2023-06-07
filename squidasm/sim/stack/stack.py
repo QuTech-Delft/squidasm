@@ -82,17 +82,14 @@ class ProcessingNode(Node):
     def qdevice(self) -> QuantumProcessor:
         return self.qmemory
 
-    def qnos_peer_in_port(self, peer_id: int) -> Port:
-        return self.ports[f"qnos_peer_{peer_id}_in"]
-
-    def qnos_peer_out_port(self, peer_id: int) -> Port:
-        return self.ports[f"qnos_peer_{peer_id}_out"]
+    def qnos_peer_port(self, peer_id: int) -> Port:
+        return self.ports[f"qnos_peer_{peer_id}"]
 
     def register_peer(self, peer_id: int):
-        self.add_ports([f"qnos_peer_{peer_id}_in", f"qnos_peer_{peer_id}_out"])
+        self.add_ports([f"qnos_peer_{peer_id}"])
         self.qnos_comp.register_peer(peer_id)
-        self.qnos_comp.peer_out_port(peer_id).forward_output(self.qnos_peer_out_port(peer_id))
-        self.qnos_peer_in_port(peer_id).forward_input(self.qnos_comp.peer_in_port(peer_id))
+        self.qnos_comp.peer_out_port(peer_id).forward_output(self.qnos_peer_port(peer_id))
+        self.qnos_peer_port(peer_id).forward_input(self.qnos_comp.peer_in_port(peer_id))
 
 
 class NodeStack(Protocol):

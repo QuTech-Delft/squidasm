@@ -17,8 +17,7 @@ class ClassicalSocket(Socket, Protocol):
 
     def __init__(
         self,
-        in_port: Port,
-        out_port: Port,
+        port: Port,
         app_name: str,
         remote_app_name: str,
         socket_id: int = 0,
@@ -26,14 +25,13 @@ class ClassicalSocket(Socket, Protocol):
         super().__init__(
             app_name=app_name, remote_app_name=remote_app_name, socket_id=socket_id
         )
-        self.in_port = in_port
-        self.out_port = out_port
+        self.port = port
 
-        self.listener = PortListener(self.in_port, SIGNAL_PEER_RECV_MSG)
+        self.listener = PortListener(self.port, SIGNAL_PEER_RECV_MSG)
 
     def send(self, msg: str) -> None:
         """Sends a string message to the remote node."""
-        self.out_port.tx_output(msg)
+        self.port.tx_output(msg)
 
     def recv(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg(SIGNAL_PEER_RECV_MSG))
