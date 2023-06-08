@@ -1,0 +1,3 @@
+[submodule "submodules/netsquid-magic"]
+	path = submodules/netsquid-magic
+	url = https://gitlab.com/softwarequtech/netsquid-snippets/netsquid-magic.git

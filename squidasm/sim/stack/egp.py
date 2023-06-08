@@ -1,8 +1,10 @@
 from abc import ABCMeta, abstractmethod
 
+import netsquid as ns
 from netsquid import BellIndex
-from netsquid.protocols import ServiceProtocol
+from netsquid.protocols import ServiceProtocol, NodeProtocol, Signals
 from netsquid_magic.link_layer import TranslationUnit
+from blueprint.scheduler.interface import IScheduleProtocol, ResScheduleSlot
 from qlink_interface import (
     ReqCreateAndKeep,
     ReqMeasureDirectly,
@@ -65,9 +67,11 @@ class EGPService(ServiceProtocol, metaclass=ABCMeta):
 
 
 class EgpProtocol(EGPService):
-    def __init__(self, node, magic_link_layer_protocol, name=None):
+    def __init__(self, node, magic_link_layer_protocol,
+                 scheduler: IScheduleProtocol, name=None):
         super().__init__(node=node, name=name)
         self._ll_prot = magic_link_layer_protocol
+        self.scheduler = scheduler
 
     def run(self):
         while True:
@@ -92,15 +96,18 @@ class EgpProtocol(EGPService):
 
     def create_and_keep(self, req):
         super().create_and_keep(req)
-        return self._ll_prot.put_from(self.node.ID, req)
+        protocol = EGPRequestProtocol(self.node, req, self._ll_prot, self.scheduler)
+        protocol.start()
 
     def measure_directly(self, req):
         super().measure_directly(req)
-        return self._ll_prot.put_from(self.node.ID, req)
+        protocol = EGPRequestProtocol(self.node, req, self._ll_prot, self.scheduler)
+        protocol.start()
 
     def remote_state_preparation(self, req):
         super().remote_state_preparation(req)
-        return self._ll_prot.put_from(self.node.ID, req)
+        protocol = EGPRequestProtocol(self.node, req, self._ll_prot, self.scheduler)
+        protocol.start()
 
     def receive(self, req):
         super().receive(req)
@@ -114,3 +121,31 @@ class EgpProtocol(EGPService):
 class EgpTranslationUnit(TranslationUnit):
     def request_to_parameters(self, request, **fixed_parameters):
         return {}
+
+
+class EGPRequestProtocol(NodeProtocol):
+    def __init__(self, node, request,
+                 ll_prot,
+                 scheduler: IScheduleProtocol, name=None):
+        super().__init__(node=node, name=name)
+        self.request = request
+        self.scheduler = scheduler
+        self._ll_prot = ll_prot
+        self.add_signal(ResScheduleSlot.__name__)
+
+    def run(self):
+        req_id = self.scheduler.schedule(self.request)
+        # TODO make make signal with signal labels
+        event_expr = yield self.await_signal(self.scheduler, signal_label=ResScheduleSlot.__name__)
+        schedule_slot: ResScheduleSlot = self.scheduler.timeslot(req_id)
+        # schedule_slot: ResScheduleSlot = self.scheduler.get_signal_result(ResScheduleSlot.__name__)
+        time_until_start = schedule_slot.start - ns.sim_time()
+
+        if time_until_start > 0:
+            yield self.await_timer(time_until_start)
+
+        self._ll_prot.put_from(self.node.ID, self.request)
+
+
+
+

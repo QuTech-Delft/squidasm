@@ -24,6 +24,8 @@ from blueprint.links.nv import NVLinkBuilder
 from blueprint.links.perfect import PerfectLinkBuilder
 from blueprint.links.heralded import HeraldedLinkBuilder
 from blueprint.links.depolarise import DepolariseLinkBuilder
+from blueprint.scheduler.interface import IScheduleProtocol, IScheduleBuilder
+from blueprint.scheduler.instant import InstantScheduleBuilder
 
 
 class NetworkBuilder:
@@ -33,6 +35,7 @@ class NetworkBuilder:
         self.classical_connection_builder = ClassicalConnectionBuilder()
         self.link_builder = LinkBuilder(self.protocol_controller)
         self.egp_builder = EGPBuilder(self.protocol_controller)
+        self.schedule_builder = ScheduleBuilder(self.protocol_controller)
 
         # Default qdevice models registration
         self.node_builder.register_model("generic", GenericQDeviceBuilder)
@@ -56,6 +59,8 @@ class NetworkBuilder:
         self.classical_connection_builder.build(config, network, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
 
         network.links = self.link_builder.build(config, network.nodes)
+
+        network.schedulers = self.schedule_builder.build(network)
 
         network.egp = self.egp_builder.build(network)
 
@@ -152,6 +157,18 @@ class LinkBuilder:
         return link_dict
 
 
+class ScheduleBuilder:
+    def __init__(self, protocol_controller: ProtocolController):
+        self.protocol_controller = protocol_controller
+
+    def build(self, network: Network) -> Dict[str, IScheduleProtocol]:
+        # TODO currently hard coded InstantScheduler, make open
+        schedulers = InstantScheduleBuilder.build(network)
+        for scheduler in schedulers.values():
+            self.protocol_controller.register(scheduler)
+        return schedulers
+
+
 class EGPBuilder:
     def __init__(self, protocol_controller: ProtocolController):
         self.protocol_controller = protocol_controller
@@ -160,10 +177,10 @@ class EGPBuilder:
 
         egp_dict = {}
         for id_tuple, link_layer in network.links.items():
-            node_id, peer_node_id = id_tuple
-            node = network.nodes[node_id]
-            egp = EgpProtocol(node, link_layer)
-            egp_dict[(node_id, peer_node_id)] = egp
+            node_name, peer_node_id = id_tuple
+            node = network.nodes[node_name]
+            egp = EgpProtocol(node, link_layer, network.schedulers[node_name])
+            egp_dict[(node_name, peer_node_id)] = egp
             self.protocol_controller.register(egp)
         return egp_dict
 
