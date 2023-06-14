@@ -11,8 +11,8 @@ from blueprint.clinks.interface import ICLinkBuilder
 from blueprint.links.interface import ILinkBuilder
 from blueprint.metro_hub import MetroHubNode
 from blueprint.network import Network
-from blueprint.scheduler.interface import IScheduleProtocol
-from blueprint.scheduler.static import StaticScheduleBuilder, StaticScheduleParams
+from blueprint.scheduler.interface import IScheduleProtocol, IScheduleBuilder
+from blueprint.scheduler.static import StaticScheduleBuilder
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 
 
@@ -23,6 +23,7 @@ class HubBuilder:
         self.link_builders: Dict[str, Type[ILinkBuilder]] = {}
         self.hub_configs: Optional[List[MetroHubConfig]] = None
         self.clink_builders: Dict[str, Type[ICLinkBuilder]] = {}
+        self.scheduler_builders: Dict[str, Type[IScheduleBuilder]] = {}
 
     def register_clink(self, key: str, builder: Type[ICLinkBuilder]):
         self.clink_builders[key] = builder
@@ -32,6 +33,9 @@ class HubBuilder:
 
     def register_link(self, key: str, builder: Type[ILinkBuilder]):
         self.link_builders[key] = builder
+
+    def register_scheduler(self, key: str, model: Type[IScheduleBuilder]):
+        self.scheduler_builders[key] = model
 
     def build_hub_nodes(self) -> Dict[str, MetroHubNode]:
         hub_dict = {}
@@ -116,16 +120,20 @@ class HubBuilder:
         if self.hub_configs is None:
             return schedule_dict
         for hub_config in self.hub_configs:
-            schedule_builder = StaticScheduleBuilder
+            schedule_builder = self.scheduler_builders[hub_config.schedule_typ]
 
             node_names = [config.stack for config in hub_config.connections]
-            links = {link_combination: network.links[link_combination]
-                     for link_combination in itertools.permutations(node_names, 2)}
-            schedule = schedule_builder.build(links)
+            schedule = schedule_builder.build(network, node_names, schedule_config=hub_config.schedule_cfg)
             self.protocol_controller.register(schedule)
             schedule_dict[hub_config.name] = schedule
 
+            for node_name_combination in itertools.combinations(node_names, 2):
+                link = network.links[node_name_combination]
+                link.scheduler = schedule
+
         return schedule_dict
+
+
 
 
 

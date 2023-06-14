@@ -23,7 +23,7 @@ class DefaultCLinkBuilder(ICLinkBuilder):
         if link_cfg.delay is not None and link_cfg.distance is not None:
             raise Exception("Model can only use one parameter")
         if link_cfg.distance is not None:
-            link_cfg.delay = link_cfg.distance / link_cfg.speed_of_light
+            link_cfg.delay = link_cfg.distance / link_cfg.speed_of_light * 1E9
 
         channel1to2 = ClassicalChannel(name=f"Default channel {node1.name} to {node2.name}",
                                        models={"delay_model": FixedDelayModel(delay=link_cfg.delay)})

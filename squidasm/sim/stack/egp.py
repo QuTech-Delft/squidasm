@@ -4,7 +4,7 @@ from typing import Dict
 import netsquid as ns
 from netsquid import BellIndex
 from netsquid.protocols import ServiceProtocol, NodeProtocol, Signals
-from netsquid_magic.link_layer import TranslationUnit
+from netsquid_magic.link_layer import TranslationUnit, MagicLinkLayerProtocolWithSignaling
 from qlink_interface import (
     ReqCreateBase,
     ReqCreateAndKeep,
@@ -69,9 +69,9 @@ class EGPService(ServiceProtocol, metaclass=ABCMeta):
 
 
 class EgpProtocol(EGPService):
-    def __init__(self, node, magic_link_layer_protocol, name=None):
+    def __init__(self, node, magic_link_layer_protocol: MagicLinkLayerProtocolWithSignaling, name=None):
         super().__init__(node=node, name=name)
-        self._ll_prot = magic_link_layer_protocol
+        self._ll_prot: MagicLinkLayerProtocolWithSignaling = magic_link_layer_protocol
         self._create_id_to_request: Dict[int, ReqCreateBase] = {}
 
     def run(self):
@@ -85,15 +85,7 @@ class EgpProtocol(EGPService):
             )
             if result.node_id == self.node.ID:
                 if isinstance(result.msg, ResError):
-                    create_id = result.msg.create_id
-                    print(f"{ns.sim_time()} ns Request to create entanglement "
-                          f"(id:{create_id}) from {self.node.name} was terminated, restarting")
-                    req = self._create_id_to_request[create_id]
-                    new_create_id = self._ll_prot.put_from(self.node.ID, req)
-                    # TODO must remove old request to avoid memory build up, but get errors if I do that
-                    #self._create_id_to_request.pop(create_id)
-                    self._create_id_to_request[new_create_id] = req
-
+                    self._handle_error(result.msg)
                 else:
                     try:
                         BellIndex(result.msg.bell_state)
@@ -107,15 +99,21 @@ class EgpProtocol(EGPService):
                     self.send_response(response=result.msg)
                     if isinstance(result, ResCreate):
                         self._create_id_to_request.pop(result.create_id)
+                    if self._ll_prot.scheduler:
+                        self._ll_prot.scheduler.register_result(self.node.ID, result.msg)
 
     def create_and_keep(self, req):
         super().create_and_keep(req)
         create_id = self._ll_prot.put_from(self.node.ID, req)
+        if self._ll_prot.scheduler:
+            self._ll_prot.scheduler.register_request(self.node.ID, req, create_id)
         self._create_id_to_request[create_id] = req
 
     def measure_directly(self, req):
         super().measure_directly(req)
         create_id = self._ll_prot.put_from(self.node.ID, req)
+        if self._ll_prot.scheduler:
+            self._ll_prot.scheduler.register_request(self.node.ID, req, create_id)
         self._create_id_to_request[create_id] = req
 
     def remote_state_preparation(self, req):
@@ -129,6 +127,22 @@ class EgpProtocol(EGPService):
     def stop_receive(self, req):
         super().stop_receive(req)
         self._ll_prot.put_from(self.node.ID, req)
+
+    def _handle_error(self, error: ResError):
+        create_id = error.create_id
+        if error.error_code.TIMEOUT:
+            print(f"{ns.sim_time(ns.MILLISECOND)} ms Request to create entanglement "
+                  f"(id:{create_id}) from {self.node.name} was terminated, restarting")
+            req = self._create_id_to_request[create_id]
+            new_create_id = self._ll_prot.put_from(self.node.ID, req)
+            # TODO must remove old request to avoid memory build up, but get errors if I do that
+            # self._create_id_to_request.pop(create_id)
+            self._create_id_to_request[new_create_id] = req
+            if self._ll_prot.scheduler:
+                self._ll_prot.scheduler.register_error(self.node.ID, error)
+
+            if self._ll_prot.scheduler:
+                self._ll_prot.scheduler.register_request(self.node.ID, req, new_create_id)
 
 
 class EgpTranslationUnit(TranslationUnit):

@@ -1,77 +1,78 @@
 import itertools
-from typing import Any, List
+import math
+from typing import List
 
-from dataclasses import dataclass
-from pydantic.decorator import Dict
-import numpy as np
 import netsquid as ns
-
-from blueprint.network import Network
-from netsquid.protocols import Protocol
-from netsquid_magic.link_layer import TranslationUnit, MagicLinkLayerProtocol
+from pydantic.decorator import Dict
 from qlink_interface import (
     ReqCreateBase,
-    ReqCreateAndKeep,
-    ReqMeasureDirectly,
-    ReqReceive,
-    ReqRemoteStatePrep,
-    ReqStopReceive,
-    ResCreateAndKeep,
     ResError,
-    ResMeasureDirectly,
-    ResRemoteStatePrep,
 )
-import netsquid as ns
-from blueprint.scheduler.interface import TimeSlot, IScheduleProtocol, IScheduleBuilder
-from pydynaa import EventHandler, EventType, Event
+from qlink_interface.interface import ResCreate
+
+from blueprint.network import Network
+from blueprint.scheduler.interface import TimeSlot, IScheduleProtocol, IScheduleBuilder, IScheduleConfig
+from pydynaa import EventType
 
 
-@dataclass
-class StaticScheduleParams:
+class StaticScheduleConfig(IScheduleConfig):
     time_window: float = 1_000_000  # 1 ms
-    switch_time: float = 100
+    switch_time: float = 1000  # 1 us
     max_multiplexing: int = 1
 
 
 class StaticScheduleProtocol(IScheduleProtocol):
-    LinkOpenEvent = EventType("evtLinkOpen", "A link is opened")
-    LinkCloseEvent = EventType("evtLinkClose", "A link is closed")
-
-    def __init__(self, params: StaticScheduleParams, node_ids: List[str],
-                 links):
-        super().__init__()
+    def __init__(self, params: StaticScheduleConfig, schema,
+                 links, node_id_mapping: Dict[str, int]):
+        super().__init__(links, node_id_mapping)
         self.params = params
-        self.num_participants = len(node_ids)
-        self.links = links
-        self._temp_counter = 10
-
-        link_combinations = list(itertools.combinations(node_ids, 2))
-        schema = self.generate_schema(link_combinations, params.max_multiplexing)
-
-        self._evhandler = EventHandler(self._handle_event)
-        self._ev_to_timeslot: Dict[Event, TimeSlot] = {}
-
-        #self.link_to_id = {x[1]: x[0] for x in enumerate(link_combinations)}
+        self._schema = schema
 
         self.full_cycle_time = len(schema) * (self.params.time_window + self.params.switch_time)
-        time = 0
-        for sub_cycle in schema:
+        self._populate_cycle(cycle_start_time=0)
+
+    def register_request(self, node_id: int, req: ReqCreateBase, create_id: int):
+        if not self.find_timeslot(node_id, req.remote_node_id):
+            current_time = ns.sim_time()
+            cycle_iter = math.floor(current_time / self.full_cycle_time)
+            next_cycle_start = (cycle_iter + 1) * self.full_cycle_time
+            self._populate_cycle(cycle_start_time=next_cycle_start)
+
+    def register_result(self, node_id: int, res: ResCreate):
+        pass
+
+    def register_error(self, node_id: int, error: ResError):
+        pass
+
+    def _populate_cycle(self, cycle_start_time):
+        time = cycle_start_time
+        for sub_cycle in self._schema:
             for link in sub_cycle:
                 timeslot = TimeSlot(node1_name=link[0], node2_name=link[1],
                                     start=time, end=time + self.params.time_window)
-                self._register_timeslot(timeslot)
+                self.register_timeslot(timeslot)
             time += self.params.time_window + self.params.switch_time
 
-    def start(self):
-        self._wait(self._evhandler, entity=self, event_type=self.LinkOpenEvent)
-        self._wait(self._evhandler, entity=self, event_type=self.LinkCloseEvent)
 
-    def stop(self):
-        self._dismiss(self._evhandler, entity=self, event_type=self.LinkOpenEvent)
-        self._dismiss(self._evhandler, entity=self, event_type=self.LinkCloseEvent)
+class StaticScheduleBuilder(IScheduleBuilder):
+    @classmethod
+    def build(cls, network: Network,
+              participating_node_names: List[str],
+              schedule_config: StaticScheduleConfig) -> StaticScheduleProtocol:
+
+        if isinstance(schedule_config, dict):
+            schedule_config = StaticScheduleConfig(**schedule_config)
+
+        link_combinations = list(itertools.permutations(participating_node_names, 2))
+        links = {(node_1, node_2): network.links[(node_1, node_2)] for node_1, node_2 in link_combinations}
+
+        schema = cls.generate_schema(link_combinations, schedule_config.max_multiplexing)
+
+        scheduler = StaticScheduleProtocol(schedule_config, schema, links, network.node_name_id_mapping)
+        return scheduler
 
     @staticmethod
-    def generate_schema(conn, num_conn_max_active):
+    def generate_schema(conn: (str, str), num_conn_max_active: int):
         num_conn = len(conn)
         schema = []
         used_connections = set()  # Keep track of connections that have been used
@@ -90,50 +91,4 @@ class StaticScheduleProtocol(IScheduleProtocol):
                         break
             schema.append(subcycle)
         return schema
-
-    def _register_timeslot(self, timeslot: TimeSlot):
-        open_event = self._schedule_at(timeslot.start, self.LinkOpenEvent)
-        close_event = self._schedule_at(timeslot.end, self.LinkCloseEvent)
-
-        self._ev_to_timeslot[open_event] = timeslot
-        self._ev_to_timeslot[close_event] = timeslot
-
-    def _handle_event(self, event):
-        if event.type == self.LinkOpenEvent:
-            timeslot = self._ev_to_timeslot[event]
-            self.open_link(timeslot)
-            self._ev_to_timeslot.pop(event)
-        if event.type == self.LinkCloseEvent:
-            timeslot = self._ev_to_timeslot[event]
-            self.close_link(timeslot)
-            self._ev_to_timeslot.pop(event)
-
-    def open_link(self, timeslot: TimeSlot):
-        print(f"{ns.sim_time()} open link {(timeslot.node1_name, timeslot.node2_name)}")
-
-        link = self.links[(timeslot.node1_name, timeslot.node2_name)]
-        link.open()
-        new_timeslot = TimeSlot(timeslot.node1_name, timeslot.node2_name,
-                                start=timeslot.start+self.full_cycle_time,
-                                end=timeslot.end+self.full_cycle_time)
-        if self._temp_counter > 0:
-            self._register_timeslot(new_timeslot)
-            self._temp_counter -= 1
-
-    def close_link(self, timeslot: TimeSlot):
-        print(f"{ns.sim_time()} close link {(timeslot.node1_name, timeslot.node2_name)}")
-
-        link = self.links[(timeslot.node1_name, timeslot.node2_name)]
-        link.close()
-
-
-class StaticScheduleBuilder:
-    @classmethod
-    def build(cls, links) -> StaticScheduleProtocol:
-        params = StaticScheduleParams()
-        name_1_temp = [x[0] for x in links.keys()]
-        name_2_temp = [x[1] for x in links.keys()]
-        node_names = list(set(name_1_temp + name_2_temp))
-        scheduler = StaticScheduleProtocol(params, node_names, links)
-        return scheduler
 

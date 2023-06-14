@@ -8,7 +8,7 @@ from squidasm.sim.stack.egp import EgpProtocol
 from protocols import AliceProtocol, BobProtocol
 
 
-cfg = StackNetworkConfig.from_file("config_heralded.yaml")
+cfg = StackNetworkConfig.from_file("config_heralded_static.yaml")
 
 builder = NetworkBuilder()
 network = builder.build(cfg, hacky_is_squidasm_flag=False)

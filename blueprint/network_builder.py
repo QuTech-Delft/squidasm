@@ -19,8 +19,9 @@ from blueprint.network import Network
 from blueprint.qdevices.generic import GenericQDeviceBuilder
 from blueprint.qdevices.interface import IQDeviceBuilder
 from blueprint.qdevices.nv import NVQDeviceBuilder
-from blueprint.scheduler.interface import IScheduleProtocol
+from blueprint.scheduler.interface import IScheduleBuilder
 from blueprint.scheduler.static import StaticScheduleBuilder
+from blueprint.scheduler.fifo import FIFOScheduleBuilder
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.stack import ProcessingNode
@@ -49,6 +50,10 @@ class NetworkBuilder:
         self.register_clink("instant", InstantCLinkBuilder)
         self.register_clink("default", DefaultCLinkBuilder)
 
+        # default schedulers
+        self.register_scheduler("static", StaticScheduleBuilder)
+        self.register_scheduler("fifo", FIFOScheduleBuilder)
+
     def register_link(self, key: str, model: Type[ILinkBuilder]):
         self.link_builder.register(key, model)
         self.hub_builder.register_link(key, model)
@@ -57,6 +62,9 @@ class NetworkBuilder:
         self.clink_builder.register(key, model)
         self.hub_builder.register_clink(key, model)
 
+    def register_scheduler(self, key: str, model: Type[IScheduleBuilder]):
+        self.hub_builder.register_scheduler(key, model)
+
     def build(self, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Network:
         self.hub_builder.set_configs(config.hubs)
 
@@ -64,6 +72,8 @@ class NetworkBuilder:
 
         network.nodes = self.node_builder.build(config, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
         network.hubs = self.hub_builder.build_hub_nodes()
+
+        network.node_name_id_mapping = {node_id: node.ID for node_id, node in network.nodes.items()}
 
         network.ports = self.clink_builder.build(config, network, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
         network.ports |= self.hub_builder.build_classical_connections(network, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
@@ -74,8 +84,6 @@ class NetworkBuilder:
         network.schedulers = self.hub_builder.build_schedule(network)
 
         network.egp = self.egp_builder.build(network)
-
-        network.node_name_id_mapping = {node_id: node.ID for node_id, node in network.nodes.items()}
 
         return network
 

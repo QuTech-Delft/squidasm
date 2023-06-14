@@ -22,10 +22,10 @@ class AliceProtocol(Protocol):
         egp = self.context.egp[self.peer]
         qdevice = self.context.node.qdevice
 
-        for _ in range(10):
+        for i in range(10):
             yield self.await_port_input(port)
             message = port.rx_input()
-            print(f"{ns.sim_time()} ns: {self.context.node.name} receives: {message.items[0]}")
+            print(f"{ns.sim_time(ns.MILLISECOND)} ms: {self.context.node.name} receives: {message.items[0]}")
 
             request = ReqCreateAndKeep(remote_node_id=self.context.node_id_mapping[self.peer], number=1)
             egp.put(request)
@@ -36,7 +36,7 @@ class AliceProtocol(Protocol):
             result = qdevice.measure(received_qubit_mem_pos)[0]
             qdevice.discard(received_qubit_mem_pos)
 
-            print(f"{ns.sim_time()} ns: {self.context.node.name} Created EPR with {self.peer} and measures {result}")
+            print(f"{ns.sim_time(ns.MILLISECOND)} ms: pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}")
 
     def start(self) -> None:
         super().start()
@@ -58,7 +58,7 @@ class BobProtocol(Protocol):
 
         egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.peer]))
 
-        for _ in range(10):
+        for i in range(10):
             port.tx_output("Ready to start entanglement")
 
             # Wait for a signal from the EGP.
@@ -68,7 +68,7 @@ class BobProtocol(Protocol):
 
             result = qdevice.measure(positions=[received_qubit_mem_pos])[0]
             qdevice.discard(received_qubit_mem_pos)
-            print(f"{ns.sim_time()} ns: {self.context.node.name} Created EPR with {self.peer} and measures {result}")
+            print(f"{ns.sim_time(ns.MILLISECOND)} ms: pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}")
 
     def start(self) -> None:
         super().start()

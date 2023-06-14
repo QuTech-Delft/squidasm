@@ -3,7 +3,7 @@ link_config: &link_config
     # total length [km] of heralded connection (i.e. sum of fibers on both sides on midpoint station).
     length: 0.0
     # probability that photons are lost when entering connection the connection on either side.
-    p_loss_init: 0.5
+    p_loss_init: 0.2
     # attenuation coefficient [dB/km] of fiber on either side.
     p_loss_length: 0.25
     # speed of light [km/s] in fiber on either side.
@@ -55,9 +55,10 @@ hubs:
     clink_typ: default
     clink_cfg:
       distance: 0
-      speed_of_light: 1
 
-    schedule_typ: todo
+    schedule_typ: fifo
     schedule_cfg:
-      dummy: null
+      #time_window: 10_000_000
+      switch_time: 1000
+      max_multiplexing: 1
 
