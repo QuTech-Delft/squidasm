@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, List
 
 from dataclasses import dataclass
 from pydantic.decorator import Dict
@@ -7,32 +7,25 @@ from pydantic.decorator import Dict
 #from blueprint.network import Network
 from netsquid.protocols import Protocol
 
+from netsquid_magic.link_layer import MagicLinkLayerProtocol
+
 
 @dataclass
-class ResScheduleSlot:
+class TimeSlot:
+    node1_name: str
+    node2_name: str
     start: float
-    end: Optional[float]
+    end: float
 
 
 class IScheduleProtocol(Protocol, metaclass=ABCMeta):
     def __init__(self):
         super().__init__()
-        self.add_signal(ResScheduleSlot.__name__)
-        self._timeslots: Dict[int, ResScheduleSlot] = {}
+        #self.add_signal(ResScheduleSlot.__name__)
+        self._timeslots: List[TimeSlot] = []
 
-    @abstractmethod
-    def schedule(self, request) -> int:
-        pass
-
-    def register_request_complete(self, request):
-        self._timeslots.pop(request)
-
-    @abstractmethod
-    def register_request_failed(self, request):
-        pass
-
-    def timeslot(self, req_id):
-        return self._timeslots[req_id]
+    def timeslot(self, node_id) -> List[TimeSlot]:
+        return list(filter(lambda x: x.node1_name is node_id or x.node2_name is node_id, self._timeslots))
 
     def start(self):
         super().start()
@@ -43,5 +36,5 @@ class IScheduleProtocol(Protocol, metaclass=ABCMeta):
 
 class IScheduleBuilder(metaclass=ABCMeta):
     @abstractmethod
-    def build(self, network) -> Dict[str, IScheduleProtocol]:
+    def build(self):
         pass

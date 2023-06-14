@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, List
+from typing import Any, List, Optional
 
 from blueprint.yaml_loadable import YamlLoadable
 
@@ -51,12 +51,33 @@ class StackConfig(YamlLoadable):
     """Configuration of the quantum device, allowed configuration depends on type."""
 
 
+class MetroHubConnectionConfig(YamlLoadable):
+    stack: str
+    distance: float
+
+
+class MetroHubConfig(YamlLoadable):
+    name: str
+    """Name of the hub"""
+    connections: List[MetroHubConnectionConfig]
+    """Names of the connected hubs"""
+    link_typ: str
+    link_cfg: Any
+
+    clink_typ: str
+    clink_cfg: Any
+
+    schedule_typ: str
+    schedule_cfg: Any
+
+
 class StackNetworkConfig(YamlLoadable):
     """Full network configuration."""
 
     stacks: List[StackConfig]
     """List of all the stacks in the network."""
-    links: List[LinkConfig]
+    links: Optional[List[LinkConfig]]
     """List of all the links connecting the stacks in the network."""
-    clinks: List[CLinkConfig]
+    clinks: Optional[List[CLinkConfig]]
     """List of all the clinks connecting the stacks in the network."""
+    hubs: Optional[List[MetroHubConfig]]

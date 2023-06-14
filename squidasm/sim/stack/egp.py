@@ -1,11 +1,12 @@
 from abc import ABCMeta, abstractmethod
+from typing import Dict
 
 import netsquid as ns
 from netsquid import BellIndex
 from netsquid.protocols import ServiceProtocol, NodeProtocol, Signals
 from netsquid_magic.link_layer import TranslationUnit
-from blueprint.scheduler.interface import IScheduleProtocol, ResScheduleSlot
 from qlink_interface import (
+    ReqCreateBase,
     ReqCreateAndKeep,
     ReqMeasureDirectly,
     ReqReceive,
@@ -16,6 +17,7 @@ from qlink_interface import (
     ResMeasureDirectly,
     ResRemoteStatePrep,
 )
+from qlink_interface.interface import ResCreate
 
 # (Mostly) copied from the nlblueprint repo.
 # This is done to not have nlblueprint as a dependency.
@@ -67,11 +69,10 @@ class EGPService(ServiceProtocol, metaclass=ABCMeta):
 
 
 class EgpProtocol(EGPService):
-    def __init__(self, node, magic_link_layer_protocol,
-                 scheduler: IScheduleProtocol, name=None):
+    def __init__(self, node, magic_link_layer_protocol, name=None):
         super().__init__(node=node, name=name)
         self._ll_prot = magic_link_layer_protocol
-        self.scheduler = scheduler
+        self._create_id_to_request: Dict[int, ReqCreateBase] = {}
 
     def run(self):
         while True:
@@ -83,31 +84,43 @@ class EgpProtocol(EGPService):
                 label="react_to_{}".format(self.node.ID), receiver=self
             )
             if result.node_id == self.node.ID:
-                try:
-                    BellIndex(result.msg.bell_state)
-                except AttributeError:
-                    pass
-                except ValueError:
-                    raise TypeError(
-                        f"{result.msg.bell_state}, which was obtained from magic link layer protocol,"
-                        f"is not a :class:`netsquid.qubits.ketstates.BellIndex`."
-                    )
-                self.send_response(response=result.msg)
+                if isinstance(result.msg, ResError):
+                    create_id = result.msg.create_id
+                    print(f"{ns.sim_time()} ns Request to create entanglement "
+                          f"(id:{create_id}) from {self.node.name} was terminated, restarting")
+                    req = self._create_id_to_request[create_id]
+                    new_create_id = self._ll_prot.put_from(self.node.ID, req)
+                    # TODO must remove old request to avoid memory build up, but get errors if I do that
+                    #self._create_id_to_request.pop(create_id)
+                    self._create_id_to_request[new_create_id] = req
+
+                else:
+                    try:
+                        BellIndex(result.msg.bell_state)
+                    except AttributeError:
+                        pass
+                    except ValueError:
+                        raise TypeError(
+                            f"{result.msg.bell_state}, which was obtained from magic link layer protocol,"
+                            f"is not a :class:`netsquid.qubits.ketstates.BellIndex`."
+                        )
+                    self.send_response(response=result.msg)
+                    if isinstance(result, ResCreate):
+                        self._create_id_to_request.pop(result.create_id)
 
     def create_and_keep(self, req):
         super().create_and_keep(req)
-        protocol = EGPRequestProtocol(self.node, req, self._ll_prot, self.scheduler)
-        protocol.start()
+        create_id = self._ll_prot.put_from(self.node.ID, req)
+        self._create_id_to_request[create_id] = req
 
     def measure_directly(self, req):
         super().measure_directly(req)
-        protocol = EGPRequestProtocol(self.node, req, self._ll_prot, self.scheduler)
-        protocol.start()
+        create_id = self._ll_prot.put_from(self.node.ID, req)
+        self._create_id_to_request[create_id] = req
 
     def remote_state_preparation(self, req):
         super().remote_state_preparation(req)
-        protocol = EGPRequestProtocol(self.node, req, self._ll_prot, self.scheduler)
-        protocol.start()
+        self._ll_prot.put_from(self.node.ID, req)
 
     def receive(self, req):
         super().receive(req)
@@ -123,28 +136,7 @@ class EgpTranslationUnit(TranslationUnit):
         return {}
 
 
-class EGPRequestProtocol(NodeProtocol):
-    def __init__(self, node, request,
-                 ll_prot,
-                 scheduler: IScheduleProtocol, name=None):
-        super().__init__(node=node, name=name)
-        self.request = request
-        self.scheduler = scheduler
-        self._ll_prot = ll_prot
-        self.add_signal(ResScheduleSlot.__name__)
 
-    def run(self):
-        req_id = self.scheduler.schedule(self.request)
-        # TODO make make signal with signal labels
-        event_expr = yield self.await_signal(self.scheduler, signal_label=ResScheduleSlot.__name__)
-        schedule_slot: ResScheduleSlot = self.scheduler.timeslot(req_id)
-        # schedule_slot: ResScheduleSlot = self.scheduler.get_signal_result(ResScheduleSlot.__name__)
-        time_until_start = schedule_slot.start - ns.sim_time()
-
-        if time_until_start > 0:
-            yield self.await_timer(time_until_start)
-
-        self._ll_prot.put_from(self.node.ID, self.request)
 
 
 
