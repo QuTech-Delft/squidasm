@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 from typing import Dict
-import squidasm
 
 import netsquid as ns
 from netsquid import BellIndex
@@ -132,9 +131,8 @@ class EgpProtocol(EGPService):
     def _handle_error(self, error: ResError):
         create_id = error.create_id
         if error.error_code.TIMEOUT:
-            if squidasm.SUPER_HACKY_SWITCH:
-                print(f"{ns.sim_time(ns.MILLISECOND)} ms Request to create entanglement "
-                      f"(id:{create_id}) from {self.node.name} was terminated, restarting")
+            print(f"{ns.sim_time(ns.MILLISECOND)} ms Request to create entanglement "
+                  f"(id:{create_id}) from {self.node.name} was terminated, restarting")
             req = self._create_id_to_request[create_id]
             new_create_id = self._ll_prot.put_from(self.node.ID, req)
             # TODO must remove old request to avoid memory build up, but get errors if I do that
