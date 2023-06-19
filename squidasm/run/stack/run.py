@@ -9,7 +9,7 @@ from netsquid_magic.link_layer import (
 from squidasm.sim.stack.csocket import ClassicalSocket
 
 from blueprint.base_configs import StackNetworkConfig
-from blueprint.network_builder import NetworkBuilder
+from blueprint import get_default_builder
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
@@ -22,7 +22,7 @@ def fidelity_to_prob_max_mixed(fid: float) -> float:
 
 
 def _setup_network(config: StackNetworkConfig) -> StackNetwork:
-    builder = NetworkBuilder()
+    builder = get_default_builder()
     network = builder.build(config)
 
     stacks: Dict[str, NodeStack] = {}

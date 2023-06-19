@@ -11,9 +11,12 @@ from qlink_interface import (
 )
 from qlink_interface.interface import ResCreate
 
+import squidasm
 from blueprint.network import Network
 from blueprint.scheduler.interface import TimeSlot, IScheduleProtocol, IScheduleBuilder, IScheduleConfig, LinkCloseEvent
 from pydynaa import EventType
+from squidasm import SUPER_HACKY_SWITCH
+
 
 @dataclass
 class QueItem:
@@ -47,7 +50,8 @@ class FIFOScheduleProtocol(IScheduleProtocol):
         self._active_requests.pop((node_id, res.create_id))
         node_name = self._node_name_mapping[node_id]
         remote_node_name = self._node_name_mapping[res.remote_node_id]
-        print(f"{ns.sim_time(ns.MILLISECOND)} ms close link {(node_name, remote_node_name)}")
+        if squidasm.SUPER_HACKY_SWITCH:
+            print(f"{ns.sim_time(ns.MILLISECOND)} ms close link {(node_name, remote_node_name)}")
 
         # TODO need to check if other request are in process on the same link
         link = self.links[(node_name, remote_node_name)]

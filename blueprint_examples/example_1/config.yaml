@@ -1,4 +1,3 @@
-# Perfect 2 node network, no noise from either computation on the nodes or communication between nodes
 stacks:
   - name: Alice
     qdevice_typ: generic
@@ -14,11 +13,11 @@ links:
     stack2: Bob
     typ: perfect
     cfg:
-      dummy: null
+      state_delay: 2000
 
 clinks:
   - stack1: Alice
     stack2: Bob
-    typ: instant
+    typ: default
     cfg:
-      dummy: null
+      delay: 400

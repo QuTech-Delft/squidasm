@@ -58,7 +58,7 @@ hubs:
 
     schedule_typ: static
     schedule_cfg:
-      time_window: 10_000_000
+      time_window: 2_000_000
       switch_time: 1000
       max_multiplexing: 2
 

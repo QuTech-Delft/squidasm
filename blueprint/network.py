@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Optional
 
-from netsquid.components import Port
-
-from blueprint.metro_hub import MetroHubNode
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocolWithSignaling,
-)
-from blueprint.scheduler.interface import IScheduleProtocol
-from squidasm.sim.stack.egp import EgpProtocol
-from squidasm.sim.stack.stack import ProcessingNode
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from netsquid.components import Port
+    from blueprint.metro_hub import MetroHubNode
+    from blueprint.network_builder import ProtocolController
+    from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
+    from blueprint.scheduler.interface import IScheduleProtocol
+    from squidasm.sim.stack.egp import EgpProtocol
+    from squidasm.sim.stack.stack import ProcessingNode
 
 
 class ProtocolContext:
@@ -33,8 +33,9 @@ class Network:
         self.hubs: Dict[str, MetroHubNode] = {}
         self.schedulers: Dict[str, IScheduleProtocol] = {}
         self.egp: Dict[(str, str), EgpProtocol] = {}
-        self.node_name_id_mapping: Dict[str, int] = {}
         self.ports: Dict[(str, str), Port] = {}
+        self.node_name_id_mapping: Dict[str, int] = {}
+        self._protocol_controller: Optional[ProtocolController] = None
 
     def get_protocol_context(self, node_name: str) -> ProtocolContext:
         node = self.nodes[node_name]
@@ -49,4 +50,11 @@ class Network:
         keys = dictionary.keys()
         keys = filter(lambda key_tuple: key_tuple[0] == node_id, keys)
         return {key[1]: dictionary[key] for key in keys}
+
+    def start(self):
+        self._protocol_controller.start_all()
+
+    def stop(self):
+        self._protocol_controller.stop_all()
+
 

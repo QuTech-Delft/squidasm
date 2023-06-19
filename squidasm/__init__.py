@@ -1,4 +1,5 @@
 from importlib.metadata import PackageNotFoundError, version
+SUPER_HACKY_SWITCH = False
 
 try:
     __version__ = version("squidasm")

@@ -1,11 +1,9 @@
 from typing import Generator
 
 import netsquid as ns
-from blueprint.network import ProtocolContext
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Qubit
-from netsquid.components import Message, INSTR_Z, INSTR_X
-from netsquid.protocols import Protocol, Signals
+from netsquid.components import INSTR_X
 from qlink_interface import (
     ReqCreateAndKeep,
     ReqReceive,
@@ -13,19 +11,19 @@ from qlink_interface import (
 )
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.egp import EgpProtocol
-from squidasm.sim.stack.stack import ProcessingNode
+from blueprint.protocol_base import BlueprintProtocol
 
 
-class AliceProtocol(Protocol):
+class AliceProtocol(BlueprintProtocol):
     PEER = "Bob"
 
-    def __init__(self, context: ProtocolContext):
-        self.context = context
-        self.add_signal(Signals.FINISHED)
-
     def run(self) -> Generator[EventExpression, None, None]:
+        port = self.context.ports[self.PEER]
         egp = self.context.egp[self.PEER]
+
+        yield self.await_port_input(port)
+        message = port.rx_input()
+        print(f"{ns.sim_time()} ns: Alice receives: {message.items[0]}")
 
         # create request
         request = ReqCreateAndKeep(remote_node_id=self.context.node_id_mapping[self.PEER], number=1)
@@ -35,47 +33,38 @@ class AliceProtocol(Protocol):
         yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
         response = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
         received_qubit_mem_pos = response.logical_qubit_id
+        print(f"{ns.sim_time()} ns: Alice completes entanglement generation")
 
         # Apply Pauli X gate
         qdevice: QuantumProcessor = self.context.node.qdevice
         qdevice.execute_instruction(instruction=INSTR_X, qubit_mapping=[received_qubit_mem_pos])
         yield self.await_program(qdevice)
-
-        qubit: Qubit = qdevice.peek(positions=[received_qubit_mem_pos])[0]
-        print(ns.qubits.qubitapi.reduced_dm(qubit.qstate.qubits))
-
-    def start(self) -> None:
-        super().start()
-
-    def stop(self) -> None:
-        super().stop()
+        print(f"{ns.sim_time()} ns: Alice completes applying X gate")
 
 
-class BobProtocol(Protocol):
+class BobProtocol(BlueprintProtocol):
     PEER = "Alice"
 
-    def __init__(self, context: ProtocolContext):
-        self.context = context
+    def run(self) -> Generator[EventExpression, None, None]:
+        port = self.context.ports[self.PEER]
         egp = self.context.egp[self.PEER]
+
+        msg = "Hello"
+        port.tx_output(msg)
+        print(f"{ns.sim_time()} ns: Bob sends: {msg}")
 
         egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.PEER]))
-        self.add_signal(Signals.FINISHED)
-
-    def run(self) -> Generator[EventExpression, None, None]:
-        egp = self.context.egp[self.PEER]
 
         # Wait for a signal from the EGP.
         yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
         response = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
         received_qubit_mem_pos = response.logical_qubit_id
+        print(f"{ns.sim_time()} ns: Bob completes entanglement generation")
 
         # Apply Pauli X gate
         qdevice: QuantumProcessor = self.context.node.qdevice
         qdevice.execute_instruction(instruction=INSTR_X, qubit_mapping=[received_qubit_mem_pos])
         yield self.await_program(qdevice)
+        print(f"{ns.sim_time()} ns: Bob completes applying X gate")
 
-    def start(self) -> None:
-        super().start()
 
-    def stop(self) -> None:
-        super().stop()

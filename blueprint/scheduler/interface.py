@@ -12,6 +12,7 @@ from qlink_interface import (
 )
 from qlink_interface.interface import ResCreate
 
+import squidasm
 from blueprint.yaml_loadable import YamlLoadable
 from pydynaa import EventHandler, EventType, Event
 
@@ -99,7 +100,8 @@ class IScheduleProtocol(Protocol, metaclass=ABCMeta):
 
     def _handle_open_link_event(self, event):
         timeslot = self._ev_to_timeslot[event]
-        print(f"{ns.sim_time(ns.MILLISECOND)} ms open link {(timeslot.node1_name, timeslot.node2_name)}")
+        if squidasm.SUPER_HACKY_SWITCH:
+            print(f"{ns.sim_time(ns.MILLISECOND)} ms open link {(timeslot.node1_name, timeslot.node2_name)}")
 
         link = self.links[(timeslot.node1_name, timeslot.node2_name)]
         link.open()
@@ -108,7 +110,8 @@ class IScheduleProtocol(Protocol, metaclass=ABCMeta):
     def _handle_close_link_event(self, event):
         timeslot = self._ev_to_timeslot[event]
 
-        print(f"{ns.sim_time(ns.MILLISECOND)} ms close link {(timeslot.node1_name, timeslot.node2_name)}")
+        if squidasm.SUPER_HACKY_SWITCH:
+            print(f"{ns.sim_time(ns.MILLISECOND)} ms close link {(timeslot.node1_name, timeslot.node2_name)}")
 
         link = self.links[(timeslot.node1_name, timeslot.node2_name)]
         link.close()

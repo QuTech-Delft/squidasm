@@ -6,22 +6,12 @@ from netsquid.components import Port
 
 from blueprint.base_configs import StackNetworkConfig
 from blueprint.builder_utils import create_connection_ports
-from blueprint.clinks.default import DefaultCLinkBuilder
-from blueprint.clinks.instant import InstantCLinkBuilder
 from blueprint.clinks.interface import ICLinkBuilder
-from blueprint.links.depolarise import DepolariseLinkBuilder
-from blueprint.links.heralded import HeraldedLinkBuilder
 from blueprint.links.interface import ILinkBuilder
-from blueprint.links.nv import NVLinkBuilder
-from blueprint.links.perfect import PerfectLinkBuilder
 from blueprint.metro_hub_builder import HubBuilder
 from blueprint.network import Network
-from blueprint.qdevices.generic import GenericQDeviceBuilder
 from blueprint.qdevices.interface import IQDeviceBuilder
-from blueprint.qdevices.nv import NVQDeviceBuilder
 from blueprint.scheduler.interface import IScheduleBuilder
-from blueprint.scheduler.static import StaticScheduleBuilder
-from blueprint.scheduler.fifo import FIFOScheduleBuilder
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.stack import ProcessingNode
@@ -36,23 +26,8 @@ class NetworkBuilder:
         self.egp_builder = EGPBuilder(self.protocol_controller)
         self.hub_builder = HubBuilder(self.protocol_controller)
 
-        # Default qdevice models registration
-        self.node_builder.register_model("generic", GenericQDeviceBuilder)
-        self.node_builder.register_model("nv", NVQDeviceBuilder)
-
-        # default link models registration
-        self.register_link("perfect", PerfectLinkBuilder)
-        self.register_link("depolarise", DepolariseLinkBuilder)
-        self.register_link("heralded", HeraldedLinkBuilder)
-        self.register_link("nv", NVLinkBuilder)
-
-        # default clink models registration
-        self.register_clink("instant", InstantCLinkBuilder)
-        self.register_clink("default", DefaultCLinkBuilder)
-
-        # default schedulers
-        self.register_scheduler("static", StaticScheduleBuilder)
-        self.register_scheduler("fifo", FIFOScheduleBuilder)
+    def register_qdevice(self, key: str, model: Type[IQDeviceBuilder]):
+        self.node_builder.register(key, model)
 
     def register_link(self, key: str, model: Type[ILinkBuilder]):
         self.link_builder.register(key, model)
@@ -85,6 +60,8 @@ class NetworkBuilder:
 
         network.egp = self.egp_builder.build(network)
 
+        network._protocol_controller = self.protocol_controller
+
         return network
 
 
@@ -92,7 +69,7 @@ class NodeBuilder:
     def __init__(self):
         self.qdevice_builders: Dict[str, Type[IQDeviceBuilder]] = {}
 
-    def register_model(self, key: str, builder: Type[IQDeviceBuilder]):
+    def register(self, key: str, builder: Type[IQDeviceBuilder]):
         self.qdevice_builders[key] = builder
 
     def build(self, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Dict[str, ProcessingNode]:
