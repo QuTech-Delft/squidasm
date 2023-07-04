@@ -3,10 +3,10 @@ import numpy as np
 from matplotlib import pyplot
 
 from blueprint.base_configs import StackNetworkConfig
-from blueprint.links.depolarise import DepolariseLinkConfig
+from netsquid_magic.models.depolarise import DepolariseLinkConfig
 from blueprint_examples.network_generation import create_2_node_network
 from protocols import AliceProtocol, BobProtocol
-from blueprint import run, get_default_builder
+from blueprint.run import run, get_default_builder
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
 builder = get_default_builder()

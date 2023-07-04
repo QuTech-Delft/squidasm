@@ -1,13 +1,17 @@
 
 link_config: &link_config
     # total length [km] of heralded connection (i.e. sum of fibers on both sides on midpoint station).
-    length: 0.0
+    length_A: 0.0
     # probability that photons are lost when entering connection the connection on either side.
-    p_loss_init: 0.2
+    p_loss_init_A: 0.2
     # attenuation coefficient [dB/km] of fiber on either side.
-    p_loss_length: 0.25
+    p_loss_length_A: 0.25
     # speed of light [km/s] in fiber on either side.
-    speed_of_light: 200_000
+    speed_of_light_A: 200_000
+    length_B: 0.0
+    p_loss_init_B: 0.2
+    p_loss_length_B: 0.25
+    speed_of_light_B: 200_000
     # dark-count probability per detection
     dark_count_probability: 0
     # probability that the presence of a photon leads to a detection event
@@ -16,6 +20,7 @@ link_config: &link_config
     visibility: 1.0
     # determines whether photon-number-resolving detectors are used for the Bell-state measurement
     num_resolving: False
+
 
 stacks:
   - name: Node1
@@ -48,7 +53,7 @@ hubs:
       - stack: Node4
         distance: 5
 
-    link_typ: heralded
+    link_typ: heralded-double-click
     link_cfg:
         <<: *link_config
 

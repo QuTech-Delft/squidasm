@@ -1,13 +1,12 @@
 from application import ServerProgram, ClientProgram
-from blueprint.base_configs import StackNetworkConfig
-from blueprint.links.perfect import PerfectLinkConfig
+from netsquid_magic.models.perfect import PerfectLinkConfig
 from blueprint.clinks.default import DefaultCLinkConfig
 from squidasm.run.stack.run import run
 from blueprint_examples.network_generation import create_multi_node_network
 
 num_nodes = 6
 # import network configuration from file
-cfg = create_multi_node_network(num_nodes, "perfect", PerfectLinkConfig(),
+cfg = create_multi_node_network(num_nodes, "perfect", PerfectLinkConfig(state_delay=100),
                                 clink_typ="default", clink_cfg=DefaultCLinkConfig(delay=100))
 
 node_names = [stack.name for stack in cfg.stacks]

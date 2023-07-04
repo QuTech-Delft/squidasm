@@ -1,8 +1,8 @@
 import netsquid as ns
 
-from blueprint.links.perfect import PerfectLinkConfig
+from netsquid_magic.models.perfect import PerfectLinkConfig
 from blueprint.clinks.default import DefaultCLinkConfig
-from blueprint import run, get_default_builder
+from blueprint.run import run, get_default_builder
 from blueprint_examples.network_generation import create_multi_node_network
 from protocols import ServerProtocol, ClientProtocol
 

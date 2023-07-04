@@ -1,6 +1,6 @@
 import netsquid as ns
 
-from blueprint import run, get_default_builder
+from blueprint.run import run, get_default_builder
 from blueprint.base_configs import StackNetworkConfig
 from protocols import AliceProtocol, BobProtocol
 

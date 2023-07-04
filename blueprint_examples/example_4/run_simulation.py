@@ -1,11 +1,11 @@
 from blueprint.base_configs import StackNetworkConfig
-from blueprint import run, get_default_builder
+from blueprint.run import run, get_default_builder
 from protocols import AliceProtocol, BobProtocol
 import squidasm
 
 squidasm.SUPER_HACKY_SWITCH = True
 
-cfg = StackNetworkConfig.from_file("config_heralded_static.yaml")
+cfg = StackNetworkConfig.from_file("config_heralded_fifo.yaml")
 num_epr_pairs = 3
 
 builder = get_default_builder()

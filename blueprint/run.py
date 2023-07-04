@@ -7,10 +7,11 @@ import netsquid as ns
 
 from blueprint.clinks.default import DefaultCLinkBuilder
 from blueprint.clinks.instant import InstantCLinkBuilder
-from blueprint.links.depolarise import DepolariseLinkBuilder
-from blueprint.links.heralded import HeraldedLinkBuilder
+from netsquid_magic.models.depolarise import DepolariseLinkBuilder
+from netsquid_magic.models.heralded_single_click import HeraldedSingleClickLinkBuilder
+from netsquid_magic.models.heralded_double_click import HeraldedDoubleClickLinkBuilder
 from blueprint.links.nv import NVLinkBuilder
-from blueprint.links.perfect import PerfectLinkBuilder
+from netsquid_magic.models.perfect import PerfectLinkBuilder
 from blueprint.network_builder import NetworkBuilder
 from blueprint.protocol_base import BlueprintProtocol
 from blueprint.qdevices.generic import GenericQDeviceBuilder
@@ -31,7 +32,8 @@ def get_default_builder() -> NetworkBuilder:
     # default link models registration
     builder.register_link("perfect", PerfectLinkBuilder)
     builder.register_link("depolarise", DepolariseLinkBuilder)
-    builder.register_link("heralded", HeraldedLinkBuilder)
+    builder.register_link("heralded-single-click", HeraldedSingleClickLinkBuilder)
+    builder.register_link("heralded-double-click", HeraldedDoubleClickLinkBuilder)
     builder.register_link("nv", NVLinkBuilder)
 
     # default clink models registration
