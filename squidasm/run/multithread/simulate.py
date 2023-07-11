@@ -101,7 +101,4 @@ def simulate_application(
 
     mgr.stop_backend()
 
-    if enable_logging:
-        process_logs.make_last_log(log_dir=timed_log_dir)
-
     return results
