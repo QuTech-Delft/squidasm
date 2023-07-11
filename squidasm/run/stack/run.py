@@ -8,8 +8,8 @@ from netsquid_magic.link_layer import (
 )
 from squidasm.sim.stack.csocket import ClassicalSocket
 
-from blueprint.base_configs import StackNetworkConfig
-from blueprint import get_default_builder
+from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.run import get_default_builder
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
