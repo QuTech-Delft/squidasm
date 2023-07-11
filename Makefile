@@ -55,6 +55,8 @@ docs html:
 	@${MAKE} -C docs html
 
 install: _check_variables
+	@$(PYTHON3) -m pip install -e submodules/netsquid-magic/
+	@$(PYTHON3) -m pip install -e submodules/netsquid-netbuilder/
 	@$(PYTHON3) -m pip install -e . ${PIP_FLAGS}
 
 install-dev: _check_variables

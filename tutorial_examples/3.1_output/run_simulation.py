@@ -1,7 +1,7 @@
 import numpy as np
 
 from application import AliceProgram, BobProgram
-from blueprint.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import StackNetworkConfig
 from squidasm.run.stack.run import run
 
 # import network configuration from file

@@ -2,8 +2,8 @@ import numpy as np
 from matplotlib import pyplot
 
 from application import AliceProgram, BobProgram
-from blueprint.base_configs import StackNetworkConfig, LinkConfig
-from blueprint.links import DepolariseLinkConfig
+from netsquid_netbuilder.base_configs import StackNetworkConfig, LinkConfig
+from netsquid_netbuilder.links import DepolariseLinkConfig
 from squidasm.run.stack.run import run
 
 # import network configuration from file

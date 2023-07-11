@@ -28,6 +28,6 @@ link_cfg: &link_cfg
 links:
   - stack1: client
     stack2: server
-    typ: heralded
+    typ: heralded-double-click
     cfg:
       <<: *link_cfg

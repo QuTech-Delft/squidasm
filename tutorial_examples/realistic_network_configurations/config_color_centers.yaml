@@ -44,9 +44,12 @@ stacks:
       <<: *qdevice_cfg
 
 link_cfg: &link_cfg
-    length: 1.0  # km
-    p_loss_init: 0.99949  # probability, 1 - 5.1e−4
-    p_loss_length: 0.25  # dB/km
+    length_A: 0.5  # km
+    length_B: 0.5  # km
+    p_loss_init_A: 0.99949  # probability, 1 - 5.1e−4
+    p_loss_init_B: 0.99949  # probability, 1 - 5.1e−4
+    p_loss_length_A: 0.25  # dB/km
+    p_loss_length_B: 0.25  # dB/km
     speed_of_light: 214_000  # km/s
     dark_count_probability: 1.5e-7  # probability
     detector_efficiency: 1.0  # probability
@@ -56,6 +59,13 @@ link_cfg: &link_cfg
 links:
   - stack1: Alice
     stack2: Bob
-    typ: heralded
+    typ: heralded-double-click
     cfg:
       <<: *link_cfg
+
+clinks:
+  - stack1: Alice
+    stack2: Bob
+    typ: default
+    cfg:
+      delay: 20

@@ -1,6 +1,12 @@
 SquidASM
 ++++++++++++
 
+WARNING
+===============
+This is a beta version of netsquid-netbuilder that aims to fully integrate SquidASM with the netsquid-snippets.
+This version is highly unstable, will likely undergo significant changes in the near future
+and is only meant to provide feedback for the future version.
+
 .. installation-start-inclusion-marker-do-not-remove
 
 Installation

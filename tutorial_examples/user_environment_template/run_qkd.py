@@ -1,6 +1,6 @@
 import os
 
-from blueprint.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import StackNetworkConfig
 from squidasm.run.stack.run import run
 from tutorial_examples.user_environment_template.applications.qkd import QkdProgram
 
