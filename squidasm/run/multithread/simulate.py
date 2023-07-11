@@ -1,7 +1,7 @@
 import os
 from typing import Any, Callable, Dict, List, Optional
 
-from netqasm.runtime import env, process_logs
+from netqasm.runtime import env
 from netqasm.runtime.application import ApplicationInstance, load_yaml_file
 from netqasm.runtime.interface.config import (
     NetworkConfig,
