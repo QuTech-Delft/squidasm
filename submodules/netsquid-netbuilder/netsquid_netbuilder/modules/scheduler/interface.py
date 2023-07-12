@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from abc import ABCMeta
 from typing import Union, List
 
-import netsquid as ns
 from dataclasses import dataclass
 from netsquid.protocols import Protocol
 from pydantic.decorator import Dict
@@ -12,7 +11,7 @@ from qlink_interface import (
 )
 from qlink_interface.interface import ResCreate
 
-import squidasm
+from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.yaml_loadable import YamlLoadable
 from pydynaa import EventHandler, EventType, Event
 
@@ -43,14 +42,16 @@ class TimeSlot:
 
 
 class IScheduleProtocol(Protocol, metaclass=ABCMeta):
-    def __init__(self, links, node_id_mapping: Dict[str, int]):
+    def __init__(self, name: str, links, node_id_mapping: Dict[str, int]):
         super().__init__()
+        self.name = name
         self.links = links
         self._node_id_mapping = node_id_mapping
         self._node_name_mapping = {id_: name for name, id_ in self._node_id_mapping.items()}
 
         self._evhandler = EventHandler(self._handle_event)
         self._ev_to_timeslot: Dict[Event, TimeSlot] = {}
+        self._logger = LogManager.get_stack_logger(f"{self.__class__.__name__}({self.name})")
 
     def start(self):
         super().start()
@@ -100,27 +101,26 @@ class IScheduleProtocol(Protocol, metaclass=ABCMeta):
 
     def _handle_open_link_event(self, event):
         timeslot = self._ev_to_timeslot[event]
-        if squidasm.SUPER_HACKY_SWITCH:
-            print(f"{ns.sim_time(ns.MILLISECOND)} ms open link {(timeslot.node1_name, timeslot.node2_name)}")
-
-        link = self.links[(timeslot.node1_name, timeslot.node2_name)]
-        link.open()
+        self._open_link(timeslot.node1_name, timeslot.node2_name)
         self._ev_to_timeslot.pop(event)
 
     def _handle_close_link_event(self, event):
         timeslot = self._ev_to_timeslot[event]
-
-        if squidasm.SUPER_HACKY_SWITCH:
-            print(f"{ns.sim_time(ns.MILLISECOND)} ms close link {(timeslot.node1_name, timeslot.node2_name)}")
-
-        link = self.links[(timeslot.node1_name, timeslot.node2_name)]
-        link.close()
+        self._close_link(timeslot.node1_name, timeslot.node2_name)
         self._ev_to_timeslot.pop(event)
+
+    def _open_link(self, node1_name: str, node2_name: str):
+        self._logger.info(f"Opening link between nodes {node1_name} and {node2_name}")
+        self.links[(node1_name, node2_name)].open()
+
+    def _close_link(self, node1_name: str, node2_name: str):
+        self._logger.info(f"Closing link between nodes {node1_name} and {node2_name}")
+        self.links[(node1_name, node2_name)].close()
 
 
 class IScheduleBuilder(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
-    def build(cls, network,
+    def build(cls, name: str, network,
               participating_node_names: List[str], schedule_config: IScheduleConfig) -> IScheduleProtocol:
         pass

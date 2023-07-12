@@ -133,7 +133,8 @@ class HubBuilder:
             schedule_builder = self.scheduler_builders[hub_config.schedule_typ]
 
             node_names = [config.stack for config in hub_config.connections]
-            schedule = schedule_builder.build(network, node_names, schedule_config=hub_config.schedule_cfg)
+            schedule = schedule_builder.build(hub_config.name, network, node_names,
+                                              schedule_config=hub_config.schedule_cfg)
             self.protocol_controller.register(schedule)
             schedule_dict[hub_config.name] = schedule
 

@@ -29,9 +29,9 @@ class FIFOScheduleConfig(IScheduleConfig):
 
 
 class FIFOScheduleProtocol(IScheduleProtocol):
-    def __init__(self, params: FIFOScheduleConfig,
+    def __init__(self, name: str, params: FIFOScheduleConfig,
                  links, node_id_mapping: Dict[str, int]):
-        super().__init__(links, node_id_mapping)
+        super().__init__(name, links, node_id_mapping)
         self.params = params
         self._que: List[QueItem] = []
         self._active_requests: Dict[(int, int), ReqCreateBase] = {}
@@ -48,12 +48,8 @@ class FIFOScheduleProtocol(IScheduleProtocol):
         self._active_requests.pop((node_id, res.create_id))
         node_name = self._node_name_mapping[node_id]
         remote_node_name = self._node_name_mapping[res.remote_node_id]
-        if squidasm.SUPER_HACKY_SWITCH:
-            print(f"{ns.sim_time(ns.MILLISECOND)} ms close link {(node_name, remote_node_name)}")
 
-        # TODO need to check if other request are in process on the same link
-        link = self.links[(node_name, remote_node_name)]
-        link.close()
+        self._close_link(node_name, remote_node_name)
 
         if len(self._que) > 0:
             que_item = self._que.pop(0)
@@ -74,7 +70,7 @@ class FIFOScheduleProtocol(IScheduleProtocol):
 
 class FIFOScheduleBuilder(IScheduleBuilder):
     @classmethod
-    def build(cls, network: Network,
+    def build(cls, name: str, network: Network,
               participating_node_names: List[str],
               schedule_config: FIFOScheduleConfig) -> FIFOScheduleProtocol:
 
@@ -84,7 +80,7 @@ class FIFOScheduleBuilder(IScheduleBuilder):
         link_combinations = list(itertools.permutations(participating_node_names, 2))
         links = {(node_1, node_2): network.links[(node_1, node_2)] for node_1, node_2 in link_combinations}
 
-        scheduler = FIFOScheduleProtocol(schedule_config, links, network.node_name_id_mapping)
+        scheduler = FIFOScheduleProtocol(name, schedule_config, links, network.node_name_id_mapping)
         return scheduler
 
 

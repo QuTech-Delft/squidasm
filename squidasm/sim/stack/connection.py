@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from netqasm.sdk.transpile import SubroutineTranspiler
     from squidasm.sim.stack.host import Host
 
-from squidasm.sim.stack.common import LogManager
+from netsquid_netbuilder.logger import LogManager
 
 from .context import NetSquidNetworkInfo
 

@@ -22,9 +22,9 @@ class StaticScheduleConfig(IScheduleConfig):
 
 
 class StaticScheduleProtocol(IScheduleProtocol):
-    def __init__(self, params: StaticScheduleConfig, schema,
+    def __init__(self, name: str, params: StaticScheduleConfig, schema,
                  links, node_id_mapping: Dict[str, int]):
-        super().__init__(links, node_id_mapping)
+        super().__init__(name, links, node_id_mapping)
         self.params = params
         self._schema = schema
 
@@ -56,7 +56,7 @@ class StaticScheduleProtocol(IScheduleProtocol):
 
 class StaticScheduleBuilder(IScheduleBuilder):
     @classmethod
-    def build(cls, network: Network,
+    def build(cls, name: str, network: Network,
               participating_node_names: List[str],
               schedule_config: StaticScheduleConfig) -> StaticScheduleProtocol:
 
@@ -68,7 +68,7 @@ class StaticScheduleBuilder(IScheduleBuilder):
 
         schema = cls.generate_schema(link_combinations, schedule_config.max_multiplexing)
 
-        scheduler = StaticScheduleProtocol(schedule_config, schema, links, network.node_name_id_mapping)
+        scheduler = StaticScheduleProtocol(name, schedule_config, schema, links, network.node_name_id_mapping)
         return scheduler
 
     @staticmethod
