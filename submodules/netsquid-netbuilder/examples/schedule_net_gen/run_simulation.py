@@ -6,7 +6,6 @@ from netsquid_netbuilder.run import run, get_default_builder
 from netsquid_netbuilder.test_utils.network_generation import create_metro_hub_network
 from protocols import AliceProtocol, BobProtocol
 
-squidasm.SUPER_HACKY_SWITCH = True
 
 num_nodes = 10
 link_cfg = DepolariseLinkConfig(fidelity=0.9, prob_success=0.05, t_cycle=20)

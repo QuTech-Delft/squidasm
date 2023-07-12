@@ -3,7 +3,7 @@ from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
 from typing import List
 
-from squidasm.sim.stack.common import LogManager
+from netsquid_netbuilder.logger import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 

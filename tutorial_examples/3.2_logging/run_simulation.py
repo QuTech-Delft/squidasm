@@ -1,7 +1,7 @@
 from application import AliceProgram, BobProgram
 from netsquid_netbuilder.base_configs import StackNetworkConfig
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
+from netsquid_netbuilder.logger import LogManager
 
 # import network configuration from file
 cfg = StackNetworkConfig.from_file("config.yaml")
