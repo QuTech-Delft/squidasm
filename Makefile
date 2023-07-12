@@ -2,6 +2,7 @@ PYTHON3        = python3
 SOURCEDIR      = squidasm
 TESTDIR        = tests
 EXAMPLEDIR     = examples
+GIT            = git
 RUNEXAMPLES    = ${EXAMPLEDIR}/run_examples.py
 PIP_FLAGS      = --extra-index-url=https://${NETSQUIDPYPI_USER}:${NETSQUIDPYPI_PWD}@pypi.netsquid.org
 
@@ -55,9 +56,11 @@ docs html:
 	@${MAKE} -C docs html
 
 install: _check_variables
-	@$(PYTHON3) -m pip install -e submodules/netsquid-magic/
-	@$(PYTHON3) -m pip install -e submodules/netsquid-netbuilder/
 	@$(PYTHON3) -m pip install -e . ${PIP_FLAGS}
+	$(GIT) submodule update
+	@$(PYTHON3) -m pip install -e submodules/netsquid-magic/
+	@$(PYTHON3) -m pip install -e submodules/netsquid-abstractmodel/
+	@$(PYTHON3) -m pip install -e submodules/netsquid-netbuilder/
 
 install-dev: _check_variables
 	@$(PYTHON3) -m pip install -e .[dev] ${PIP_FLAGS}
