@@ -12,7 +12,7 @@ from squidasm.sim.stack.stack import ProcessingNode
 
 class DefaultCLinkConfig(ICLinkConfig):
     delay: Optional[float] = None
-    distance: Optional[float] = None
+    length: Optional[float] = None
     speed_of_light: float = 200000
 
 
@@ -21,14 +21,7 @@ class DefaultCLinkBuilder(ICLinkBuilder):
     def build(
         cls, node1: ProcessingNode, node2: ProcessingNode, link_cfg: DefaultCLinkConfig
     ) -> DirectConnection:
-        if isinstance(link_cfg, dict):
-            link_cfg = DefaultCLinkConfig(**link_cfg)
-        if link_cfg.delay is None and link_cfg.distance is None:
-            raise Exception("Model requires delay or distance")
-        if link_cfg.delay is not None and link_cfg.distance is not None:
-            raise Exception("Model can only use one parameter")
-        if link_cfg.distance is not None:
-            link_cfg.delay = link_cfg.distance / link_cfg.speed_of_light * 1e9
+        link_cfg = cls._pre_process_config(link_cfg)
 
         channel1to2 = ClassicalChannel(
             name=f"Default channel {node1.name} to {node2.name}",
@@ -45,3 +38,16 @@ class DefaultCLinkBuilder(ICLinkBuilder):
             channel_BtoA=channel2to1,
         )
         return conn
+
+    @classmethod
+    def _pre_process_config(cls, link_cfg: DefaultCLinkConfig) -> DefaultCLinkConfig:
+        if isinstance(link_cfg, dict):
+            link_cfg = DefaultCLinkConfig(**link_cfg)
+        if link_cfg.delay is None and (link_cfg.length is None or link_cfg.speed_of_light is None):
+            raise ValueError(f"{cls.__name__} model config requires a delay"
+                             f" or distance with speed of light specification")
+        if link_cfg.delay is not None and link_cfg.length is not None:
+            raise ValueError(f"{cls.__name__} model config can only use delay or distance, but both where specified")
+        if link_cfg.length is not None:
+            link_cfg.delay = link_cfg.length / link_cfg.speed_of_light * 1e9
+        return link_cfg

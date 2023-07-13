@@ -4,14 +4,14 @@ import typing
 from typing import Dict
 
 import netsquid as ns
-from netsquid_magic.models.depolarise import DepolariseLinkBuilder
-from netsquid_magic.models.heralded_double_click import HeraldedDoubleClickLinkBuilder
-from netsquid_magic.models.heralded_single_click import HeraldedSingleClickLinkBuilder
-from netsquid_magic.models.perfect import PerfectLinkBuilder
+from netsquid_magic.models.depolarise import DepolariseLinkBuilder, DepolariseLinkConfig
+from netsquid_magic.models.heralded_double_click import HeraldedDoubleClickLinkBuilder, HeraldedDoubleClickLinkConfig
+from netsquid_magic.models.heralded_single_click import HeraldedSingleClickLinkBuilder, HeraldedSingleClickLinkConfig
+from netsquid_magic.models.perfect import PerfectLinkBuilder, PerfectLinkConfig
 from netsquid_netbuilder.builder.network_builder import NetworkBuilder
-from netsquid_netbuilder.modules.clinks.default import DefaultCLinkBuilder
-from netsquid_netbuilder.modules.clinks.instant import InstantCLinkBuilder
-from netsquid_netbuilder.modules.links.nv import NVLinkBuilder
+from netsquid_netbuilder.modules.clinks.default import DefaultCLinkBuilder, DefaultCLinkConfig
+from netsquid_netbuilder.modules.clinks.instant import InstantCLinkBuilder, InstantCLinkConfig
+from netsquid_netbuilder.modules.links.nv import NVLinkBuilder, NVLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceBuilder
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceBuilder
 from netsquid_netbuilder.modules.scheduler.fifo import FIFOScheduleBuilder
@@ -29,15 +29,15 @@ def get_default_builder() -> NetworkBuilder:
     builder.register_qdevice("nv", NVQDeviceBuilder)
 
     # default link models registration
-    builder.register_link("perfect", PerfectLinkBuilder)
-    builder.register_link("depolarise", DepolariseLinkBuilder)
-    builder.register_link("heralded-single-click", HeraldedSingleClickLinkBuilder)
-    builder.register_link("heralded-double-click", HeraldedDoubleClickLinkBuilder)
-    builder.register_link("nv", NVLinkBuilder)
+    builder.register_link("perfect", PerfectLinkBuilder, PerfectLinkConfig)
+    builder.register_link("depolarise", DepolariseLinkBuilder, DepolariseLinkConfig)
+    builder.register_link("heralded-single-click", HeraldedSingleClickLinkBuilder, HeraldedSingleClickLinkConfig)
+    builder.register_link("heralded-double-click", HeraldedDoubleClickLinkBuilder, HeraldedDoubleClickLinkConfig)
+    builder.register_link("nv", NVLinkBuilder, NVLinkConfig)
 
     # default clink models registration
-    builder.register_clink("instant", InstantCLinkBuilder)
-    builder.register_clink("default", DefaultCLinkBuilder)
+    builder.register_clink("instant", InstantCLinkBuilder, InstantCLinkConfig)
+    builder.register_clink("default", DefaultCLinkBuilder, DefaultCLinkConfig)
 
     # default schedulers
     builder.register_scheduler("static", StaticScheduleBuilder)

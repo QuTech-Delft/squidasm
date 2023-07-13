@@ -1,6 +1,8 @@
 from typing import Generator
 
 import netsquid as ns
+
+from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
 
@@ -12,6 +14,7 @@ class AliceProtocol(BlueprintProtocol):
         super().__init__()
         self.peer = peer
         self.num_epr_pairs = num_epr_pairs
+        self._logger = LogManager.get_stack_logger(self.__class__.__name__)
 
     def run(self) -> Generator[EventExpression, None, None]:
         port = self.context.ports[self.peer]
@@ -21,8 +24,8 @@ class AliceProtocol(BlueprintProtocol):
         for i in range(self.num_epr_pairs):
             yield self.await_port_input(port)
             message = port.rx_input()
-            print(
-                f"{ns.sim_time(ns.MILLISECOND)} ms: {self.context.node.name} receives: {message.items[0]}"
+            self._logger.info(
+                f"{self.context.node.name} receives: {message.items[0]}"
             )
 
             request = ReqCreateAndKeep(
@@ -38,8 +41,8 @@ class AliceProtocol(BlueprintProtocol):
             result = qdevice.measure(received_qubit_mem_pos)[0]
             qdevice.discard(received_qubit_mem_pos)
 
-            print(
-                f"{ns.sim_time(ns.MILLISECOND)} ms: pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}"
+            self._logger.info(
+                f"pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}"
             )
 
 
@@ -48,6 +51,7 @@ class BobProtocol(BlueprintProtocol):
         super().__init__()
         self.peer = peer
         self.num_epr_pairs = num_epr_pairs
+        self._logger = LogManager.get_stack_logger(self.__class__.__name__)
 
     def run(self) -> Generator[EventExpression, None, None]:
         egp = self.context.egp[self.peer]
@@ -59,8 +63,8 @@ class BobProtocol(BlueprintProtocol):
         for i in range(self.num_epr_pairs):
             msg = "Ready to start entanglement"
             port.tx_output(msg)
-            print(
-                f"{ns.sim_time(ns.MILLISECOND)} ms: {self.context.node.name} sends: {msg}"
+            self._logger.info(
+                f"{self.context.node.name} sends: {msg}"
             )
 
             # Wait for a signal from the EGP.
@@ -72,6 +76,6 @@ class BobProtocol(BlueprintProtocol):
 
             result = qdevice.measure(positions=[received_qubit_mem_pos])[0]
             qdevice.discard(received_qubit_mem_pos)
-            print(
-                f"{ns.sim_time(ns.MILLISECOND)} ms: pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}"
+            self._logger.info(
+                f"pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}"
             )

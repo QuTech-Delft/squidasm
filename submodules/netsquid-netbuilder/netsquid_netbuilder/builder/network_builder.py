@@ -7,8 +7,9 @@ from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.builder.builder_utils import create_connection_ports
 from netsquid_netbuilder.builder.metro_hub import HubBuilder
-from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder
-from netsquid_netbuilder.modules.links.interface import ILinkBuilder
+from netsquid_netbuilder.logger import LogManager
+from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
+from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
 from netsquid_netbuilder.network import Network
@@ -25,20 +26,21 @@ class NetworkBuilder:
         self.link_builder = LinkBuilder(self.protocol_controller)
         self.egp_builder = EGPBuilder(self.protocol_controller)
         self.hub_builder = HubBuilder(self.protocol_controller)
+        self._logger = LogManager.get_stack_logger(self.__class__.__name__)
 
-    def register_qdevice(self, key: str, model: Type[IQDeviceBuilder]):
-        self.node_builder.register(key, model)
+    def register_qdevice(self, key: str, builder: Type[IQDeviceBuilder]):
+        self.node_builder.register(key, builder)
 
-    def register_link(self, key: str, model: Type[ILinkBuilder]):
-        self.link_builder.register(key, model)
-        self.hub_builder.register_link(key, model)
+    def register_link(self, key: str, builder: Type[ILinkBuilder], config: Type[ILinkConfig]):
+        self.link_builder.register(key, builder, config)
+        self.hub_builder.register(key, builder, config)
 
-    def register_clink(self, key: str, model: Type[ICLinkBuilder]):
-        self.clink_builder.register(key, model)
-        self.hub_builder.register_clink(key, model)
+    def register_clink(self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]):
+        self.clink_builder.register(key, builder, config)
+        self.hub_builder.register_clink(key, builder, config)
 
-    def register_scheduler(self, key: str, model: Type[IScheduleBuilder]):
-        self.hub_builder.register_scheduler(key, model)
+    def register_scheduler(self, key: str, builder: Type[IScheduleBuilder]):
+        self.hub_builder.register_scheduler(key, builder)
 
     def build(self, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Network:
         self.hub_builder.set_configs(config.hubs)
@@ -111,9 +113,11 @@ class NodeBuilder:
 class ClassicalConnectionBuilder:
     def __init__(self):
         self.clink_builders: Dict[str, Type[ICLinkBuilder]] = {}
+        self.clink_configs: Dict[str, Type[ICLinkConfig]] = {}
 
-    def register(self, key: str, builder: Type[ICLinkBuilder]):
+    def register(self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]):
         self.clink_builders[key] = builder
+        self.clink_configs[key] = config
 
     def build(
         self, config: StackNetworkConfig, network: Network, hacky_is_squidasm_flag
@@ -146,9 +150,11 @@ class LinkBuilder:
     def __init__(self, protocol_controller: ProtocolController):
         self.protocol_controller = protocol_controller
         self.link_builders: Dict[str, Type[ILinkBuilder]] = {}
+        self.link_configs: Dict[str, Type[ILinkConfig]] = {}
 
-    def register(self, key: str, builder: Type[ILinkBuilder]):
+    def register(self, key: str, builder: Type[ILinkBuilder], config: Type[ILinkConfig]):
         self.link_builders[key] = builder
+        self.link_configs[key] = config
 
     def build(
         self, config: StackNetworkConfig, nodes: Dict[str, ProcessingNode]

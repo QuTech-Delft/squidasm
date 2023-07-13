@@ -44,13 +44,13 @@ hubs:
   - name: Hub1
     connections:
       - stack: Node1
-        distance: 10
+        length: 10
       - stack: Node2
-        distance: 10
+        length: 10
       - stack: Node3
-        distance: 5
+        length: 5
       - stack: Node4
-        distance: 5
+        length: 5
 
     link_typ: heralded-double-click
     link_cfg:
@@ -58,7 +58,7 @@ hubs:
 
     clink_typ: default
     clink_cfg:
-      distance: 0
+      length: 0
 
     schedule_typ: static
     schedule_cfg:

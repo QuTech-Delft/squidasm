@@ -54,7 +54,7 @@ class StackConfig(YamlLoadable):
 
 class MetroHubConnectionConfig(YamlLoadable):
     stack: str
-    distance: float
+    length: float
 
 
 class MetroHubConfig(YamlLoadable):
