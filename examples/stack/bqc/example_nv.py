@@ -9,10 +9,11 @@ from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.futures import Future, RegFuture
 from netqasm.sdk.qubit import Qubit
 
+from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.logger import LogManager
+from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 from pydynaa import EventExpression
-from squidasm.run.stack.config import NVQDeviceConfig, StackNetworkConfig
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 

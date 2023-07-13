@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
 from abc import ABCMeta
-from typing import Union, List
+from typing import Union, List, Dict
 
 from dataclasses import dataclass
 from netsquid.protocols import Protocol
-from pydantic.decorator import Dict
 from qlink_interface import (
     ReqCreateBase,
     ResError,

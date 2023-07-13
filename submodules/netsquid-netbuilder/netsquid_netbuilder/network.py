@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
-from typing import TYPE_CHECKING
+from typing import Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from netsquid.components import Port

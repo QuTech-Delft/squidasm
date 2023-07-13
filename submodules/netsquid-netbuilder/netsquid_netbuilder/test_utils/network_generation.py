@@ -1,26 +1,37 @@
 import itertools
-from typing import Union, List
-
-from netsquid_netbuilder.modules.clinks.interface import ICLinkConfig
-from netsquid_netbuilder.modules.links.interface import ILinkConfig
-from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
-from netsquid_netbuilder.modules.scheduler.fifo import FIFOScheduleConfig
-from netsquid_netbuilder.modules.scheduler.interface import IScheduleConfig
+from typing import Union, List, TYPE_CHECKING
 
 from netsquid_netbuilder.base_configs import StackNetworkConfig, StackConfig, LinkConfig, CLinkConfig, \
     MetroHubConfig, MetroHubConnectionConfig
+from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
+from netsquid_netbuilder.modules.scheduler.fifo import FIFOScheduleConfig
+from netsquid_netbuilder.modules.clinks.interface import ICLinkConfig
+from netsquid_netbuilder.modules.links.interface import ILinkConfig
+from netsquid_netbuilder.modules.qdevices.interface import IQDeviceConfig
+from netsquid_netbuilder.modules.scheduler.interface import IScheduleConfig
+
+
+def create_single_node_network(qdevice_typ: str, qdevice_cfg: IQDeviceConfig):
+    network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
+
+    stack = StackConfig(name="Alice",
+                        qdevice_typ=qdevice_typ,
+                        qdevice_cfg=qdevice_cfg)
+    network_config.stacks.append(stack)
+
+    return network_config
 
 
 def create_2_node_network(link_typ: str, link_cfg: ILinkConfig,
                           clink_typ: str = "instant", clink_cfg: ICLinkConfig = None,
-                          qdevice_cfg=None) -> StackNetworkConfig:
+                          qdevice_typ: str = "generic", qdevice_cfg: IQDeviceConfig = None) -> StackNetworkConfig:
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
 
     node_names = ["Alice", "Bob"]
     for node_name in node_names:
         qdevice_cfg = GenericQDeviceConfig.perfect_config() if qdevice_cfg is None else qdevice_cfg
         stack = StackConfig(name=node_name,
-                            qdevice_typ="generic",
+                            qdevice_typ=qdevice_typ,
                             qdevice_cfg=qdevice_cfg)
         network_config.stacks.append(stack)
 
@@ -41,14 +52,14 @@ def create_2_node_network(link_typ: str, link_cfg: ILinkConfig,
 
 def create_multi_node_network(num_nodes: int, link_typ: str, link_cfg: ILinkConfig,
                               clink_typ: str = "instant", clink_cfg: ICLinkConfig = None,
-                              qdevice_cfg=None) -> StackNetworkConfig:
+                              qdevice_typ: str = "generic", qdevice_cfg: IQDeviceConfig = None) -> StackNetworkConfig:
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
 
     node_names = [f"node_{i}" for i in range(num_nodes)]
     for node_name in node_names:
         qdevice_cfg = GenericQDeviceConfig.perfect_config() if qdevice_cfg is None else qdevice_cfg
         stack = StackConfig(name=node_name,
-                            qdevice_typ="generic",
+                            qdevice_typ=qdevice_typ,
                             qdevice_cfg={})
         network_config.stacks.append(stack)
 
@@ -72,14 +83,14 @@ def create_metro_hub_network(num_nodes: int, node_distances: Union[float, List[f
                              link_typ: str, link_cfg: ILinkConfig,
                              schedule_typ: str = "fifo", schedule_cfg: IScheduleConfig = None,
                              clink_typ: str = "instant", clink_cfg: ICLinkConfig = None,
-                             qdevice_cfg=None) -> StackNetworkConfig:
+                             qdevice_typ: str = "generic", qdevice_cfg: IQDeviceConfig = None) -> StackNetworkConfig:
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
 
     node_names = [f"node_{i}" for i in range(num_nodes)]
     for node_name in node_names:
         qdevice_cfg = GenericQDeviceConfig.perfect_config() if qdevice_cfg is None else qdevice_cfg
         stack = StackConfig(name=node_name,
-                            qdevice_typ="generic",
+                            qdevice_typ=qdevice_typ,
                             qdevice_cfg={})
         network_config.stacks.append(stack)
 

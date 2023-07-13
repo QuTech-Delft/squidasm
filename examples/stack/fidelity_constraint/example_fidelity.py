@@ -6,11 +6,12 @@ from typing import Any, Dict, Generator
 
 import netsquid as ns
 
+from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.logger import LogManager
 from pydynaa import EventExpression
-from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
+
 
 # Example of using a `min_fidelity_all_at_end` constraint on the entangled pairs.
 

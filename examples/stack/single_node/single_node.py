@@ -3,10 +3,11 @@ from typing import Any, Dict, Generator
 from netqasm.lang.parsing.text import parse_text_protosubroutine
 from netqasm.sdk.qubit import Qubit
 
+from netsquid_netbuilder.base_configs import StackConfig, StackNetworkConfig
+from netsquid_netbuilder.logger import LogManager
+from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 from pydynaa import EventExpression
-from squidasm.run.stack.config import NVQDeviceConfig, StackConfig, StackNetworkConfig
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 SUBRT = """

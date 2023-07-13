@@ -12,3 +12,12 @@ links:
   - stack1: alice
     stack2: bob
     typ: perfect
+    cfg:
+      state_delay: 1000
+
+clinks:
+  - stack1: alice
+    stack2: bob
+    typ: default
+    cfg:
+      delay: 0.5

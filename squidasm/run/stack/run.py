@@ -22,6 +22,7 @@ def fidelity_to_prob_max_mixed(fid: float) -> float:
 
 
 def _setup_network(config: StackNetworkConfig) -> StackNetwork:
+    NetSquidContext.reset()
     builder = get_default_builder()
     network = builder.build(config)
 

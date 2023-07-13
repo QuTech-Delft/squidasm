@@ -436,7 +436,7 @@ class Netstack(ComponentProtocol):
             phys_id = self.physical_memory.allocate_comm()
 
             yield self.await_signal(
-                sender=self._egp, signal_label=ResMeasureDirectly.__name__
+                sender=current_egp, signal_label=ResMeasureDirectly.__name__
             )
             result: ResMeasureDirectly = current_egp.get_signal_result(
                 ResMeasureDirectly.__name__, receiver=self
@@ -726,6 +726,7 @@ class Netstack(ComponentProtocol):
         self,
     ) -> Generator[EventExpression, None, None]:
         # TODO figure out how to get remote node id here
+        raise NotImplementedError("Breakpoints not working currently")
         # Synchronize with the remote node.
         self._send_peer_msg("breakpoint start")
         response = yield from self._receive_peer_msg()
@@ -753,6 +754,7 @@ class Netstack(ComponentProtocol):
     ) -> Generator[EventExpression, None, None]:
         # Synchronize with the remote node.
         # TODO figure out how to get remote node id here
+        raise NotImplementedError("Breakpoints not working currently")
 
         msg = yield from self._receive_peer_msg()
         assert msg == "breakpoint start"

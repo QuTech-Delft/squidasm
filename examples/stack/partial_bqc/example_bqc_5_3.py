@@ -3,13 +3,15 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, Generator
 
-from pydynaa import EventExpression
-from squidasm.run.stack.config import (
-    GenericQDeviceConfig,
+from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.base_configs import (
     LinkConfig,
     StackConfig,
-    StackNetworkConfig,
+    StackNetworkConfig, CLinkConfig,
 )
+from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
+from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
+from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
@@ -108,9 +110,17 @@ if __name__ == "__main__":
         stack1="client",
         stack2="server",
         typ="perfect",
+        cfg=PerfectLinkConfig()
     )
 
-    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
+    clink = CLinkConfig(
+        stack1="client",
+        stack2="server",
+        typ="instant",
+        cfg=InstantCLinkConfig()
+    )
+
+    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link], clinks=[clink])
 
     get_distribution(cfg, num_times, theta1=0)
     get_distribution(cfg, num_times, theta1=math.pi)

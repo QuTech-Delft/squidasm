@@ -3,17 +3,18 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, Generator
 
-from netqasm.lang.ir import BreakpointAction, BreakpointRole
 from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.toolbox import set_qubit_state
 
-from pydynaa import EventExpression
-from squidasm.run.stack.config import (
-    GenericQDeviceConfig,
+from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.base_configs import (
     LinkConfig,
     StackConfig,
-    StackNetworkConfig,
+    StackNetworkConfig, CLinkConfig,
 )
+from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
+from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
+from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -50,9 +51,10 @@ class SenderProgram(Program):
         set_qubit_state(q, self._phi, self._theta)
 
         e = epr_socket.create_keep()[0]
-        conn.insert_breakpoint(
-            BreakpointAction.DUMP_GLOBAL_STATE, BreakpointRole.CREATE
-        )
+        # TODO re-enable breakpoint
+        # conn.insert_breakpoint(
+        #     BreakpointAction.DUMP_GLOBAL_STATE, BreakpointRole.CREATE
+        # )
         q.cnot(e)
         q.H()
         m1 = q.measure()
@@ -88,9 +90,10 @@ class ReceiverProgram(Program):
         csocket: ClassicalSocket = context.csockets[self.PEER]
 
         e = epr_socket.recv_keep()[0]
-        conn.insert_breakpoint(
-            BreakpointAction.DUMP_GLOBAL_STATE, BreakpointRole.RECEIVE
-        )
+        # TODO re-enable breakpoint
+        # conn.insert_breakpoint(
+        #     BreakpointAction.DUMP_GLOBAL_STATE, BreakpointRole.RECEIVE
+        # )
         yield from conn.flush()
 
         m1 = yield from csocket.recv_int()
@@ -122,9 +125,17 @@ if __name__ == "__main__":
         stack1="sender",
         stack2="receiver",
         typ="perfect",
+        cfg=PerfectLinkConfig()
     )
 
-    cfg = StackNetworkConfig(stacks=[sender_stack, receiver_stack], links=[link])
+    clink = CLinkConfig(
+        stack1="sender",
+        stack2="receiver",
+        typ="instant",
+        cfg=InstantCLinkConfig()
+    )
+
+    cfg = StackNetworkConfig(stacks=[sender_stack, receiver_stack], links=[link], clinks=[clink])
 
     sender_program = SenderProgram(theta=math.pi, phi=0)
     receiver_program = ReceiverProgram()

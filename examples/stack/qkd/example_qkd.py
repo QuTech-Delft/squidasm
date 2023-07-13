@@ -1,14 +1,14 @@
 import logging
 import os
 import random
-from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
+from dataclasses import dataclass
 from netqasm.logging.glob import get_netqasm_logger, set_log_level
 from netqasm.sdk.classical_communication.message import StructuredMessage
 
+from netsquid_netbuilder.base_configs import StackNetworkConfig
 from pydynaa import EventExpression
-from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta

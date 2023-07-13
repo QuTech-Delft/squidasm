@@ -19,8 +19,10 @@ stacks:
       <<: *qdevice_cfg
   
 link_cfg: &link_cfg
-  length: 100
-  p_loss_length: 0.2
+  length_A: 50
+  length_B: 50
+  p_loss_length_A: 0.2
+  p_loss_length_B: 0.2
   dark_count_probability: 0
   detector_efficiency: 1
   visibility: 1
@@ -28,6 +30,13 @@ link_cfg: &link_cfg
 links:
   - stack1: client
     stack2: server
-    typ: heralded
+    typ: heralded-double-click
     cfg:
       <<: *link_cfg
+
+clinks:
+  - stack1: client
+    stack2: server
+    typ: default
+    cfg:
+      delay: 0.5

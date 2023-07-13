@@ -5,37 +5,31 @@ import netsquid as ns
 from netqasm.sdk.qubit import Qubit
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocolWithSignaling,
-    SingleClickTranslationUnit,
-)
-from netsquid_magic.magic_distributor import DepolariseWithFailureMagicDistributor
 
+from netsquid_magic.models.depolarise import DepolariseLinkConfig
+from netsquid_netbuilder.logger import LogManager
+from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
+from netsquid_netbuilder.test_utils.network_generation import create_2_node_network, create_single_node_network
 from pydynaa import EventExpression
-from squidasm.run.stack.build import build_nv_qdevice
-from squidasm.run.stack.config import NVQDeviceConfig
-from squidasm.sim.stack.common import LogManager
-from squidasm.sim.stack.context import NetSquidContext
+from squidasm.run.stack.run import _setup_network, _run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-from squidasm.sim.stack.stack import NodeStack
 
 
 class TestSdkSingleNode(unittest.TestCase):
     def setUp(self) -> None:
+        config = NVQDeviceConfig.perfect_config()
         ns.sim_reset()
-        qdevice = build_nv_qdevice(
-            "nv_qdevice_alice", cfg=NVQDeviceConfig.perfect_config()
-        )
-        self._node = NodeStack("alice", qdevice_type="nv", qdevice=qdevice)
+        network_cfg = create_single_node_network(qdevice_typ="nv", qdevice_cfg=config)
+        self.network = _setup_network(network_cfg)
+        self._node = self.network.stacks["Alice"]
 
         self._program: Optional[Program] = None
 
     def tearDown(self) -> None:
         assert self._program is not None
         self._node.host.enqueue_program(self._program, 1)
-        self._node.start()
         LogManager.set_log_level("INFO")
-        ns.sim_run()
+        _run(self.network)
         if self._check_qmem:
             self._check_qmem(self._node.qdevice)
 
@@ -132,17 +126,13 @@ class TestSdkSingleNode(unittest.TestCase):
 class TestSdkTwoNodes(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        alice_qdevice = build_nv_qdevice(
-            "nv_qdevice_alice", cfg=NVQDeviceConfig.perfect_config()
-        )
-        self._alice = NodeStack(
-            "alice", qdevice_type="nv", qdevice=alice_qdevice, node_id=0
-        )
+        network_cfg = create_2_node_network(link_typ="depolarise",
+                                            link_cfg=DepolariseLinkConfig(fidelity=1, prob_success=0.5, t_cycle=10),
+                                            qdevice_typ="nv", qdevice_cfg=NVQDeviceConfig.perfect_config())
+        self.network = _setup_network(network_cfg)
 
-        bob_qdevice = build_nv_qdevice(
-            "nv_qdevice_bob", cfg=NVQDeviceConfig.perfect_config()
-        )
-        self._bob = NodeStack("bob", qdevice_type="nv", qdevice=bob_qdevice, node_id=1)
+        self._alice = self.network.stacks["Alice"]
+        self._bob = self.network.stacks["Bob"]
 
         self._prog_alice: Optional[Program] = None
         self._prog_bob: Optional[Program] = None
@@ -150,32 +140,13 @@ class TestSdkTwoNodes(unittest.TestCase):
     def tearDown(self) -> None:
         assert self._prog_alice is not None
         assert self._prog_bob is not None
-        link_dist = DepolariseWithFailureMagicDistributor(
-            nodes=[self._alice.node, self._bob.node],
-            prob_max_mixed=0.1,
-            prob_success=0.5,
-            t_cycle=10,
-        )
-        link_prot = MagicLinkLayerProtocolWithSignaling(
-            nodes=[self._alice.node, self._bob.node],
-            magic_distributor=link_dist,
-            translation_unit=SingleClickTranslationUnit(),
-        )
-        self._alice.assign_ll_protocol(link_prot)
-        self._bob.assign_ll_protocol(link_prot)
 
         self._alice.host.enqueue_program(self._prog_alice)
         self._bob.host.enqueue_program(self._prog_bob)
 
-        self._alice.connect_to(self._bob)
-        NetSquidContext.set_nodes({0: "alice", 1: "bob"})
-
-        link_prot.start()
-        self._alice.start()
-        self._bob.start()
-
         # ns.set_qstate_formalism(ns.QFormalism.DM)
-        ns.sim_run()
+        _run(self.network)
+
         if self._check_qmem:
             self._check_qmem(self._alice.qdevice, self._bob.qdevice)
         if self._check_cmem:
@@ -187,8 +158,8 @@ class TestSdkTwoNodes(unittest.TestCase):
             def meta(self) -> ProgramMeta:
                 return ProgramMeta(
                     name="client_program",
-                    csockets=["bob"],
-                    epr_sockets=["bob"],
+                    csockets=["Bob"],
+                    epr_sockets=["Bob"],
                     max_qubits=2,
                 )
 
@@ -196,11 +167,11 @@ class TestSdkTwoNodes(unittest.TestCase):
                 self, context: ProgramContext
             ) -> Generator[EventExpression, None, Dict[str, Any]]:
                 conn = context.connection
-                epr_socket = context.epr_sockets["bob"]
+                epr_socket = context.epr_sockets["Bob"]
 
-                csocket = context.csockets["bob"]
+                csocket = context.csockets["Bob"]
                 msg = yield from csocket.recv()
-                print(f"got message from bob: {msg}")
+                print(f"got message from Bob: {msg}")
 
                 # q = Qubit(conn)
                 # q.X()
@@ -219,8 +190,8 @@ class TestSdkTwoNodes(unittest.TestCase):
             def meta(self) -> ProgramMeta:
                 return ProgramMeta(
                     name="server_program",
-                    csockets=["alice"],
-                    epr_sockets=["alice"],
+                    csockets=["Alice"],
+                    epr_sockets=["Alice"],
                     max_qubits=2,
                 )
 
@@ -228,8 +199,8 @@ class TestSdkTwoNodes(unittest.TestCase):
                 self, context: ProgramContext
             ) -> Generator[EventExpression, None, Dict[str, Any]]:
                 conn = context.connection
-                epr_socket = context.epr_sockets["alice"]
-                csocket = context.csockets["alice"]
+                epr_socket = context.epr_sockets["Alice"]
+                csocket = context.csockets["Alice"]
 
                 csocket.send("hello")
 

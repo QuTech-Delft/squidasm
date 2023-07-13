@@ -4,13 +4,15 @@ from typing import Any, Dict, Generator
 
 from netqasm.sdk.qubit import Qubit
 
-from pydynaa import EventExpression
-from squidasm.run.stack.config import (
-    GenericQDeviceConfig,
+from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.base_configs import (
     LinkConfig,
     StackConfig,
-    StackNetworkConfig,
+    StackNetworkConfig, CLinkConfig,
 )
+from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
+from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
+from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -108,9 +110,17 @@ if __name__ == "__main__":
         stack1="client",
         stack2="server",
         typ="perfect",
+        cfg=PerfectLinkConfig()
     )
 
-    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
+    clink = CLinkConfig(
+        stack1="client",
+        stack2="server",
+        typ="instant",
+        cfg=InstantCLinkConfig()
+    )
+
+    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link], clinks=[clink])
 
     client_program = ClientProgram(alpha=0, beta=0)
     server_program = ServerProgram()
