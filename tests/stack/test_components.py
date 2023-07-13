@@ -12,6 +12,7 @@ from squidasm.sim.stack.stack import NodeStack
 class TestHandler(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
+        ns.nodes.node._node_ID_counter = -1
         qdevice = NVQDeviceBuilder().build("nv_qdevice_alice", NVQDeviceConfig())
         self._node = NodeStack("alice", qdevice_type="nv", qdevice=qdevice)
 

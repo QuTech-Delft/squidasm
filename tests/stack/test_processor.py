@@ -20,6 +20,7 @@ from squidasm.sim.stack.processor import NVProcessor
 class TestProcessorTwoNodes(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
+        ns.nodes.node._node_ID_counter = -1
         network_cfg = create_2_node_network(link_typ="depolarise",
                                             link_cfg=DepolariseLinkConfig(fidelity=1, prob_success=0.5, t_cycle=10),
                                             qdevice_typ="nv", qdevice_cfg=NVQDeviceConfig())
@@ -109,9 +110,10 @@ class TestProcessorTwoNodes(unittest.TestCase):
 
 class TestProcessorSingleNode(unittest.TestCase):
     def setUp(self) -> None:
+        ns.sim_reset()
+        ns.nodes.node._node_ID_counter = -1
         config = NVQDeviceConfig.perfect_config()
         config.num_qubits = 3
-        ns.sim_reset()
         network_cfg = create_single_node_network(qdevice_typ="nv", qdevice_cfg=config)
         self.network = _setup_network(network_cfg)
         self._alice = self.network.stacks["Alice"]

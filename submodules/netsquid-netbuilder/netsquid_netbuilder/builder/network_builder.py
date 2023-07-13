@@ -84,7 +84,7 @@ class NodeBuilder:
                                     qdevice_cfg=node_config.qdevice_cfg)
 
             # TODO ProcessingNode is a very SquidASM centric object
-            nodes[node_config.name] = ProcessingNode(node_config.name, node_id=len(nodes),
+            nodes[node_config.name] = ProcessingNode(node_config.name,
                                                      qdevice=qdevice, qdevice_type=node_config.qdevice_typ,
                                                      hacky_is_squidasm_flag=hacky_is_squidasm_flag)
         return nodes

@@ -17,6 +17,7 @@ from squidasm.sim.stack.handler import Handler
 class TestHandler(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
+        ns.nodes.node._node_ID_counter = -1
         network_cfg = create_2_node_network(link_typ="depolarise",
                                             link_cfg=DepolariseLinkConfig(fidelity=1, prob_success=0.5, t_cycle=10),
                                             qdevice_typ="nv", qdevice_cfg=NVQDeviceConfig())
