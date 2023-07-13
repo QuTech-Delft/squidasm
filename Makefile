@@ -57,7 +57,7 @@ docs html:
 
 install: _check_variables
 	@$(PYTHON3) -m pip install -e . ${PIP_FLAGS}
-	$(GIT) submodule update
+	$(GIT) submodule update --init
 	@$(PYTHON3) -m pip install -e submodules/netsquid-magic/
 	@$(PYTHON3) -m pip install -e submodules/netsquid-abstractmodel/
 	@$(PYTHON3) -m pip install -e submodules/netsquid-netbuilder/
