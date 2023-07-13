@@ -51,10 +51,10 @@ class NetworkBuilder:
         network.node_name_id_mapping = {node_id: node.ID for node_id, node in network.nodes.items()}
 
         network.ports = self.clink_builder.build(config, network, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
-        network.ports |= self.hub_builder.build_classical_connections(network, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
+        network.ports.update(self.hub_builder.build_classical_connections(network, hacky_is_squidasm_flag=hacky_is_squidasm_flag))
 
         network.links = self.link_builder.build(config, network.nodes)
-        network.links |= self.hub_builder.build_links(network)
+        network.links.update(self.hub_builder.build_links(network))
 
         network.schedulers = self.hub_builder.build_schedule(network)
 
@@ -108,7 +108,7 @@ class ClassicalConnectionBuilder:
             clink_builder = self.clink_builders[clink.typ]
             connection = clink_builder.build(s1, s2, link_cfg=clink.cfg)
 
-            ports |= create_connection_ports(s1, s2, connection, port_prefix="host")
+            ports.update(create_connection_ports(s1, s2, connection, port_prefix="host"))
 
             if hacky_is_squidasm_flag:
                 s1.register_peer(s2.ID)

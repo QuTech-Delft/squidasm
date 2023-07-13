@@ -75,7 +75,7 @@ class HubBuilder:
 
                 connection = clink_builder.build(hub, node, link_config)
 
-                ports |= create_connection_ports(hub, node, connection, port_prefix="host")
+                ports.update(create_connection_ports(hub, node, connection, port_prefix="host"))
 
             # Link end nodes with each other
             for connection_1_config, connection_2_config in itertools.combinations(hub_config.connections, 2):
@@ -86,7 +86,7 @@ class HubBuilder:
                 hub_config.clink_cfg["distance"] = connection_1_config.distance + connection_2_config.distance
                 connection = clink_builder.build(n1, n2, link_config)
 
-                ports |= create_connection_ports(n1, n2, connection, port_prefix="host")
+                ports.update(create_connection_ports(n1, n2, connection, port_prefix="host"))
 
                 if hacky_is_squidasm_flag:
                     n1.register_peer(n2.ID)
