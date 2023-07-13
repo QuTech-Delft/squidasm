@@ -1,20 +1,18 @@
 from __future__ import annotations
 
+import itertools
 from typing import Any, Dict, List
 
 import netsquid as ns
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocol,
-)
-from squidasm.sim.stack.csocket import ClassicalSocket
-
+from netsquid_magic.link_layer import MagicLinkLayerProtocol
 from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.run import get_default_builder
+
 from squidasm.sim.stack.context import NetSquidContext
+from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
-from squidasm.sim.stack.stack import NodeStack, StackNetwork, ProcessingNode
-import itertools
+from squidasm.sim.stack.stack import NodeStack, ProcessingNode, StackNetwork
 
 
 def fidelity_to_prob_max_mixed(fid: float) -> float:
@@ -44,7 +42,7 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
         s2.qnos.netstack.register_peer(s1.node.ID)
         s2.qnos_comp.register_peer(s1.node.ID)
 
-    csockets: Dict[(str, str): ClassicalSocket] = {}
+    csockets: Dict[(str, str):ClassicalSocket] = {}
     for node_pair in network.ports.keys():
         node_name = node_pair[0]
         peer_name = node_pair[1]
@@ -70,12 +68,12 @@ def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
     :param network: `StackNetwork` representing the nodes and links
     :return: final results of the programs
     """
-    #assert len(network.stacks) <= 2
-    #assert len(network.links) <= 1
+    # assert len(network.stacks) <= 2
+    # assert len(network.links) <= 1
 
     # start all link layer protocols
     # TODO used to be start protocols here
-    #ProtocolController.start_all()
+    # ProtocolController.start_all()
 
     # Start the node protocols.
     for _, stack in network.stacks.items():

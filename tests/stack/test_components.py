@@ -2,8 +2,8 @@ import unittest
 
 import netsquid as ns
 from netqasm.backend.messages import InitNewAppMessage, OpenEPRSocketMessage
-
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceBuilder, NVQDeviceConfig
+
 from squidasm.sim.stack.handler import Handler
 from squidasm.sim.stack.netstack import EprSocket, Netstack
 from squidasm.sim.stack.stack import NodeStack

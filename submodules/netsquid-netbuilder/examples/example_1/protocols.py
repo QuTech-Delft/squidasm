@@ -1,15 +1,10 @@
 from typing import Generator
 
 import netsquid as ns
-from netsquid.components import INSTR_X
-from netsquid.components import QuantumProcessor
-from qlink_interface import (
-    ReqCreateAndKeep,
-    ReqReceive,
-    ResCreateAndKeep,
-)
-
+from netsquid.components import INSTR_X, QuantumProcessor
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
+from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
+
 from pydynaa import EventExpression
 
 
@@ -25,7 +20,9 @@ class AliceProtocol(BlueprintProtocol):
         print(f"{ns.sim_time()} ns: Alice receives: {message.items[0]}")
 
         # create request
-        request = ReqCreateAndKeep(remote_node_id=self.context.node_id_mapping[self.PEER], number=1)
+        request = ReqCreateAndKeep(
+            remote_node_id=self.context.node_id_mapping[self.PEER], number=1
+        )
         egp.put(request)
 
         # Await request completion
@@ -36,7 +33,9 @@ class AliceProtocol(BlueprintProtocol):
 
         # Apply Pauli X gate
         qdevice: QuantumProcessor = self.context.node.qdevice
-        qdevice.execute_instruction(instruction=INSTR_X, qubit_mapping=[received_qubit_mem_pos])
+        qdevice.execute_instruction(
+            instruction=INSTR_X, qubit_mapping=[received_qubit_mem_pos]
+        )
         yield self.await_program(qdevice)
         print(f"{ns.sim_time()} ns: Alice completes applying X gate")
 
@@ -62,8 +61,8 @@ class BobProtocol(BlueprintProtocol):
 
         # Apply Pauli X gate
         qdevice: QuantumProcessor = self.context.node.qdevice
-        qdevice.execute_instruction(instruction=INSTR_X, qubit_mapping=[received_qubit_mem_pos])
+        qdevice.execute_instruction(
+            instruction=INSTR_X, qubit_mapping=[received_qubit_mem_pos]
+        )
         yield self.await_program(qdevice)
         print(f"{ns.sim_time()} ns: Bob completes applying X gate")
-
-

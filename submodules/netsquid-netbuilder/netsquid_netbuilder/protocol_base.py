@@ -1,7 +1,6 @@
 from typing import Optional
 
 from netsquid.protocols import Protocol, Signals
-
 from netsquid_netbuilder.network import ProtocolContext
 
 
@@ -12,7 +11,7 @@ class BlueprintProtocol(Protocol):
         self.context: Optional[ProtocolContext] = None
         self.add_signal(Signals.FINISHED)
 
-    def set_context(self,  context: ProtocolContext):
+    def set_context(self, context: ProtocolContext):
         self.context = context
 
     def start(self) -> None:

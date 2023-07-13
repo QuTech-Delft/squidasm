@@ -66,7 +66,11 @@ class LogManager:
     def disable_console_logging(cls):
         """Disables logging to console"""
         logger = cls.get_stack_logger()
-        logger.handlers = [handler for handler in logger.handlers if not isinstance(handler, logging.StreamHandler)]
+        logger.handlers = [
+            handler
+            for handler in logger.handlers
+            if not isinstance(handler, logging.StreamHandler)
+        ]
 
     @classmethod
     def log_to_file(cls, path: str) -> None:

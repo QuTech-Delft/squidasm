@@ -21,7 +21,6 @@ from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z
 from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
 from netsquid.qubits.ketstates import BellIndex
-from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_magic.magic_distributor import DoubleClickMagicDistributor
 from qlink_interface import (
     ReqCreateAndKeep,
@@ -141,7 +140,7 @@ class Netstack(ComponentProtocol):
             PortListener(self._comp.peer_in_port(peer_id), SIGNAL_PEER_NSTK_MSG),
         )
 
-    def assign_egp(self, remote_node_id: int,  egp: EgpProtocol) -> None:
+    def assign_egp(self, remote_node_id: int, egp: EgpProtocol) -> None:
         """Set the magic link layer protocol that this network stack uses to produce
         entangled pairs with the remote node.
 
@@ -169,7 +168,7 @@ class Netstack(ComponentProtocol):
         message."""
         return (yield from self._receive_msg("processor", SIGNAL_PROC_NSTK_MSG))
 
-    def _send_peer_msg(self, peer_id: int,  msg: str) -> None:
+    def _send_peer_msg(self, peer_id: int, msg: str) -> None:
         """Send a message to the network stack of the other node.
 
         NOTE: for now we assume there is only one other node, which is 'the' peer."""
@@ -495,7 +494,6 @@ class Netstack(ComponentProtocol):
 
         peer_id = req.remote_node_id
         # Send it to the receiver node and wait for an acknowledgement.
-        netstack_comp = self._comp
         self._send_peer_msg(peer_id, request)
         peer_msg = yield from self._receive_peer_msg(peer_id)
         self._logger.debug(f"received peer msg: {peer_msg}")

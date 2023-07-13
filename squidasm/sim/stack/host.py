@@ -18,7 +18,7 @@ from squidasm.sim.stack.connection import QnosConnection
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext
-from squidasm.sim.stack.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
+from squidasm.sim.stack.signals import SIGNAL_HAND_HOST_MSG
 
 
 class HostComponent(Component):

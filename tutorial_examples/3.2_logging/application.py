@@ -1,9 +1,10 @@
+from typing import List
+
 from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
-from typing import List
-
 from netsquid_netbuilder.logger import LogManager
+
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -11,7 +12,7 @@ def from_bit_string(string: str) -> List[int]:
     bits = []
     for i in range(len(string)):
         bit = int(string[i])
-        assert bit==0 or bit==1
+        assert bit == 0 or bit == 1
         bits.append(bit)
     return bits
 

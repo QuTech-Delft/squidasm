@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
-
-from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_magic.link_layer import (
+    MagicLinkLayerProtocolWithSignaling,
     SingleClickTranslationUnit,
 )
-from netsquid_netbuilder.modules.links.interface import ILinkConfig, ILinkBuilder
+from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
+from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
+
 from squidasm.sim.stack.stack import ProcessingNode
 
 
@@ -20,8 +20,9 @@ class NVLinkConfig(ILinkConfig):
 
 class NVLinkBuilder(ILinkBuilder):
     @classmethod
-    def build(cls, node1: ProcessingNode, node2: ProcessingNode,
-              link_cfg: NVLinkConfig) -> MagicLinkLayerProtocolWithSignaling:
+    def build(
+        cls, node1: ProcessingNode, node2: ProcessingNode, link_cfg: NVLinkConfig
+    ) -> MagicLinkLayerProtocolWithSignaling:
         if isinstance(link_cfg, dict):
             link_cfg = NVLinkConfig(**link_cfg)
 

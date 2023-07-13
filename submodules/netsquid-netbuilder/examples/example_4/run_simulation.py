@@ -1,9 +1,10 @@
-import squidasm
 from netsquid_netbuilder.base_configs import StackNetworkConfig
-from netsquid_netbuilder.run import run, get_default_builder
-from netsquid_netbuilder.logger import LogManager
-from protocols import AliceProtocol, BobProtocol
 from netsquid_netbuilder.data_collectors import collect_schedule_events
+from netsquid_netbuilder.logger import LogManager
+from netsquid_netbuilder.run import get_default_builder, run
+from protocols import AliceProtocol, BobProtocol
+
+import squidasm
 
 logger = LogManager.get_stack_logger()
 LogManager.set_log_level(10)
@@ -20,10 +21,11 @@ alice_B = AliceProtocol(peer="Node4", num_epr_pairs=num_epr_pairs)
 bob_B = BobProtocol(peer="Node3", num_epr_pairs=num_epr_pairs)
 schedule_events = collect_schedule_events(network.schedulers.popitem()[1])
 
-sim_stats = run(network, {"Node1": alice_A, "Node2": bob_A, "Node3": alice_B, "Node4": bob_B})
+sim_stats = run(
+    network, {"Node1": alice_A, "Node2": bob_A, "Node3": alice_B, "Node4": bob_B}
+)
 
 for key, val in schedule_events.items():
     print(key)
     print(val)
 print(sim_stats)
-

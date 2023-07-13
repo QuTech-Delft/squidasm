@@ -40,7 +40,9 @@ class ClientProgram(Program):
         epr_qubit.H()
         result = epr_qubit.measure()
         yield from connection.flush()
-        print(f"{ns.sim_time()} ns: Client: {self.name} measures local EPR qubit: {result}")
+        print(
+            f"{ns.sim_time()} ns: Client: {self.name} measures local EPR qubit: {result}"
+        )
 
         return {}
 

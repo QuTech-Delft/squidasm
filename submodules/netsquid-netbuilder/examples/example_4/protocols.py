@@ -1,13 +1,9 @@
 from typing import Generator
 
 import netsquid as ns
-from qlink_interface import (
-    ReqCreateAndKeep,
-    ReqReceive,
-    ResCreateAndKeep,
-)
-
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
+from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
+
 from pydynaa import EventExpression
 
 
@@ -25,18 +21,26 @@ class AliceProtocol(BlueprintProtocol):
         for i in range(self.num_epr_pairs):
             yield self.await_port_input(port)
             message = port.rx_input()
-            print(f"{ns.sim_time(ns.MILLISECOND)} ms: {self.context.node.name} receives: {message.items[0]}")
+            print(
+                f"{ns.sim_time(ns.MILLISECOND)} ms: {self.context.node.name} receives: {message.items[0]}"
+            )
 
-            request = ReqCreateAndKeep(remote_node_id=self.context.node_id_mapping[self.peer], number=1)
+            request = ReqCreateAndKeep(
+                remote_node_id=self.context.node_id_mapping[self.peer], number=1
+            )
             egp.put(request)
 
             yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
-            response = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
+            response = egp.get_signal_result(
+                label=ResCreateAndKeep.__name__, receiver=self
+            )
             received_qubit_mem_pos = response.logical_qubit_id
             result = qdevice.measure(received_qubit_mem_pos)[0]
             qdevice.discard(received_qubit_mem_pos)
 
-            print(f"{ns.sim_time(ns.MILLISECOND)} ms: pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}")
+            print(
+                f"{ns.sim_time(ns.MILLISECOND)} ms: pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}"
+            )
 
 
 class BobProtocol(BlueprintProtocol):
@@ -55,14 +59,19 @@ class BobProtocol(BlueprintProtocol):
         for i in range(self.num_epr_pairs):
             msg = "Ready to start entanglement"
             port.tx_output(msg)
-            print(f"{ns.sim_time(ns.MILLISECOND)} ms: {self.context.node.name} sends: {msg}")
+            print(
+                f"{ns.sim_time(ns.MILLISECOND)} ms: {self.context.node.name} sends: {msg}"
+            )
 
             # Wait for a signal from the EGP.
             yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
-            response = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
+            response = egp.get_signal_result(
+                label=ResCreateAndKeep.__name__, receiver=self
+            )
             received_qubit_mem_pos = response.logical_qubit_id
 
             result = qdevice.measure(positions=[received_qubit_mem_pos])[0]
             qdevice.discard(received_qubit_mem_pos)
-            print(f"{ns.sim_time(ns.MILLISECOND)} ms: pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}")
-
+            print(
+                f"{ns.sim_time(ns.MILLISECOND)} ms: pair: {i} {self.context.node.name} Created EPR with {self.peer} and measures {result}"
+            )

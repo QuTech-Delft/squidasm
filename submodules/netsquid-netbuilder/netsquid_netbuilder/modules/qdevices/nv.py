@@ -13,8 +13,10 @@ from netsquid.components.instructions import (
 from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qprocessor import PhysicalInstruction, QuantumProcessor
 from netsquid.qubits.operators import Operator
-
-from netsquid_netbuilder.modules.qdevices.interface import IQDeviceConfig, IQDeviceBuilder
+from netsquid_netbuilder.modules.qdevices.interface import (
+    IQDeviceBuilder,
+    IQDeviceConfig,
+)
 
 
 class NVQDeviceConfig(IQDeviceConfig):
@@ -115,7 +117,8 @@ class NVQDeviceBuilder(IQDeviceBuilder):
         )
 
         electron_single_qubit_noise = DepolarNoiseModel(
-            depolar_rate=qdevice_cfg.electron_single_qubit_depolar_prob, time_independent=True
+            depolar_rate=qdevice_cfg.electron_single_qubit_depolar_prob,
+            time_independent=True,
         )
 
         carbon_init_noise = DepolarNoiseModel(
@@ -130,9 +133,13 @@ class NVQDeviceBuilder(IQDeviceBuilder):
             depolar_rate=qdevice_cfg.ec_gate_depolar_prob, time_independent=True
         )
 
-        electron_qubit_noise = T1T2NoiseModel(T1=qdevice_cfg.electron_T1, T2=qdevice_cfg.electron_T2)
+        electron_qubit_noise = T1T2NoiseModel(
+            T1=qdevice_cfg.electron_T1, T2=qdevice_cfg.electron_T2
+        )
 
-        carbon_qubit_noise = T1T2NoiseModel(T1=qdevice_cfg.carbon_T1, T2=qdevice_cfg.carbon_T2)
+        carbon_qubit_noise = T1T2NoiseModel(
+            T1=qdevice_cfg.carbon_T1, T2=qdevice_cfg.carbon_T2
+        )
 
         # defining gates and their gate times
 
@@ -154,7 +161,11 @@ class NVQDeviceBuilder(IQDeviceBuilder):
 
         for (instr, dur) in zip(
             [INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z],
-            [qdevice_cfg.carbon_rot_x, qdevice_cfg.carbon_rot_y, qdevice_cfg.carbon_rot_z],
+            [
+                qdevice_cfg.carbon_rot_x,
+                qdevice_cfg.carbon_rot_y,
+                qdevice_cfg.carbon_rot_z,
+            ],
         ):
             phys_instructions.append(
                 PhysicalInstruction(
@@ -180,7 +191,11 @@ class NVQDeviceBuilder(IQDeviceBuilder):
 
         for (instr, dur) in zip(
             [INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z],
-            [qdevice_cfg.electron_rot_x, qdevice_cfg.electron_rot_y, qdevice_cfg.electron_rot_z],
+            [
+                qdevice_cfg.electron_rot_x,
+                qdevice_cfg.electron_rot_y,
+                qdevice_cfg.electron_rot_z,
+            ],
         ):
             phys_instructions.append(
                 PhysicalInstruction(
@@ -219,10 +234,22 @@ class NVQDeviceBuilder(IQDeviceBuilder):
         )
 
         M0 = Operator(
-            "M0", np.diag([np.sqrt(1 - qdevice_cfg.prob_error_0), np.sqrt(qdevice_cfg.prob_error_1)])
+            "M0",
+            np.diag(
+                [
+                    np.sqrt(1 - qdevice_cfg.prob_error_0),
+                    np.sqrt(qdevice_cfg.prob_error_1),
+                ]
+            ),
         )
         M1 = Operator(
-            "M1", np.diag([np.sqrt(qdevice_cfg.prob_error_0), np.sqrt(1 - qdevice_cfg.prob_error_1)])
+            "M1",
+            np.diag(
+                [
+                    np.sqrt(qdevice_cfg.prob_error_0),
+                    np.sqrt(1 - qdevice_cfg.prob_error_1),
+                ]
+            ),
         )
 
         # hack to set imperfect measurements

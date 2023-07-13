@@ -5,16 +5,17 @@ from typing import Any, Dict, Generator
 
 from netqasm.lang.operand import Template
 from netqasm.sdk.toolbox.state_prep import get_angle_spec_from_float
-
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
+    CLinkConfig,
     LinkConfig,
     StackConfig,
-    StackNetworkConfig, CLinkConfig,
+    StackNetworkConfig,
 )
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
+
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
@@ -151,19 +152,15 @@ if __name__ == "__main__":
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
-        stack1="client",
-        stack2="server",
-        typ="perfect",
-        cfg=PerfectLinkConfig()
+        stack1="client", stack2="server", typ="perfect", cfg=PerfectLinkConfig()
     )
 
     clink = CLinkConfig(
-        stack1="client",
-        stack2="server",
-        typ="instant",
-        cfg=InstantCLinkConfig()
+        stack1="client", stack2="server", typ="instant", cfg=InstantCLinkConfig()
     )
 
-    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link], clinks=[clink])
+    cfg = StackNetworkConfig(
+        stacks=[client_stack, server_stack], links=[link], clinks=[clink]
+    )
 
     get_distribution(cfg, num_times, alpha=0, theta1=0)

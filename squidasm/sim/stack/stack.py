@@ -1,19 +1,16 @@
 from __future__ import annotations
 
 from typing import Dict, List, Optional
-from squidasm.sim.stack.csocket import ClassicalSocket
 
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Port
 from netsquid.nodes import Node
 from netsquid.nodes.network import Network
 from netsquid.protocols import Protocol
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocol,
-    MagicLinkLayerProtocolWithSignaling,
-)
-from squidasm.sim.stack.egp import EgpProtocol
+from netsquid_magic.link_layer import MagicLinkLayerProtocol
 
+from squidasm.sim.stack.csocket import ClassicalSocket
+from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent
 
@@ -42,7 +39,7 @@ class ProcessingNode(Node):
         qdevice: QuantumProcessor,
         qdevice_type: str,
         node_id: Optional[int] = None,
-        hacky_is_squidasm_flag=True
+        hacky_is_squidasm_flag=True,
     ) -> None:
         """ProcessingNode constructor. Typically created indirectly through
         constructing a `NodeStack`."""
@@ -69,7 +66,6 @@ class ProcessingNode(Node):
             # TODO remove self.qnos_comp.peer_out_port.forward_output(self.qnos_peer_out_port)
             # TODO remove self.qnos_peer_in_port.forward_input(self.qnos_comp.peer_in_port)
 
-
     @property
     def qnos_comp(self) -> QnosComponent:
         return self.subcomponents["qnos"]
@@ -88,7 +84,9 @@ class ProcessingNode(Node):
     def register_peer(self, peer_id: int):
         self.add_ports([f"qnos_peer_{peer_id}"])
         self.qnos_comp.register_peer(peer_id)
-        self.qnos_comp.peer_out_port(peer_id).forward_output(self.qnos_peer_port(peer_id))
+        self.qnos_comp.peer_out_port(peer_id).forward_output(
+            self.qnos_peer_port(peer_id)
+        )
         self.qnos_peer_port(peer_id).forward_input(self.qnos_comp.peer_in_port(peer_id))
 
 
@@ -141,7 +139,7 @@ class NodeStack(Protocol):
             self._host = Host(self.host_comp, qdevice_type)
             self._qnos = Qnos(self.qnos_comp, qdevice_type)
 
-    def assign_egp(self, remote_node_id: int,  egp: EgpProtocol) -> None:
+    def assign_egp(self, remote_node_id: int, egp: EgpProtocol) -> None:
         """Set the link layer protocol to use for entanglement generation.
 
         The same link layer protocol object is used by both nodes sharing a link in
@@ -200,8 +198,10 @@ class StackNetwork(Network):
     `MagicLinkLayerProtocol`s."""
 
     def __init__(
-        self, stacks: Dict[str, NodeStack], links: List[MagicLinkLayerProtocol],
-            csockets: Dict[(str, str), ClassicalSocket]
+        self,
+        stacks: Dict[str, NodeStack],
+        links: List[MagicLinkLayerProtocol],
+        csockets: Dict[(str, str), ClassicalSocket],
     ) -> None:
         """StackNetwork constructor.
 

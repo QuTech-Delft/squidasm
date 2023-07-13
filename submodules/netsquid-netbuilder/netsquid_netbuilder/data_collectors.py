@@ -1,11 +1,15 @@
+from functools import wraps
 from typing import Any, List, Tuple
 
-from netsquid_netbuilder.modules.scheduler.interface import TimeSlot, IScheduleProtocol, \
-    IScheduleBuilder, IScheduleConfig
-
 import netsquid as ns
+from netsquid_netbuilder.modules.scheduler.interface import (
+    IScheduleBuilder,
+    IScheduleConfig,
+    IScheduleProtocol,
+    TimeSlot,
+)
+
 from pydynaa.core import EventExpression
-from functools import wraps
 
 
 def get_argument(args: tuple, kwargs: dict, position: int, name: str) -> Any:
@@ -47,19 +51,24 @@ def collect_schedule_events(scheduler: IScheduleProtocol) -> dict:
 
         return collect
 
-    scheduler._open_link = collect_wrapper(scheduler._open_link, "open",
-                                           method_args=[(0, "node1_name"), (1, "node2_name")])
-    scheduler._close_link = collect_wrapper(scheduler._close_link, "close",
-                                            method_args=[(0, "node1_name"), (1, "node2_name")])
-    scheduler.register_request = collect_wrapper(scheduler.register_request, "request",
-                                                 method_args=[(0, "node_id"), (1, "req"), (2, "create_id")])
-    scheduler.register_result = collect_wrapper(scheduler.register_result, "result",
-                                                method_args=[(0, "node_id"), (1, "res")])
-    scheduler.register_error = collect_wrapper(scheduler.register_error, "error",
-                                               method_args=[(0, "node_id"), (1, "error")])
+    scheduler._open_link = collect_wrapper(
+        scheduler._open_link, "open", method_args=[(0, "node1_name"), (1, "node2_name")]
+    )
+    scheduler._close_link = collect_wrapper(
+        scheduler._close_link,
+        "close",
+        method_args=[(0, "node1_name"), (1, "node2_name")],
+    )
+    scheduler.register_request = collect_wrapper(
+        scheduler.register_request,
+        "request",
+        method_args=[(0, "node_id"), (1, "req"), (2, "create_id")],
+    )
+    scheduler.register_result = collect_wrapper(
+        scheduler.register_result, "result", method_args=[(0, "node_id"), (1, "res")]
+    )
+    scheduler.register_error = collect_wrapper(
+        scheduler.register_error, "error", method_args=[(0, "node_id"), (1, "error")]
+    )
 
     return output_dict
-
-
-
-

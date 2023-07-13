@@ -73,6 +73,3 @@ class BobProgram(Program):
         measurements = [int(r) for r in measurements]
         # Return the measurement results to run_simulation.py
         return {"measurements": measurements}
-
-
-

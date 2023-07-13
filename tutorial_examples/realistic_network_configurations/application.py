@@ -69,6 +69,3 @@ class BobProgram(Program):
 
         measurements = [int(r) for r in measurements]
         return {"measurements": measurements}
-
-
-

@@ -1,5 +1,6 @@
-import yaml
 from pprint import pprint
+
+import yaml
 
 with open("basic_example.yaml", "r") as f:
     contents = yaml.load(f, yaml.Loader)

@@ -1,13 +1,16 @@
 import netsquid as ns
-
 from netsquid_abstractmodel.abstract_node import AbstractQdeviceBuilder
 from netsquid_netbuilder.base_configs import StackNetworkConfig
-from netsquid_netbuilder.run import run, get_default_builder
+from netsquid_netbuilder.run import get_default_builder, run
 from protocols import AliceProtocol, BobProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
 # Load network config
-for config_file in ["abstract_node.yaml", "heralded_double_click.yaml", "heralded_single_click.yaml"]:
+for config_file in [
+    "abstract_node.yaml",
+    "heralded_double_click.yaml",
+    "heralded_single_click.yaml",
+]:
     print(f"\n{config_file}\n")
     cfg = StackNetworkConfig.from_file(config_file)
 
@@ -33,4 +36,3 @@ for config_file in ["abstract_node.yaml", "heralded_double_click.yaml", "heralde
     print(fidelity)
 
     print(sim_stats)
-

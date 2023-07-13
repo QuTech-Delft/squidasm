@@ -2,14 +2,13 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, Generator, List, Optional, Set, Tuple, Union
 
-import netsquid as ns
 from netqasm.lang import operand
 from netqasm.lang.encoding import RegisterName
 from netqasm.sdk.shared_memory import Arrays, RegisterGroup, setup_registers
 from netsquid.components.component import Component, Port
 from netsquid.protocols import Protocol
-
 from netsquid_netbuilder.logger import LogManager
+
 from pydynaa import EventExpression
 
 

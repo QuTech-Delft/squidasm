@@ -5,8 +5,8 @@ from typing import Optional
 from netsquid.components.cchannel import ClassicalChannel
 from netsquid.components.models.delaymodels import FixedDelayModel
 from netsquid.nodes.connections import DirectConnection
+from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 
-from netsquid_netbuilder.modules.clinks.interface import ICLinkConfig, ICLinkBuilder
 from squidasm.sim.stack.stack import ProcessingNode
 
 
@@ -18,7 +18,9 @@ class DefaultCLinkConfig(ICLinkConfig):
 
 class DefaultCLinkBuilder(ICLinkBuilder):
     @classmethod
-    def build(cls, node1: ProcessingNode, node2: ProcessingNode, link_cfg: DefaultCLinkConfig) -> DirectConnection:
+    def build(
+        cls, node1: ProcessingNode, node2: ProcessingNode, link_cfg: DefaultCLinkConfig
+    ) -> DirectConnection:
         if isinstance(link_cfg, dict):
             link_cfg = DefaultCLinkConfig(**link_cfg)
         if link_cfg.delay is None and link_cfg.distance is None:
@@ -26,14 +28,20 @@ class DefaultCLinkBuilder(ICLinkBuilder):
         if link_cfg.delay is not None and link_cfg.distance is not None:
             raise Exception("Model can only use one parameter")
         if link_cfg.distance is not None:
-            link_cfg.delay = link_cfg.distance / link_cfg.speed_of_light * 1E9
+            link_cfg.delay = link_cfg.distance / link_cfg.speed_of_light * 1e9
 
-        channel1to2 = ClassicalChannel(name=f"Default channel {node1.name} to {node2.name}",
-                                       models={"delay_model": FixedDelayModel(delay=link_cfg.delay)})
-        channel2to1 = ClassicalChannel(name=f"Default channel {node2.name} to {node1.name}",
-                                       models={"delay_model": FixedDelayModel(delay=link_cfg.delay)})
+        channel1to2 = ClassicalChannel(
+            name=f"Default channel {node1.name} to {node2.name}",
+            models={"delay_model": FixedDelayModel(delay=link_cfg.delay)},
+        )
+        channel2to1 = ClassicalChannel(
+            name=f"Default channel {node2.name} to {node1.name}",
+            models={"delay_model": FixedDelayModel(delay=link_cfg.delay)},
+        )
 
-        conn = DirectConnection(name=f"Connection {node1.name} - {node2.name}", channel_AtoB=channel1to2,
-                                channel_BtoA=channel2to1)
+        conn = DirectConnection(
+            name=f"Connection {node1.name} - {node2.name}",
+            channel_AtoB=channel1to2,
+            channel_BtoA=channel2to1,
+        )
         return conn
-

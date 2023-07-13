@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+from netsquid_magic.models.perfect import PerfectLinkBuilder
 from netsquid_netbuilder.clinks.default import DefaultCLinkBuilder
 from netsquid_netbuilder.clinks.instant import InstantCLinkBuilder
 from netsquid_netbuilder.network_builder import NetworkBuilder
 from netsquid_netbuilder.qdevices.generic import GenericQDeviceBuilder
 from netsquid_netbuilder.scheduler.fifo import FIFOScheduleBuilder
 from netsquid_netbuilder.scheduler.static import StaticScheduleBuilder
-
-from netsquid_magic.models.perfect import PerfectLinkBuilder
 
 
 def get_test_network_builder() -> NetworkBuilder:

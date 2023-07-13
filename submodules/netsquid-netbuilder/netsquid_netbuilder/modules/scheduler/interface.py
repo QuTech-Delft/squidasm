@@ -1,18 +1,14 @@
-from abc import ABC, abstractmethod
-from abc import ABCMeta
-from typing import Union, List, Dict
-
+from abc import ABC, ABCMeta, abstractmethod
 from dataclasses import dataclass
-from netsquid.protocols import Protocol
-from qlink_interface import (
-    ReqCreateBase,
-    ResError,
-)
-from qlink_interface.interface import ResCreate
+from typing import Dict, List, Union
 
+from netsquid.protocols import Protocol
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.yaml_loadable import YamlLoadable
-from pydynaa import EventHandler, EventType, Event
+from qlink_interface import ReqCreateBase, ResError
+from qlink_interface.interface import ResCreate
+
+from pydynaa import Event, EventHandler, EventType
 
 LinkOpenEvent = EventType("evtLinkOpen", "A link is opened")
 LinkCloseEvent = EventType("evtLinkClose", "A link is closed")
@@ -46,11 +42,15 @@ class IScheduleProtocol(Protocol, metaclass=ABCMeta):
         self.name = name
         self.links = links
         self._node_id_mapping = node_id_mapping
-        self._node_name_mapping = {id_: name for name, id_ in self._node_id_mapping.items()}
+        self._node_name_mapping = {
+            id_: name for name, id_ in self._node_id_mapping.items()
+        }
 
         self._evhandler = EventHandler(self._handle_event)
         self._ev_to_timeslot: Dict[Event, TimeSlot] = {}
-        self._logger = LogManager.get_stack_logger(f"{self.__class__.__name__}({self.name})")
+        self._logger = LogManager.get_stack_logger(
+            f"{self.__class__.__name__}({self.name})"
+        )
 
     def start(self):
         super().start()
@@ -85,7 +85,11 @@ class IScheduleProtocol(Protocol, metaclass=ABCMeta):
     def find_timeslot(self, node_id: int, remote_id: int):
         node_name = self._node_name_mapping[node_id]
         remote_node_name = self._node_name_mapping[remote_id]
-        timeslots = [timeslot for timeslot in self.registered_timeslots if timeslot.contains_link(node_name, remote_node_name)]
+        timeslots = [
+            timeslot
+            for timeslot in self.registered_timeslots
+            if timeslot.contains_link(node_name, remote_node_name)
+        ]
         return timeslots
 
     @property
@@ -120,6 +124,11 @@ class IScheduleProtocol(Protocol, metaclass=ABCMeta):
 class IScheduleBuilder(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
-    def build(cls, name: str, network,
-              participating_node_names: List[str], schedule_config: IScheduleConfig) -> IScheduleProtocol:
+    def build(
+        cls,
+        name: str,
+        network,
+        participating_node_names: List[str],
+        schedule_config: IScheduleConfig,
+    ) -> IScheduleProtocol:
         pass

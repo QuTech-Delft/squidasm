@@ -5,13 +5,16 @@ import netsquid as ns
 from netqasm.sdk.qubit import Qubit
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
-
 from netsquid_magic.models.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
-from netsquid_netbuilder.test_utils.network_generation import create_2_node_network, create_single_node_network
+from netsquid_netbuilder.test_utils.network_generation import (
+    create_2_node_network,
+    create_single_node_network,
+)
+
 from pydynaa import EventExpression
-from squidasm.run.stack.run import _setup_network, _run
+from squidasm.run.stack.run import _run, _setup_network
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -127,9 +130,12 @@ class TestSdkTwoNodes(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
         ns.nodes.node._node_ID_counter = -1
-        network_cfg = create_2_node_network(link_typ="depolarise",
-                                            link_cfg=DepolariseLinkConfig(fidelity=1, prob_success=0.5, t_cycle=10),
-                                            qdevice_typ="nv", qdevice_cfg=NVQDeviceConfig.perfect_config())
+        network_cfg = create_2_node_network(
+            link_typ="depolarise",
+            link_cfg=DepolariseLinkConfig(fidelity=1, prob_success=0.5, t_cycle=10),
+            qdevice_typ="nv",
+            qdevice_cfg=NVQDeviceConfig.perfect_config(),
+        )
         self.network = _setup_network(network_cfg)
 
         self._alice = self.network.stacks["Alice"]

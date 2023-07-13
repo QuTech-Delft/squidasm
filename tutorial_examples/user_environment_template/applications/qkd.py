@@ -1,9 +1,10 @@
-import numpy
 import random
 from dataclasses import dataclass
+from typing import Any, Dict, Generator, List, Optional, Tuple
+
+import numpy
 from netqasm.sdk.classical_communication.message import StructuredMessage
 from netqasm.sdk.classical_communication.socket import Socket
-from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from pydynaa import EventExpression
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -37,7 +38,6 @@ class PairInfo:
 
 
 class QkdProgram(Program):
-
     @property
     def meta(self) -> ProgramMeta:
         return ProgramMeta(
@@ -81,7 +81,9 @@ class QkdProgram(Program):
 
         pairs_info = yield from self.filter_bases(csocket, pairs_info)
 
-        pairs_info, error_rate = yield from self.estimate_error_rate(csocket, pairs_info, num_test_bits)
+        pairs_info, error_rate = yield from self.estimate_error_rate(
+            csocket, pairs_info, num_test_bits
+        )
 
         raw_key = [
             pair.outcome
@@ -170,4 +172,3 @@ class QkdProgram(Program):
                 pairs_info[i1].same_outcome = True
 
         return pairs_info, (num_error / num_test_bits)
-

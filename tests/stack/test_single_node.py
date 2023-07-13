@@ -7,11 +7,11 @@ from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.parsing import parse_text_subroutine
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
-
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 from netsquid_netbuilder.test_utils.network_generation import create_single_node_network
+
 from pydynaa import EventExpression
-from squidasm.run.stack.run import _setup_network, _run
+from squidasm.run.stack.run import _run, _setup_network
 from squidasm.sim.stack.common import AppMemory
 from squidasm.sim.stack.host import Host
 

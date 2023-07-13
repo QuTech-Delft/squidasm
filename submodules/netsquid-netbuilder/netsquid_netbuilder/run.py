@@ -4,7 +4,6 @@ import typing
 from typing import Dict
 
 import netsquid as ns
-
 from netsquid_magic.models.depolarise import DepolariseLinkBuilder
 from netsquid_magic.models.heralded_double_click import HeraldedDoubleClickLinkBuilder
 from netsquid_magic.models.heralded_single_click import HeraldedSingleClickLinkBuilder
@@ -63,4 +62,3 @@ def run(network: Network, protocols: Dict[str, BlueprintProtocol]):
         prot.stop()
 
     return sim_stats
-

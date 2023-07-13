@@ -5,16 +5,17 @@ from typing import Any, Dict, Generator
 from netqasm.lang.parsing.text import parse_text_protosubroutine
 from netqasm.sdk import Qubit
 from netqasm.sdk.futures import Array
-
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
+    CLinkConfig,
     LinkConfig,
     StackConfig,
-    StackNetworkConfig, CLinkConfig,
+    StackNetworkConfig,
 )
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
+
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -202,17 +203,11 @@ if __name__ == "__main__":
         qdevice_cfg=NVQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
-        stack1=client.name,
-        stack2=server.name,
-        typ="perfect",
-        cfg=PerfectLinkConfig()
-)
+        stack1=client.name, stack2=server.name, typ="perfect", cfg=PerfectLinkConfig()
+    )
 
     clink = CLinkConfig(
-        stack1="client",
-        stack2="server",
-        typ="instant",
-        cfg=InstantCLinkConfig()
+        stack1="client", stack2="server", typ="instant", cfg=InstantCLinkConfig()
     )
 
     cfg = StackNetworkConfig(stacks=[client, server], links=[link], clinks=[clink])

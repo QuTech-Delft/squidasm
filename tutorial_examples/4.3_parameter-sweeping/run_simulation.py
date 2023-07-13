@@ -1,9 +1,9 @@
 import numpy as np
-from matplotlib import pyplot
-
 from application import AliceProgram, BobProgram
-from netsquid_netbuilder.base_configs import StackNetworkConfig, LinkConfig
+from matplotlib import pyplot
+from netsquid_netbuilder.base_configs import LinkConfig, StackNetworkConfig
 from netsquid_netbuilder.links import DepolariseLinkConfig
+
 from squidasm.run.stack.run import run
 
 # import network configuration from file
@@ -16,7 +16,7 @@ link = LinkConfig(stack1="Alice", stack2="Bob", typ="depolarise", cfg=depolarise
 # Replace link from YAML file with new depolarise link
 cfg.links = [link]
 
-link_fidelity_list = np.arange(0.5, 1., step=0.05)
+link_fidelity_list = np.arange(0.5, 1.0, step=0.05)
 error_rate_result_list = []
 
 for fidelity in link_fidelity_list:
@@ -31,12 +31,16 @@ for fidelity in link_fidelity_list:
     # Run the simulation. Programs argument is a mapping of network node labels to programs to run on that node
     # return from run method are the results per node
     simulation_iterations = 20
-    results_alice, results_bob = run(config=cfg,
-                                     programs={"Alice": alice_program, "Bob": bob_program},
-                                     num_times=simulation_iterations)
+    results_alice, results_bob = run(
+        config=cfg,
+        programs={"Alice": alice_program, "Bob": bob_program},
+        num_times=simulation_iterations,
+    )
 
     # results have List[Dict[]] structure. List contains the simulation iterations
-    results_alice = [results_alice[i]["measurements"] for i in range(simulation_iterations)]
+    results_alice = [
+        results_alice[i]["measurements"] for i in range(simulation_iterations)
+    ]
     results_bob = [results_bob[i]["measurements"] for i in range(simulation_iterations)]
 
     # Create one large list of all EPR measurements
@@ -44,7 +48,10 @@ for fidelity in link_fidelity_list:
     results_bob = np.concatenate(results_bob).flatten()
 
     # Per EPR determine if results are identical
-    errors = [result_alice != result_bob for result_alice, result_bob in zip(results_alice, results_bob)]
+    errors = [
+        result_alice != result_bob
+        for result_alice, result_bob in zip(results_alice, results_bob)
+    ]
 
     # Write out average error rate
     error_percentage = sum(errors) / len(errors) * 100

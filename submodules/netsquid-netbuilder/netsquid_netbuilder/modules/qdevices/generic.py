@@ -15,8 +15,10 @@ from netsquid.components.instructions import (
 )
 from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qprocessor import PhysicalInstruction, QuantumProcessor
-
-from netsquid_netbuilder.modules.qdevices.interface import IQDeviceConfig, IQDeviceBuilder
+from netsquid_netbuilder.modules.qdevices.interface import (
+    IQDeviceBuilder,
+    IQDeviceConfig,
+)
 
 
 class GenericQDeviceConfig(IQDeviceConfig):
@@ -73,7 +75,8 @@ class GenericQDeviceBuilder(IQDeviceBuilder):
         phys_instructions = []
 
         single_qubit_gate_noise = DepolarNoiseModel(
-            depolar_rate=qdevice_cfg.single_qubit_gate_depolar_prob, time_independent=True
+            depolar_rate=qdevice_cfg.single_qubit_gate_depolar_prob,
+            time_independent=True,
         )
 
         two_qubit_gate_noise = DepolarNoiseModel(
@@ -134,4 +137,3 @@ class GenericQDeviceBuilder(IQDeviceBuilder):
             phys_instructions=phys_instructions,
         )
         return qmem
-

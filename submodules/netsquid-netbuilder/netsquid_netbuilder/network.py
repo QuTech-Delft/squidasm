@@ -1,23 +1,27 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Optional
 
 if TYPE_CHECKING:
     from netsquid.components import Port
+    from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
     from netsquid_netbuilder.builder.metro_hub import MetroHubNode
     from netsquid_netbuilder.builder.network_builder import ProtocolController
-    from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
     from netsquid_netbuilder.modules.scheduler.interface import IScheduleProtocol
+
     from squidasm.sim.stack.egp import EgpProtocol
     from squidasm.sim.stack.stack import ProcessingNode
 
 
 class ProtocolContext:
-    def __init__(self, node: ProcessingNode,
-                 links: Dict[str, MagicLinkLayerProtocolWithSignaling],
-                 egp: Dict[str, EgpProtocol],
-                 node_id_mapping: Dict[str, int],
-                 ports: Dict[str, Port]):
+    def __init__(
+        self,
+        node: ProcessingNode,
+        links: Dict[str, MagicLinkLayerProtocolWithSignaling],
+        egp: Dict[str, EgpProtocol],
+        node_id_mapping: Dict[str, int],
+        ports: Dict[str, Port],
+    ):
         self.node = node
         self.links = links
         self.egp = egp
@@ -45,7 +49,9 @@ class Network:
         return ProtocolContext(node, links, egp, self.node_name_id_mapping, ports)
 
     @staticmethod
-    def filter_for_id(node_id: str, dictionary: Dict[(str, str), any]) -> Dict[str, any]:
+    def filter_for_id(
+        node_id: str, dictionary: Dict[(str, str), any]
+    ) -> Dict[str, any]:
         keys = dictionary.keys()
         keys = filter(lambda key_tuple: key_tuple[0] == node_id, keys)
         return {key[1]: dictionary[key] for key in keys}
@@ -55,5 +61,3 @@ class Network:
 
     def stop(self):
         self._protocol_controller.stop_all()
-
-

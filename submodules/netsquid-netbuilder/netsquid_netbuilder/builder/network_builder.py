@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Dict, Type
 
 from netsquid.components import Port
-
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.builder.builder_utils import create_connection_ports
@@ -13,6 +12,7 @@ from netsquid_netbuilder.modules.links.interface import ILinkBuilder
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
 from netsquid_netbuilder.network import Network
+
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.stack import ProcessingNode
 
@@ -45,13 +45,23 @@ class NetworkBuilder:
 
         network = Network()
 
-        network.nodes = self.node_builder.build(config, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
+        network.nodes = self.node_builder.build(
+            config, hacky_is_squidasm_flag=hacky_is_squidasm_flag
+        )
         network.hubs = self.hub_builder.build_hub_nodes()
 
-        network.node_name_id_mapping = {node_id: node.ID for node_id, node in network.nodes.items()}
+        network.node_name_id_mapping = {
+            node_id: node.ID for node_id, node in network.nodes.items()
+        }
 
-        network.ports = self.clink_builder.build(config, network, hacky_is_squidasm_flag=hacky_is_squidasm_flag)
-        network.ports.update(self.hub_builder.build_classical_connections(network, hacky_is_squidasm_flag=hacky_is_squidasm_flag))
+        network.ports = self.clink_builder.build(
+            config, network, hacky_is_squidasm_flag=hacky_is_squidasm_flag
+        )
+        network.ports.update(
+            self.hub_builder.build_classical_connections(
+                network, hacky_is_squidasm_flag=hacky_is_squidasm_flag
+            )
+        )
 
         network.links = self.link_builder.build(config, network.nodes)
         network.links.update(self.hub_builder.build_links(network))
@@ -72,21 +82,29 @@ class NodeBuilder:
     def register(self, key: str, builder: Type[IQDeviceBuilder]):
         self.qdevice_builders[key] = builder
 
-    def build(self, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Dict[str, ProcessingNode]:
+    def build(
+        self, config: StackNetworkConfig, hacky_is_squidasm_flag=True
+    ) -> Dict[str, ProcessingNode]:
         nodes = {}
         for node_config in config.stacks:
             if node_config.qdevice_typ not in self.qdevice_builders.keys():
                 # TODO improve exception
-                raise Exception(f"No model of type: {node_config.qdevice_typ} registered")
+                raise Exception(
+                    f"No model of type: {node_config.qdevice_typ} registered"
+                )
 
             builder = self.qdevice_builders[node_config.qdevice_typ]
-            qdevice = builder.build(f"qdevice_{node_config.name}",
-                                    qdevice_cfg=node_config.qdevice_cfg)
+            qdevice = builder.build(
+                f"qdevice_{node_config.name}", qdevice_cfg=node_config.qdevice_cfg
+            )
 
             # TODO ProcessingNode is a very SquidASM centric object
-            nodes[node_config.name] = ProcessingNode(node_config.name,
-                                                     qdevice=qdevice, qdevice_type=node_config.qdevice_typ,
-                                                     hacky_is_squidasm_flag=hacky_is_squidasm_flag)
+            nodes[node_config.name] = ProcessingNode(
+                node_config.name,
+                qdevice=qdevice,
+                qdevice_type=node_config.qdevice_typ,
+                hacky_is_squidasm_flag=hacky_is_squidasm_flag,
+            )
         return nodes
 
 
@@ -97,7 +115,9 @@ class ClassicalConnectionBuilder:
     def register(self, key: str, builder: Type[ICLinkBuilder]):
         self.clink_builders[key] = builder
 
-    def build(self, config: StackNetworkConfig, network: Network, hacky_is_squidasm_flag) -> Dict[(str, str), Port]:
+    def build(
+        self, config: StackNetworkConfig, network: Network, hacky_is_squidasm_flag
+    ) -> Dict[(str, str), Port]:
         nodes = network.nodes
         ports = {}
         if config.clinks is None:
@@ -108,7 +128,9 @@ class ClassicalConnectionBuilder:
             clink_builder = self.clink_builders[clink.typ]
             connection = clink_builder.build(s1, s2, link_cfg=clink.cfg)
 
-            ports.update(create_connection_ports(s1, s2, connection, port_prefix="host"))
+            ports.update(
+                create_connection_ports(s1, s2, connection, port_prefix="host")
+            )
 
             if hacky_is_squidasm_flag:
                 s1.register_peer(s2.ID)
@@ -128,8 +150,9 @@ class LinkBuilder:
     def register(self, key: str, builder: Type[ILinkBuilder]):
         self.link_builders[key] = builder
 
-    def build(self, config: StackNetworkConfig, nodes: Dict[str, ProcessingNode])\
-            -> Dict[(str, str), MagicLinkLayerProtocolWithSignaling]:
+    def build(
+        self, config: StackNetworkConfig, nodes: Dict[str, ProcessingNode]
+    ) -> Dict[(str, str), MagicLinkLayerProtocolWithSignaling]:
         link_dict = {}
         if config.links is None:
             return {}

@@ -1,13 +1,9 @@
-from typing import Generator, List, Any
+from typing import Any, Generator, List
 
 import netsquid as ns
-from qlink_interface import (
-    ReqCreateAndKeep,
-    ReqReceive,
-    ResCreateAndKeep,
-)
-
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
+from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
+
 from pydynaa import EventExpression
 
 
@@ -20,7 +16,7 @@ class ResultRegistration:
 class AliceProtocol(BlueprintProtocol):
     PEER = "Bob"
 
-    def __init__(self, result_reg: ResultRegistration,  n_epr: int = 1):
+    def __init__(self, result_reg: ResultRegistration, n_epr: int = 1):
         super().__init__()
         self.result_reg = result_reg
         self.n_epr = n_epr
@@ -36,12 +32,16 @@ class AliceProtocol(BlueprintProtocol):
             self.result_reg.rec_classical_msg.append((ns.sim_time(), message.items[0]))
 
             # create request
-            request = ReqCreateAndKeep(remote_node_id=self.context.node_id_mapping[self.PEER], number=1)
+            request = ReqCreateAndKeep(
+                remote_node_id=self.context.node_id_mapping[self.PEER], number=1
+            )
             egp.put(request)
 
             # Await request completion
             yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
-            response: ResCreateAndKeep = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
+            response: ResCreateAndKeep = egp.get_signal_result(
+                label=ResCreateAndKeep.__name__, receiver=self
+            )
 
             # register result
             qubit_mem_pos = response.logical_qubit_id
@@ -74,7 +74,9 @@ class BobProtocol(BlueprintProtocol):
 
             # Wait for a signal from the EGP.
             yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
-            response = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
+            response = egp.get_signal_result(
+                label=ResCreateAndKeep.__name__, receiver=self
+            )
 
             # register result
             qubit_mem_pos = response.logical_qubit_id
@@ -84,4 +86,3 @@ class BobProtocol(BlueprintProtocol):
 
             # Free qubit
             node.qdevice.discard(qubit_mem_pos)
-

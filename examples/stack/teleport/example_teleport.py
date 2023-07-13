@@ -5,15 +5,16 @@ from typing import Any, Dict, Generator
 
 from netqasm.sdk.qubit import Qubit
 from netqasm.sdk.toolbox import set_qubit_state
-
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
+    CLinkConfig,
     LinkConfig,
     StackConfig,
-    StackNetworkConfig, CLinkConfig,
+    StackNetworkConfig,
 )
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
+
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
@@ -122,20 +123,16 @@ if __name__ == "__main__":
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
-        stack1="sender",
-        stack2="receiver",
-        typ="perfect",
-        cfg=PerfectLinkConfig()
+        stack1="sender", stack2="receiver", typ="perfect", cfg=PerfectLinkConfig()
     )
 
     clink = CLinkConfig(
-        stack1="sender",
-        stack2="receiver",
-        typ="instant",
-        cfg=InstantCLinkConfig()
+        stack1="sender", stack2="receiver", typ="instant", cfg=InstantCLinkConfig()
     )
 
-    cfg = StackNetworkConfig(stacks=[sender_stack, receiver_stack], links=[link], clinks=[clink])
+    cfg = StackNetworkConfig(
+        stacks=[sender_stack, receiver_stack], links=[link], clinks=[clink]
+    )
 
     sender_program = SenderProgram(theta=math.pi, phi=0)
     receiver_program = ReceiverProgram()
