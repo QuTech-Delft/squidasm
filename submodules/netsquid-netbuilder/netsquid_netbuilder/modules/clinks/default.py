@@ -43,11 +43,17 @@ class DefaultCLinkBuilder(ICLinkBuilder):
     def _pre_process_config(cls, link_cfg: DefaultCLinkConfig) -> DefaultCLinkConfig:
         if isinstance(link_cfg, dict):
             link_cfg = DefaultCLinkConfig(**link_cfg)
-        if link_cfg.delay is None and (link_cfg.length is None or link_cfg.speed_of_light is None):
-            raise ValueError(f"{cls.__name__} model config requires a delay"
-                             f" or distance with speed of light specification")
+        if link_cfg.delay is None and (
+            link_cfg.length is None or link_cfg.speed_of_light is None
+        ):
+            raise ValueError(
+                f"{cls.__name__} model config requires a delay"
+                f" or distance with speed of light specification"
+            )
         if link_cfg.delay is not None and link_cfg.length is not None:
-            raise ValueError(f"{cls.__name__} model config can only use delay or distance, but both where specified")
+            raise ValueError(
+                f"{cls.__name__} model config can only use delay or distance, but both where specified"
+            )
         if link_cfg.length is not None:
             link_cfg.delay = link_cfg.length / link_cfg.speed_of_light * 1e9
         return link_cfg

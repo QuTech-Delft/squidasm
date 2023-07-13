@@ -1,7 +1,6 @@
 from typing import Generator
 
 import netsquid as ns
-
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
@@ -24,9 +23,7 @@ class AliceProtocol(BlueprintProtocol):
         for i in range(self.num_epr_pairs):
             yield self.await_port_input(port)
             message = port.rx_input()
-            self._logger.info(
-                f"{self.context.node.name} receives: {message.items[0]}"
-            )
+            self._logger.info(f"{self.context.node.name} receives: {message.items[0]}")
 
             request = ReqCreateAndKeep(
                 remote_node_id=self.context.node_id_mapping[self.peer], number=1
@@ -63,9 +60,7 @@ class BobProtocol(BlueprintProtocol):
         for i in range(self.num_epr_pairs):
             msg = "Ready to start entanglement"
             port.tx_output(msg)
-            self._logger.info(
-                f"{self.context.node.name} sends: {msg}"
-            )
+            self._logger.info(f"{self.context.node.name} sends: {msg}")
 
             # Wait for a signal from the EGP.
             yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)

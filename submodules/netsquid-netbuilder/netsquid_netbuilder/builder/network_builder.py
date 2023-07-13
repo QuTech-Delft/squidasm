@@ -31,11 +31,15 @@ class NetworkBuilder:
     def register_qdevice(self, key: str, builder: Type[IQDeviceBuilder]):
         self.node_builder.register(key, builder)
 
-    def register_link(self, key: str, builder: Type[ILinkBuilder], config: Type[ILinkConfig]):
+    def register_link(
+        self, key: str, builder: Type[ILinkBuilder], config: Type[ILinkConfig]
+    ):
         self.link_builder.register(key, builder, config)
         self.hub_builder.register(key, builder, config)
 
-    def register_clink(self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]):
+    def register_clink(
+        self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]
+    ):
         self.clink_builder.register(key, builder, config)
         self.hub_builder.register_clink(key, builder, config)
 
@@ -115,7 +119,9 @@ class ClassicalConnectionBuilder:
         self.clink_builders: Dict[str, Type[ICLinkBuilder]] = {}
         self.clink_configs: Dict[str, Type[ICLinkConfig]] = {}
 
-    def register(self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]):
+    def register(
+        self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]
+    ):
         self.clink_builders[key] = builder
         self.clink_configs[key] = config
 
@@ -152,7 +158,9 @@ class LinkBuilder:
         self.link_builders: Dict[str, Type[ILinkBuilder]] = {}
         self.link_configs: Dict[str, Type[ILinkConfig]] = {}
 
-    def register(self, key: str, builder: Type[ILinkBuilder], config: Type[ILinkConfig]):
+    def register(
+        self, key: str, builder: Type[ILinkBuilder], config: Type[ILinkConfig]
+    ):
         self.link_builders[key] = builder
         self.link_configs[key] = config
 

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import itertools
-from typing import Dict, List, Optional, Type, Any
+from typing import Any, Dict, List, Optional, Type
 
 from netsquid.components import Port
 from netsquid.nodes import Node
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import MetroHubConfig
 from netsquid_netbuilder.builder.builder_utils import create_connection_ports
+from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.scheduler.interface import (
@@ -15,7 +16,6 @@ from netsquid_netbuilder.modules.scheduler.interface import (
     IScheduleProtocol,
 )
 from netsquid_netbuilder.network import Network
-from netsquid_netbuilder.logger import LogManager
 
 
 class MetroHubNode(Node):
@@ -40,14 +40,18 @@ class HubBuilder:
         self.scheduler_builders: Dict[str, Type[IScheduleBuilder]] = {}
         self._logger = LogManager.get_stack_logger(self.__class__.__name__)
 
-    def register_clink(self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]):
+    def register_clink(
+        self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]
+    ):
         self.clink_builders[key] = builder
         self.clink_configs[key] = config
 
     def set_configs(self, metro_hub_configs: List[MetroHubConfig]):
         self.hub_configs = metro_hub_configs
 
-    def register(self, key: str, builder: Type[ILinkBuilder], config: Type[ILinkConfig]):
+    def register(
+        self, key: str, builder: Type[ILinkBuilder], config: Type[ILinkConfig]
+    ):
         self.link_builders[key] = builder
         self.link_configs[key] = config
 
@@ -78,12 +82,16 @@ class HubBuilder:
             if isinstance(clink_config, dict):
                 clink_config = clink_cfg_typ(**hub_config.link_cfg)
             if not isinstance(clink_config, clink_cfg_typ):  # noqa
-                raise TypeError(f"Incorrect configuration provided. Got {type(clink_config)},"
-                                f" expected {clink_cfg_typ.__name__}")
+                raise TypeError(
+                    f"Incorrect configuration provided. Got {type(clink_config)},"
+                    f" expected {clink_cfg_typ.__name__}"
+                )
 
             if not hasattr(clink_config, "length"):
-                self._logger.warning(f"CLink type: {clink_cfg_typ} has no length attribute length,"
-                                     f"metro hub lengths wil not be used for this Clink.")
+                self._logger.warning(
+                    f"CLink type: {clink_cfg_typ} has no length attribute length,"
+                    f"metro hub lengths wil not be used for this Clink."
+                )
 
             # Build hub - end node connections
             for connection_config in hub_config.connections:
@@ -107,7 +115,9 @@ class HubBuilder:
 
                 clink_config = hub_config.clink_cfg
                 if hasattr(clink_config, "length"):
-                    clink_config.length = connection_1_config.length + connection_2_config.length
+                    clink_config.length = (
+                        connection_1_config.length + connection_2_config.length
+                    )
 
                 connection = clink_builder.build(n1, n2, clink_config)
 
@@ -139,12 +149,16 @@ class HubBuilder:
             if isinstance(link_config, dict):
                 link_config = link_cfg_typ(**hub_config.link_cfg)
             if not isinstance(link_config, link_cfg_typ):  # noqa
-                raise TypeError(f"Incorrect configuration provided. Got {type(link_config)},"
-                                f" expected {link_cfg_typ.__name__}")
+                raise TypeError(
+                    f"Incorrect configuration provided. Got {type(link_config)},"
+                    f" expected {link_cfg_typ.__name__}"
+                )
 
             if not _has_length(link_config):
-                self._logger.warning(f"Link type: {link_cfg_typ} has no length attribute length,"
-                                     f"metro hub lengths wil not be used for this link.")
+                self._logger.warning(
+                    f"Link type: {link_cfg_typ} has no length attribute length,"
+                    f"metro hub lengths wil not be used for this link."
+                )
 
             for conn_1_cfg, conn_2_cfg in itertools.combinations(
                 hub_config.connections, 2
@@ -189,25 +203,22 @@ class HubBuilder:
 def _has_length(config: ILinkConfig):
     if hasattr(config, "length"):
         return True
-    if hasattr(config, "length_A", ) and hasattr(config, "length_B"):
+    if hasattr(
+        config,
+        "length_A",
+    ) and hasattr(config, "length_B"):
         return True
     return False
 
 
 def _set_length(config: ILinkConfig, dist1: float, dist2: float):
-    if hasattr(config, "length_A", ) and hasattr(config, "length_B"):
+    if hasattr(
+        config,
+        "length_A",
+    ) and hasattr(config, "length_B"):
         config.length_A = dist1
         config.length_B = dist2
         return
 
     if hasattr(config, "length"):
         config.length = dist1 + dist2
-
-
-
-
-
-
-
-
-
