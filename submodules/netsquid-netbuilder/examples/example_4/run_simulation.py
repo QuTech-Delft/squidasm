@@ -4,8 +4,6 @@ from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.run import get_default_builder, run
 from protocols import AliceProtocol, BobProtocol
 
-import squidasm
-
 logger = LogManager.get_stack_logger()
 LogManager.set_log_level(10)
 

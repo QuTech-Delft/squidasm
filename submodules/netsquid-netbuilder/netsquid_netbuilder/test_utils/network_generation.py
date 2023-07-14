@@ -1,5 +1,5 @@
 import itertools
-from typing import TYPE_CHECKING, List, Union
+from typing import List, Union
 
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
@@ -9,6 +9,7 @@ from netsquid_netbuilder.base_configs import (
     StackConfig,
     StackNetworkConfig,
 )
+from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.clinks.interface import ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
@@ -105,6 +106,7 @@ def create_metro_hub_network(
     qdevice_cfg: IQDeviceConfig = None,
 ) -> StackNetworkConfig:
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
+    clink_cfg = InstantCLinkConfig() if clink_cfg is None else clink_cfg
 
     node_names = [f"node_{i}" for i in range(num_nodes)]
     for node_name in node_names:
@@ -123,7 +125,7 @@ def create_metro_hub_network(
         else node_distances
     )
     for node_name, dist in zip(node_names, node_distances):
-        mh_connections.append(MetroHubConnectionConfig(stack=node_name, distance=dist))
+        mh_connections.append(MetroHubConnectionConfig(stack=node_name, length=dist))
 
     schedule_cfg = FIFOScheduleConfig() if schedule_cfg is None else schedule_cfg
 

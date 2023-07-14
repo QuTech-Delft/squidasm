@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import netsquid as ns
 

@@ -27,6 +27,7 @@ class AliceProtocol(BlueprintProtocol):
         egp = self.context.egp[self.PEER]
 
         for _ in range(self.n_epr):
+            # Wait for classical message in order to delay the egp request to
             yield self.await_port_input(port)
             message = port.rx_input()
             self.result_reg.rec_classical_msg.append((ns.sim_time(), message.items[0]))

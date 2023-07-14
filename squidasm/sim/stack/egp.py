@@ -1,13 +1,13 @@
 from abc import ABCMeta, abstractmethod
 from typing import Dict
 
-import netsquid as ns
 from netsquid import BellIndex
 from netsquid.protocols import ServiceProtocol
 from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
     TranslationUnit,
 )
+from netsquid_netbuilder.logger import LogManager
 from qlink_interface import (
     ReqCreateAndKeep,
     ReqCreateBase,
@@ -81,6 +81,10 @@ class EgpProtocol(EGPService):
         super().__init__(node=node, name=name)
         self._ll_prot: MagicLinkLayerProtocolWithSignaling = magic_link_layer_protocol
         self._create_id_to_request: Dict[int, ReqCreateBase] = {}
+        # TODO possibly expand logger name with remote name
+        self._logger = LogManager.get_stack_logger(
+            self.__class__.__name__ + f"{node.name}"
+        )
 
     def run(self):
         while True:
@@ -141,9 +145,10 @@ class EgpProtocol(EGPService):
     def _handle_error(self, error: ResError):
         create_id = error.create_id
         if error.error_code.TIMEOUT:
-            print(
-                f"{ns.sim_time(ns.MILLISECOND)} ms Request to create entanglement "
-                f"(id:{create_id}) from {self.node.name} was terminated, restarting"
+
+            self._logger.info(
+                f"Request to create entanglement id:{create_id})"
+                f" from {self.node.name} was timed out, restarting"
             )
             req = self._create_id_to_request[create_id]
             new_create_id = self._ll_prot.put_from(self.node.ID, req)

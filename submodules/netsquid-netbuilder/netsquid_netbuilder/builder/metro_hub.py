@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Any, Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type
 
 from netsquid.components import Port
 from netsquid.nodes import Node

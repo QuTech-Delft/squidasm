@@ -14,8 +14,6 @@ from pydantic.decorator import Dict
 from qlink_interface import ReqCreateBase, ResError
 from qlink_interface.interface import ResCreate
 
-import squidasm
-
 
 @dataclass
 class QueItem:

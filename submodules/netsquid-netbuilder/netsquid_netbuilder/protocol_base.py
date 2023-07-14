@@ -5,8 +5,6 @@ from netsquid_netbuilder.network import ProtocolContext
 
 
 class BlueprintProtocol(Protocol):
-    PEER = "Bob"
-
     def __init__(self):
         self.context: Optional[ProtocolContext] = None
         self.add_signal(Signals.FINISHED)

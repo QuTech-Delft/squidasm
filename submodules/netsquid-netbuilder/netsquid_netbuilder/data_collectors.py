@@ -2,14 +2,7 @@ from functools import wraps
 from typing import Any, List, Tuple
 
 import netsquid as ns
-from netsquid_netbuilder.modules.scheduler.interface import (
-    IScheduleBuilder,
-    IScheduleConfig,
-    IScheduleProtocol,
-    TimeSlot,
-)
-
-from pydynaa.core import EventExpression
+from netsquid_netbuilder.modules.scheduler.interface import IScheduleProtocol
 
 
 def get_argument(args: tuple, kwargs: dict, position: int, name: str) -> Any:

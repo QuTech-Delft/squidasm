@@ -1,6 +1,5 @@
 from typing import Generator
 
-import netsquid as ns
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep

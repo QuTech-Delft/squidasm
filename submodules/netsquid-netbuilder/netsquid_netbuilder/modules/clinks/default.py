@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from typing import Optional
 
 from netsquid.components.cchannel import ClassicalChannel
@@ -43,6 +44,8 @@ class DefaultCLinkBuilder(ICLinkBuilder):
     def _pre_process_config(cls, link_cfg: DefaultCLinkConfig) -> DefaultCLinkConfig:
         if isinstance(link_cfg, dict):
             link_cfg = DefaultCLinkConfig(**link_cfg)
+        else:
+            link_cfg = copy.deepcopy(link_cfg)
         if link_cfg.delay is None and (
             link_cfg.length is None or link_cfg.speed_of_light is None
         ):

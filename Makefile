@@ -48,6 +48,7 @@ lint: lint-isort lint-black lint-flake8
 
 tests:
 	@$(PYTHON3) -m pytest tests
+	@$(PYTHON3) -m pytest submodules/netsquid-netbuilder/tests
 
 examples:
 	@${PYTHON3} ${RUNEXAMPLES}

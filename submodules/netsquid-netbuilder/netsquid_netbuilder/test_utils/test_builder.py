@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from netsquid_magic.models.perfect import PerfectLinkBuilder
-from netsquid_netbuilder.clinks.default import DefaultCLinkBuilder
-from netsquid_netbuilder.clinks.instant import InstantCLinkBuilder
-from netsquid_netbuilder.network_builder import NetworkBuilder
-from netsquid_netbuilder.qdevices.generic import GenericQDeviceBuilder
-from netsquid_netbuilder.scheduler.fifo import FIFOScheduleBuilder
-from netsquid_netbuilder.scheduler.static import StaticScheduleBuilder
+from netsquid_magic.models.perfect import PerfectLinkBuilder, PerfectLinkConfig
+from netsquid_netbuilder.builder.network_builder import NetworkBuilder
+from netsquid_netbuilder.modules.clinks.default import (
+    DefaultCLinkBuilder,
+    DefaultCLinkConfig,
+)
+from netsquid_netbuilder.modules.clinks.instant import (
+    InstantCLinkBuilder,
+    InstantCLinkConfig,
+)
+from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceBuilder
+from netsquid_netbuilder.modules.scheduler.fifo import FIFOScheduleBuilder
+from netsquid_netbuilder.modules.scheduler.static import StaticScheduleBuilder
 
 
 def get_test_network_builder() -> NetworkBuilder:
@@ -16,11 +22,11 @@ def get_test_network_builder() -> NetworkBuilder:
 
     # default link models registration
     # TODO create a inbuilt link for core or use
-    builder.register_link("perfect", PerfectLinkBuilder)
+    builder.register_link("perfect", PerfectLinkBuilder, PerfectLinkConfig)
 
     # default clink models registration
-    builder.register_clink("instant", InstantCLinkBuilder)
-    builder.register_clink("default", DefaultCLinkBuilder)
+    builder.register_clink("instant", InstantCLinkBuilder, InstantCLinkConfig)
+    builder.register_clink("default", DefaultCLinkBuilder, DefaultCLinkConfig)
 
     # default schedulers
     builder.register_scheduler("static", StaticScheduleBuilder)
