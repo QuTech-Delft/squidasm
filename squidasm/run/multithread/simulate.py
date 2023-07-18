@@ -1,7 +1,7 @@
 import os
 from typing import Any, Callable, Dict, List, Optional
 
-from netqasm.runtime import env, process_logs
+from netqasm.runtime import env
 from netqasm.runtime.application import ApplicationInstance, load_yaml_file
 from netqasm.runtime.interface.config import (
     NetworkConfig,
@@ -100,8 +100,5 @@ def simulate_application(
         post_function(mgr)
 
     mgr.stop_backend()
-
-    if enable_logging:
-        process_logs.make_last_log(log_dir=timed_log_dir)
 
     return results
