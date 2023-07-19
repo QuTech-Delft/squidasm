@@ -1,23 +1,20 @@
 import logging
+from dataclasses import dataclass
 
 import numpy
-from dataclasses import dataclass
 from netqasm.sdk import Qubit
 from netqasm.sdk.toolbox.state_prep import set_qubit_state
+from util import create_two_node_network, get_qubit_state, get_reference_state
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-from util import (
-    create_two_node_network,
-    get_qubit_state, get_reference_state,
-)
 
 
 @dataclass
 class DistributedCNOTParams:
-    phi: float = 0.
-    theta: float = 0.
+    phi: float = 0.0
+    theta: float = 0.0
 
     @classmethod
     def generate_random_params(cls):
@@ -96,7 +93,7 @@ class ControllerProgram(Program):
         return {
             "epr_meas": int(epr_meas),
             "final_dm": final_dm,
-            "original_dm": original_dm
+            "original_dm": original_dm,
         }
 
 
@@ -174,7 +171,7 @@ class TargetProgram(Program):
         return {
             "epr_meas": int(epr_meas),
             "final_dm": final_dm,
-            "original_dm": original_dm
+            "original_dm": original_dm,
         }
 
 
@@ -203,9 +200,11 @@ if __name__ == "__main__":
     controller_program.logger.setLevel(logging.INFO)
 
     # Run the simulation. Programs argument is a mapping of network node labels to programs to run on that node
-    target_result, controller_result = run(config=cfg,
-                                           programs={"Controller": controller_program, "Target": target_program},
-                                           num_times=1)
+    target_result, controller_result = run(
+        config=cfg,
+        programs={"Controller": controller_program, "Target": target_program},
+        num_times=1,
+    )
 
     print(target_params)
     print(controller_params)

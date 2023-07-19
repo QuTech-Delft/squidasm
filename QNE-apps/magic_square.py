@@ -3,14 +3,11 @@ from typing import List
 
 import numpy
 from netqasm.sdk.toolbox.measurements import parity_meas
+from util import create_two_node_network, recv_int
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-from util import (
-    create_two_node_network,
-    recv_int,
-)
 
 
 def get_default_strategy():
@@ -49,40 +46,40 @@ class Player1Program(Program):
         # Create EPR pairs
         q1 = epr_socket.create_keep()[0]
         q2 = epr_socket.create_keep()[0]
-    
+
         yield from connection.flush()
         self.logger.info("Finished creating shared state with other player...")
 
         csocket.send("")
-    
+
         # Make sure we order the qubits consistently with connection
         # Get entanglement IDs
         q1_ID = q1.entanglement_info.sequence_number
         q2_ID = q2.entanglement_info.sequence_number
-    
+
         if int(q1_ID) < int(q2_ID):
             qa = q1
             qc = q2
         else:
             qa = q2
             qc = q1
-    
+
         # Perform the three measurements
         self.logger.info(f"Measuring {self.strategy[self.row][0]} ...")
         m0 = parity_meas([qa, qc], self.strategy[self.row][0])
         yield from connection.flush()
         self.logger.info(f"Outcome: {m0}")
-    
+
         self.logger.info(f"Measuring {self.strategy[self.row][1]} ...")
         m1 = parity_meas([qa, qc], self.strategy[self.row][1])
         yield from connection.flush()
         self.logger.info(f"Outcome: {m1}")
-    
+
         self.logger.info(f"Measuring {self.strategy[self.row][2]} ...")
         m2 = parity_meas([qa, qc], self.strategy[self.row][2])
         yield from connection.flush()
         self.logger.info(f"Outcome: {m2}")
-    
+
         csocket.send("")
 
         # free qmemory
@@ -192,7 +189,7 @@ class Player2Program(Program):
         to_print += "==========================\n"
         to_print += "\n\n"
         self.logger.info(to_print)
-    
+
         # Only needed for visualization: to check at which cell the column intersects with the row of the other player.
         player1_row = yield from recv_int(csocket)
         player1_outcomes = yield from csocket.recv()
@@ -200,17 +197,19 @@ class Player2Program(Program):
         player1_outcomes = player1_outcomes.split(",")
 
         col_outcomes = [int(m0), int(m1), int(m2)]
-    
+
         square = [["", "", ""], ["", "", ""], ["", "", ""]]
-    
+
         square[player1_row][0] = str(player1_outcomes[0])
         square[player1_row][1] = str(player1_outcomes[1])
         square[player1_row][2] = str(player1_outcomes[2])
         square[0][self.col] = str(col_outcomes[0])
         square[1][self.col] = str(col_outcomes[1])
         square[2][self.col] = str(col_outcomes[2])
-        square[player1_row][self.col] = f"{player1_outcomes[self.col]}/{col_outcomes[player1_row]}"
-    
+        square[player1_row][
+            self.col
+        ] = f"{player1_outcomes[self.col]}/{col_outcomes[player1_row]}"
+
         return {
             "col_index": self.col,
             "col": col_outcomes,
@@ -236,8 +235,8 @@ if __name__ == "__main__":
     player2_program.logger.setLevel(logging.INFO)
 
     # Run the simulation. Programs argument is a mapping of network node labels to programs to run on that node
-    player1_result, player2_result = run(config=cfg,
-                                         programs={"Player2": player2_program, "Player1": player1_program},
-                                         num_times=1)
-
-
+    player1_result, player2_result = run(
+        config=cfg,
+        programs={"Player2": player2_program, "Player1": player1_program},
+        num_times=1,
+    )

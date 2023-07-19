@@ -1,19 +1,17 @@
 import abc
 import logging
 import random
+from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
-from dataclasses import dataclass
 from netqasm.sdk.classical_communication.message import StructuredMessage
+from util import create_two_node_network
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-from util import (
-    create_two_node_network,
-)
 
 
 @dataclass
@@ -248,9 +246,9 @@ if __name__ == "__main__":
     alice_program.logger.setLevel(logging.INFO)
     bob_program.logger.setLevel(logging.INFO)
 
-    alice_results, bob_results = run(config=cfg,
-                                         programs={"Alice": alice_program, "Bob": bob_program},
-                                         num_times=1)
+    alice_results, bob_results = run(
+        config=cfg, programs={"Alice": alice_program, "Bob": bob_program}, num_times=1
+    )
 
     for i, (alice_result, bob_result) in enumerate(zip(alice_results, bob_results)):
         print(f"run {i}:")

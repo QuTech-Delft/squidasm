@@ -9,11 +9,11 @@ from netsquid.qubits import qubitapi as qapi
 
 import squidasm.sim.stack.globals
 from squidasm.run.stack.config import (
+    DepolariseLinkConfig,
     GenericQDeviceConfig,
     LinkConfig,
     StackConfig,
     StackNetworkConfig,
-    DepolariseLinkConfig
 )
 
 
@@ -69,9 +69,9 @@ def recv_int(socket) -> Generator[None, None, int]:
     return int(val)
 
 
-def create_two_node_network(node_names: List[str] = None,
-                                  link_noise: float = 0,
-                                  qdevice_noise: float = 0) -> StackNetworkConfig:
+def create_two_node_network(
+    node_names: List[str] = None, link_noise: float = 0, qdevice_noise: float = 0
+) -> StackNetworkConfig:
     """
     Create a network configuration with two nodes, with simple noise models.
     :param node_names: List of str with the names of the two nodes
@@ -86,10 +86,17 @@ def create_two_node_network(node_names: List[str] = None,
     qdevice_cfg.two_qubit_gate_depolar_prob = qdevice_noise
     qdevice_cfg.single_qubit_gate_depolar_prob = qdevice_noise
     qdevice_cfg.num_qubits = 10
-    stacks = [StackConfig(name=name, qdevice_typ="generic", qdevice_cfg=qdevice_cfg) for name in node_names]
+    stacks = [
+        StackConfig(name=name, qdevice_typ="generic", qdevice_cfg=qdevice_cfg)
+        for name in node_names
+    ]
 
-    link_cfg = DepolariseLinkConfig(fidelity=1-link_noise * 3/4, t_cycle=1000, prob_success=1)
-    link = LinkConfig(stack1=node_names[0], stack2=node_names[1], typ="depolarise", cfg=link_cfg)
+    link_cfg = DepolariseLinkConfig(
+        fidelity=1 - link_noise * 3 / 4, t_cycle=1000, prob_success=1
+    )
+    link = LinkConfig(
+        stack1=node_names[0], stack2=node_names[1], typ="depolarise", cfg=link_cfg
+    )
     return StackNetworkConfig(stacks=stacks, links=[link])
 
 

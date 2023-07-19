@@ -2,13 +2,11 @@ import logging
 
 import numpy
 from netqasm.sdk import Qubit
+from util import create_two_node_network
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-from util import (
-    create_two_node_network,
-)
 
 
 def game_won(x, y, a, b):
@@ -136,9 +134,9 @@ if __name__ == "__main__":
     bob_program.logger.setLevel(logging.INFO)
 
     # Run the simulation. Programs argument is a mapping of network node labels to programs to run on that node
-    alice_result, bob_result = run(config=cfg,
-                                   programs={"Alice": alice_program, "Bob": bob_program},
-                                   num_times=1)
+    alice_result, bob_result = run(
+        config=cfg, programs={"Alice": alice_program, "Bob": bob_program}, num_times=1
+    )
 
     a = alice_result[0]["a"]
     b = bob_result[0]["b"]

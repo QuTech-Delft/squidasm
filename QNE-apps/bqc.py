@@ -1,35 +1,37 @@
 import logging
 import math
+from dataclasses import dataclass
 
 import numpy
-from dataclasses import dataclass
 from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
-
-from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
-from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 from util import (
     create_two_node_network,
+    get_qubit_state,
     measXY,
     recv_float,
     recv_int,
     recv_remote_state_preparation,
     remote_state_preparation,
     send_float,
-    send_int, get_qubit_state,
+    send_int,
 )
+
+from squidasm.run.stack.run import run
+from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
 @dataclass
 class BQCProgramParams:
     """BQC program parameters. alpha and beta are used for the effective computation,
-     theta and r are used to obfuscate the computation from the server."""
-    alpha = 0.
-    beta = 0.
-    theta1 = 0.
-    theta2 = 0.
+    theta and r are used to obfuscate the computation from the server."""
+
+    alpha = 0.0
+    beta = 0.0
+    theta1 = 0.0
+    theta2 = 0.0
     r1 = 0
     r2 = 0
 
@@ -90,7 +92,11 @@ class ClientProgram(Program):
         self.logger.info(f"Received m1 = {m1}")
 
         # Send second angle to server.
-        delta2 = math.pow(-1, (m1 + self.r1)) * self.beta - self.theta2 + (p2 + self.r2) * math.pi
+        delta2 = (
+            math.pow(-1, (m1 + self.r1)) * self.beta
+            - self.theta2
+            + (p2 + self.r2) * math.pi
+        )
         self.logger.info(f"Sending delta2 = {delta2}")
         send_float(csocket, delta2)
 
@@ -153,7 +159,7 @@ class ServerProgram(Program):
 
         q2.rot_Z(angle=angle)
         q2.H()
-        
+
         # TODO Not supposed to be here based on theoretical circuit,
         #  but not having this causes incorrect state of density matrix if s==1
         if s:
@@ -197,14 +203,15 @@ if __name__ == "__main__":
     server_program.logger.setLevel(logging.INFO)
 
     # Run the simulation. Programs argument is a mapping of network node labels to programs to run on that node
-    client_results, server_results = run(config=cfg,
-                                         programs={"Server": server_program, "Client": client_program},
-                                         num_times=1)
+    client_results, server_results = run(
+        config=cfg,
+        programs={"Server": server_program, "Client": client_program},
+        num_times=1,
+    )
 
     print(f"Parameters used:\n{bqc_params.__dict__}")
     print(f"\nResults client:\n{client_results[0]}")
 
-    print(f"\nFinal state created on server before measurement:\n{server_results[0]['final_dm']}")
-
-
-
+    print(
+        f"\nFinal state created on server before measurement:\n{server_results[0]['final_dm']}"
+    )
