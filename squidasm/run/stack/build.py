@@ -6,6 +6,7 @@ from netsquid.components.instructions import (
     INSTR_CZ,
     INSTR_H,
     INSTR_INIT,
+    INSTR_K,
     INSTR_MEASURE,
     INSTR_ROT_X,
     INSTR_ROT_Y,
@@ -48,6 +49,7 @@ def build_generic_qdevice(name: str, cfg: GenericQDeviceConfig) -> QuantumProces
         INSTR_Y,
         INSTR_Z,
         INSTR_H,
+        INSTR_K,
     ]:
         phys_instructions.append(
             PhysicalInstruction(
