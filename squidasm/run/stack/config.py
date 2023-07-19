@@ -189,6 +189,16 @@ class DepolariseLinkConfig(BaseModel):
         return _from_file(path, DepolariseLinkConfig)  # type: ignore
 
 
+class DepolariseAnyBellLinkConfig(BaseModel):
+    fidelity: float
+    prob_success: float
+    t_cycle: float
+
+    @classmethod
+    def from_file(cls, path: str) -> DepolariseAnyBellLinkConfig:
+        return _from_file(path, DepolariseAnyBellLinkConfig)
+
+
 class NVLinkConfig(BaseModel):
     length_A: float
     length_B: float
