@@ -143,7 +143,7 @@ class ServerProgram(Program):
         q1.cphase(q2)
 
         yield from connection.flush()
-        self.logger.info(f"Remote state preparation and CPhase finished.")
+        self.logger.info("Remote state preparation and CPhase finished.")
 
         # Receive from the client the angle to measure the first qubit in.
         angle = yield from recv_float(csocket)

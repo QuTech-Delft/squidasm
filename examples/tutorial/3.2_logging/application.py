@@ -68,7 +68,7 @@ class AliceProgram(Program):
             csocket.send(to_bit_string(bits_to_send))
             logger.info(f"Send bits: {bits_to_send[0]} {bits_to_send[1]}")
 
-        logger.info(f"Finished")
+        logger.info("Finished")
         return {}
 
 

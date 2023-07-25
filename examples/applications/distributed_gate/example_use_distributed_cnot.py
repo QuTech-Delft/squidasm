@@ -100,8 +100,6 @@ class TargetProgram(Program):
         )
 
     def run(self, context: ProgramContext):
-        csocket = context.csockets[self.PEER_NAME]
-        epr_socket = context.epr_sockets[self.PEER_NAME]
         connection = context.connection
 
         # Prepare target qubit

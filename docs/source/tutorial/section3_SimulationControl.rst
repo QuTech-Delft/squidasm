@@ -177,7 +177,7 @@ The logger settings are set up in the ``run_simulation.py`` file:
 .. literalinclude:: ../../../examples/tutorial/3.2_logging/run_simulation.py
    :language: python
    :caption: examples/tutorial/3.2_logging/run_simulation.py
-   :emphasize-lines: 9-15
+   :emphasize-lines: 10-16
 
 
 A log level is set using the following command:

@@ -218,7 +218,7 @@ and generate an graph of the fidelity vs error rate.
 .. literalinclude:: ../../../examples/tutorial/4.3_parameter-sweeping/run_simulation.py
     :language: python
     :caption: examples/tutorial/4.3_parameter-sweeping/run_simulation.py
-    :emphasize-lines: 8-16, 22-23
+    :emphasize-lines: 12-20, 26-27
 
 We still start with loading the original configuration:
 

@@ -1,4 +1,3 @@
-from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
 
@@ -18,7 +17,6 @@ class AliceProgram(Program):
         )
 
     def run(self, context: ProgramContext):
-        csocket = context.csockets[self.PEER_NAME]
         epr_socket = context.epr_sockets[self.PEER_NAME]
         connection = context.connection
 
@@ -49,7 +47,6 @@ class BobProgram(Program):
         )
 
     def run(self, context: ProgramContext):
-        csocket: Socket = context.csockets[self.PEER_NAME]
         epr_socket: EPRSocket = context.epr_sockets[self.PEER_NAME]
         connection: BaseNetQASMConnection = context.connection
 

@@ -48,7 +48,6 @@ class AliceProgram(Program):
         return q.measure()
 
     def run(self, context: ProgramContext):
-        csocket = context.csockets[self.PEER_NAME]
         epr_socket = context.epr_sockets[self.PEER_NAME]
         connection = context.connection
 
@@ -96,7 +95,6 @@ class BobProgram(Program):
         return q.measure()
 
     def run(self, context: ProgramContext):
-        csocket = context.csockets[self.PEER_NAME]
         epr_socket = context.epr_sockets[self.PEER_NAME]
         connection = context.connection
 

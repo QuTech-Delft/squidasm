@@ -39,7 +39,7 @@ as on might expect that after executing these commands in a program:
    :language: python
    :caption: examples/tutorial/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
-   :lines:  27-29
+   :lines:  26-28
 
 an EPR pair was generated and measured.
 This is not the case, the only thing these commands do,
@@ -68,7 +68,7 @@ This changes the example to:
    :language: python
    :caption: examples/tutorial/2.1_NetQASM-language/application.py
    :pyobject: AliceProgram
-   :emphasize-lines:  22-25
+   :emphasize-lines:  21-24
 
 
 The application will run as it did previously, except that we get to view the proto subroutine that Alice sends to the QNPU:
@@ -127,7 +127,7 @@ Due to this many operations using a ``Future`` object will cause an error if don
    :language: python
    :caption: examples/tutorial/2.2_Future-objects/application.py
    :pyobject: AliceProgram
-   :emphasize-lines:  18-36
+   :emphasize-lines:  17-35
 
 Removing any of the commented out code will result in the following error:
 
