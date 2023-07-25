@@ -8,6 +8,8 @@ from util import (
     create_two_node_network,
     distributed_CNOT_control,
     distributed_CNOT_target,
+    distributed_CPhase_target,
+    distributed_CPhase_control,
     get_qubit_state,
     get_reference_state,
 )
@@ -18,9 +20,10 @@ from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
 @dataclass
-class DistributedCNOTParams:
+class DistributedCGateParams:
     phi: float = 0.0
     theta: float = 0.0
+    gate: str = "cnot"
 
     @classmethod
     def generate_random_params(cls):
@@ -34,10 +37,11 @@ class DistributedCNOTParams:
 class ControllerProgram(Program):
     PEER_NAME = "Target"
 
-    def __init__(self, params: DistributedCNOTParams):
+    def __init__(self, params: DistributedCGateParams):
         self.logger = LogManager.get_stack_logger(self.__class__.__name__)
         self.phi = params.phi
         self.theta = params.theta
+        self.gate = params.gate
 
     @property
     def meta(self) -> ProgramMeta:
@@ -49,17 +53,25 @@ class ControllerProgram(Program):
         )
 
     def run(self, context: ProgramContext):
-        csocket = context.csockets[self.PEER_NAME]
-        epr_socket = context.epr_sockets[self.PEER_NAME]
         connection = context.connection
 
+        # Prepare the control qubit
         ctrl_qubit = Qubit(connection)
         set_qubit_state(ctrl_qubit, self.phi, self.theta)
 
-        yield from distributed_CNOT_control(
-            context, peer_name=self.PEER_NAME, ctrl_qubit=ctrl_qubit
-        )
+        # Use the control qubit for a distributed two qubit operation.
+        if self.gate == "cnot":
+            yield from distributed_CNOT_control(
+                context, peer_name=self.PEER_NAME, ctrl_qubit=ctrl_qubit
+            )
+        elif self.gate == "cphase":
+            yield from distributed_CPhase_control(
+                context, peer_name=self.PEER_NAME, ctrl_qubit=ctrl_qubit
+            )
+        else:
+            ValueError(f"{self.gate} does not match an implemented distributed controlled qubit gate")
 
+        # Retrieve qubit state to view results
         final_dm = get_qubit_state(ctrl_qubit, "Controller")
         original_dm = get_reference_state(self.phi, self.theta)
 
@@ -72,10 +84,11 @@ class ControllerProgram(Program):
 class TargetProgram(Program):
     PEER_NAME = "Controller"
 
-    def __init__(self, params: DistributedCNOTParams):
+    def __init__(self, params: DistributedCGateParams):
         self.logger = LogManager.get_stack_logger(self.__class__.__name__)
         self.phi = params.phi
         self.theta = params.theta
+        self.gate = params.gate
 
     @property
     def meta(self) -> ProgramMeta:
@@ -91,13 +104,23 @@ class TargetProgram(Program):
         epr_socket = context.epr_sockets[self.PEER_NAME]
         connection = context.connection
 
+        # Prepare target qubit
         target_qubit = Qubit(connection)
         set_qubit_state(target_qubit, self.phi, self.theta)
 
-        yield from distributed_CNOT_target(
-            context, peer_name=self.PEER_NAME, target_qubit=target_qubit
-        )
+        # Use target qubit for a distributed two qubit operation.
+        if self.gate == "cnot":
+            yield from distributed_CNOT_target(
+                context, peer_name=self.PEER_NAME, target_qubit=target_qubit
+            )
+        elif self.gate == "cphase":
+            yield from distributed_CPhase_target(
+                context, peer_name=self.PEER_NAME, target_qubit=target_qubit
+            )
+        else:
+            ValueError(f"{self.gate} does not match an implemented distributed controlled qubit gate")
 
+        # Retrieve qubit state to view results
         final_dm = get_qubit_state(target_qubit, "Target")
         original_dm = get_reference_state(self.phi, self.theta)
 
@@ -114,14 +137,19 @@ if __name__ == "__main__":
     # Choose CNOT parameters
     use_random_params = False
     if use_random_params:
-        target_params = DistributedCNOTParams.generate_random_params()
-        controller_params = DistributedCNOTParams.generate_random_params()
+        target_params = DistributedCGateParams.generate_random_params()
+        controller_params = DistributedCGateParams.generate_random_params()
     else:
         # Set both target & control in 1 state -> control is unaffected & target should become 0
-        target_params = DistributedCNOTParams()
+        target_params = DistributedCGateParams()
         target_params.theta = numpy.pi
-        controller_params = DistributedCNOTParams()
+        controller_params = DistributedCGateParams()
         controller_params.theta = numpy.pi
+
+    # Choose gate to use. Two options available: cnot and cphase
+    gate = "cnot"
+    target_params.gate = gate
+    controller_params.gate = gate
 
     # Create instances of programs to run
     target_program = TargetProgram(target_params)

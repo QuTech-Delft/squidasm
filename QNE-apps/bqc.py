@@ -28,12 +28,12 @@ class BQCProgramParams:
     """BQC program parameters. alpha and beta are used for the effective computation,
     theta and r are used to obfuscate the computation from the server."""
 
-    alpha = 0.0
-    beta = 0.0
-    theta1 = 0.0
-    theta2 = 0.0
-    r1 = 0
-    r2 = 0
+    alpha: float = 0.0
+    beta: float = 0.0
+    theta1: float = 0.0
+    theta2: float = 0.0
+    r1: int = 0
+    r2: int = 0
 
     @classmethod
     def generate_random_params(cls):
@@ -160,10 +160,6 @@ class ServerProgram(Program):
         q2.rot_Z(angle=angle)
         q2.H()
 
-        # TODO Not supposed to be here based on theoretical circuit,
-        #  but not having this causes incorrect state of density matrix if s==1
-        if s:
-            q2.Z()
         yield from connection.flush()
 
         # Store final qubit state before measuring
@@ -187,9 +183,10 @@ if __name__ == "__main__":
     if use_random_params:
         bqc_params = BQCProgramParams.generate_random_params()
     else:
-        # Theta & r params are random, but alpha & beta chosen so final state is guaranteed 0
+        # Theta & r params are random, but alpha & beta chosen so final state is guaranteed 0 (m2=0 with 100% chance)
+        # This parameter combination allows the client to check that the server is honest
         bqc_params = BQCProgramParams.generate_random_params()
-        # TODO r2 seems to affect measurement outcome, that should not be the case
+        # r2 == 1 will flip the end result bit. Client can correct the result for this, but for simplicity we will use 0
         bqc_params.r2 = 0
         bqc_params.alpha = numpy.pi / 2
         bqc_params.beta = numpy.pi / 2

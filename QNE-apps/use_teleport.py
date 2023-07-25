@@ -19,15 +19,16 @@ from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 @dataclass
 class TeleportParams:
+    """Parameters that determine the state of the qubit to be teleported"""
     phi: float = 0.0
     theta: float = 0.0
 
     @classmethod
     def generate_random_params(cls):
-        """Create random parameters for a distributed CNOT program"""
+        """Create a qubit in a random state"""
         params = cls()
         params.theta = numpy.random.random() * numpy.pi
-        params.phi = numpy.random.random() * numpy.pi
+        params.phi = numpy.random.random() * numpy.pi * 2
         return params
 
 
@@ -51,11 +52,14 @@ class SenderProgram(Program):
     def run(self, context: ProgramContext):
         connection = context.connection
 
+        # Prepare qubit to teleport
         q = Qubit(connection)
         set_qubit_state(q, self.phi, self.theta)
 
+        # Teleport qubit
         yield from teleport_send(q, context, peer_name=self.PEER_NAME)
 
+        # Create reference of qubit that was sent
         original_dm = get_reference_state(self.phi, self.theta)
 
         return {"original_dm": original_dm}
@@ -77,9 +81,10 @@ class ReceiverProgram(Program):
         )
 
     def run(self, context: ProgramContext):
-
+        # Receive teleported qubit
         q = yield from teleport_recv(context, peer_name=self.PEER_NAME)
 
+        # Retrieve qubit state
         final_dm = get_qubit_state(q, "Receiver")
 
         return {"final_dm": final_dm}
