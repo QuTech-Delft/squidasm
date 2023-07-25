@@ -14,13 +14,13 @@ It performs a similar function to XML and JSON.
 The main difference is that YAML relies more on indentation for nesting,
 thus using significantly less special characters and improving human readability.
 
-We use the examples ``tutorial_examples/4.1_YAML`` for the YAML introduction.
+We use the examples ``examples/tutorial/4.1_YAML`` for the YAML introduction.
 It contains two YAML files and a python file to import the YAML files and print the imports.
 The first YAML example shows the basics of YAML:
 
-.. literalinclude:: ../../../tutorial_examples/4.1_YAML/basic_example.yaml
+.. literalinclude:: ../../../examples/tutorial/4.1_YAML/basic_example.yaml
     :language: yaml
-    :caption: tutorial_examples/4.1_YAML/basic_example.yaml
+    :caption: examples/tutorial/4.1_YAML/basic_example.yaml
 
 The YAML files translate directly into python.
 By using statements of the form: ``key: value``, a python dictionary is created containing this key and value.
@@ -29,9 +29,9 @@ It is also possible to create list instead of dictionaries, this is done by usin
 
 Using simple python script we can load the YAML files and print the contents of the file as interpreted by python.
 
-.. literalinclude:: ../../../tutorial_examples/4.1_YAML/run.py
+.. literalinclude:: ../../../examples/tutorial/4.1_YAML/run.py
     :language: python
-    :caption: tutorial_examples/4.1_YAML/run.py
+    :caption: examples/tutorial/4.1_YAML/run.py
 
 .. code-block:: text
     :caption: Output of pprint of basic example
@@ -49,9 +49,9 @@ and the ``famous-scientists`` key referring a nested list.
 
 A more common example of a YAML file would use multiple levels and a mix of lists and dictionaries:
 
-.. literalinclude:: ../../../tutorial_examples/4.1_YAML/advanced_example.yaml
+.. literalinclude:: ../../../examples/tutorial/4.1_YAML/advanced_example.yaml
     :language: yaml
-    :caption: tutorial_examples/4.1_YAML/advanced_example.yaml
+    :caption: examples/tutorial/4.1_YAML/advanced_example.yaml
 
 
 .. code-block:: text
@@ -87,9 +87,9 @@ Configuration file
 In this section we will explain the configuration file.
 We start with the simplest configuration file, one without any noise:
 
-.. literalinclude:: ../../../tutorial_examples/4.2_network-configuration/1_perfect.yaml
+.. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/1_perfect.yaml
     :language: yaml
-    :caption: tutorial_examples/4.2_network-configuration/1_perfect.yaml
+    :caption: examples/tutorial/4.2_network-configuration/1_perfect.yaml
 
 The network requires two types of objects to be specified: stacks and links.
 
@@ -130,9 +130,9 @@ The gate operations noise is modeled using randomly applied pauli gates.
 The ``single_qubit_gate_depolar_prob`` and ``two_qubit_gate_depolar_prob``
 control the chance that a random pauli gate is applied to the one or two qubits involved in the operation.
 
-.. literalinclude:: ../../../tutorial_examples/4.2_network-configuration/2_generic_qdevice.yaml
+.. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/2_generic_qdevice.yaml
     :language: yaml
-    :caption: tutorial_examples/4.2_network-configuration/2_generic_qdevice.yaml
+    :caption: examples/tutorial/4.2_network-configuration/2_generic_qdevice.yaml
 
 .. note::
     Depending on the NetSquid formalism slightly different noise models may be used.
@@ -164,9 +164,9 @@ All noise except for decoherence over time is modeled using application of a ran
 
 The various gate execution times function similar to the generic qdevice, but there is more specification possible.
 
-.. literalinclude:: ../../../tutorial_examples/4.2_network-configuration/3_nv_qdevice.yaml
+.. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/3_nv_qdevice.yaml
     :language: yaml
-    :caption: tutorial_examples/4.2_network-configuration/3_nv_qdevice.yaml
+    :caption: examples/tutorial/4.2_network-configuration/3_nv_qdevice.yaml
 
 .. note::
     The decoherence models, using ``T1`` and ``T2`` are only applied to qubits that are idle in memory.
@@ -187,9 +187,9 @@ The ``t_cycle`` controls how long the EPR generation takes, in nanoseconds, for 
 ``prob_success`` controls the likelihood of each attempt succeeding.
 
 
-.. literalinclude:: ../../../tutorial_examples/4.2_network-configuration/4_depolarise_link.yaml
+.. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/4_depolarise_link.yaml
     :language: yaml
-    :caption: tutorial_examples/4.2_network-configuration/4_depolarise_link.yaml
+    :caption: examples/tutorial/4.2_network-configuration/4_depolarise_link.yaml
 
 
 Heralded link
@@ -199,9 +199,9 @@ The nodes repeatedly send out entangled photons and, on a successful measurement
 the midpoint station will send out a signal to both nodes, heralding successful entanglement.
 The heralded link uses the double click model as developed and described by this  `paper <https://arxiv.org/abs/2207.10579>`_.
 
-.. literalinclude:: ../../../tutorial_examples/4.2_network-configuration/5_heralded_link.yaml
+.. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/5_heralded_link.yaml
     :language: yaml
-    :caption: tutorial_examples/4.2_network-configuration/5_heralded_link.yaml
+    :caption: examples/tutorial/4.2_network-configuration/5_heralded_link.yaml
 
 Parameter sweeping
 =====================
@@ -209,15 +209,15 @@ Often it will be desired to simulate not a single network configuration, but a r
 In this section we will show how to modify an existing network configuration inside ``run_simulation.py``
 and how to import components of the network in order to support this modification.
 
-In following example, we have a setup that is comparable to the earlier examples of ``tutorial_examples/3.1_output``.
+In following example, we have a setup that is comparable to the earlier examples of ``examples/tutorial/3.1_output``.
 The application will generate EPR pairs and measure them after a Hadamard gate.
 Our goal is to use ``run_simulation.py`` to modify the network of ``config.yaml``,
 replace its link with a depolarize link, perform multiple simulations with varying fidelity for the link
 and generate an graph of the fidelity vs error rate.
 
-.. literalinclude:: ../../../tutorial_examples/4.3_parameter-sweeping/run_simulation.py
+.. literalinclude:: ../../../examples/tutorial/4.3_parameter-sweeping/run_simulation.py
     :language: python
-    :caption: tutorial_examples/4.3_parameter-sweeping/run_simulation.py
+    :caption: examples/tutorial/4.3_parameter-sweeping/run_simulation.py
     :emphasize-lines: 8-16, 22-23
 
 We still start with loading the original configuration:
@@ -234,9 +234,9 @@ We then load in the configuration options for the depolarise link:
 
 This creates the ``DepolariseLinkConfig`` object based on the parameters in the file ``depolarise_link_config.yaml``:
 
-.. literalinclude:: ../../../tutorial_examples/4.3_parameter-sweeping/depolarise_link_config.yaml
+.. literalinclude:: ../../../examples/tutorial/4.3_parameter-sweeping/depolarise_link_config.yaml
     :language: yaml
-    :caption: tutorial_examples/4.3_parameter-sweeping/depolarise_link_config.yaml
+    :caption: examples/tutorial/4.3_parameter-sweeping/depolarise_link_config.yaml
 
 .. note::
     It is possible to create the ``DepolariseLinkConfig`` using:

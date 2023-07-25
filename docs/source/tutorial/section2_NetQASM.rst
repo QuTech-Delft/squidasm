@@ -35,9 +35,9 @@ as the NetQASM SDK allows one to construct a routine programmatically via python
 This programmatic construction of the routine may cause some confusion,
 as on might expect that after executing these commands in a program:
 
-.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+.. literalinclude:: ../../../examples/tutorial/1_Basics/application.py
    :language: python
-   :caption: tutorial_examples/1_Basics/application.py AliceProgram
+   :caption: examples/tutorial/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
    :lines:  27-29
 
@@ -64,9 +64,9 @@ When we replace ``connection.flush()`` in Alice's program with the following cod
 
 This changes the example to:
 
-.. literalinclude:: ../../../tutorial_examples/2.1_NetQASM-language/application.py
+.. literalinclude:: ../../../examples/tutorial/2.1_NetQASM-language/application.py
    :language: python
-   :caption: tutorial_examples/2.1_NetQASM-language/application.py
+   :caption: examples/tutorial/2.1_NetQASM-language/application.py
    :pyobject: AliceProgram
    :emphasize-lines:  22-25
 
@@ -123,9 +123,9 @@ To deal with this situation, the output of ``qubit.measure()`` is a ``netqasm.sd
 These object behave akin to a placeholder or pointer before the flush, but as a normal integer afterwards.
 Due to this many operations using a ``Future`` object will cause an error if done before a flush:
 
-.. literalinclude:: ../../../tutorial_examples/2.2_Future-objects/application.py
+.. literalinclude:: ../../../examples/tutorial/2.2_Future-objects/application.py
    :language: python
-   :caption: tutorial_examples/2.2_Future-objects/application.py
+   :caption: examples/tutorial/2.2_Future-objects/application.py
    :pyobject: AliceProgram
    :emphasize-lines:  18-36
 

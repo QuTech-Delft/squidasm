@@ -7,7 +7,7 @@ Basics
 In this section you will be introduced to the basics of sending and receiving both classical and quantum information.
 As well as the first steps of writing programs and manipulating Qubits.
 
-This chapter of the tutorial takes the user through the example ``tutorial_examples\1_Basics``.
+This chapter of the tutorial takes the user through the example ``examples/tutorial/1_Basics``.
 This chapter will focus only on ``application.py`` file.
 
 The examples of this and the following sections contain the code snippets that are used in this tutorial.
@@ -17,7 +17,7 @@ In order to run an example, one must first make the current example directory th
 
 .. code-block:: bash
 
-   cd tutorial_examples\1_Basics
+   cd examples/tutorial/1_Basics
 
 Afterwards one may run the simulation using:
 
@@ -40,9 +40,9 @@ Both the Alice and Bob program start with an unpacking of a ``ProgramContex`` ob
 
 The full ``AliceProgram`` is shown below, for now we will focus on introducing the objects in the highlighted section:
 
-.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+.. literalinclude:: ../../../examples/tutorial/1_Basics/application.py
    :language: python
-   :caption: tutorial_examples/1_Basics/application.py AliceProgram
+   :caption: examples/tutorial/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
    :emphasize-lines:  13-19
 
@@ -83,17 +83,17 @@ Classical information is done via the ``Socket`` object from ``netqasm.sdk``.
 The Socket objects represent an open connection to a peer.
 So sending a classical message to a peer may be done by using the ``send()`` method of the classical socket.
 
-.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+.. literalinclude:: ../../../examples/tutorial/1_Basics/application.py
    :language: python
-   :caption: tutorial_examples/1_Basics/application.py AliceProgram
+   :caption: examples/tutorial/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
    :lines:  21-24
 
 In order for Bob to receive the message, he must be waiting for a classical message at the same time using the ``recv()`` method.
 
-.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+.. literalinclude:: ../../../examples/tutorial/1_Basics/application.py
    :language: python
-   :caption: tutorial_examples/1_Basics/application.py BobProgram
+   :caption: examples/tutorial/1_Basics/application.py BobProgram
    :pyobject: BobProgram
    :lines:  21-23
 
@@ -117,15 +117,15 @@ Both ``create_keep()`` and  ``recv_keep()`` return a list of qubits so we select
 By default the request only creates a single EPR pair,
 but a request for multiple EPR pairs may be placed using ``create_keep(number=n)``.
 
-.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+.. literalinclude:: ../../../examples/tutorial/1_Basics/application.py
    :language: python
-   :caption: tutorial_examples/1_Basics/application.py AliceProgram
+   :caption: examples/tutorial/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
    :lines:  27-31
 
-.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+.. literalinclude:: ../../../examples/tutorial/1_Basics/application.py
    :language: python
-   :caption: tutorial_examples/1_Basics/application.py BobProgram
+   :caption: examples/tutorial/1_Basics/application.py BobProgram
    :pyobject: BobProgram
    :lines:  27-30
 
@@ -164,9 +164,9 @@ This initialization requires the user to pass the NetQASM connection,
 as instructions need to be sent to the QNPU that a particular qubit is reset and marked as in use.
 We can use the ``Qubit`` object to create an EPR pair with both qubits on the same node:
 
-.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+.. literalinclude:: ../../../examples/tutorial/1_Basics/application.py
    :language: python
-   :caption: tutorial_examples/1_Basics/application.py AliceProgram
+   :caption: examples/tutorial/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
    :lines:  32-46
 
