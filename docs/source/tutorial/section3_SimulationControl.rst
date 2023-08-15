@@ -10,15 +10,15 @@ Simulation control
 In this section we explain the ``run_simulation.py`` file and the interface that programs in
 ``application.py`` must adhere to, ways to get output results from the program and logging.
 
-The first sections will use the example: ``tutorial_examples/1_Basics`` for the code snippets.
+The first sections will use the example: ``examples/tutorial/1_Basics`` for the code snippets.
 
 Basics run_simulation file
 =================================
-The ``tutorial_examples/1_Basics/run_simulation.py`` file contains the minimal requirements to run a simulation:
+The ``examples/tutorial/1_Basics/run_simulation.py`` file contains the minimal requirements to run a simulation:
 
-.. literalinclude:: ../../../tutorial_examples/1_Basics/run_simulation.py
+.. literalinclude:: ../../../examples/tutorial/1_Basics/run_simulation.py
    :language: python
-   :caption: tutorial_examples/1_Basics/run_simulation.py
+   :caption: examples/tutorial/1_Basics/run_simulation.py
 
 
 In the ``run_simulation.py`` file one must first import the ``AliceProgram`` and ``BobProgram``.
@@ -60,9 +60,9 @@ This declaration is required in order for ``csocket = context.csockets[self.PEER
 inside the ``run`` method to contain a classical socket to ``self.PEER_NAME``.
 An identical principle applies to the EPR sockets.
 
-.. literalinclude:: ../../../tutorial_examples/1_Basics/application.py
+.. literalinclude:: ../../../examples/tutorial/1_Basics/application.py
    :language: python
-   :caption: tutorial_examples/1_Basics/application.py AliceProgram
+   :caption: examples/tutorial/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
    :lines: -19
 
@@ -77,12 +77,12 @@ we would run an application for multiple iterations and possibly multiple parame
 In this section we will show an example of using the ``run_simulation.py`` to evaluate the performance of an application.
 To achieve this, we show how to send output from a program to ``run_simulation.py``.
 
-In ``tutorial_examples/3.1_output`` we create an application
+In ``examples/tutorial/3.1_output`` we create an application
 that generates EPR pairs, applies a Hadamard gate and measures them:
 
-.. literalinclude:: ../../../tutorial_examples/3.1_output/application.py
+.. literalinclude:: ../../../examples/tutorial/3.1_output/application.py
    :language: python
-   :caption: tutorial_examples/3.1_output/application.py AliceProgram
+   :caption: examples/tutorial/3.1_output/application.py AliceProgram
    :pyobject: AliceProgram
 
 
@@ -95,9 +95,9 @@ These dictionaries are returned to the ``run_simulation.py`` file as the return 
 In the ``run_simulation.py`` file below we show how we can use the output of the programs
 and determine an error rate by comparing what EPR measurements are different:
 
-.. literalinclude:: ../../../tutorial_examples/3.1_output/run_simulation.py
+.. literalinclude:: ../../../examples/tutorial/3.1_output/run_simulation.py
    :language: python
-   :caption: tutorial_examples/3.1_output/run_simulation.py
+   :caption: examples/tutorial/3.1_output/run_simulation.py
 
 
 
@@ -131,7 +131,7 @@ it will become inevitable that in some edge cases,
 the application will end return unexpected results or crash.
 Using logs help in the process of finding the cause.
 
-To show the usage of logging we use example: ``tutorial_examples/3.2_logging``.
+To show the usage of logging we use example: ``examples/tutorial/3.2_logging``.
 In this example an QKD like application has been created.
 The purpose of this application is to send a message of a size that is unknown by the receiving party.
 The message and meta data are encrypted via a QKD like encryption.
@@ -140,9 +140,9 @@ The application sends the bits one by one, together with a bit that indicates th
 
 The following AliceProgram uses logging by moving away from print statements to statements using a logger:
 
-.. literalinclude:: ../../../tutorial_examples/3.2_logging/application.py
+.. literalinclude:: ../../../examples/tutorial/3.2_logging/application.py
    :language: python
-   :caption: tutorial_examples/3.2_logging/application.py AliceProgram
+   :caption: examples/tutorial/3.2_logging/application.py AliceProgram
    :pyobject: AliceProgram
    :emphasize-lines: 21, 24, 26, 35, 43, 45
 
@@ -166,24 +166,24 @@ The BobProgram is similar to the AliceProgram.
 It obtains the encryption bits via the EPR pairs and can decode the message that Alice has sent.
 It uses the "continue bit" received from Alice to decide if it is to continue its loop:
 
-.. literalinclude:: ../../../tutorial_examples/3.2_logging/application.py
+.. literalinclude:: ../../../examples/tutorial/3.2_logging/application.py
    :language: python
-   :caption: tutorial_examples/3.2_logging/application.py BobProgram
+   :caption: examples/tutorial/3.2_logging/application.py BobProgram
    :pyobject: BobProgram
 
 
 The logger settings are set up in the ``run_simulation.py`` file:
 
-.. literalinclude:: ../../../tutorial_examples/3.2_logging/run_simulation.py
+.. literalinclude:: ../../../examples/tutorial/3.2_logging/run_simulation.py
    :language: python
-   :caption: tutorial_examples/3.2_logging/run_simulation.py
-   :emphasize-lines: 9-15
+   :caption: examples/tutorial/3.2_logging/run_simulation.py
+   :emphasize-lines: 10-16
 
 
 A log level is set using the following command:
 
 .. code-block:: python
-   :caption: tutorial_examples/3.2_logging/run_simulation.py
+   :caption: examples/tutorial/3.2_logging/run_simulation.py
 
    LogManager.set_log_level("INFO")
 
@@ -192,10 +192,10 @@ The other levels will disregard messages of a lower level.
 
 By default the logs are sent to terminal, but they can be redirected to a log file using:
 
-.. literalinclude:: ../../../tutorial_examples/3.2_logging/run_simulation.py
+.. literalinclude:: ../../../examples/tutorial/3.2_logging/run_simulation.py
    :language: python
-   :caption: tutorial_examples/3.2_logging/run_simulation.py
-   :lines: 11-15
+   :caption: examples/tutorial/3.2_logging/run_simulation.py
+   :lines: 12-16
 
 
 This will result in the logs being written into the ``info.log`` file.
@@ -203,9 +203,9 @@ This will result in the logs being written into the ``info.log`` file.
 The message that Alice will send, is set during the initialization of the program: :python:`AliceProgram(message)`.
 After the simulation was run we can compare the message received by Bob with the original message:
 
-.. literalinclude:: ../../../tutorial_examples/3.2_logging/run_simulation.py
+.. literalinclude:: ../../../examples/tutorial/3.2_logging/run_simulation.py
    :language: python
-   :caption: tutorial_examples/3.2_logging/run_simulation.py
+   :caption: examples/tutorial/3.2_logging/run_simulation.py
    :lines: 18-
 
 Usually this will result in the message being sent over successfully:
@@ -221,7 +221,7 @@ The logs can be found in the ``info.log`` file. In this example it will contain 
 with an example subsection being:
 
 .. code-block:: text
-   :caption: tutorial_examples/3.2_logging/info.log
+   :caption: examples/tutorial/3.2_logging/info.log
 
    ...
    ...
@@ -266,7 +266,7 @@ This behaviour may be unexpected as we might have expected Bob to receive 5 bits
 Investigating the logs in the ``info.log`` file will reveal:
 
 .. code-block:: text
-   :caption: tutorial_examples/3.2_logging/info.log
+   :caption: examples/tutorial/3.2_logging/info.log
 
    ...
    ...

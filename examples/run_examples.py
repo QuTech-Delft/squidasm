@@ -19,12 +19,11 @@ def main():
         for filename in files:
             if (
                 filename.startswith("example") and filename.endswith(".py")
-            ) or filename == "run.py":
+            ) or filename == "run_simulation.py":
                 filepath = os.path.join(root, filename)
                 print(f"Running example {filepath}")
                 result = subprocess.run(
-                    ["python3", filepath],
-                    stdout=subprocess.DEVNULL,
+                    ["python3", filepath], stdout=subprocess.DEVNULL, cwd=root
                 )
                 if result.returncode != 0:
                     raise RuntimeError(f"Example {filepath} failed!")
