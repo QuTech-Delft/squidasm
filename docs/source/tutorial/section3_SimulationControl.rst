@@ -195,7 +195,7 @@ By default the logs are sent to terminal, but they can be redirected to a log fi
 .. literalinclude:: ../../../examples/tutorial/3.2_logging/run_simulation.py
    :language: python
    :caption: examples/tutorial/3.2_logging/run_simulation.py
-   :lines: 11-15
+   :lines: 12-16
 
 
 This will result in the logs being written into the ``info.log`` file.

@@ -127,7 +127,7 @@ but a request for multiple EPR pairs may be placed using ``create_keep(number=n)
    :language: python
    :caption: examples/tutorial/1_Basics/application.py BobProgram
    :pyobject: BobProgram
-   :lines:  27-30
+   :lines:  26-30
 
 
 After the EPR pair is ready, we apply a Hadamard gate and measure the qubit.
@@ -168,7 +168,7 @@ We can use the ``Qubit`` object to create an EPR pair with both qubits on the sa
    :language: python
    :caption: examples/tutorial/1_Basics/application.py AliceProgram
    :pyobject: AliceProgram
-   :lines:  32-46
+   :lines:  33-46
 
 The result of this code segment is either:
 
