@@ -8,7 +8,7 @@ In this tutorial you will be introduced to the objects and concepts necessary to
 
 In order to start the tutorial it is recommended to first install SquidASM and the required components. This process is described in :ref:`label_installation`.
 
-The tutorial sections are accompanied by code examples in the SquidASM package that are located in ``tutorial_examples`` folder of SquidASM.
+The tutorial sections are accompanied by code examples in the SquidASM package that are located in ``examples/tutorial`` folder of SquidASM.
 The code examples shown in this tutorial are part of these examples.
 It is may be useful to browse through the examples when reading the tutorial to obtain the full context of the snippets.
 
