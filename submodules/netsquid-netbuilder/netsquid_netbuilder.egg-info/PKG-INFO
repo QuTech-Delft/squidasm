@@ -27,7 +27,6 @@ Netsquid-netbuilder is the central framework to enable users to create a quantum
 It contains interfaces for the modular objects, a modular network builder and simple implementations for the modular objects.
 
 
-
 Contributors
 ===============
 In alphabetical order:

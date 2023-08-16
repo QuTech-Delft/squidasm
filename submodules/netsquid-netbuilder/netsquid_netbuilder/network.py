@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, Optional
 
+
 if TYPE_CHECKING:
     from netsquid.components import Port
     from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
-    from netsquid_netbuilder.builder.metro_hub import MetroHubNode
+    from netsquid_netbuilder.builder.metro_hub import MetroHubNode, MetroHub
     from netsquid_netbuilder.builder.network_builder import ProtocolController
     from netsquid_netbuilder.modules.scheduler.interface import IScheduleProtocol
+    from netsquid_netbuilder.builder.repeater_chain import Chain
 
     from squidasm.sim.stack.egp import EgpProtocol
     from squidasm.sim.stack.stack import ProcessingNode
@@ -31,17 +33,17 @@ class ProtocolContext:
 
 class Network:
     def __init__(self):
-        self.nodes: Dict[str, ProcessingNode] = {}
+        self.end_nodes: Dict[str, ProcessingNode] = {}
         self.links: Dict[(str, str), MagicLinkLayerProtocolWithSignaling] = {}
-        self.hubs: Dict[str, MetroHubNode] = {}
-        self.schedulers: Dict[str, IScheduleProtocol] = {}
+        self.hubs: Dict[str, MetroHub] = {}
+        self.chains: Dict[(str, str), Chain] = {}
         self.egp: Dict[(str, str), EgpProtocol] = {}
         self.ports: Dict[(str, str), Port] = {}
         self.node_name_id_mapping: Dict[str, int] = {}
         self._protocol_controller: Optional[ProtocolController] = None
 
     def get_protocol_context(self, node_name: str) -> ProtocolContext:
-        node = self.nodes[node_name]
+        node = self.end_nodes[node_name]
         links = self.filter_for_id(node_name, self.links)
         egp = self.filter_for_id(node_name, self.egp)
         ports = self.filter_for_id(node_name, self.ports)

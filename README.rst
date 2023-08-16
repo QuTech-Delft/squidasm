@@ -7,6 +7,13 @@ This is a beta version of netsquid-netbuilder that aims to fully integrate Squid
 This version is highly unstable, will likely undergo significant changes in the near future
 and is only meant to provide feedback for the future version.
 
+The installation of this beta version relies on git submodules, for a install or update the following command
+must be used before calling ``make install``:
+
+.. code-block:: bash
+	git submodule update --init
+
+
 .. installation-start-inclusion-marker-do-not-remove
 
 Installation

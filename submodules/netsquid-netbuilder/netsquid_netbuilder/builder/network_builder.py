@@ -7,6 +7,7 @@ from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.builder.builder_utils import create_connection_ports
 from netsquid_netbuilder.builder.metro_hub import HubBuilder
+from netsquid_netbuilder.builder.repeater_chain import ChainBuilder
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
@@ -26,38 +27,47 @@ class NetworkBuilder:
         self.link_builder = LinkBuilder(self.protocol_controller)
         self.egp_builder = EGPBuilder(self.protocol_controller)
         self.hub_builder = HubBuilder(self.protocol_controller)
+        self.chain_builder = ChainBuilder(self.protocol_controller)
         self._logger = LogManager.get_stack_logger(self.__class__.__name__)
 
     def register_qdevice(self, key: str, builder: Type[IQDeviceBuilder]):
         self.node_builder.register(key, builder)
+        self.chain_builder.register_qdevice(key, builder)
 
     def register_link(
         self, key: str, builder: Type[ILinkBuilder], config: Type[ILinkConfig]
     ):
         self.link_builder.register(key, builder, config)
         self.hub_builder.register(key, builder, config)
+        self.chain_builder.register_link(key, builder, config)
 
     def register_clink(
         self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]
     ):
         self.clink_builder.register(key, builder, config)
         self.hub_builder.register_clink(key, builder, config)
+        self.chain_builder.register_clink(key, builder, config)
 
     def register_scheduler(self, key: str, builder: Type[IScheduleBuilder]):
         self.hub_builder.register_scheduler(key, builder)
 
     def build(self, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Network:
         self.hub_builder.set_configs(config.hubs)
+        self.chain_builder.set_configs(config.repeater_chains)
 
         network = Network()
+        network.hubs = self.hub_builder.create_metro_hub_objects()
+        network.chains = self.chain_builder.create_chain_objects(network.hubs)
 
-        network.nodes = self.node_builder.build(
+        network.end_nodes = self.node_builder.build(
             config, hacky_is_squidasm_flag=hacky_is_squidasm_flag
         )
-        network.hubs = self.hub_builder.build_hub_nodes()
+        self.hub_builder.register_end_nodes_to_hub(network)
+        self.hub_builder.build_hub_nodes(network)
+        self.chain_builder.build_repeater_nodes(network)
 
         network.node_name_id_mapping = {
-            node_id: node.ID for node_id, node in network.nodes.items()
+            node_id: node.ID for node_id, node in network.end_nodes.items()
         }
 
         network.ports = self.clink_builder.build(
@@ -68,8 +78,14 @@ class NetworkBuilder:
                 network, hacky_is_squidasm_flag=hacky_is_squidasm_flag
             )
         )
+        network.ports.update(
+            self.chain_builder.build_classical_connections(
+                network, hacky_is_squidasm_flag=hacky_is_squidasm_flag,
+                metro_hub_configs=config.hubs
+            )
+        )
 
-        network.links = self.link_builder.build(config, network.nodes)
+        network.links = self.link_builder.build(config, network.end_nodes)
         network.links.update(self.hub_builder.build_links(network))
 
         network.schedulers = self.hub_builder.build_schedule(network)
@@ -128,7 +144,7 @@ class ClassicalConnectionBuilder:
     def build(
         self, config: StackNetworkConfig, network: Network, hacky_is_squidasm_flag
     ) -> Dict[(str, str), Port]:
-        nodes = network.nodes
+        nodes = network.end_nodes
         ports = {}
         if config.clinks is None:
             return {}
@@ -195,7 +211,7 @@ class EGPBuilder:
         egp_dict = {}
         for id_tuple, link_layer in network.links.items():
             node_name, peer_node_id = id_tuple
-            node = network.nodes[node_name]
+            node = network.end_nodes[node_name]
             egp = EgpProtocol(node, link_layer)
             egp_dict[(node_name, peer_node_id)] = egp
             self.protocol_controller.register(egp)

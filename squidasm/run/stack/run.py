@@ -26,7 +26,7 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
 
     stacks: Dict[str, NodeStack] = {}
 
-    for node_name, node in network.nodes.items():
+    for node_name, node in network.end_nodes.items():
         assert isinstance(node, ProcessingNode)
         stack = NodeStack(name=node_name, node=node, qdevice_type=node.qmemory_typ)
         NetSquidContext.add_node(stack.node.ID, node_name)

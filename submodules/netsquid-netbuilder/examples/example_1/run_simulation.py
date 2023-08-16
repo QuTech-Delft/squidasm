@@ -18,8 +18,8 @@ bob = BobProtocol()
 sim_stats = run(network, {"Alice": alice, "Bob": bob})
 
 # Look at results
-qubit_alice = network.nodes["Alice"].qdevice.peek(0)[0]
-qubit_bob = network.nodes["Bob"].qdevice.peek(0)[0]
+qubit_alice = network.end_nodes["Alice"].qdevice.peek(0)[0]
+qubit_bob = network.end_nodes["Bob"].qdevice.peek(0)[0]
 
 print(ns.qubits.qubitapi.reduced_dm(qubit_alice.qstate.qubits))
 

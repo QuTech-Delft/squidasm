@@ -4,11 +4,9 @@ setup.cfg
 setup.py
 netsquid_netbuilder/__init__.py
 netsquid_netbuilder/base_configs.py
-netsquid_netbuilder/builder_utils.py
-netsquid_netbuilder/metro_hub.py
-netsquid_netbuilder/metro_hub_builder.py
+netsquid_netbuilder/data_collectors.py
+netsquid_netbuilder/logger.py
 netsquid_netbuilder/network.py
-netsquid_netbuilder/network_builder.py
 netsquid_netbuilder/protocol_base.py
 netsquid_netbuilder/run.py
 netsquid_netbuilder/yaml_loadable.py

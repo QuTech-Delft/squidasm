@@ -69,12 +69,12 @@ class TestFIFOScheduler(unittest.TestCase):
             return delay + 1
 
         requests = self.generate_requests(
-            list(network.nodes.keys()), num_requests, delta_func=delta_func
+            list(network.end_nodes.keys()), num_requests, delta_func=delta_func
         )
 
         protocols = {
             node_name: SchedulerTestProtocol(self.result_register, requests)
-            for node_name in network.nodes.keys()
+            for node_name in network.end_nodes.keys()
         }
 
         run(network, protocols)
@@ -113,12 +113,12 @@ class TestFIFOScheduler(unittest.TestCase):
             return random.randint(0, int(delay) * 2)
 
         requests = self.generate_requests(
-            list(network.nodes.keys()), num_requests, delta_func=delta_func
+            list(network.end_nodes.keys()), num_requests, delta_func=delta_func
         )
 
         protocols = {
             node_name: SchedulerTestProtocol(self.result_register, requests)
-            for node_name in network.nodes.keys()
+            for node_name in network.end_nodes.keys()
         }
 
         run(network, protocols)

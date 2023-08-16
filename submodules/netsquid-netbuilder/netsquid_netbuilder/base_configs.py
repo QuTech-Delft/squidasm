@@ -72,6 +72,34 @@ class MetroHubConfig(YamlLoadable):
     schedule_cfg: Any
 
 
+class RepeaterChainConfig(YamlLoadable):
+    metro_hub1: str
+    metro_hub2: str
+
+    link_typ: str
+    link_cfg: Any
+
+    clink_typ: str
+    clink_cfg: Any
+
+    repeater_nodes: List[StackConfig]
+    lengths: List[float]
+
+    schedule_typ: str
+    schedule_cfg: Any
+
+
+# class DriverConfig(YamlLoadable):
+#     preset: Optional[str]
+#     """Preset to use"""
+#     services: Optional[List[ServiceConfig]]
+#     """Additional services to use install"""
+#
+#
+# class ServiceConfig(YamlLoadable):
+#     name: str
+
+
 class StackNetworkConfig(YamlLoadable):
     """Full network configuration."""
 
@@ -82,3 +110,6 @@ class StackNetworkConfig(YamlLoadable):
     clinks: Optional[List[CLinkConfig]]
     """List of all the clinks connecting the stacks in the network."""
     hubs: Optional[List[MetroHubConfig]]
+    """List of all the metro hubs in the network"""
+    repeater_chains: Optional[List[RepeaterChainConfig]]
+    """List of all the repeater chains in the network"""

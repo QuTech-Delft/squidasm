@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Type
 
 from netsquid.components import Port
@@ -18,13 +19,19 @@ from netsquid_netbuilder.modules.scheduler.interface import (
 from netsquid_netbuilder.network import Network
 
 
+@dataclass
+class MetroHub:
+    hub_node: MetroHubNode = None
+    end_nodes: Dict[str, Node] = field(default_factory=dict)
+    scheduler: IScheduleProtocol = None
+
+
 class MetroHubNode(Node):
     def __init__(
         self,
         name: str,
         node_id: Optional[int] = None,
     ) -> None:
-
         super().__init__(name, ID=node_id)
 
 
@@ -58,14 +65,27 @@ class HubBuilder:
     def register_scheduler(self, key: str, model: Type[IScheduleBuilder]):
         self.scheduler_builders[key] = model
 
-    def build_hub_nodes(self) -> Dict[str, MetroHubNode]:
-        hub_dict = {}
+    def register_end_nodes_to_hub(self, network: Network):
         if self.hub_configs is None:
-            return hub_dict
+            return
         for hub_config in self.hub_configs:
-            hub_dict[hub_config.name] = MetroHubNode(name=hub_config.name)
+            hub = network.hubs[hub_config.name]
+            for connection in hub_config.connections:
+                hub.end_nodes[connection.stack] = network.end_nodes[connection.stack]
 
-        return hub_dict
+    def create_metro_hub_objects(self) -> Dict[str, MetroHub]:
+        hubs = {}
+        if self.hub_configs is not None:
+            for hub_config in self.hub_configs:
+                hubs[hub_config.name] = MetroHub()
+        return hubs
+
+    def build_hub_nodes(self, network: Network):
+        if self.hub_configs is None:
+            return
+        for hub_config in self.hub_configs:
+            hub = network.hubs[hub_config.name]
+            hub.hub_node = MetroHubNode(name=hub_config.name)
 
     def build_classical_connections(
         self, network: Network, hacky_is_squidasm_flag
@@ -74,7 +94,7 @@ class HubBuilder:
         if self.hub_configs is None:
             return ports
         for hub_config in self.hub_configs:
-            hub = network.hubs[hub_config.name]
+            hub_node = network.hubs[hub_config.name].hub_node
             clink_builder = self.clink_builders[hub_config.clink_typ]
             clink_cfg_typ = self.clink_configs[hub_config.clink_typ]
             clink_config = hub_config.clink_cfg
@@ -95,23 +115,23 @@ class HubBuilder:
 
             # Build hub - end node connections
             for connection_config in hub_config.connections:
-                node = network.nodes[connection_config.stack]
+                node = network.end_nodes[connection_config.stack]
                 clink_config = hub_config.clink_cfg
                 if hasattr(clink_config, "length"):
                     clink_config.length = connection_config.length
 
-                connection = clink_builder.build(hub, node, clink_config)
+                connection = clink_builder.build(hub_node, node, clink_config)
 
                 ports.update(
-                    create_connection_ports(hub, node, connection, port_prefix="host")
+                    create_connection_ports(hub_node, node, connection, port_prefix="host")
                 )
 
             # Link end nodes with each other
             for connection_1_config, connection_2_config in itertools.combinations(
                 hub_config.connections, 2
             ):
-                n1 = network.nodes[connection_1_config.stack]
-                n2 = network.nodes[connection_2_config.stack]
+                n1 = network.end_nodes[connection_1_config.stack]
+                n2 = network.end_nodes[connection_2_config.stack]
 
                 clink_config = hub_config.clink_cfg
                 if hasattr(clink_config, "length"):
@@ -163,8 +183,8 @@ class HubBuilder:
             for conn_1_cfg, conn_2_cfg in itertools.combinations(
                 hub_config.connections, 2
             ):
-                node1 = network.nodes[conn_1_cfg.stack]
-                node2 = network.nodes[conn_2_cfg.stack]
+                node1 = network.end_nodes[conn_1_cfg.stack]
+                node2 = network.end_nodes[conn_2_cfg.stack]
                 _set_length(link_config, conn_1_cfg.length, conn_2_cfg.length)
 
                 link_prot = link_builder.build(node1, node2, link_config)

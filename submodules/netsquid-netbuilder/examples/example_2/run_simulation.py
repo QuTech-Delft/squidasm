@@ -19,8 +19,8 @@ def run_simulation(cfg: StackNetworkConfig) -> float:
 
     run(network, {"Alice": alice, "Bob": bob})
 
-    qubit_alice = network.nodes["Alice"].qdevice.peek(0)[0]
-    qubit_bob = network.nodes["Bob"].qdevice.peek(0)[0]
+    qubit_alice = network.end_nodes["Alice"].qdevice.peek(0)[0]
+    qubit_bob = network.end_nodes["Bob"].qdevice.peek(0)[0]
 
     reference_state = ns.qubits.ketstates.b00
     fidelity = ns.qubits.qubitapi.fidelity([qubit_alice, qubit_bob], reference_state)
