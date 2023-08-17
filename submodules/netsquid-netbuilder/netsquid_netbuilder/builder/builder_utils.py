@@ -5,6 +5,7 @@ from typing import Dict
 from netsquid.components import Port
 from netsquid.nodes import Node
 from netsquid.nodes.connections import DirectConnection
+from netsquid_netbuilder.modules.links.interface import ILinkConfig
 
 
 def create_connection_ports(
@@ -23,3 +24,27 @@ def create_connection_ports(
     out[(n2.name, n1.name)] = n1_port
 
     return out
+
+
+def link_has_length(config: ILinkConfig):
+    if hasattr(config, "length"):
+        return True
+    if hasattr(
+        config,
+        "length_A",
+    ) and hasattr(config, "length_B"):
+        return True
+    return False
+
+
+def link_set_length(config: ILinkConfig, dist1: float, dist2: float):
+    if hasattr(
+        config,
+        "length_A",
+    ) and hasattr(config, "length_B"):
+        config.length_A = dist1
+        config.length_B = dist2
+        return
+
+    if hasattr(config, "length"):
+        config.length = dist1 + dist2

@@ -2,9 +2,8 @@ from typing import Generator
 
 import netsquid as ns
 import netsquid.qubits.qubitapi
-from netsquid.components import INSTR_X, QuantumProcessor
+from netsquid.components import QuantumProcessor
 from netsquid.components.component import Qubit
-
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
 

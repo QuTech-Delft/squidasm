@@ -1,9 +1,11 @@
 import netsquid as ns
+from cprotocols import AliceProtocol, BobProtocol
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run
-from netsquid_netbuilder.test_utils.network_generation import create_qia_prototype_network
-from cprotocols import AliceProtocol, BobProtocol
+from netsquid_netbuilder.test_utils.network_generation import (
+    create_qia_prototype_network,
+)
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
 
@@ -23,6 +25,11 @@ cfg = create_qia_prototype_network(
 network = builder.build(cfg, hacky_is_squidasm_flag=False)
 
 
-sim_stats = run(network, {"hub1_node_0": AliceProtocol("hub2_node_0"),
-                          "hub2_node_0": BobProtocol("hub1_node_0")})
+sim_stats = run(
+    network,
+    {
+        "hub1_node_0": AliceProtocol("hub2_node_0"),
+        "hub2_node_0": BobProtocol("hub1_node_0"),
+    },
+)
 print(sim_stats)

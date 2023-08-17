@@ -1,12 +1,7 @@
 from typing import Generator
 
 import netsquid as ns
-import netsquid.qubits.qubitapi
-from netsquid.components import INSTR_X, QuantumProcessor
-from netsquid.components.component import Qubit
-
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
-from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
 
 from pydynaa import EventExpression
 
@@ -35,4 +30,3 @@ class BobProtocol(BlueprintProtocol):
         msg = "Hello"
         port.tx_output(msg)
         print(f"{ns.sim_time()} ns: Bob sends: {msg}")
-

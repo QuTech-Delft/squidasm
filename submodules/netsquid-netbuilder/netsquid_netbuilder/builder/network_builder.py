@@ -66,9 +66,7 @@ class NetworkBuilder:
         self.hub_builder.build_hub_nodes(network)
         self.chain_builder.build_repeater_nodes(network)
 
-        network.node_name_id_mapping = {
-            node_id: node.ID for node_id, node in network.end_nodes.items()
-        }
+        network.node_name_id_mapping = self.create_node_name_id_mapping(network)
 
         network.ports = self.clink_builder.build(
             config, network, hacky_is_squidasm_flag=hacky_is_squidasm_flag
@@ -80,13 +78,14 @@ class NetworkBuilder:
         )
         network.ports.update(
             self.chain_builder.build_classical_connections(
-                network, hacky_is_squidasm_flag=hacky_is_squidasm_flag,
-                metro_hub_configs=config.hubs
+                network,
+                hacky_is_squidasm_flag=hacky_is_squidasm_flag,
             )
         )
 
         network.links = self.link_builder.build(config, network.end_nodes)
         network.links.update(self.hub_builder.build_links(network))
+        network.links.update(self.chain_builder.build_links(network))
 
         network.schedulers = self.hub_builder.build_schedule(network)
 
@@ -95,6 +94,18 @@ class NetworkBuilder:
         network._protocol_controller = self.protocol_controller
 
         return network
+
+    @staticmethod
+    def create_node_name_id_mapping(network: Network) -> Dict[str, int]:
+        mapping = {node_name: node.ID for node_name, node in network.end_nodes.items()}
+        for chain in network.chains.values():
+            mapping.update(
+                {
+                    node_name: node.ID
+                    for node_name, node in chain.repeater_nodes_dict.items()
+                }
+            )
+        return mapping
 
 
 class NodeBuilder:
@@ -210,11 +221,15 @@ class EGPBuilder:
 
         egp_dict = {}
         for id_tuple, link_layer in network.links.items():
-            node_name, peer_node_id = id_tuple
-            node = network.end_nodes[node_name]
-            egp = EgpProtocol(node, link_layer)
-            egp_dict[(node_name, peer_node_id)] = egp
-            self.protocol_controller.register(egp)
+            node_name, peer_node_name = id_tuple
+            if (
+                network.find_role(node_name) is network.Role.END_NODE
+                and network.find_role(peer_node_name) is network.Role.END_NODE
+            ):
+                node = network.end_nodes[node_name]
+                egp = EgpProtocol(node, link_layer)
+                egp_dict[(node_name, peer_node_name)] = egp
+                self.protocol_controller.register(egp)
         return egp_dict
 
 

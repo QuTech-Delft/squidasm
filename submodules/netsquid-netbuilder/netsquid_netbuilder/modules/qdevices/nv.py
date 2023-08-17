@@ -84,11 +84,6 @@ class NVQDeviceConfig(IQDeviceConfig):
     """Electron measurement time in nanoseconds."""
 
     @classmethod
-    def from_file(cls, path: str) -> NVQDeviceConfig:
-        """Load the configuration from a YAML file."""
-        return _from_file(path, NVQDeviceConfig)  # type: ignore
-
-    @classmethod
     def perfect_config(cls) -> NVQDeviceConfig:
         """Create a configuration for a device without any noise or errors."""
         # get default config

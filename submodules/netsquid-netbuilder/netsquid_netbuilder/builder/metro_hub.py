@@ -8,7 +8,11 @@ from netsquid.components import Port
 from netsquid.nodes import Node
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import MetroHubConfig
-from netsquid_netbuilder.builder.builder_utils import create_connection_ports
+from netsquid_netbuilder.builder.builder_utils import (
+    create_connection_ports,
+    link_has_length,
+    link_set_length,
+)
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
@@ -18,12 +22,19 @@ from netsquid_netbuilder.modules.scheduler.interface import (
 )
 from netsquid_netbuilder.network import Network
 
+from squidasm.sim.stack.stack import ProcessingNode
+
 
 @dataclass
 class MetroHub:
     hub_node: MetroHubNode = None
-    end_nodes: Dict[str, Node] = field(default_factory=dict)
+    end_nodes: Dict[str, ProcessingNode] = field(default_factory=dict)
     scheduler: IScheduleProtocol = None
+    end_node_lengths: Dict[str, float] = field(default_factory=dict)
+
+    @property
+    def name(self) -> str:
+        return self.hub_node.name
 
 
 class MetroHubNode(Node):
@@ -77,7 +88,11 @@ class HubBuilder:
         hubs = {}
         if self.hub_configs is not None:
             for hub_config in self.hub_configs:
-                hubs[hub_config.name] = MetroHub()
+                hub = hubs[hub_config.name] = MetroHub()
+
+                # Populate hub_end_node_length field of metro hub object
+                for connection in hub_config.connections:
+                    hub.end_node_lengths[connection.stack] = connection.length
         return hubs
 
     def build_hub_nodes(self, network: Network):
@@ -123,7 +138,9 @@ class HubBuilder:
                 connection = clink_builder.build(hub_node, node, clink_config)
 
                 ports.update(
-                    create_connection_ports(hub_node, node, connection, port_prefix="host")
+                    create_connection_ports(
+                        hub_node, node, connection, port_prefix="host"
+                    )
                 )
 
             # Link end nodes with each other
@@ -174,7 +191,7 @@ class HubBuilder:
                     f" expected {link_cfg_typ.__name__}"
                 )
 
-            if not _has_length(link_config):
+            if not link_has_length(link_config):
                 self._logger.warning(
                     f"Link type: {link_cfg_typ} has no length attribute length,"
                     f"metro hub lengths wil not be used for this link."
@@ -185,7 +202,7 @@ class HubBuilder:
             ):
                 node1 = network.end_nodes[conn_1_cfg.stack]
                 node2 = network.end_nodes[conn_2_cfg.stack]
-                _set_length(link_config, conn_1_cfg.length, conn_2_cfg.length)
+                link_set_length(link_config, conn_1_cfg.length, conn_2_cfg.length)
 
                 link_prot = link_builder.build(node1, node2, link_config)
                 link_prot.close()
@@ -218,27 +235,3 @@ class HubBuilder:
                 link.scheduler = schedule
 
         return schedule_dict
-
-
-def _has_length(config: ILinkConfig):
-    if hasattr(config, "length"):
-        return True
-    if hasattr(
-        config,
-        "length_A",
-    ) and hasattr(config, "length_B"):
-        return True
-    return False
-
-
-def _set_length(config: ILinkConfig, dist1: float, dist2: float):
-    if hasattr(
-        config,
-        "length_A",
-    ) and hasattr(config, "length_B"):
-        config.length_A = dist1
-        config.length_B = dist2
-        return
-
-    if hasattr(config, "length"):
-        config.length = dist1 + dist2

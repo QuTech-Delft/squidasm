@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+from enum import Enum, auto
 from typing import TYPE_CHECKING, Dict, Optional
-
 
 if TYPE_CHECKING:
     from netsquid.components import Port
     from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
-    from netsquid_netbuilder.builder.metro_hub import MetroHubNode, MetroHub
+    from netsquid_netbuilder.builder.metro_hub import MetroHub
     from netsquid_netbuilder.builder.network_builder import ProtocolController
-    from netsquid_netbuilder.modules.scheduler.interface import IScheduleProtocol
     from netsquid_netbuilder.builder.repeater_chain import Chain
 
     from squidasm.sim.stack.egp import EgpProtocol
@@ -49,6 +48,25 @@ class Network:
         ports = self.filter_for_id(node_name, self.ports)
 
         return ProtocolContext(node, links, egp, self.node_name_id_mapping, ports)
+
+    class Role(Enum):
+        END_NODE = auto()
+        REPEATER = auto()
+        HUB = auto()
+
+    def find_role(self, node_name: str) -> Role:
+        if node_name in self.end_nodes:
+            return self.Role.END_NODE
+        # Merge all repeaters node names into a single list using sum(.., [])
+        elif node_name in sum(
+            [list(chain.repeater_nodes_dict.keys()) for chain in self.chains.values()],
+            [],
+        ):
+            return self.Role.REPEATER
+        elif node_name in [hub.hub_node.name for hub in self.hubs.values()]:
+            return self.Role.HUB
+        else:
+            raise ValueError(f"Could not find node: {node_name} in network")
 
     @staticmethod
     def filter_for_id(
