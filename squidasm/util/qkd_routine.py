@@ -6,7 +6,7 @@ from bitarray import bitarray
 from netqasm.sdk.classical_communication.message import StructuredMessage
 
 from pydynaa import EventExpression
-from squidasm.sim.stack.csocket import ClassicalSocket
+from netsquid_driver.classical_socket_service import ClassicalSocket
 from squidasm.sim.stack.program import ProgramContext
 
 

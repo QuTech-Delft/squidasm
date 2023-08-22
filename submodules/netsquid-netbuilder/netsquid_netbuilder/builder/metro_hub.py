@@ -6,6 +6,8 @@ from typing import Dict, List, Optional, Type
 
 from netsquid.components import Port
 from netsquid.nodes import Node
+
+from netsquid_driver.driver import Driver
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import MetroHubConfig
 from netsquid_netbuilder.builder.builder_utils import (
@@ -44,7 +46,12 @@ class MetroHubNode(Node):
         node_id: Optional[int] = None,
     ) -> None:
         super().__init__(name, ID=node_id)
+        driver = Driver(f"Driver_{name}")
+        self.add_subcomponent(driver, "driver")
 
+    @property
+    def driver(self) -> Driver:
+        return self.subcomponents["driver"]
 
 class HubBuilder:
     def __init__(self, protocol_controller):
@@ -144,25 +151,20 @@ class HubBuilder:
                 )
 
             # Link end nodes with each other
-            for connection_1_config, connection_2_config in itertools.combinations(
-                hub_config.connections, 2
-            ):
-                n1 = network.end_nodes[connection_1_config.stack]
-                n2 = network.end_nodes[connection_2_config.stack]
+            if hacky_is_squidasm_flag:
 
-                clink_config = hub_config.clink_cfg
-                if hasattr(clink_config, "length"):
-                    clink_config.length = (
-                        connection_1_config.length + connection_2_config.length
-                    )
+                for connection_1_config, connection_2_config in itertools.combinations(
+                    hub_config.connections, 2
+                ):
+                    n1 = network.end_nodes[connection_1_config.stack]
+                    n2 = network.end_nodes[connection_2_config.stack]
 
-                connection = clink_builder.build(n1, n2, clink_config)
+                    clink_config = hub_config.clink_cfg
+                    if hasattr(clink_config, "length"):
+                        clink_config.length = (
+                            connection_1_config.length + connection_2_config.length
+                        )
 
-                ports.update(
-                    create_connection_ports(n1, n2, connection, port_prefix="host")
-                )
-
-                if hacky_is_squidasm_flag:
                     n1.register_peer(n2.ID)
                     n2.register_peer(n1.ID)
                     connection_qnos = clink_builder.build(n1, n2, link_cfg=clink_config)

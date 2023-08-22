@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, auto
 from typing import Dict, List, Optional, Type
 
 from netsquid.components import Port
+
+from netsquid_driver.EGP import EGPService
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import RepeaterChainConfig
 from netsquid_netbuilder.builder.builder_utils import (
@@ -19,6 +21,7 @@ from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkCo
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.network import Network
+from netsquid_qrepchain.control_layer.swapasap_egp import SwapAsapEndNodeLinkLayerProtocol
 
 from squidasm.sim.stack.stack import ProcessingNode
 
@@ -170,11 +173,9 @@ class ChainBuilder:
                     f" the number of repeater nodes + 1 for chain {chain_config.metro_hub1}-{chain_config.metro_hub2}"
                 )
 
-            def _connect_nodes(node_1: ProcessingNode, node_2: ProcessingNode):
+            def _connect_nodes(node_1: ProcessingNode, node_2: ProcessingNode, length: float):
                 if hasattr(clink_config, "length"):
-                    clink_config.length = self._get_node_to_node_length(
-                        node_1.name, node_2.name, chain
-                    )
+                    clink_config.length = length
 
                 connection = clink_builder.build(node_1, node_2, clink_config)
 
@@ -185,12 +186,14 @@ class ChainBuilder:
                 )
 
             # Link end nodes with each other
-            for n1, n2 in itertools.product(
-                hub1.end_nodes.values(), hub2.end_nodes.values()
-            ):
-                _connect_nodes(n1, n2)
-
-                if hacky_is_squidasm_flag:
+            if hacky_is_squidasm_flag:
+                for n1, n2 in itertools.product(
+                    hub1.end_nodes.values(), hub2.end_nodes.values()
+                ):
+                    if hasattr(clink_config, "length"):
+                        clink_config.length = self._get_node_to_node_length(
+                            n1.name, n2.name, chain
+                        )
                     n1.register_peer(n2.ID)
                     n2.register_peer(n1.ID)
                     connection_qnos = clink_builder.build(n1, n2, link_cfg=clink_config)
@@ -204,25 +207,24 @@ class ChainBuilder:
 
             clink_config = chain_config.clink_cfg
 
-            for hub1_end_node in hub1.end_nodes.values():
-                _connect_nodes(hub1_end_node, hub1_edge_repeater_node)
-
-            for hub2_end_node in hub2.end_nodes.values():
-                _connect_nodes(hub2_end_node, hub2_edge_repeater_node)
+            _connect_nodes(hub1.hub_node, hub1_edge_repeater_node, chain.link_lengths[0])
+            _connect_nodes(hub2.hub_node, hub2_edge_repeater_node, chain.link_lengths[-1])
 
             for chain_index in range(len(chain_config.repeater_nodes) - 1):
                 n1 = chain.repeater_nodes[chain_index]
                 n2 = chain.repeater_nodes[chain_index + 1]
-                _connect_nodes(n1, n2)
+                _connect_nodes(n1, n2, chain.link_lengths[chain_index + 1])
 
             # TODO
 
         return ports
 
     class _NodeType(Enum):
-        HUB1_END = 0
-        HUB2_END = 1
-        REPEATER = 2
+        HUB1_END = auto()
+        HUB2_END = auto()
+        HUB1 = auto()
+        HUB2 = auto()
+        REPEATER = auto()
 
     @classmethod
     def _get_node_to_node_length(
@@ -286,6 +288,10 @@ class ChainBuilder:
             return cls._NodeType.HUB2_END
         if node_name in chain.repeater_nodes_dict.keys():
             return cls._NodeType.REPEATER
+        if node_name in chain.hub_1.name:
+            return cls._NodeType.HUB1
+        if node_name in chain.hub_2.name:
+            return cls._NodeType.HUB2
         raise KeyError(f"Could not find {node_name} in chain {chain.name}")
 
     def build_links(
@@ -355,3 +361,20 @@ class ChainBuilder:
                 _create_link(chain.repeater_nodes[idx], chain.repeater_nodes[idx + 1])
 
         return link_dict
+
+    def build_egp(self, network: Network) -> Dict[(str, str), EGPService]:
+        egp_dict = {}
+        for chain in network.chains.values():
+            for hub1_end_node, hub2_end_node in itertools.product(chain.hub_1.end_nodes.values(),
+                                                                  chain.hub_2.end_nodes.values()):
+
+                egp_hub1_node = SwapAsapEndNodeLinkLayerProtocol(hub1_end_node)
+                egp_hub2_node = SwapAsapEndNodeLinkLayerProtocol(hub2_end_node)
+
+                egp_dict[(hub1_end_node.name, hub2_end_node.name)] = egp_hub1_node
+                egp_dict[(hub2_end_node.name, hub1_end_node.name)] = egp_hub2_node
+
+                self.protocol_controller.register(egp_hub1_node)
+                self.protocol_controller.register(egp_hub2_node)
+
+        return egp_dict

@@ -20,8 +20,8 @@ def create_connection_ports(
     n1_port.connect(connection.port_A)
     n2_port.connect(connection.port_B)
 
-    out[(n1.name, n2.name)] = n2_port
-    out[(n2.name, n1.name)] = n1_port
+    out[(n1.name, n2.name)] = n1_port
+    out[(n2.name, n1.name)] = n2_port
 
     return out
 

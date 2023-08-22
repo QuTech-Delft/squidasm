@@ -15,7 +15,7 @@ from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.csocket import ClassicalSocket
+from netsquid_driver.classical_socket_service import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 

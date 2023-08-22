@@ -12,9 +12,9 @@ class AliceProtocol(BlueprintProtocol):
 
     def run(self) -> Generator[EventExpression, None, None]:
         egp = self.context.egp[self.PEER]
-        port = self.context.ports[self.PEER]
+        socket = self.context.sockets[self.PEER]
 
-        yield self.await_port_input(port)
+        yield from socket.recv()
 
         # create request
         request = ReqCreateAndKeep(
@@ -40,9 +40,9 @@ class BobProtocol(BlueprintProtocol):
 
     def run(self) -> Generator[EventExpression, None, None]:
         egp = self.context.egp[self.PEER]
-        port = self.context.ports[self.PEER]
+        socket = self.context.sockets[self.PEER]
 
-        port.tx_output("")
+        socket.send("")
         egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.PEER]))
 
         # Wait for a signal from the EGP.

@@ -12,11 +12,11 @@ class AliceProtocol(BlueprintProtocol):
         self.PEER = peer_name
 
     def run(self) -> Generator[EventExpression, None, None]:
-        port = self.context.ports[self.PEER]
+        socket = self.context.sockets[self.PEER]
 
-        yield self.await_port_input(port)
-        message = port.rx_input()
-        print(f"{ns.sim_time()} ns: Alice receives: {message.items[0]}")
+        message = yield from socket.recv()
+
+        print(f"{ns.sim_time()} ns: Alice receives: {message}")
 
 
 class BobProtocol(BlueprintProtocol):
@@ -25,8 +25,7 @@ class BobProtocol(BlueprintProtocol):
         self.PEER = peer_name
 
     def run(self):
-        port = self.context.ports[self.PEER]
+        socket = self.context.sockets[self.PEER]
 
         msg = "Hello"
-        port.tx_output(msg)
-        print(f"{ns.sim_time()} ns: Bob sends: {msg}")
+        socket.send(msg)

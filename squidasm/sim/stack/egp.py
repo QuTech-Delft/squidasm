@@ -7,6 +7,7 @@ from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
     TranslationUnit,
 )
+from netsquid_driver.EGP import EGPService
 from netsquid_netbuilder.logger import LogManager
 from qlink_interface import (
     ReqCreateAndKeep,
@@ -24,9 +25,10 @@ from qlink_interface.interface import ResCreate
 
 # (Mostly) copied from the nlblueprint repo.
 # This is done to not have nlblueprint as a dependency.
+# TODO this is made TEMP as original is now present via netsquid_driver. Will have to resolve, probably remove this one
 
 
-class EGPService(ServiceProtocol, metaclass=ABCMeta):
+class TEMPEGPService(ServiceProtocol, metaclass=ABCMeta):
     def __init__(self, node, name=None):
         super().__init__(node=node, name=name)
         self.register_request(ReqCreateAndKeep, self.create_and_keep)

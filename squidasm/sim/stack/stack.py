@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
+from netsquid_driver.driver import Driver
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Port
 from netsquid.nodes import Node
@@ -9,7 +10,7 @@ from netsquid.nodes.network import Network
 from netsquid.protocols import Protocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
 
-from squidasm.sim.stack.csocket import ClassicalSocket
+from netsquid_driver.classical_socket_service import ClassicalSocket
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent
@@ -46,6 +47,8 @@ class ProcessingNode(Node):
         super().__init__(name, ID=node_id)
         self.qmemory = qdevice
         self.qmemory_typ = qdevice_type
+        driver = Driver(f"Driver_{name}")
+        self.add_subcomponent(driver, "driver")
 
         self.hacky_is_squidasm_flag = hacky_is_squidasm_flag
         # TODO remove self.add_ports(["host_peer_out", "host_peer_in"])
@@ -77,6 +80,10 @@ class ProcessingNode(Node):
     @property
     def qdevice(self) -> QuantumProcessor:
         return self.qmemory
+
+    @property
+    def driver(self) -> Driver:
+        return self.subcomponents["driver"]
 
     def qnos_peer_port(self, peer_id: int) -> Port:
         return self.ports[f"qnos_peer_{peer_id}"]

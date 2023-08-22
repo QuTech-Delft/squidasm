@@ -15,6 +15,7 @@ def _has_first_argument(function, argument):
 def main():
     set_log_level(logging.WARNING)
     path_to_here = os.path.dirname(os.path.abspath(__file__))
+    errors = []
     for root, _folders, files in os.walk(path_to_here):
         for filename in files:
             if (
@@ -26,9 +27,14 @@ def main():
                     ["python3", filepath], stdout=subprocess.DEVNULL, cwd=root
                 )
                 if result.returncode != 0:
-                    raise RuntimeError(f"Example {filepath} failed!")
+                    errors.append(f"Example {filepath} failed!")
 
-    print("All examples work!")
+    if len(errors) == 0:
+        print("All examples work!")
+    else:
+        for error in errors:
+            print(error)
+            raise RuntimeError(f"{len(errors)} examples failed!")
 
 
 if __name__ == "__main__":

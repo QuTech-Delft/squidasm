@@ -15,12 +15,12 @@ class ServerProtocol(BlueprintProtocol):
     def run(self) -> Generator[EventExpression, None, None]:
 
         for client in self.clients:
+            socket = self.context.sockets[client]
 
-            self.context.ports[client].tx_output("Start entanglement")
-            in_port = self.context.ports[client]
-            yield self.await_port_input(in_port)
+            socket.send("Start entanglement")
+            message = yield from socket.recv()
             print(
-                f"{ns.sim_time()} ns: Server receives from {client}: {in_port.rx_input().items[0]}"
+                f"{ns.sim_time()} ns: Server receives from {client}: {message}"
             )
 
             egp = self.context.egp[client]
@@ -55,16 +55,16 @@ class ClientProtocol(BlueprintProtocol):
     def run(self) -> Generator[EventExpression, None, None]:
         egp = self.context.egp[self.server_name]
 
-        in_port = self.context.ports[self.server_name]
-        yield self.await_port_input(in_port)
+        socket = self.context.sockets[self.server_name]
+        message = yield from socket.recv()
         print(
             f"{ns.sim_time()} ns: {self.context.node.name} "
-            f"receives from {self.server_name}: {in_port.rx_input().items[0]}"
+            f"receives from {self.server_name}: {message}"
         )
         egp.put(
             ReqReceive(remote_node_id=self.context.node_id_mapping[self.server_name])
         )
-        self.context.ports[self.server_name].tx_output("Ready to start entanglement")
+        socket.send("Ready to start entanglement")
 
         qdevice = self.context.node.qdevice
 

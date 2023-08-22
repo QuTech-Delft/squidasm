@@ -28,11 +28,11 @@ class AliceProtocol(BlueprintProtocol):
         self.send_times = send_times
 
     def run(self) -> Generator[EventExpression, None, None]:
-        port = self.context.ports[self.PEER]
+        socket = self.context.sockets[self.PEER]
 
         for send_time, message in zip(self.send_times, self.messages):
             yield self.await_timer(end_time=send_time)
-            port.tx_output(message)
+            socket.send(message)
             self.result_reg.send_classical_msg.append((ns.sim_time(), message))
 
 
@@ -44,9 +44,8 @@ class BobProtocol(BlueprintProtocol):
         self.result_reg = result_reg
 
     def run(self) -> Generator[EventExpression, None, None]:
-        port = self.context.ports[self.PEER]
+        socket = self.context.sockets[self.PEER]
 
         while True:
-            yield self.await_port_input(port)
-            message = port.rx_input()
-            self.result_reg.rec_classical_msg.append((ns.sim_time(), message.items[0]))
+            message = yield from socket.recv()
+            self.result_reg.rec_classical_msg.append((ns.sim_time(), message))

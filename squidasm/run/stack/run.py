@@ -9,7 +9,7 @@ from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.run import get_default_builder
 
 from squidasm.sim.stack.context import NetSquidContext
-from squidasm.sim.stack.csocket import ClassicalSocket
+from netsquid_driver.classical_socket_service import ClassicalSocket
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.stack import NodeStack, ProcessingNode, StackNetwork
@@ -42,20 +42,13 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
         s2.qnos.netstack.register_peer(s1.node.ID)
         s2.qnos_comp.register_peer(s1.node.ID)
 
-    csockets: Dict[(str, str):ClassicalSocket] = {}
-    for node_pair in network.ports.keys():
-        node_name = node_pair[0]
-        peer_name = node_pair[1]
-        port = network.ports[(node_name, peer_name)]
-
-        # TODO app name is unknown here
-        csocket = ClassicalSocket(port, app_name=node_name, remote_app_name=peer_name)
-        csockets[(node_name, peer_name)] = csocket
-        stacks[node_name].host.register_csocket(peer_name, csocket)
+    # used to build ClassicalSockets here, now just import from network
+    csockets: Dict[(str, str), ClassicalSocket] = network.sockets
+    for (node_name, peer_name), socket in csockets.items():
+        stacks[node_name].host.register_csocket(peer_name, socket)
 
     link_prots: List[MagicLinkLayerProtocol] = []
-    # TODO cheaty start protocols here
-    builder.protocol_controller.start_all()
+    network.start()
 
     return StackNetwork(stacks, link_prots, csockets)
 
@@ -78,9 +71,6 @@ def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
     # Start the node protocols.
     for _, stack in network.stacks.items():
         stack.start()
-
-    for csocket in network.csockets.values():
-        csocket.start()
 
     # Start the NetSquid simulation.
     ns.sim_run()
