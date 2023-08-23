@@ -1,10 +1,13 @@
+from dataclasses import dataclass
 from typing import Dict
 
-from dataclasses import dataclass
 from netsquid.components import Port
 from netsquid.protocols import ServiceProtocol
+from netsquid_driver.classical_routing_service import (
+    ClassicalRoutingService,
+    RemoteServiceRequest,
+)
 
-from netsquid_driver.classical_routing_service import ClassicalRoutingService, RemoteServiceRequest
 from pydynaa import EventExpression
 from squidasm.sim.stack.common import PortListener
 from squidasm.sim.stack.qnos import QnosComponent
@@ -13,6 +16,7 @@ from squidasm.sim.stack.qnos import QnosComponent
 @dataclass
 class ReqQNOSMessage:
     """Make a request to send a message to a remote node"""
+
     origin: str
     message: str
 
@@ -61,8 +65,10 @@ class QNOSNetworkService(ServiceProtocol):
 
     def receive_qnos_message(self, req: ReqQNOSMessage):
         if req.origin not in self.node_id_name_mapping.keys():
-            raise RuntimeError(f"Node: {self.node.name} received QNOS request"
-                               f" from unregistered peer {req.origin}")
+            raise RuntimeError(
+                f"Node: {self.node.name} received QNOS request"
+                f" from unregistered peer {req.origin}"
+            )
 
         remote_id = self.node_id_name_mapping[req.origin]
         port = self.qnos_comp.peer_in_port(remote_id)
@@ -73,7 +79,7 @@ class QNOSNetworkService(ServiceProtocol):
             request=ReqQNOSMessage(origin=self.node.name, message=msg),
             origin=self.node.name,
             service=QNOSNetworkService,
-            targets=[target]
+            targets=[target],
         )
 
         self.node.driver.services[ClassicalRoutingService].put(service_request)

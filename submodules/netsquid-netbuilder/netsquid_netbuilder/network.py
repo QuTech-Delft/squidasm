@@ -3,13 +3,12 @@ from __future__ import annotations
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Dict, Optional
 
-
 if TYPE_CHECKING:
     from netsquid.components import Port
     from netsquid.nodes.node import Node
+    from netsquid_driver.classical_socket_service import ClassicalSocket
     from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
     from netsquid_netbuilder.builder.metro_hub import MetroHub
-    from netsquid_driver.classical_socket_service import ClassicalSocket
     from netsquid_netbuilder.builder.network_builder import ProtocolController
     from netsquid_netbuilder.builder.repeater_chain import Chain
 
@@ -54,7 +53,9 @@ class Network:
         ports = self.filter_for_id(node_name, self.ports)
         sockets = self.filter_for_id(node_name, self.sockets)
 
-        return ProtocolContext(node, links, egp, self.node_name_id_mapping, sockets, ports)
+        return ProtocolContext(
+            node, links, egp, self.node_name_id_mapping, sockets, ports
+        )
 
     class Role(Enum):
         END_NODE = auto()

@@ -3,11 +3,11 @@ from typing import Dict
 
 from netsquid import BellIndex
 from netsquid.protocols import ServiceProtocol
+from netsquid_driver.EGP import EGPService
 from netsquid_magic.link_layer import (
     MagicLinkLayerProtocolWithSignaling,
     TranslationUnit,
 )
-from netsquid_driver.EGP import EGPService
 from netsquid_netbuilder.logger import LogManager
 from qlink_interface import (
     ReqCreateAndKeep,

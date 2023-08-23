@@ -6,7 +6,6 @@ from typing import Dict, List, Optional, Type
 
 from netsquid.components import Port
 from netsquid.nodes import Node
-
 from netsquid_driver.driver import Driver
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import MetroHubConfig
@@ -52,6 +51,7 @@ class MetroHubNode(Node):
     @property
     def driver(self) -> Driver:
         return self.subcomponents["driver"]
+
 
 class HubBuilder:
     def __init__(self, protocol_controller):
@@ -109,9 +109,7 @@ class HubBuilder:
             hub = network.hubs[hub_config.name]
             hub.hub_node = MetroHubNode(name=hub_config.name)
 
-    def build_classical_connections(
-        self, network: Network
-    ) -> Dict[(str, str), Port]:
+    def build_classical_connections(self, network: Network) -> Dict[(str, str), Port]:
         ports: Dict[(str, str), Port] = {}
         if self.hub_configs is None:
             return ports
@@ -149,8 +147,6 @@ class HubBuilder:
                         hub_node, node, connection, port_prefix="external"
                     )
                 )
-
-
 
         return ports
 

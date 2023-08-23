@@ -68,8 +68,10 @@ install: _check_variables
 install-dev: _check_variables
 	@$(PYTHON3) -m pip install -e .[dev] ${PIP_FLAGS}
 	$(GIT) submodule update --init
-	@$(PYTHON3) -m pip install -e submodules/netsquid-magic/
-	@$(PYTHON3) -m pip install -e submodules/netsquid-abstractmodel/
+	@$(PYTHON3) -m pip install -e submodules/netsquid-magic/ ${PIP_FLAGS}
+	@$(PYTHON3) -m pip install -e submodules/netsquid-abstractmodel/ ${PIP_FLAGS}
+	@$(PYTHON3) -m pip install -e submodules/netsquid-driver/ ${PIP_FLAGS}
+	@$(PYTHON3) -m pip install -e submodules/netsquid-qrepchain/ ${PIP_FLAGS}
 	@$(PYTHON3) -m pip install -e submodules/netsquid-netbuilder/
 
 verify: clean tests examples _verified

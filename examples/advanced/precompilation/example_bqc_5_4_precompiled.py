@@ -5,6 +5,7 @@ from typing import Any, Dict, Generator
 
 from netqasm.lang.operand import Template
 from netqasm.sdk.toolbox.state_prep import get_angle_spec_from_float
+from netsquid_driver.classical_socket_service import ClassicalSocket
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
@@ -18,7 +19,6 @@ from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
-from netsquid_driver.classical_socket_service import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 

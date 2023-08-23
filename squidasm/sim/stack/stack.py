@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from netsquid_driver.driver import Driver
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Port
 from netsquid.nodes import Node
 from netsquid.nodes.network import Network
 from netsquid.protocols import Protocol
+from netsquid_driver.classical_socket_service import ClassicalSocket
+from netsquid_driver.driver import Driver
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
 
-from netsquid_driver.classical_socket_service import ClassicalSocket
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent

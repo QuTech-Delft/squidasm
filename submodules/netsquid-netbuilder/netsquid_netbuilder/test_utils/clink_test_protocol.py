@@ -39,12 +39,15 @@ class AliceProtocol(BlueprintProtocol):
 class BobProtocol(BlueprintProtocol):
     PEER = "Alice"
 
-    def __init__(self, result_reg: ClassicalMessageResultRegistration):
+    def __init__(self, result_reg: ClassicalMessageResultRegistration, listen_delay: float = 0.):
         super().__init__()
         self.result_reg = result_reg
+        self.listen_delay = listen_delay
 
     def run(self) -> Generator[EventExpression, None, None]:
         socket = self.context.sockets[self.PEER]
+        if self.listen_delay > 0:
+            yield self.await_timer(end_time=self.listen_delay)
 
         while True:
             message = yield from socket.recv()

@@ -12,6 +12,7 @@ from netsquid.components.instructions import (
     INSTR_X,
     INSTR_Y,
     INSTR_Z,
+    INSTR_K,
 )
 from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qprocessor import PhysicalInstruction, QuantumProcessor
@@ -99,6 +100,7 @@ class GenericQDeviceBuilder(IQDeviceBuilder):
             INSTR_Y,
             INSTR_Z,
             INSTR_H,
+            INSTR_K,
         ]:
             phys_instructions.append(
                 PhysicalInstruction(

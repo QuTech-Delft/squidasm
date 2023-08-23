@@ -4,12 +4,12 @@ import itertools
 from typing import Any, Dict, List
 
 import netsquid as ns
+from netsquid_driver.classical_socket_service import ClassicalSocket
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
 from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.run import get_default_builder
 
 from squidasm.sim.stack.context import NetSquidContext
-from netsquid_driver.classical_socket_service import ClassicalSocket
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.qnos_network_service import QNOSNetworkService

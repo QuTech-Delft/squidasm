@@ -11,12 +11,12 @@ from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
+from netsquid_driver.classical_socket_service import ClassicalSocket
 
 from pydynaa import EventExpression
 from squidasm.sim.stack.common import ComponentProtocol, PortListener
 from squidasm.sim.stack.connection import QnosConnection
 from squidasm.sim.stack.context import NetSquidContext
-from netsquid_driver.classical_socket_service import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext
 from squidasm.sim.stack.signals import SIGNAL_HAND_HOST_MSG
 

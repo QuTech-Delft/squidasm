@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Dict, Type, List
+from typing import Dict, List, Type
 
 from netsquid.components import Port
-
-from netsquid_driver.EGP import EGPService
-from netsquid_driver.classical_socket_service import ClassicalSocket, ClassicalSocketService
-from netsquid_driver.driver import Driver
 from netsquid_driver.classical_routing_service import ClassicalRoutingService
+from netsquid_driver.classical_socket_service import (
+    ClassicalSocket,
+    ClassicalSocketService,
+)
+from netsquid_driver.driver import Driver
+from netsquid_driver.EGP import EGPService
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.builder.builder_utils import create_connection_ports
@@ -270,7 +272,10 @@ class RoutingProtocolBuilder:
 
     def _calculate_routing_tables(self, network: Network):
         node_names = network.nodes.keys()
-        self.routing_table = {node_name: self._calculate_local_routing_table(node_name) for node_name in node_names}
+        self.routing_table = {
+            node_name: self._calculate_local_routing_table(node_name)
+            for node_name in node_names
+        }
 
     def build(self, network: Network):
         self._create_graph(network)
@@ -278,13 +283,21 @@ class RoutingProtocolBuilder:
 
         for node in network.nodes.values():
             assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
-            port_routing_table = {target_name: network.ports[(node.name, forward_node_name)]
-                                  for target_name, forward_node_name in self.routing_table[node.name].items()}
-            routing_service = ClassicalRoutingService(node=node, forwarding_table=port_routing_table)
+            port_routing_table = {
+                target_name: network.ports[(node.name, forward_node_name)]
+                for target_name, forward_node_name in self.routing_table[
+                    node.name
+                ].items()
+            }
+            routing_service = ClassicalRoutingService(
+                node=node, forwarding_table=port_routing_table
+            )
 
             node.driver.add_service(ClassicalRoutingService, routing_service)
             external_ports = Network.filter_for_id(node.name, network.ports)
-            routing_service.register_ports([port.name for port in external_ports.values()])
+            routing_service.register_ports(
+                [port.name for port in external_ports.values()]
+            )
 
 
 class ClassicalSocketBuilder:
@@ -300,14 +313,16 @@ class ClassicalSocketBuilder:
                 if remote_node is node:
                     continue
 
-                socket = ClassicalSocket(socket_service=service, remote_node_name=remote_node.name,
-                                         app_name="root", remote_app_name="root")
+                socket = ClassicalSocket(
+                    socket_service=service,
+                    remote_node_name=remote_node.name,
+                    app_name="root",
+                    remote_app_name="root",
+                )
                 sockets[(node.name, remote_node.name)] = socket
                 self.protocol_controller.register(socket)
 
         return sockets
-
-
 
 
 class ProtocolController:

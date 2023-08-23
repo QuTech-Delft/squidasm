@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass, field
-from enum import Enum, auto
 from typing import Dict, List, Optional, Type
 
 from netsquid.components import Port
-
 from netsquid_driver.EGP import EGPService
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import RepeaterChainConfig
@@ -21,7 +19,9 @@ from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkCo
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.network import Network
-from netsquid_qrepchain.control_layer.swapasap_egp import SwapAsapEndNodeLinkLayerProtocol
+from netsquid_qrepchain.control_layer.swapasap_egp import (
+    SwapAsapEndNodeLinkLayerProtocol,
+)
 
 from squidasm.sim.stack.stack import ProcessingNode
 
@@ -172,7 +172,9 @@ class ChainBuilder:
                     f" the number of repeater nodes + 1 for chain {chain_config.metro_hub1}-{chain_config.metro_hub2}"
                 )
 
-            def _connect_nodes(node_1: ProcessingNode, node_2: ProcessingNode, length: float):
+            def _connect_nodes(
+                node_1: ProcessingNode, node_2: ProcessingNode, length: float
+            ):
                 if hasattr(clink_config, "length"):
                     clink_config.length = length
 
@@ -190,8 +192,12 @@ class ChainBuilder:
 
             clink_config = chain_config.clink_cfg
 
-            _connect_nodes(hub1.hub_node, hub1_edge_repeater_node, chain.link_lengths[0])
-            _connect_nodes(hub2.hub_node, hub2_edge_repeater_node, chain.link_lengths[-1])
+            _connect_nodes(
+                hub1.hub_node, hub1_edge_repeater_node, chain.link_lengths[0]
+            )
+            _connect_nodes(
+                hub2.hub_node, hub2_edge_repeater_node, chain.link_lengths[-1]
+            )
 
             for chain_index in range(len(chain_config.repeater_nodes) - 1):
                 n1 = chain.repeater_nodes[chain_index]
@@ -201,7 +207,6 @@ class ChainBuilder:
             # TODO
 
         return ports
-
 
     def build_links(
         self, network: Network
@@ -274,8 +279,9 @@ class ChainBuilder:
     def build_egp(self, network: Network) -> Dict[(str, str), EGPService]:
         egp_dict = {}
         for chain in network.chains.values():
-            for hub1_end_node, hub2_end_node in itertools.product(chain.hub_1.end_nodes.values(),
-                                                                  chain.hub_2.end_nodes.values()):
+            for hub1_end_node, hub2_end_node in itertools.product(
+                chain.hub_1.end_nodes.values(), chain.hub_2.end_nodes.values()
+            ):
 
                 egp_hub1_node = SwapAsapEndNodeLinkLayerProtocol(hub1_end_node)
                 egp_hub2_node = SwapAsapEndNodeLinkLayerProtocol(hub2_end_node)

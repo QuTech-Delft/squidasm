@@ -19,9 +19,7 @@ class ServerProtocol(BlueprintProtocol):
 
             socket.send("Start entanglement")
             message = yield from socket.recv()
-            print(
-                f"{ns.sim_time()} ns: Server receives from {client}: {message}"
-            )
+            print(f"{ns.sim_time()} ns: Server receives from {client}: {message}")
 
             egp = self.context.egp[client]
 
