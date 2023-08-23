@@ -12,6 +12,7 @@ from squidasm.sim.stack.context import NetSquidContext
 from netsquid_driver.classical_socket_service import ClassicalSocket
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
+from squidasm.sim.stack.qnos_network_service import QNOSNetworkService
 from squidasm.sim.stack.stack import NodeStack, ProcessingNode, StackNetwork
 
 
@@ -37,10 +38,17 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
         stacks[node_name].assign_egp(network.node_name_id_mapping[peer_name], egp)
 
     for s1, s2 in itertools.combinations(stacks.values(), 2):
-        s1.qnos.netstack.register_peer(s2.node.ID)
         s1.qnos_comp.register_peer(s2.node.ID)
-        s2.qnos.netstack.register_peer(s1.node.ID)
+        s1.qnos.netstack.register_peer(s2.node.ID)
         s2.qnos_comp.register_peer(s1.node.ID)
+        s2.qnos.netstack.register_peer(s1.node.ID)
+
+    for node_name, node in network.end_nodes.items():
+        service = QNOSNetworkService(node, node.qnos_comp)
+        node.driver.add_service(QNOSNetworkService, service)
+        for remote_name, remote_node in network.end_nodes.items():
+            if remote_name != node_name:
+                service.register_remote_node(remote_name, remote_node.ID)
 
     # used to build ClassicalSockets here, now just import from network
     csockets: Dict[(str, str), ClassicalSocket] = network.sockets

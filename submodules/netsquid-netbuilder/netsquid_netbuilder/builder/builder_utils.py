@@ -13,8 +13,8 @@ def create_connection_ports(
 ) -> Dict[(str, str), Port]:
     out = {}
 
-    n1_port: Port = n1.add_ports([f"{port_prefix}_{n2.ID}"])[0]
-    n2_port: Port = n2.add_ports([f"{port_prefix}_{n1.ID}"])[0]
+    n1_port: Port = n1.add_ports([f"Port_{port_prefix}_({n1.name},{n2.name})"])[0]
+    n2_port: Port = n2.add_ports([f"Port_{port_prefix}_({n2.name},{n1.name})"])[0]
 
     # link
     n1_port.connect(connection.port_A)

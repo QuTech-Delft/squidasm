@@ -110,7 +110,7 @@ class HubBuilder:
             hub.hub_node = MetroHubNode(name=hub_config.name)
 
     def build_classical_connections(
-        self, network: Network, hacky_is_squidasm_flag
+        self, network: Network
     ) -> Dict[(str, str), Port]:
         ports: Dict[(str, str), Port] = {}
         if self.hub_configs is None:
@@ -146,31 +146,11 @@ class HubBuilder:
 
                 ports.update(
                     create_connection_ports(
-                        hub_node, node, connection, port_prefix="host"
+                        hub_node, node, connection, port_prefix="external"
                     )
                 )
 
-            # Link end nodes with each other
-            if hacky_is_squidasm_flag:
 
-                for connection_1_config, connection_2_config in itertools.combinations(
-                    hub_config.connections, 2
-                ):
-                    n1 = network.end_nodes[connection_1_config.stack]
-                    n2 = network.end_nodes[connection_2_config.stack]
-
-                    clink_config = hub_config.clink_cfg
-                    if hasattr(clink_config, "length"):
-                        clink_config.length = (
-                            connection_1_config.length + connection_2_config.length
-                        )
-
-                    n1.register_peer(n2.ID)
-                    n2.register_peer(n1.ID)
-                    connection_qnos = clink_builder.build(n1, n2, link_cfg=clink_config)
-
-                    n1.qnos_peer_port(n2.ID).connect(connection_qnos.port_A)
-                    n2.qnos_peer_port(n1.ID).connect(connection_qnos.port_B)
 
         return ports
 

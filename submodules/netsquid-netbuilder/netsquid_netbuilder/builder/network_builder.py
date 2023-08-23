@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import itertools
-from copy import copy
 from typing import Dict, Type, List
 
 from netsquid.components import Port
@@ -81,9 +79,9 @@ class NetworkBuilder:
         # Set up ports and connections for classical communication
         # black refactoring these lines makes it less readable
         # fmt: off
-        network.ports = self.clink_builder.build(config, network, hacky_is_squidasm_flag)
-        network.ports.update(self.hub_builder.build_classical_connections(network, hacky_is_squidasm_flag))
-        network.ports.update(self.chain_builder.build_classical_connections(network, hacky_is_squidasm_flag))
+        network.ports = self.clink_builder.build(config, network)
+        network.ports.update(self.hub_builder.build_classical_connections(network))
+        network.ports.update(self.chain_builder.build_classical_connections(network))
         # fmt: on
 
         # Create instances of all direct quantum links
@@ -167,7 +165,7 @@ class ClassicalConnectionBuilder:
         self.clink_configs[key] = config
 
     def build(
-        self, config: StackNetworkConfig, network: Network, hacky_is_squidasm_flag
+        self, config: StackNetworkConfig, network: Network
     ) -> Dict[(str, str), Port]:
         nodes = network.end_nodes
         ports = {}
@@ -180,16 +178,9 @@ class ClassicalConnectionBuilder:
             connection = clink_builder.build(s1, s2, link_cfg=clink.cfg)
 
             ports.update(
-                create_connection_ports(s1, s2, connection, port_prefix="host")
+                create_connection_ports(s1, s2, connection, port_prefix="external")
             )
 
-            if hacky_is_squidasm_flag:
-                s1.register_peer(s2.ID)
-                s2.register_peer(s1.ID)
-                connection_qnos = clink_builder.build(s1, s2, link_cfg=clink.cfg)
-
-                s1.qnos_peer_port(s2.ID).connect(connection_qnos.port_A)
-                s2.qnos_peer_port(s1.ID).connect(connection_qnos.port_B)
         return ports
 
 
@@ -289,17 +280,18 @@ class RoutingProtocolBuilder:
             assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
             port_routing_table = {target_name: network.ports[(node.name, forward_node_name)]
                                   for target_name, forward_node_name in self.routing_table[node.name].items()}
-            node.driver.add_service(ClassicalRoutingService,
-                                    ClassicalRoutingService(node=node,
-                                                           forwarding_table=port_routing_table))
+            routing_service = ClassicalRoutingService(node=node, forwarding_table=port_routing_table)
+
+            node.driver.add_service(ClassicalRoutingService, routing_service)
+            external_ports = Network.filter_for_id(node.name, network.ports)
+            routing_service.register_ports([port.name for port in external_ports.values()])
 
 
 class ClassicalSocketBuilder:
     def __init__(self, protocol_controller: ProtocolController):
         self.protocol_controller = protocol_controller
 
-    @staticmethod
-    def build(network: Network) -> Dict[(str, str), ClassicalSocket]:
+    def build(self, network: Network) -> Dict[(str, str), ClassicalSocket]:
         sockets = {}
         for node in network.end_nodes.values():
             service = ClassicalSocketService(node=node)
@@ -311,6 +303,7 @@ class ClassicalSocketBuilder:
                 socket = ClassicalSocket(socket_service=service, remote_node_name=remote_node.name,
                                          app_name="root", remote_app_name="root")
                 sockets[(node.name, remote_node.name)] = socket
+                self.protocol_controller.register(socket)
 
         return sockets
 

@@ -140,7 +140,6 @@ class ChainBuilder:
     def build_classical_connections(
         self,
         network: Network,
-        hacky_is_squidasm_flag,
     ) -> Dict[(str, str), Port]:
         ports: Dict[(str, str), Port] = {}
         if self.chain_configs is None:
@@ -181,25 +180,9 @@ class ChainBuilder:
 
                 ports.update(
                     create_connection_ports(
-                        node_1, node_2, connection, port_prefix="host"
+                        node_1, node_2, connection, port_prefix="external"
                     )
                 )
-
-            # Link end nodes with each other
-            if hacky_is_squidasm_flag:
-                for n1, n2 in itertools.product(
-                    hub1.end_nodes.values(), hub2.end_nodes.values()
-                ):
-                    if hasattr(clink_config, "length"):
-                        clink_config.length = self._get_node_to_node_length(
-                            n1.name, n2.name, chain
-                        )
-                    n1.register_peer(n2.ID)
-                    n2.register_peer(n1.ID)
-                    connection_qnos = clink_builder.build(n1, n2, link_cfg=clink_config)
-
-                    n1.qnos_peer_port(n2.ID).connect(connection_qnos.port_A)
-                    n2.qnos_peer_port(n1.ID).connect(connection_qnos.port_B)
 
             # link repeater chain ends
             hub1_edge_repeater_node = chain.repeater_nodes[0]
@@ -219,80 +202,6 @@ class ChainBuilder:
 
         return ports
 
-    class _NodeType(Enum):
-        HUB1_END = auto()
-        HUB2_END = auto()
-        HUB1 = auto()
-        HUB2 = auto()
-        REPEATER = auto()
-
-    @classmethod
-    def _get_node_to_node_length(
-        cls, n1_name: str, n2_name: str, chain: Chain
-    ) -> float:
-        n1_type = cls._find_node_type(n1_name, chain)
-        n2_type = cls._find_node_type(n2_name, chain)
-        repeater_node_names = [node.name for node in chain.repeater_nodes]
-
-        # Same MH
-        if n1_type is n2_type and n1_type is not cls._NodeType.REPEATER:
-            mh = chain.hub_1 if n1_type is cls._NodeType.HUB1_END else chain.hub_2
-            return mh.end_node_lengths[n1_name] + mh.end_node_lengths[n2_name]
-        # Opposite MH
-        elif (
-            n1_type is not cls._NodeType.REPEATER
-            and n2_type is not cls._NodeType.REPEATER
-        ):
-            mh1_node, mh2_node = (
-                (n1_name, n2_name)
-                if n1_type is cls._NodeType.HUB1_END
-                else (n2_name, n1_name)
-            )
-            hub_to_hub_length = sum(chain.link_lengths)
-            return (
-                chain.hub_1.end_node_lengths[mh1_node]
-                + chain.hub_2.end_node_lengths[mh2_node]
-                + hub_to_hub_length
-            )
-        # Both repeater
-        elif n1_type is n2_type and n1_type is cls._NodeType.REPEATER:
-            n1_idx = repeater_node_names.index(n1_name)
-            n2_idx = repeater_node_names.index(n2_name)
-            min_idx, max_idx = (n1_idx, n2_idx) if n1_idx < n2_idx else (n2_idx, n1_idx)
-            # +1 to min_idx as first and last entry in length are lengths from final repeater to MH
-            return sum(chain.link_lengths[min_idx + 1 : max_idx])
-        # One repeater one MH end node
-        else:
-            repeater_name, end_node_name = (
-                (n1_name, n2_name)
-                if n1_type is cls._NodeType.REPEATER
-                else (n2_name, n1_name)
-            )
-
-            end_node_typ = cls._find_node_type(end_node_name, chain)
-            repeater_idx = repeater_node_names.index(repeater_name)
-            # +1 to repeater_idx as first and last entry in length are lengths from final repeater to MH
-            if end_node_typ is cls._NodeType.HUB1_END:
-                mh = chain.hub_1
-                mh_to_repeater_length = sum(chain.link_lengths[0 : repeater_idx + 1])
-            else:
-                mh = chain.hub_2
-                mh_to_repeater_length = sum(chain.link_lengths[repeater_idx + 1 :])
-            return mh.end_node_lengths[end_node_name] + mh_to_repeater_length
-
-    @classmethod
-    def _find_node_type(cls, node_name: str, chain: Chain) -> _NodeType:
-        if node_name in chain.hub_1.end_nodes.keys():
-            return cls._NodeType.HUB1_END
-        if node_name in chain.hub_2.end_nodes.keys():
-            return cls._NodeType.HUB2_END
-        if node_name in chain.repeater_nodes_dict.keys():
-            return cls._NodeType.REPEATER
-        if node_name in chain.hub_1.name:
-            return cls._NodeType.HUB1
-        if node_name in chain.hub_2.name:
-            return cls._NodeType.HUB2
-        raise KeyError(f"Could not find {node_name} in chain {chain.name}")
 
     def build_links(
         self, network: Network
