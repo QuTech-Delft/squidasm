@@ -6,6 +6,7 @@
 *.pkl
 /docs/build/*
 /build/*
+examples/**/*.png
 /dist/*
 /*.egg-info/*
 htmlcov/
