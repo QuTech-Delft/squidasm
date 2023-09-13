@@ -340,6 +340,9 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             # This indicates that this delivery event is not the "reference" delivery event returned by add_delivery
             # of the magic distributor. Since the below operations only need to be executed once, we can skip this.
             return
+
+        if queue_item is None:
+            return
         request = queue_item.request
         node_id = queue_item.node_id
         create_id = queue_item.create_id
