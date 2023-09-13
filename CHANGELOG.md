@@ -1,6 +1,24 @@
 CHANGELOG
 =========
 
+2023-09-13 (0.12.1)
+-------------------
+- Fix issue on MacOS with measure directly tests failing
+- Increase netsquid minimum requirement to 1.1.2 (some tests fail with older netsquid)
+- Relaxed PyDynAA version requirements to allow 1.x.x
+
+2023-06-25 (0.12.0)
+------------------
+- Refactored examples folder
+- Moved tutorial_examples to examples/tutorial
+- Added QNE applications to examples/application
+- Added routines for classical messages, remote state preparation, state teleportation, distributed cnot and cphase, and QKD
+- Added utility methods for creating two node networks, getting the qubit state and producing a reference qubit state
+
+2023-06-25 (0.11.1)
+------------------
+- Added a K gate to the generic qdevice
+
 2023-04-06 (0.11.0)
 ------------------
 - Added documentation, specifically a tutorial for readthedocs
