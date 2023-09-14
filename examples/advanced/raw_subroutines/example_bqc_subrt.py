@@ -244,19 +244,17 @@ def main():
 
 
 if __name__ == "__main__":
-    pass
-    # TODO commented out because it will cause an error in `make verify` on a mac and just commenting this out is
-    #  easier than explaining to people that its not a problem because they are not using this simulation mode anyhow
+    start = time.perf_counter()
+    # TODO set num = 0 out because it will cause an error in `make verify` on a mac
+    #  its not a problem because this simulation mode in not used anyhow
     #  Will need to move these examples to stack mode in the future
-    # start = time.perf_counter()
-    #
-    # num = 1
-    #
-    # results: List[Tuple[Dict, Dict]] = []
-    # for _ in range(num):
-    #     SharedMemoryManager.reset_memories()
-    #     results.append(main())
-    #
-    # print(results)
-    #
-    # print(f"finished simulation in {round(time.perf_counter() - start, 2)} seconds")
+    num = 0
+
+    results: List[Tuple[Dict, Dict]] = []
+    for _ in range(num):
+        SharedMemoryManager.reset_memories()
+        results.append(main())
+
+    print(results)
+
+    print(f"finished simulation in {round(time.perf_counter() - start, 2)} seconds")
