@@ -3,7 +3,9 @@ SOURCEDIR      = squidasm
 TESTDIR        = tests
 EXAMPLEDIR     = examples
 RUNEXAMPLES    = ${EXAMPLEDIR}/run_examples.py
-PIP_FLAGS      = --extra-index-url=https://${NETSQUIDPYPI_USER}:${NETSQUIDPYPI_PWD}@pypi.netsquid.org
+NETSQUID_USER  = $(shell ${PYTHON3} -c "import sys, urllib.parse as ul; print(ul.quote_plus('${NETSQUIDPYPI_USER}'))")
+NETSQUID_PWD   = $(shell ${PYTHON3} -c "import sys, urllib.parse as ul; print(ul.quote_plus('${NETSQUIDPYPI_PWD}'))")
+PIP_FLAGS      = --extra-index-url=https://${NETSQUID_USER}:${NETSQUID_PWD}@pypi.netsquid.org
 
 help:
 	@echo "install           Installs the package (editable)."
