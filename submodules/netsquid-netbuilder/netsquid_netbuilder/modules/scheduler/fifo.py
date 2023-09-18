@@ -50,20 +50,22 @@ class FIFOScheduleProtocol(IScheduleProtocol):
         if (node_id, res.create_id) not in self._active_requests.keys():
             return
         self._active_requests.pop((node_id, res.create_id))
-        node_name = self._node_name_mapping[node_id]
-        remote_node_name = self._node_name_mapping[res.remote_node_id]
 
-        self._close_link(node_name, remote_node_name)
+        if (res.remote_node_id, res.create_id) not in self._active_requests.keys():
+            node_name = self._node_name_mapping[node_id]
+            remote_node_name = self._node_name_mapping[res.remote_node_id]
+            self._close_link(node_name, remote_node_name)
 
-        if len(self._que) > 0:
-            que_item = self._que.pop(0)
-            self._activate_request(que_item.node_id, que_item.req, que_item.create_id)
+            if len(self._que) > 0:
+                que_item = self._que.pop(0)
+                self._activate_request(que_item.node_id, que_item.req, que_item.create_id)
 
     def register_error(self, node_id: int, error: ResError):
         pass
 
     def _activate_request(self, node_id: int, req: ReqCreateBase, create_id: int):
         self._active_requests[(node_id, create_id)] = req
+        self._active_requests[(req.remote_node_id, create_id)] = req
         node_name = self._node_name_mapping[node_id]
         remote_node_name = self._node_name_mapping[req.remote_node_id]
         timeslot = TimeSlot(

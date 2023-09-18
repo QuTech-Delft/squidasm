@@ -144,7 +144,7 @@ class EgpProtocol(EGPService):
 
     def _handle_error(self, error: ResError):
         create_id = error.create_id
-        if error.error_code.TIMEOUT:
+        if error.error_code == error.error_code.TIMEOUT:
 
             self._logger.info(
                 f"Request to create entanglement id:{create_id})"
@@ -162,6 +162,11 @@ class EgpProtocol(EGPService):
                 self._ll_prot.scheduler.register_request(
                     self.node.ID, req, new_create_id
                 )
+        else:
+            self._logger.error(
+                f"Unhandled error {error.error_code}. id:{create_id})"
+                f" from {self.node.name}"
+            )
 
 
 class EgpTranslationUnit(TranslationUnit):
