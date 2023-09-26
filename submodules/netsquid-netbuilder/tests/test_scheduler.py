@@ -32,7 +32,7 @@ class BaseSchedulerTest(unittest.TestCase):
     @staticmethod
     def generate_requests(
         node_names: List[str], num_requests: int, delta_func: callable
-    ):
+    ) -> List[SchedulerRequest]:
         requests = []
         submit_time = 0
         num_nodes = len(node_names)
@@ -187,6 +187,59 @@ class TestFIFOScheduler(BaseSchedulerTest):
 
         for i, request in enumerate(requests):
             result = results[2 * i]
+            self.assertEqual(result.epr_measure_result, results[2*i+1].epr_measure_result)
+
+    def test_4_multiplexing(self):
+        """Test if all requests are completed in the expected time frame when we have multiplexing enabled"""
+        num_requests = 50
+        num_nodes = 4
+        max_multiplexing = 2
+        distance = 100
+        switch_time = 200
+        speed_of_light = 1e9
+        delay = 2 * distance / speed_of_light * speed_of_light + switch_time
+
+        network_cfg = create_metro_hub_network(
+            num_nodes=num_nodes,
+            node_distances=distance,
+            link_typ="perfect",
+            link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),
+            clink_typ="default",
+            clink_cfg=DefaultCLinkConfig(),
+            schedule_typ="fifo",
+            schedule_cfg=FIFOScheduleConfig(switch_time=switch_time, max_multiplexing=max_multiplexing)
+        )
+        network = self.builder.build(network_cfg)
+
+        def delta_func():
+            return 1.2 * delay
+
+        requests_pair1 = self.generate_requests(
+            list(network.nodes.keys())[0:2], num_requests, delta_func=delta_func
+        )
+        requests_pair2 = self.generate_requests(
+            list(network.nodes.keys())[2:4], num_requests, delta_func=delta_func
+        )
+        requests = requests_pair1 + requests_pair2
+        requests.sort(key=lambda x: x.submit_time)
+
+        protocols = {
+            node_name: SchedulerTestProtocol(self.result_register, requests)
+            for node_name in network.nodes.keys()
+        }
+
+        run(network, protocols)
+
+        results = self.result_register.results
+        self.assertEqual(len(requests) * 2, len(results))
+
+        for i, request in enumerate(requests):
+            result = results[2 * i]
+            self.assertAlmostEqual(
+                request.submit_time + delay,
+                result.completion_time,
+                delta=delay * 1e-9,
+            )
             self.assertEqual(result.epr_measure_result, results[2*i+1].epr_measure_result)
 
 

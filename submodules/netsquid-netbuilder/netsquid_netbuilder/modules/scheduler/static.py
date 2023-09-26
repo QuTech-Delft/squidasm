@@ -19,8 +19,11 @@ from pydynaa import EventHandler
 
 class StaticScheduleConfig(IScheduleConfig):
     time_window: float = 1_000_000  # 1 ms
+    """Size of each timeslot for entanglement generation. [ns]"""
     switch_time: float = 1000  # 1 us
+    """Dead time when switching links where no entanglement generation is possible. [ns]"""
     max_multiplexing: int = 1
+    """Number of links that can be open at the same time"""
 
 
 class StaticScheduleProtocol(IScheduleProtocol):
@@ -108,14 +111,11 @@ class StaticScheduleProtocol(IScheduleProtocol):
                 return False
         return True
 
-
     def _handle_cycle_end(self):
         # Populate a new cycle if: counter not exceeded, there are still active requests and no
         if self._termination_counter > 0 and not self._all_queues_empty:
             self._termination_counter -= 1
             self._populate_cycle(self.next_cycle_start)
-
-
 
 
 class StaticScheduleBuilder(IScheduleBuilder):
