@@ -1,27 +1,42 @@
 from __future__ import annotations
+from __future__ import annotations
 
+import heapq
+from copy import copy
 from typing import Dict, List, Type
 
 from netsquid.components import Port
+
+from netsquid_driver.EGP import EGPService
 from netsquid_driver.classical_routing_service import ClassicalRoutingService
 from netsquid_driver.classical_socket_service import (
     ClassicalSocket,
     ClassicalSocketService,
 )
 from netsquid_driver.driver import Driver
-from netsquid_driver.EGP import EGPService
+from netsquid_driver.entanglement_agreement_service import EntanglementAgreementService
+from netsquid_driver.initiative_based_agreement_service import InitiativeAgreementService, \
+    InitiativeBasedAgreementServiceMode
+from netsquid_driver.measurement_services import MeasureService, SwapService
+from netsquid_driver.memory_manager_service import QuantumMemoryManager
+from netsquid_entanglementtracker.bell_state_tracker import BellStateTracker
+from netsquid_entanglementtracker.entanglement_tracker_service import EntanglementTrackerService
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import StackNetworkConfig
-from netsquid_netbuilder.builder.builder_utils import create_connection_ports
+from netsquid_netbuilder.builder.builder_utils import (
+    create_connection_ports,
+)
 from netsquid_netbuilder.builder.metro_hub import HubBuilder, MetroHubNode
 from netsquid_netbuilder.builder.repeater_chain import ChainBuilder
+from netsquid_netbuilder.builder.temp import AbstractMoveProgram
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
 from netsquid_netbuilder.network import Network
-
+from netsquid_qrepchain.processing_nodes.memory_manager_implementations import MemoryManagerWithMoveProgram
+from netsquid_qrepchain.processing_nodes.operation_services_abstract import AbstractMeasureService, AbstractSwapService
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.stack import ProcessingNode
 
@@ -32,7 +47,7 @@ class NetworkBuilder:
         self.node_builder = NodeBuilder()
         self.clink_builder = ClassicalConnectionBuilder()
         self.link_builder = LinkBuilder(self.protocol_controller)
-        self.routing_builder = RoutingProtocolBuilder()
+        self.routing_builder = NetworkServicesBuilder()
         self.socket_builder = ClassicalSocketBuilder(self.protocol_controller)
         self.egp_builder = EGPBuilder(self.protocol_controller)
         self.hub_builder = HubBuilder(self.protocol_controller)
@@ -92,7 +107,10 @@ class NetworkBuilder:
         network.links.update(self.chain_builder.build_links(network))
 
         # setup classical messaging
-        self.routing_builder.build(network)
+        self.routing_builder.build_routing_info(network)
+        self.routing_builder.build_routing_service(network)
+        self.routing_builder.build_entanglement_agreement_services(network)
+        self.routing_builder.build_entanglement_tracker_services(network)
         network.sockets = self.socket_builder.build(network)
 
         # Create the scheduler
@@ -240,47 +258,71 @@ class EGPBuilder:
         return egp_dict
 
 
-class RoutingProtocolBuilder:
+class NetworkServicesBuilder:
+    INSTANT_LINK_DELAY = 1e-9
+
     def __init__(self):
         self.routing_table: Dict[str, Dict[str, str]] = {}
-        self.graph: Dict[str, List[str]] = {}
+        self.delays_table: Dict[(str, str), float] = {}
+        self.routes: Dict[(str, str), List[str]] = {}
+        self.graph: Dict[str, Dict[str, float]] = {}
 
     def _create_graph(self, network: Network):
         node_names = network.nodes.keys()
-        self.graph = {node_name: [] for node_name in node_names}
-        edges = network.ports.keys()
-        for node_name, peer_name in edges:
-            self.graph[node_name].append(peer_name)
+        self.graph = {node_name: {} for node_name in node_names}
+        for (node_name, peer_name), port in network.ports.items():
+            self.graph[node_name][peer_name] = self._find_delay(port)
 
-    def _calculate_local_routing_table(self, node_name) -> Dict[str, str]:
-        local_table = {}
-        # TODO is unsuitable for networks with loops, a small hack to allow for hyper connected graphs has been made
-        # Add local_neighbors to already visited list so that neighbors don't route via other neighbors
-        local_neighbors = self.graph[node_name]
-        visited = [node_name] + local_neighbors
-        for local_neighbor in local_neighbors:
-            queue = [local_neighbor]
-            while queue:
-                current_node = queue.pop()
-                visited.append(current_node)
-                local_table[current_node] = local_neighbor
+    @staticmethod
+    def _find_delay(port: Port) -> float:
+        connection = port.connected_port.component
+        channel_a_to_b = connection.subcomponents["channel_AtoB"]
+        return channel_a_to_b.compute_delay()
 
-                for neighbor in self.graph[current_node]:
-                    if neighbor not in visited:
-                        queue.append(neighbor)
-        return local_table
+    def _calculate_local_routing_table(self, node_name) -> (Dict[str, float], Dict[str, List[str]]):
+        distances = {node: float('inf') for node in self.graph.keys()}
+        routes = {node: [] for node in self.graph.keys()}
+        distances[node_name] = 0
+        routes[node_name] = [node_name]
+        priority_queue = [(0., node_name)]
+
+        while priority_queue:
+            current_dist, current_node = heapq.heappop(priority_queue)
+
+            if current_dist > distances[current_node]:
+                continue
+
+            for node, link_dist in self.graph[current_node].items():
+                dist = current_dist + link_dist
+                if dist < distances[node] or \
+                        (dist == distances[node] and len(routes[current_node] + 1 < len(routes[node]))):
+                    distances[node] = dist
+                    routes[node] = copy(routes[current_node])
+                    routes[node].append(node)
+                    heapq.heappush(priority_queue, (dist, node))
+
+        for _, rout in routes.items():
+            # TODO Can crash if no route found to node
+            rout.remove(node_name)
+
+        return distances, routes
 
     def _calculate_routing_tables(self, network: Network):
-        node_names = network.nodes.keys()
-        self.routing_table = {
-            node_name: self._calculate_local_routing_table(node_name)
-            for node_name in node_names
-        }
+        for node_name in network.nodes.keys():
+            distances, routes = self._calculate_local_routing_table(node_name)
+            self.routing_table[node_name] = {}
+            for remote_node in network.nodes.keys():
+                if remote_node == node_name:
+                    continue
+                self.delays_table[(node_name, remote_node)] = distances[remote_node]
+                self.routes[(node_name, remote_node)] = routes[remote_node]
+                self.routing_table[node_name][remote_node] = routes[remote_node][0]
 
-    def build(self, network: Network):
+    def build_routing_info(self, network):
         self._create_graph(network)
         self._calculate_routing_tables(network)
 
+    def build_routing_service(self, network: Network):
         for node in network.nodes.values():
             assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
             port_routing_table = {
@@ -294,10 +336,43 @@ class RoutingProtocolBuilder:
             )
 
             node.driver.add_service(ClassicalRoutingService, routing_service)
-            external_ports = Network.filter_for_id(node.name, network.ports)
+            external_ports = Network.filter_for_node(node.name, network.ports)
             routing_service.register_ports(
                 [port.name for port in external_ports.values()]
             )
+
+    def build_entanglement_agreement_services(self, network: Network):
+        for node in network.nodes.values():
+            assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
+
+            Mode = InitiativeBasedAgreementServiceMode
+
+            def set_mode(remote_node):
+                return Mode.InitiativeTaking if node.ID < remote_node.ID else Mode.Responding
+
+            mode_per_node = {remote_node.name: set_mode(remote_node) for remote_node in network.nodes.values()}
+
+            node.driver.add_service(EntanglementAgreementService, InitiativeAgreementService(
+                node=node,
+                delay_per_node=Network.filter_for_node(node.name, self.delays_table),
+                mode_per_node=mode_per_node
+            ))
+
+    def build_entanglement_tracker_services(self, network: Network):
+        for node in network.nodes.values():
+            node.driver.add_service(EntanglementTrackerService, BellStateTracker(node))
+
+
+class DeviceControlServiceBuilder:
+    def build(self, network: Network):
+        for node in network.nodes.values():
+            if node.qmemory is None:
+                continue
+            driver = node.driver
+            driver.add_service(MeasureService, AbstractMeasureService(node=node))
+            driver.add_service(SwapService, AbstractSwapService(node=node))
+            driver.add_service(QuantumMemoryManager, MemoryManagerWithMoveProgram(node=node,
+                                                                                  move_program=AbstractMoveProgram()))
 
 
 class ClassicalSocketBuilder:
@@ -349,3 +424,4 @@ class ProtocolController:
             obj.stop()
         for driver in self._drivers:
             driver.stop_all_services()
+

@@ -1,6 +1,9 @@
+import logging
+
 import netsquid as ns
 from cprotocols import AliceProtocol, BobProtocol
 from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run
 from netsquid_netbuilder.test_utils.network_generation import (
@@ -8,6 +11,7 @@ from netsquid_netbuilder.test_utils.network_generation import (
 )
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
+LogManager.set_log_level(logging.INFO)
 
 builder = get_default_builder()
 cfg = create_qia_prototype_network(

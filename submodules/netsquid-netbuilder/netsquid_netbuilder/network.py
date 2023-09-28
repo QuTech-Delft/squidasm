@@ -48,10 +48,10 @@ class Network:
 
     def get_protocol_context(self, node_name: str) -> ProtocolContext:
         node = self.end_nodes[node_name]
-        links = self.filter_for_id(node_name, self.links)
-        egp = self.filter_for_id(node_name, self.egp)
-        ports = self.filter_for_id(node_name, self.ports)
-        sockets = self.filter_for_id(node_name, self.sockets)
+        links = self.filter_for_node(node_name, self.links)
+        egp = self.filter_for_node(node_name, self.egp)
+        ports = self.filter_for_node(node_name, self.ports)
+        sockets = self.filter_for_node(node_name, self.sockets)
 
         return ProtocolContext(
             node, links, egp, self.node_name_id_mapping, sockets, ports
@@ -87,11 +87,11 @@ class Network:
         return nodes
 
     @staticmethod
-    def filter_for_id(
-        node_id: str, dictionary: Dict[(str, str), any]
+    def filter_for_node(
+        node_name: str, dictionary: Dict[(str, str), any]
     ) -> Dict[str, any]:
         keys = dictionary.keys()
-        keys = filter(lambda key_tuple: key_tuple[0] == node_id, keys)
+        keys = filter(lambda key_tuple: key_tuple[0] == node_name, keys)
         return {key[1]: dictionary[key] for key in keys}
 
     def start(self):

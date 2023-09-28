@@ -62,7 +62,9 @@ install: _check_variables
 	@$(PYTHON3) -m pip install -e submodules/netsquid-abstractmodel/ ${PIP_FLAGS}
 	@$(PYTHON3) -m pip install -e submodules/netsquid-driver/ ${PIP_FLAGS}
 	@$(PYTHON3) -m pip install -e submodules/netsquid-qrepchain/ ${PIP_FLAGS}
+	@$(PYTHON3) -m pip install -e submodules/netsquid-entanglementtracker/
 	@$(PYTHON3) -m pip install -e submodules/netsquid-netbuilder/
+
 
 
 install-dev: _check_variables
@@ -72,6 +74,7 @@ install-dev: _check_variables
 	@$(PYTHON3) -m pip install -e submodules/netsquid-abstractmodel/ ${PIP_FLAGS}
 	@$(PYTHON3) -m pip install -e submodules/netsquid-driver/ ${PIP_FLAGS}
 	@$(PYTHON3) -m pip install -e submodules/netsquid-qrepchain/ ${PIP_FLAGS}
+	@$(PYTHON3) -m pip install -e submodules/netsquid-entanglementtracker/
 	@$(PYTHON3) -m pip install -e submodules/netsquid-netbuilder/
 
 verify: clean tests examples _verified

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import itertools
-from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Type
 
+from dataclasses import dataclass, field
 from netsquid.components import Port
 from netsquid.nodes import Node
+
 from netsquid_driver.driver import Driver
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import MetroHubConfig
@@ -22,7 +23,6 @@ from netsquid_netbuilder.modules.scheduler.interface import (
     IScheduleProtocol,
 )
 from netsquid_netbuilder.network import Network
-
 from squidasm.sim.stack.stack import ProcessingNode
 
 

@@ -6,6 +6,8 @@ from typing import Dict, List, Optional, Type
 
 from netsquid.components import Port
 from netsquid_driver.EGP import EGPService
+from netsquid_driver.entanglement_service import EntanglementService
+from netsquid_driver.swap_asap_service import SwapASAPService
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import RepeaterChainConfig
 from netsquid_netbuilder.builder.builder_utils import (
@@ -19,9 +21,11 @@ from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkCo
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.network import Network
+from netsquid_qrepchain.control_layer.swap_asap import SwapASAP
 from netsquid_qrepchain.control_layer.swapasap_egp import (
     SwapAsapEndNodeLinkLayerProtocol,
 )
+from netsquid_qrepchain.processing_nodes.entanglement_magic import SingleMemoryEntanglementMagic
 
 from squidasm.sim.stack.stack import ProcessingNode
 
@@ -282,14 +286,43 @@ class ChainBuilder:
             for hub1_end_node, hub2_end_node in itertools.product(
                 chain.hub_1.end_nodes.values(), chain.hub_2.end_nodes.values()
             ):
-
-                egp_hub1_node = SwapAsapEndNodeLinkLayerProtocol(hub1_end_node)
-                egp_hub2_node = SwapAsapEndNodeLinkLayerProtocol(hub2_end_node)
+                break
+                egp_hub1_node = SwapAsapEndNodeLinkLayerProtocol(hub1_end_node, hub2_end_node, chain)
+                egp_hub2_node = SwapAsapEndNodeLinkLayerProtocol(hub2_end_node, hub1_end_node, chain)
 
                 egp_dict[(hub1_end_node.name, hub2_end_node.name)] = egp_hub1_node
                 egp_dict[(hub2_end_node.name, hub1_end_node.name)] = egp_hub2_node
 
-                self.protocol_controller.register(egp_hub1_node)
-                self.protocol_controller.register(egp_hub2_node)
+                # This only works if max 2 end nodes in network
+                hub1_end_node.driver.add_service(EGPService, egp_hub1_node)
+                hub2_end_node.driver.add_service(EGPService, egp_hub2_node)
+
+                #self.protocol_controller.register(egp_hub1_node)
+                #self.protocol_controller.register(egp_hub2_node)
+
+            #self._setup_services(chain, network)
 
         return egp_dict
+
+    def _setup_services(self, chain: Chain, network: Network):
+        all_qnodes = chain.repeater_nodes + list(chain.hub_2.end_nodes.values()) + list(chain.hub_1.end_nodes.values())
+
+        for node in all_qnodes:
+            driver = node.driver
+
+            # incorporate this into Qdevice builder
+            # TODO See how to incorporate the MoveProgram's, possibly it is fine once we put all device
+            #  dependant things together in a package
+
+            driver.services[EntanglementService] = SingleMemoryEntanglementMagic(node, num_parallel_links=1)  # Needs work
+
+            # Investigate if this service is needed
+            #driver.add_service(CutoffService, CutoffTimer(node=node, cutoff_time=cutoff_time))
+
+
+        for idx, repeater in enumerate(chain.repeater_nodes):
+            driver = repeater.driver
+
+            driver.add_service(SwapASAPService, SwapASAP(repeater))  # Needs work
+
+

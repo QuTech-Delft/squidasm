@@ -10,3 +10,6 @@
 [submodule "submodules/netsquid-qrepchain"]
 	path = submodules/netsquid-qrepchain
 	url = https://gitlab.com/softwarequtech/netsquid-snippets/netsquid-qrepchain
+[submodule "submodules/netsquid-entanglementtracker"]
+	path = submodules/netsquid-entanglementtracker
+	url = https://gitlab.com/softwarequtech/netsquid-snippets/netsquid-entanglementtracker.git
