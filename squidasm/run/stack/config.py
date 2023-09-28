@@ -155,7 +155,7 @@ class StackConfig(BaseModel):
     """Name of the stack."""
     qdevice_typ: str
     """Type of the quantum device."""
-    qdevice_cfg: Any
+    qdevice_cfg: Any = None
     """Configuration of the quantum device, allowed configuration depends on type."""
 
     @classmethod
@@ -241,7 +241,7 @@ class LinkConfig(BaseModel):
     """Name of the second stack being connected via link."""
     typ: str
     """Type of the link."""
-    cfg: Any
+    cfg: Any = None
     """Configuration of the link, allowed configuration depends on type."""
 
     @classmethod
