@@ -81,7 +81,7 @@ def create_multi_node_network(
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg={})
+        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg)
         network_config.stacks.append(stack)
 
     for s1, s2 in itertools.combinations(node_names, 2):
@@ -120,7 +120,7 @@ def create_metro_hub_network(
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg={})
+        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg)
         network_config.stacks.append(stack)
 
     mh_connections = connect_mh(node_distances, node_names)

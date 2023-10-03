@@ -24,10 +24,15 @@ class QueItem:
 
 class FIFOScheduleConfig(IScheduleConfig):
     switch_time: float = 1000  # 1 us
+    """Dead time when switching links where no entanglement generation is possible. [ns]"""
     max_multiplexing: int = 1
+    """Number of links that can be open at the same time"""
 
 
 class FIFOScheduleProtocol(IScheduleProtocol):
+    # TODO FIFO schedule will still close the link even when next request is for same link
+    # TODO FIFO schedule has nothing to prevent two links to the same node being open at the same time
+
     def __init__(
         self,
         name: str,
@@ -38,32 +43,37 @@ class FIFOScheduleProtocol(IScheduleProtocol):
         super().__init__(name, links, node_id_mapping)
         self.params = params
         self._que: List[QueItem] = []
-        self._active_requests: Dict[(int, int), ReqCreateBase] = {}
+        # We need a reference item for each node per request,
+        # to ensure behaviour that we don't close the connection before all nodes received their qubits
+        self._per_node_ref_per_active_request: Dict[(int, int), ReqCreateBase] = {}
 
     def register_request(self, node_id: int, req: ReqCreateBase, create_id: int):
-        if len(self._active_requests) < self.params.max_multiplexing:
+        # Each active request has two references
+        if len(self._per_node_ref_per_active_request) / 2 < self.params.max_multiplexing:
             self._activate_request(node_id, req, create_id)
         else:
             self._que.append(QueItem(node_id, req, create_id))
 
     def register_result(self, node_id: int, res: ResCreate):
-        if (node_id, res.create_id) not in self._active_requests.keys():
+        if (node_id, res.create_id) not in self._per_node_ref_per_active_request.keys():
             return
-        self._active_requests.pop((node_id, res.create_id))
-        node_name = self._node_name_mapping[node_id]
-        remote_node_name = self._node_name_mapping[res.remote_node_id]
+        self._per_node_ref_per_active_request.pop((node_id, res.create_id))
 
-        self._close_link(node_name, remote_node_name)
+        if (res.remote_node_id, res.create_id) not in self._per_node_ref_per_active_request.keys():
+            node_name = self._node_name_mapping[node_id]
+            remote_node_name = self._node_name_mapping[res.remote_node_id]
+            self._close_link(node_name, remote_node_name)
 
-        if len(self._que) > 0:
-            que_item = self._que.pop(0)
-            self._activate_request(que_item.node_id, que_item.req, que_item.create_id)
+            if len(self._que) > 0:
+                que_item = self._que.pop(0)
+                self._activate_request(que_item.node_id, que_item.req, que_item.create_id)
 
     def register_error(self, node_id: int, error: ResError):
         pass
 
     def _activate_request(self, node_id: int, req: ReqCreateBase, create_id: int):
-        self._active_requests[(node_id, create_id)] = req
+        self._per_node_ref_per_active_request[(node_id, create_id)] = req
+        self._per_node_ref_per_active_request[(req.remote_node_id, create_id)] = req
         node_name = self._node_name_mapping[node_id]
         remote_node_name = self._node_name_mapping[req.remote_node_id]
         timeslot = TimeSlot(

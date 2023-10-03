@@ -37,30 +37,25 @@ class SchedulerTestProtocol(BlueprintProtocol):
         self.result_reg = result_reg
         self.requests = requests
         self.sender_protocol = EGPSenderProtocol(requests)
-        self.receiver_protocol = EGPReceiverProtocol(requests)
         self.egp_listeners: List[EGPListener] = []
-        self.add_subprotocol(self.sender_protocol)
-        self.add_subprotocol(self.receiver_protocol)
 
     def set_context(self, context: ProtocolContext):
         super().set_context(context)
         self.setup_egp_listeners()
         self.sender_protocol.set_context(context)
-        self.receiver_protocol.set_context(context)
         for egp_listener in self.egp_listeners:
             egp_listener.set_context(context)
 
     def start(self):
         super().start()
         self.sender_protocol.start()
-        self.receiver_protocol.start()
+        self._enable_receiving_from_all_nodes()
         for egp_listener in self.egp_listeners:
             egp_listener.start()
 
     def stop(self):
         super().stop()
         self.sender_protocol.stop()
-        self.receiver_protocol.stop()
         for egp_listener in self.egp_listeners:
             egp_listener.stop()
 
@@ -68,7 +63,11 @@ class SchedulerTestProtocol(BlueprintProtocol):
         for remote_node_name, _ in self.context.egp.items():
             egp_listener = EGPListener(self.result_reg, remote_node_name)
             self.egp_listeners.append(egp_listener)
-            self.add_subprotocol(egp_listener)
+
+    def _enable_receiving_from_all_nodes(self):
+        for peer, egp in self.context.egp.items():
+            request = ReqReceive(remote_node_id=self.context.node_id_mapping[peer])
+            egp.put(request)
 
 
 class EGPSenderProtocol(BlueprintProtocol):
@@ -95,29 +94,6 @@ class EGPSenderProtocol(BlueprintProtocol):
             request = ReqCreateAndKeep(
                 remote_node_id=self.context.node_id_mapping[peer], number=1
             )
-            egp.put(request)
-
-
-class EGPReceiverProtocol(BlueprintProtocol):
-    def __init__(self, requests: List[SchedulerRequest]):
-        super().__init__()
-        self.requests = requests
-
-    def run(self) -> Generator[EventExpression, None, None]:
-        node = self.context.node
-
-        for request in self.requests:
-            # Ignore the request if this node is not part of the request
-            if node.name != request.receiver_name:
-                continue
-
-            # Wait until requests time comes up
-            yield self.await_timer(end_time=request.submit_time)
-
-            peer = request.sender_name
-            egp = self.context.egp[peer]
-            # create receive request
-            request = ReqReceive(remote_node_id=self.context.node_id_mapping[peer])
             egp.put(request)
 
 
