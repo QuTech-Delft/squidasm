@@ -15,8 +15,8 @@ LogManager.set_log_level(logging.INFO)
 
 builder = get_default_builder()
 cfg = create_qia_prototype_network(
-    num_nodes_hub1=1,
-    num_nodes_hub2=1,
+    nodes_hub1=1,
+    nodes_hub2=1,
     num_nodes_repeater_chain=2,
     node_distances_hub1=5,
     node_distances_hub2=5,

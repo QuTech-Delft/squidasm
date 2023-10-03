@@ -5,7 +5,6 @@ from typing import Dict
 from netsquid.components import Port
 from netsquid.nodes import Node
 from netsquid.nodes.connections import DirectConnection
-
 from netsquid_netbuilder.modules.links.interface import ILinkConfig
 
 

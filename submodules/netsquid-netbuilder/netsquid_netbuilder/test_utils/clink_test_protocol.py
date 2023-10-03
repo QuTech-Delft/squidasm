@@ -39,7 +39,9 @@ class AliceProtocol(BlueprintProtocol):
 class BobProtocol(BlueprintProtocol):
     PEER = "Alice"
 
-    def __init__(self, result_reg: ClassicalMessageResultRegistration, listen_delay: float = 0.):
+    def __init__(
+        self, result_reg: ClassicalMessageResultRegistration, listen_delay: float = 0.0
+    ):
         super().__init__()
         self.result_reg = result_reg
         self.listen_delay = listen_delay

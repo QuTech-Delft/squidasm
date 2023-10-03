@@ -5,6 +5,7 @@ from netsquid.components.instructions import (
     INSTR_CZ,
     INSTR_H,
     INSTR_INIT,
+    INSTR_K,
     INSTR_MEASURE,
     INSTR_ROT_X,
     INSTR_ROT_Y,
@@ -12,7 +13,6 @@ from netsquid.components.instructions import (
     INSTR_X,
     INSTR_Y,
     INSTR_Z,
-    INSTR_K,
 )
 from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qprocessor import PhysicalInstruction, QuantumProcessor

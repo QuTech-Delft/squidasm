@@ -15,7 +15,7 @@ link_cfg = DepolariseLinkConfig(fidelity=0.9, prob_success=0.05)
 
 # The following method sets up a metro hub configuration
 cfg = create_metro_hub_network(
-    num_nodes=10,
+    nodes=10,
     node_distances=10,
     link_typ="depolarise",
     link_cfg=link_cfg,

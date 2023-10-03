@@ -1,8 +1,10 @@
 from typing import Generator
 
 import netsquid as ns
-
-from netsquid_driver.entanglement_agreement_service import EntanglementAgreementService, ReqEntanglementAgreement
+from netsquid_driver.entanglement_agreement_service import (
+    EntanglementAgreementService,
+    ReqEntanglementAgreement,
+)
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 
 from pydynaa import EventExpression
@@ -19,9 +21,10 @@ class AliceProtocol(BlueprintProtocol):
         msg = "Hello"
         socket.send(msg)
 
-        agreement_service = self.context.node.driver.services[EntanglementAgreementService]
+        agreement_service = self.context.node.driver.services[
+            EntanglementAgreementService
+        ]
         agreement_service.put(ReqEntanglementAgreement(remote_node_name=self.PEER))
-
 
 
 class BobProtocol(BlueprintProtocol):
@@ -35,7 +38,7 @@ class BobProtocol(BlueprintProtocol):
         message = yield from socket.recv()
         print(f"{ns.sim_time()} ns: Alice receives: {message}")
 
-        agreement_service = self.context.node.driver.services[EntanglementAgreementService]
+        agreement_service = self.context.node.driver.services[
+            EntanglementAgreementService
+        ]
         agreement_service.put(ReqEntanglementAgreement(remote_node_name=self.PEER))
-
-

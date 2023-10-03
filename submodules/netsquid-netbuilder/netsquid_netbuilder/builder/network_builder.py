@@ -1,31 +1,28 @@
 from __future__ import annotations
-from __future__ import annotations
 
 import heapq
 from copy import copy
 from typing import Dict, List, Type
 
 from netsquid.components import Port
-
-from netsquid_driver.EGP import EGPService
 from netsquid_driver.classical_routing_service import ClassicalRoutingService
 from netsquid_driver.classical_socket_service import (
     ClassicalSocket,
     ClassicalSocketService,
 )
 from netsquid_driver.driver import Driver
+from netsquid_driver.EGP import EGPService
 from netsquid_driver.entanglement_agreement_service import EntanglementAgreementService
-from netsquid_driver.initiative_based_agreement_service import InitiativeAgreementService, \
-    InitiativeBasedAgreementServiceMode
 from netsquid_driver.measurement_services import MeasureService, SwapService
 from netsquid_driver.memory_manager_service import QuantumMemoryManager
+from netsquid_driver.symmetric_agreement_service import SymmetricAgreementService
 from netsquid_entanglementtracker.bell_state_tracker import BellStateTracker
-from netsquid_entanglementtracker.entanglement_tracker_service import EntanglementTrackerService
+from netsquid_entanglementtracker.entanglement_tracker_service import (
+    EntanglementTrackerService,
+)
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import StackNetworkConfig
-from netsquid_netbuilder.builder.builder_utils import (
-    create_connection_ports,
-)
+from netsquid_netbuilder.builder.builder_utils import create_connection_ports
 from netsquid_netbuilder.builder.metro_hub import HubBuilder, MetroHubNode
 from netsquid_netbuilder.builder.repeater_chain import ChainBuilder
 from netsquid_netbuilder.builder.temp import AbstractMoveProgram
@@ -35,8 +32,14 @@ from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfi
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
 from netsquid_netbuilder.network import Network
-from netsquid_qrepchain.processing_nodes.memory_manager_implementations import MemoryManagerWithMoveProgram
-from netsquid_qrepchain.processing_nodes.operation_services_abstract import AbstractMeasureService, AbstractSwapService
+from netsquid_qrepchain.processing_nodes.memory_manager_implementations import (
+    MemoryManagerWithMoveProgram,
+)
+from netsquid_qrepchain.processing_nodes.operation_services_abstract import (
+    AbstractMeasureService,
+    AbstractSwapService,
+)
+
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.stack import ProcessingNode
 
@@ -279,12 +282,14 @@ class NetworkServicesBuilder:
         channel_a_to_b = connection.subcomponents["channel_AtoB"]
         return channel_a_to_b.compute_delay()
 
-    def _calculate_local_routing_table(self, node_name) -> (Dict[str, float], Dict[str, List[str]]):
-        distances = {node: float('inf') for node in self.graph.keys()}
+    def _calculate_local_routing_table(
+        self, node_name
+    ) -> (Dict[str, float], Dict[str, List[str]]):
+        distances = {node: float("inf") for node in self.graph.keys()}
         routes = {node: [] for node in self.graph.keys()}
         distances[node_name] = 0
         routes[node_name] = [node_name]
-        priority_queue = [(0., node_name)]
+        priority_queue = [(0.0, node_name)]
 
         while priority_queue:
             current_dist, current_node = heapq.heappop(priority_queue)
@@ -294,8 +299,10 @@ class NetworkServicesBuilder:
 
             for node, link_dist in self.graph[current_node].items():
                 dist = current_dist + link_dist
-                if dist < distances[node] or \
-                        (dist == distances[node] and len(routes[current_node] + 1 < len(routes[node]))):
+                if dist < distances[node] or (
+                    dist == distances[node]
+                    and len(routes[current_node]) + 1 < len(routes[node])
+                ):
                     distances[node] = dist
                     routes[node] = copy(routes[current_node])
                     routes[node].append(node)
@@ -345,18 +352,15 @@ class NetworkServicesBuilder:
         for node in network.nodes.values():
             assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
 
-            Mode = InitiativeBasedAgreementServiceMode
-
-            def set_mode(remote_node):
-                return Mode.InitiativeTaking if node.ID < remote_node.ID else Mode.Responding
-
-            mode_per_node = {remote_node.name: set_mode(remote_node) for remote_node in network.nodes.values()}
-
-            node.driver.add_service(EntanglementAgreementService, InitiativeAgreementService(
-                node=node,
-                delay_per_node=Network.filter_for_node(node.name, self.delays_table),
-                mode_per_node=mode_per_node
-            ))
+            node.driver.add_service(
+                EntanglementAgreementService,
+                SymmetricAgreementService(
+                    node=node,
+                    delay_per_node=Network.filter_for_node(
+                        node.name, self.delays_table
+                    ),
+                ),
+            )
 
     def build_entanglement_tracker_services(self, network: Network):
         for node in network.nodes.values():
@@ -371,8 +375,12 @@ class DeviceControlServiceBuilder:
             driver = node.driver
             driver.add_service(MeasureService, AbstractMeasureService(node=node))
             driver.add_service(SwapService, AbstractSwapService(node=node))
-            driver.add_service(QuantumMemoryManager, MemoryManagerWithMoveProgram(node=node,
-                                                                                  move_program=AbstractMoveProgram()))
+            driver.add_service(
+                QuantumMemoryManager,
+                MemoryManagerWithMoveProgram(
+                    node=node, move_program=AbstractMoveProgram()
+                ),
+            )
 
 
 class ClassicalSocketBuilder:
@@ -424,4 +432,3 @@ class ProtocolController:
             obj.stop()
         for driver in self._drivers:
             driver.stop_all_services()
-

@@ -95,7 +95,7 @@ def create_multi_node_network(
 
 
 def create_metro_hub_network(
-    num_nodes: int,
+    nodes: Union[int, List[str]],
     node_distances: Union[float, List[float]],
     link_typ: str,
     link_cfg: ILinkConfig,
@@ -109,7 +109,11 @@ def create_metro_hub_network(
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
     clink_cfg = InstantCLinkConfig() if clink_cfg is None else clink_cfg
 
-    node_names = [f"node_{i}" for i in range(num_nodes)]
+    if isinstance(nodes, int):
+        node_names = [f"node_{i}" for i in range(nodes)]
+    else:
+        node_names = nodes
+
     for node_name in node_names:
         qdevice_cfg = (
             GenericQDeviceConfig.perfect_config()
@@ -119,7 +123,7 @@ def create_metro_hub_network(
         stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg={})
         network_config.stacks.append(stack)
 
-    mh_connections = connect_mh(num_nodes, node_distances, node_names)
+    mh_connections = connect_mh(node_distances, node_names)
 
     schedule_cfg = FIFOScheduleConfig() if schedule_cfg is None else schedule_cfg
 
@@ -139,14 +143,13 @@ def create_metro_hub_network(
 
 
 def connect_mh(
-    num_nodes: int, node_distances: Union[float, List[float]], node_names: List[str]
+    node_distances: Union[float, List[float]], node_names: List[str]
 ) -> List[MetroHubConnectionConfig]:
     mh_connections = []
-    node_distances = (
-        [node_distances for _ in range(num_nodes)]
-        if not isinstance(node_distances, list)
-        else node_distances
-    )
+    if not isinstance(node_distances, list):
+        node_distances = [node_distances] * len(node_names)
+    assert len(node_names) == len(node_distances)
+
     for node_name, dist in zip(node_names, node_distances):
         mh_connections.append(MetroHubConnectionConfig(stack=node_name, length=dist))
 
@@ -154,9 +157,9 @@ def connect_mh(
 
 
 def create_qia_prototype_network(
-    num_nodes_hub1: int,
+    nodes_hub1: Union[int, List[str]],
     node_distances_hub1: Union[float, List[float]],
-    num_nodes_hub2: int,
+    nodes_hub2: Union[int, List[str]],
     node_distances_hub2: Union[float, List[float]],
     num_nodes_repeater_chain: int,
     node_distances_repeater_chain: Union[float, List[float]],
@@ -172,8 +175,15 @@ def create_qia_prototype_network(
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
     clink_cfg = InstantCLinkConfig() if clink_cfg is None else clink_cfg
 
-    hub1_node_names = [f"hub1_node_{i}" for i in range(num_nodes_hub1)]
-    hub2_node_names = [f"hub2_node_{i}" for i in range(num_nodes_hub2)]
+    if isinstance(nodes_hub1, int):
+        hub1_node_names = [f"hub1_node_{i}" for i in range(nodes_hub1)]
+    else:
+        hub1_node_names = nodes_hub1
+
+    if isinstance(nodes_hub2, int):
+        hub2_node_names = [f"hub2_node_{i}" for i in range(nodes_hub2)]
+    else:
+        hub2_node_names = nodes_hub2
 
     for node_name in hub1_node_names + hub2_node_names:
         qdevice_cfg = (
@@ -184,8 +194,8 @@ def create_qia_prototype_network(
         stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg={})
         network_config.stacks.append(stack)
 
-    mh1_connections = connect_mh(num_nodes_hub1, node_distances_hub1, hub1_node_names)
-    mh2_connections = connect_mh(num_nodes_hub2, node_distances_hub2, hub2_node_names)
+    mh1_connections = connect_mh(node_distances_hub1, hub1_node_names)
+    mh2_connections = connect_mh(node_distances_hub2, hub2_node_names)
 
     schedule_cfg = FIFOScheduleConfig() if schedule_cfg is None else schedule_cfg
 

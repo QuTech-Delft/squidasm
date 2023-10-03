@@ -56,7 +56,7 @@ class TestFIFOScheduler(unittest.TestCase):
         delay = 2 * distance / speed_of_light * 1e9 + 1000
 
         network_cfg = create_metro_hub_network(
-            num_nodes=num_nodes,
+            nodes=num_nodes,
             node_distances=distance,
             link_typ="perfect",
             link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),
@@ -100,7 +100,7 @@ class TestFIFOScheduler(unittest.TestCase):
         delay = 2 * distance / speed_of_light * 1e9 + 1000
 
         network_cfg = create_metro_hub_network(
-            num_nodes=num_nodes,
+            nodes=num_nodes,
             node_distances=distance,
             link_typ="perfect",
             link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),

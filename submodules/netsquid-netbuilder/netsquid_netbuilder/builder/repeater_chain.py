@@ -25,7 +25,9 @@ from netsquid_qrepchain.control_layer.swap_asap import SwapASAP
 from netsquid_qrepchain.control_layer.swapasap_egp import (
     SwapAsapEndNodeLinkLayerProtocol,
 )
-from netsquid_qrepchain.processing_nodes.entanglement_magic import SingleMemoryEntanglementMagic
+from netsquid_qrepchain.processing_nodes.entanglement_magic import (
+    SingleMemoryEntanglementMagic,
+)
 
 from squidasm.sim.stack.stack import ProcessingNode
 
@@ -287,8 +289,12 @@ class ChainBuilder:
                 chain.hub_1.end_nodes.values(), chain.hub_2.end_nodes.values()
             ):
                 break
-                egp_hub1_node = SwapAsapEndNodeLinkLayerProtocol(hub1_end_node, hub2_end_node, chain)
-                egp_hub2_node = SwapAsapEndNodeLinkLayerProtocol(hub2_end_node, hub1_end_node, chain)
+                egp_hub1_node = SwapAsapEndNodeLinkLayerProtocol(
+                    hub1_end_node, hub2_end_node, chain
+                )
+                egp_hub2_node = SwapAsapEndNodeLinkLayerProtocol(
+                    hub2_end_node, hub1_end_node, chain
+                )
 
                 egp_dict[(hub1_end_node.name, hub2_end_node.name)] = egp_hub1_node
                 egp_dict[(hub2_end_node.name, hub1_end_node.name)] = egp_hub2_node
@@ -297,15 +303,19 @@ class ChainBuilder:
                 hub1_end_node.driver.add_service(EGPService, egp_hub1_node)
                 hub2_end_node.driver.add_service(EGPService, egp_hub2_node)
 
-                #self.protocol_controller.register(egp_hub1_node)
-                #self.protocol_controller.register(egp_hub2_node)
+                # self.protocol_controller.register(egp_hub1_node)
+                # self.protocol_controller.register(egp_hub2_node)
 
-            #self._setup_services(chain, network)
+            # self._setup_services(chain, network)
 
         return egp_dict
 
     def _setup_services(self, chain: Chain, network: Network):
-        all_qnodes = chain.repeater_nodes + list(chain.hub_2.end_nodes.values()) + list(chain.hub_1.end_nodes.values())
+        all_qnodes = (
+            chain.repeater_nodes
+            + list(chain.hub_2.end_nodes.values())
+            + list(chain.hub_1.end_nodes.values())
+        )
 
         for node in all_qnodes:
             driver = node.driver
@@ -314,15 +324,14 @@ class ChainBuilder:
             # TODO See how to incorporate the MoveProgram's, possibly it is fine once we put all device
             #  dependant things together in a package
 
-            driver.services[EntanglementService] = SingleMemoryEntanglementMagic(node, num_parallel_links=1)  # Needs work
+            driver.services[EntanglementService] = SingleMemoryEntanglementMagic(
+                node, num_parallel_links=1
+            )  # Needs work
 
             # Investigate if this service is needed
-            #driver.add_service(CutoffService, CutoffTimer(node=node, cutoff_time=cutoff_time))
-
+            # driver.add_service(CutoffService, CutoffTimer(node=node, cutoff_time=cutoff_time))
 
         for idx, repeater in enumerate(chain.repeater_nodes):
             driver = repeater.driver
 
             driver.add_service(SwapASAPService, SwapASAP(repeater))  # Needs work
-
-

@@ -29,7 +29,9 @@ class TestCLinkBase(unittest.TestCase):
     def tearDown(self) -> None:
         pass
 
-    def check_messages(self, messages: List[str], message_times: List[float], expected_delay=0.):
+    def check_messages(
+        self, messages: List[str], message_times: List[float], expected_delay=0.0
+    ):
         self.assertEqual(len(self.result_register.rec_classical_msg), len(messages))
         for rec_msg, msg_time, msg in zip(
             self.result_register.rec_classical_msg, message_times, messages
@@ -39,7 +41,6 @@ class TestCLinkBase(unittest.TestCase):
 
 
 class TestInstantCLink(TestCLinkBase):
-
     def test_1(self):
         network_cfg = create_test_network("instant", InstantCLinkConfig())
         network = self.builder.build(network_cfg)
@@ -85,7 +86,6 @@ class TestInstantCLink(TestCLinkBase):
 
 
 class TestDefaultCLink(TestCLinkBase, unittest.TestCase):
-
     def test_1_delay(self):
         delay = 2030.3
         network_cfg = create_test_network("default", DefaultCLinkConfig(delay=delay))
