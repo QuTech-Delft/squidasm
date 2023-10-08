@@ -61,6 +61,8 @@ class GenericQDeviceConfig(IQDeviceConfig):
         cfg.single_qubit_gate_depolar_prob = 0
         cfg.two_qubit_gate_depolar_prob = 0
         cfg.measure_time = 0
+        cfg.single_qubit_gate_time = 0
+        cfg.two_qubit_gate_time = 0
         cfg.single_qubit_gate_depolar_prob = 0.0
         cfg.two_qubit_gate_depolar_prob = 0.0
         return cfg

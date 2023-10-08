@@ -45,6 +45,7 @@ class GHZProgram(Program):
             up_epr_socket = context.epr_sockets[up_name]
             up_socket = context.csockets[up_name]
 
+        # noinspection PyTupleAssignmentBalance
         qubit, m = yield from create_ghz(
             connection,
             down_epr_socket,

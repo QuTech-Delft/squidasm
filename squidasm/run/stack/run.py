@@ -48,10 +48,13 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
         peer_name = node_pair[1]
         port = network.ports[(node_name, peer_name)]
 
-        # TODO app name is unknown here
-        csocket = ClassicalSocket(port, app_name=node_name, remote_app_name=peer_name)
-        csockets[(node_name, peer_name)] = csocket
-        stacks[node_name].host.register_csocket(peer_name, csocket)
+        if node_name in stacks.keys() and peer_name in stacks.keys():
+            # TODO app name is unknown here
+            csocket = ClassicalSocket(
+                port, app_name=node_name, remote_app_name=peer_name
+            )
+            csockets[(node_name, peer_name)] = csocket
+            stacks[node_name].host.register_csocket(peer_name, csocket)
 
     link_prots: List[MagicLinkLayerProtocol] = []
     # TODO cheaty start protocols here
