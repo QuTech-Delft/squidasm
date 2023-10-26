@@ -3,6 +3,7 @@ from typing import List
 
 import netsquid.qubits
 import numpy as np
+from deprecated import deprecated
 from netqasm.sdk.qubit import Qubit
 from netsquid.qubits import operators
 from netsquid.qubits import qubitapi as qapi
@@ -17,47 +18,6 @@ from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 
 import squidasm.sim.stack.globals
-
-
-def create_two_node_network(
-    node_names: List[str] = None,
-    link_noise: float = 0,
-    qdevice_noise: float = 0,
-    clink_delay: float = 0.0,
-) -> StackNetworkConfig:
-    """
-    Create a network configuration with two nodes, with simple noise models.
-    :param node_names: List of str with the names of the two nodes
-    :param link_noise: A number between 0 and 1 that indicates how noisy the generated EPR pairs are.
-    :param qdevice_noise: A number between 0 and 1 that indicates how noisy the qubit operations on the nodes are.
-    :param clink_delay: The time, in nanoseconds, it takes for the classical message to arrive.
-    :return: StackNetworkConfig object with a two node network
-    """
-    node_names = ["Alice", "Bob"] if node_names is None else node_names
-    assert len(node_names) == 2
-
-    qdevice_cfg = GenericQDeviceConfig.perfect_config()
-    qdevice_cfg.two_qubit_gate_depolar_prob = qdevice_noise
-    qdevice_cfg.single_qubit_gate_depolar_prob = qdevice_noise
-    qdevice_cfg.num_qubits = 10
-    stacks = [
-        StackConfig(name=name, qdevice_typ="generic", qdevice_cfg=qdevice_cfg)
-        for name in node_names
-    ]
-
-    link_cfg = DepolariseLinkConfig(
-        fidelity=1 - link_noise * 3 / 4, t_cycle=1000, prob_success=1
-    )
-    link = LinkConfig(
-        stack1=node_names[0], stack2=node_names[1], typ="depolarise", cfg=link_cfg
-    )
-    clink = CLinkConfig(
-        stack1=node_names[0],
-        stack2=node_names[1],
-        typ="default",
-        cfg=DefaultCLinkConfig(delay=clink_delay),
-    )
-    return StackNetworkConfig(stacks=stacks, links=[link], clinks=[clink])
 
 
 def get_qubit_state(q: Qubit, node_name, full_state=False) -> np.ndarray:
@@ -112,3 +72,50 @@ def get_reference_state(phi: float, theta: float) -> np.ndarray:
     netsquid.qubits.operate(q, rot_y)
     netsquid.qubits.operate(q, rot_z)
     return qapi.reduced_dm(q)
+
+
+@deprecated(
+    reason="Same and more functionality achieved by "
+    "`netsquid_netbuilder.util.network_generation.create_simple_network`",
+    version="0.12.1",
+)
+def create_two_node_network(
+    node_names: List[str] = None,
+    link_noise: float = 0,
+    qdevice_noise: float = 0,
+    clink_delay: float = 0.0,
+    link_delay: float = 0.0,
+) -> StackNetworkConfig:
+    """
+    Create a network configuration with two nodes, with simple noise models.
+    :param node_names: List of str with the names of the two nodes
+    :param link_noise: A number between 0 and 1 that indicates how noisy the generated EPR pairs are.
+    :param qdevice_noise: A number between 0 and 1 that indicates how noisy the qubit operations on the nodes are.
+    :param clink_delay: The time, in nanoseconds, it takes for the classical message to arrive.
+    :param link_delay: The time, in nanoseconds, it takes for an EPR pair to be generated.
+    :return: StackNetworkConfig object with a two node network
+    """
+    node_names = ["Alice", "Bob"] if node_names is None else node_names
+    assert len(node_names) == 2
+
+    qdevice_cfg = GenericQDeviceConfig.perfect_config()
+    qdevice_cfg.two_qubit_gate_depolar_prob = qdevice_noise
+    qdevice_cfg.single_qubit_gate_depolar_prob = qdevice_noise
+    stacks = [
+        StackConfig(name=name, qdevice_typ="generic", qdevice_cfg=qdevice_cfg)
+        for name in node_names
+    ]
+
+    link_cfg = DepolariseLinkConfig(
+        fidelity=1 - link_noise * 3 / 4, t_cycle=link_delay, prob_success=1
+    )
+    link = LinkConfig(
+        stack1=node_names[0], stack2=node_names[1], typ="depolarise", cfg=link_cfg
+    )
+    clink = CLinkConfig(
+        stack1=node_names[0],
+        stack2=node_names[1],
+        typ="default",
+        cfg=DefaultCLinkConfig(delay=clink_delay),
+    )
+    return StackNetworkConfig(stacks=stacks, links=[link], clinks=[clink])

@@ -10,14 +10,13 @@ from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.scheduler.fifo import FIFOScheduleConfig
 from netsquid_netbuilder.modules.scheduler.static import StaticScheduleConfig
 from netsquid_netbuilder.run import run
-from netsquid_netbuilder.test_utils.network_generation import create_metro_hub_network
-from netsquid_netbuilder.test_utils.scheduler_test_protocol import (
+from netsquid_netbuilder.util.network_generation import create_metro_hub_network
+from netsquid_netbuilder.util.scheduler_test_protocol import (
     SchedulerRequest,
     SchedulerResultRegistration,
     SchedulerTestProtocol,
 )
-
-from netsquid_netbuilder.test_utils.test_builder import get_test_network_builder
+from netsquid_netbuilder.util.test_builder import get_test_network_builder
 
 
 class BaseSchedulerTest(unittest.TestCase):
@@ -52,7 +51,6 @@ class BaseSchedulerTest(unittest.TestCase):
 
 
 class TestFIFOScheduler(BaseSchedulerTest):
-
     def test_1_no_overlap(self):
         """Test if all requests are completed in the expected time frame"""
         num_requests = 100
@@ -70,7 +68,7 @@ class TestFIFOScheduler(BaseSchedulerTest):
             clink_typ="default",
             clink_cfg=DefaultCLinkConfig(),
             schedule_typ="fifo",
-            schedule_cfg=FIFOScheduleConfig(switch_time=switch_time)
+            schedule_cfg=FIFOScheduleConfig(switch_time=switch_time),
         )
         network = self.builder.build(network_cfg)
 
@@ -98,7 +96,9 @@ class TestFIFOScheduler(BaseSchedulerTest):
                 result.completion_time,
                 delta=delay * 1e-9,
             )
-            self.assertEqual(result.epr_measure_result, results[2*i+1].epr_measure_result)
+            self.assertEqual(
+                result.epr_measure_result, results[2 * i + 1].epr_measure_result
+            )
 
     def test_2_two_nodes_request_overlap(self):
         """Test if all requests are completed in the expected time frame"""
@@ -117,7 +117,7 @@ class TestFIFOScheduler(BaseSchedulerTest):
             clink_typ="default",
             clink_cfg=DefaultCLinkConfig(),
             schedule_typ="fifo",
-            schedule_cfg=FIFOScheduleConfig(switch_time=switch_time)
+            schedule_cfg=FIFOScheduleConfig(switch_time=switch_time),
         )
         network = self.builder.build(network_cfg)
 
@@ -141,11 +141,13 @@ class TestFIFOScheduler(BaseSchedulerTest):
         for i, request in enumerate(requests):
             result = results[2 * i]
             self.assertAlmostEqual(
-                delay * (i+1),
+                delay * (i + 1),
                 result.completion_time,
                 delta=delay * 1e-9,
             )
-            self.assertEqual(result.epr_measure_result, results[2*i+1].epr_measure_result)
+            self.assertEqual(
+                result.epr_measure_result, results[2 * i + 1].epr_measure_result
+            )
 
     def test_3_multi_node_random_submission(self):
         """Test that with multiple nodes with overlapping requests all requests will eventually be delivered"""
@@ -164,7 +166,7 @@ class TestFIFOScheduler(BaseSchedulerTest):
             clink_typ="default",
             clink_cfg=DefaultCLinkConfig(),
             schedule_typ="fifo",
-            schedule_cfg=FIFOScheduleConfig(switch_time=switch_time)
+            schedule_cfg=FIFOScheduleConfig(switch_time=switch_time),
         )
         network = self.builder.build(network_cfg)
 
@@ -187,7 +189,9 @@ class TestFIFOScheduler(BaseSchedulerTest):
 
         for i, request in enumerate(requests):
             result = results[2 * i]
-            self.assertEqual(result.epr_measure_result, results[2*i+1].epr_measure_result)
+            self.assertEqual(
+                result.epr_measure_result, results[2 * i + 1].epr_measure_result
+            )
 
     def test_4_multiplexing(self):
         """Test if all requests are completed in the expected time frame when we have multiplexing enabled"""
@@ -207,7 +211,9 @@ class TestFIFOScheduler(BaseSchedulerTest):
             clink_typ="default",
             clink_cfg=DefaultCLinkConfig(),
             schedule_typ="fifo",
-            schedule_cfg=FIFOScheduleConfig(switch_time=switch_time, max_multiplexing=max_multiplexing)
+            schedule_cfg=FIFOScheduleConfig(
+                switch_time=switch_time, max_multiplexing=max_multiplexing
+            ),
         )
         network = self.builder.build(network_cfg)
 
@@ -240,11 +246,12 @@ class TestFIFOScheduler(BaseSchedulerTest):
                 result.completion_time,
                 delta=delay * 1e-9,
             )
-            self.assertEqual(result.epr_measure_result, results[2*i+1].epr_measure_result)
+            self.assertEqual(
+                result.epr_measure_result, results[2 * i + 1].epr_measure_result
+            )
 
 
 class TestStaticScheduler(BaseSchedulerTest):
-
     def test_1_no_overlap(self):
         """Test if all requests are completed in the expected time frame"""
         num_requests = 40
@@ -263,7 +270,9 @@ class TestStaticScheduler(BaseSchedulerTest):
             clink_typ="default",
             clink_cfg=DefaultCLinkConfig(),
             schedule_typ="static",
-            schedule_cfg=StaticScheduleConfig(switch_time=switch_time, time_window=time_window)
+            schedule_cfg=StaticScheduleConfig(
+                switch_time=switch_time, time_window=time_window
+            ),
         )
         network = self.builder.build(network_cfg)
 
@@ -291,7 +300,9 @@ class TestStaticScheduler(BaseSchedulerTest):
                 result.completion_time,
                 delta=request_completion_time * 1e-9,
             )
-            self.assertEqual(result.epr_measure_result, results[2*i+1].epr_measure_result)
+            self.assertEqual(
+                result.epr_measure_result, results[2 * i + 1].epr_measure_result
+            )
 
     def test_2_two_nodes_request_overlap(self):
         """Test if all requests are completed in the expected time frame"""
@@ -311,7 +322,9 @@ class TestStaticScheduler(BaseSchedulerTest):
             clink_typ="default",
             clink_cfg=DefaultCLinkConfig(),
             schedule_typ="static",
-            schedule_cfg=StaticScheduleConfig(switch_time=switch_time, time_window=time_window)
+            schedule_cfg=StaticScheduleConfig(
+                switch_time=switch_time, time_window=time_window
+            ),
         )
         network = self.builder.build(network_cfg)
 
@@ -339,7 +352,9 @@ class TestStaticScheduler(BaseSchedulerTest):
                 result.completion_time,
                 delta=request_completion_time * 1e-9,
             )
-            self.assertEqual(result.epr_measure_result, results[2*i+1].epr_measure_result)
+            self.assertEqual(
+                result.epr_measure_result, results[2 * i + 1].epr_measure_result
+            )
 
     def test_3_multi_node_random_submission(self):
         """Test that with multiple nodes with overlapping requests all requests will eventually be delivered"""
@@ -359,7 +374,9 @@ class TestStaticScheduler(BaseSchedulerTest):
             clink_typ="default",
             clink_cfg=DefaultCLinkConfig(),
             schedule_typ="static",
-            schedule_cfg=StaticScheduleConfig(switch_time=switch_time, time_window=time_window)
+            schedule_cfg=StaticScheduleConfig(
+                switch_time=switch_time, time_window=time_window
+            ),
         )
         network = self.builder.build(network_cfg)
 
@@ -382,7 +399,9 @@ class TestStaticScheduler(BaseSchedulerTest):
 
         for i, request in enumerate(requests):
             result = results[2 * i]
-            self.assertEqual(result.epr_measure_result, results[2*i+1].epr_measure_result)
+            self.assertEqual(
+                result.epr_measure_result, results[2 * i + 1].epr_measure_result
+            )
 
 
 if __name__ == "__main__":

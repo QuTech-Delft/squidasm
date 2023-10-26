@@ -27,7 +27,9 @@ class StaticScheduleConfig(IScheduleConfig):
 
 
 class StaticScheduleProtocol(IScheduleProtocol):
-    CycleEndEvent = ns.pydynaa.EventType("evtCycleEnd", "A full cycle of the static schedule has been completed")
+    CycleEndEvent = ns.pydynaa.EventType(
+        "evtCycleEnd", "A full cycle of the static schedule has been completed"
+    )
 
     MAX_REPEATS = 1000
 

@@ -2,7 +2,7 @@ from typing import List
 
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
-from netsquid_netbuilder.test_utils.network_generation import create_multi_node_network
+from netsquid_netbuilder.util.network_generation import create_complete_graph_network
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -63,15 +63,15 @@ class GHZProgram(Program):
 
 if __name__ == "__main__":
     num_nodes = 6
-    cfg = create_multi_node_network(
-        num_nodes,
+    node_names_ = [f"Node_{i}" for i in range(num_nodes)]
+
+    cfg = create_complete_graph_network(
+        node_names_,
         "perfect",
         PerfectLinkConfig(state_delay=100),
         clink_typ="default",
         clink_cfg=DefaultCLinkConfig(delay=100),
     )
-
-    node_names_ = [stack.name for stack in cfg.stacks]
 
     programs = {name: GHZProgram(name, node_names_) for name in node_names_}
 

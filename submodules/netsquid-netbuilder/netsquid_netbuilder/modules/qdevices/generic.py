@@ -54,17 +54,26 @@ class GenericQDeviceConfig(IQDeviceConfig):
     """Probability of error in each two qubit gate operation."""
 
     @classmethod
-    def perfect_config(cls) -> GenericQDeviceConfig:
-        """Create a configuration for a device without any noise or errors."""
+    def perfect_config(cls, num_qubits: int = 100) -> GenericQDeviceConfig:
+        """
+        Create a configuration for a device without any noise or errors.
+        :param num_qubits: number of qubits in the device.
+        """
         cfg = GenericQDeviceConfig()
+        # gate execution times
         cfg.init_time = 0
-        cfg.single_qubit_gate_depolar_prob = 0
-        cfg.two_qubit_gate_depolar_prob = 0
         cfg.measure_time = 0
         cfg.single_qubit_gate_time = 0
         cfg.two_qubit_gate_time = 0
-        cfg.single_qubit_gate_depolar_prob = 0.0
-        cfg.two_qubit_gate_depolar_prob = 0.0
+        # gate noise
+        cfg.single_qubit_gate_depolar_prob = 0
+        cfg.two_qubit_gate_depolar_prob = 0
+        # number of qubits
+        cfg.num_qubits = num_qubits
+        cfg.num_comm_qubits = num_qubits
+        # decoherence times (T=0 causes noise to be disabled)
+        cfg.T1 = 0
+        cfg.T2 = 0
         return cfg
 
 

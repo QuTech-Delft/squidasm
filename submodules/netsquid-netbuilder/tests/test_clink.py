@@ -6,13 +6,13 @@ from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.clinks.interface import ICLinkConfig
 from netsquid_netbuilder.run import run
-from netsquid_netbuilder.test_utils.clink_test_protocol import (
+from netsquid_netbuilder.util.clink_test_protocol import (
     AliceProtocol,
     BobProtocol,
     ClassicalMessageResultRegistration,
 )
-from netsquid_netbuilder.test_utils.network_generation import create_2_node_network
-from netsquid_netbuilder.test_utils.test_builder import get_test_network_builder
+from netsquid_netbuilder.util.network_generation import create_2_node_network
+from netsquid_netbuilder.util.test_builder import get_test_network_builder
 
 
 def create_test_network(typ: str, cfg: ICLinkConfig):

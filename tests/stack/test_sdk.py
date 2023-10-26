@@ -8,7 +8,7 @@ from netsquid.qubits import ketstates, qubitapi
 from netsquid_magic.models.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
-from netsquid_netbuilder.test_utils.network_generation import (
+from netsquid_netbuilder.util.network_generation import (
     create_2_node_network,
     create_single_node_network,
 )
