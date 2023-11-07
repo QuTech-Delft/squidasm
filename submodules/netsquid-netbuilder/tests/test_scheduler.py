@@ -1,22 +1,20 @@
-import logging
 import random
 import unittest
 from typing import List
 
 import netsquid as ns
 from netsquid_magic.models.perfect import PerfectLinkConfig
-from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.scheduler.fifo import FIFOScheduleConfig
 from netsquid_netbuilder.modules.scheduler.static import StaticScheduleConfig
 from netsquid_netbuilder.run import run
 from netsquid_netbuilder.util.network_generation import create_metro_hub_network
-from netsquid_netbuilder.util.scheduler_test_protocol import (
+from netsquid_netbuilder.util.test_builder import get_test_network_builder
+from netsquid_netbuilder.util.test_protocol_scheduler import (
     SchedulerRequest,
     SchedulerResultRegistration,
     SchedulerTestProtocol,
 )
-from netsquid_netbuilder.util.test_builder import get_test_network_builder
 
 
 class BaseSchedulerTest(unittest.TestCase):
@@ -59,9 +57,10 @@ class TestFIFOScheduler(BaseSchedulerTest):
         switch_time = 200
         speed_of_light = 1e9
         delay = 2 * distance / speed_of_light * speed_of_light + switch_time
+        node_names = [f"node_{i}" for i in range(num_nodes)]
 
         network_cfg = create_metro_hub_network(
-            num_nodes=num_nodes,
+            node_names=node_names,
             node_distances=distance,
             link_typ="perfect",
             link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),
@@ -76,12 +75,12 @@ class TestFIFOScheduler(BaseSchedulerTest):
             return delay + 1
 
         requests = self.generate_requests(
-            list(network.nodes.keys()), num_requests, delta_func=delta_func
+            node_names, num_requests, delta_func=delta_func
         )
 
         protocols = {
             node_name: SchedulerTestProtocol(self.result_register, requests)
-            for node_name in network.nodes.keys()
+            for node_name in node_names
         }
 
         run(network, protocols)
@@ -108,9 +107,10 @@ class TestFIFOScheduler(BaseSchedulerTest):
         switch_time = 200
         speed_of_light = 1e9
         delay = 2 * distance / speed_of_light * speed_of_light + switch_time
+        node_names = [f"node_{i}" for i in range(num_nodes)]
 
         network_cfg = create_metro_hub_network(
-            num_nodes=num_nodes,
+            node_names=node_names,
             node_distances=distance,
             link_typ="perfect",
             link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),
@@ -125,12 +125,12 @@ class TestFIFOScheduler(BaseSchedulerTest):
             return 0.3 * delay
 
         requests = self.generate_requests(
-            list(network.nodes.keys()), num_requests, delta_func=delta_func
+            node_names, num_requests, delta_func=delta_func
         )
 
         protocols = {
             node_name: SchedulerTestProtocol(self.result_register, requests)
-            for node_name in network.nodes.keys()
+            for node_name in node_names
         }
 
         run(network, protocols)
@@ -157,9 +157,10 @@ class TestFIFOScheduler(BaseSchedulerTest):
         speed_of_light = 1e9
         delay = 2 * distance / speed_of_light * 1e9
         switch_time = 200
+        node_names = [f"node_{i}" for i in range(num_nodes)]
 
         network_cfg = create_metro_hub_network(
-            num_nodes=num_nodes,
+            node_names=node_names,
             node_distances=distance,
             link_typ="perfect",
             link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),
@@ -174,12 +175,12 @@ class TestFIFOScheduler(BaseSchedulerTest):
             return random.randint(0, int(delay) * 2)
 
         requests = self.generate_requests(
-            list(network.nodes.keys()), num_requests, delta_func=delta_func
+            node_names, num_requests, delta_func=delta_func
         )
 
         protocols = {
             node_name: SchedulerTestProtocol(self.result_register, requests)
-            for node_name in network.nodes.keys()
+            for node_name in node_names
         }
 
         run(network, protocols)
@@ -202,9 +203,10 @@ class TestFIFOScheduler(BaseSchedulerTest):
         switch_time = 200
         speed_of_light = 1e9
         delay = 2 * distance / speed_of_light * speed_of_light + switch_time
+        node_names = [f"node_{i}" for i in range(num_nodes)]
 
         network_cfg = create_metro_hub_network(
-            num_nodes=num_nodes,
+            node_names=node_names,
             node_distances=distance,
             link_typ="perfect",
             link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),
@@ -221,17 +223,17 @@ class TestFIFOScheduler(BaseSchedulerTest):
             return 1.2 * delay
 
         requests_pair1 = self.generate_requests(
-            list(network.nodes.keys())[0:2], num_requests, delta_func=delta_func
+            node_names[0:2], num_requests, delta_func=delta_func
         )
         requests_pair2 = self.generate_requests(
-            list(network.nodes.keys())[2:4], num_requests, delta_func=delta_func
+            node_names[2:4], num_requests, delta_func=delta_func
         )
         requests = requests_pair1 + requests_pair2
         requests.sort(key=lambda x: x.submit_time)
 
         protocols = {
             node_name: SchedulerTestProtocol(self.result_register, requests)
-            for node_name in network.nodes.keys()
+            for node_name in node_names
         }
 
         run(network, protocols)
@@ -261,9 +263,10 @@ class TestStaticScheduler(BaseSchedulerTest):
         speed_of_light = 1e9
         request_completion_time = 2 * distance / speed_of_light * speed_of_light
         time_window = request_completion_time * 1.5
+        node_names = [f"node_{i}" for i in range(num_nodes)]
 
         network_cfg = create_metro_hub_network(
-            num_nodes=num_nodes,
+            node_names=node_names,
             node_distances=distance,
             link_typ="perfect",
             link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),
@@ -280,12 +283,12 @@ class TestStaticScheduler(BaseSchedulerTest):
             return time_window + switch_time
 
         requests = self.generate_requests(
-            list(network.nodes.keys()), num_requests, delta_func=delta_func
+            node_names, num_requests, delta_func=delta_func
         )
 
         protocols = {
             node_name: SchedulerTestProtocol(self.result_register, requests)
-            for node_name in network.nodes.keys()
+            for node_name in node_names
         }
 
         run(network, protocols)
@@ -313,9 +316,10 @@ class TestStaticScheduler(BaseSchedulerTest):
         speed_of_light = 1e9
         request_completion_time = 2 * distance / speed_of_light * speed_of_light
         time_window = request_completion_time * 1.5
+        node_names = [f"node_{i}" for i in range(num_nodes)]
 
         network_cfg = create_metro_hub_network(
-            num_nodes=num_nodes,
+            node_names=node_names,
             node_distances=distance,
             link_typ="perfect",
             link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),
@@ -332,12 +336,12 @@ class TestStaticScheduler(BaseSchedulerTest):
             return 0.3 * request_completion_time
 
         requests = self.generate_requests(
-            list(network.nodes.keys()), num_requests, delta_func=delta_func
+            node_names, num_requests, delta_func=delta_func
         )
 
         protocols = {
             node_name: SchedulerTestProtocol(self.result_register, requests)
-            for node_name in network.nodes.keys()
+            for node_name in node_names
         }
 
         run(network, protocols)
@@ -365,9 +369,10 @@ class TestStaticScheduler(BaseSchedulerTest):
         request_completion_time = 2 * distance / speed_of_light * speed_of_light
         time_window = request_completion_time * 1.5
         switch_time = 200
+        node_names = [f"node_{i}" for i in range(num_nodes)]
 
         network_cfg = create_metro_hub_network(
-            num_nodes=num_nodes,
+            node_names=node_names,
             node_distances=distance,
             link_typ="perfect",
             link_cfg=PerfectLinkConfig(speed_of_light=speed_of_light),
@@ -384,12 +389,12 @@ class TestStaticScheduler(BaseSchedulerTest):
             return random.randint(0, int(request_completion_time) * 2)
 
         requests = self.generate_requests(
-            list(network.nodes.keys()), num_requests, delta_func=delta_func
+            node_names, num_requests, delta_func=delta_func
         )
 
         protocols = {
             node_name: SchedulerTestProtocol(self.result_register, requests)
-            for node_name in network.nodes.keys()
+            for node_name in node_names
         }
 
         run(network, protocols)

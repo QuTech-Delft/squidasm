@@ -99,6 +99,8 @@ class HubBuilder:
                 clink_config = hub_config.clink_cfg
                 if hasattr(clink_config, "length"):
                     clink_config.length = connection_config.length
+                if isinstance(clink_config, dict):
+                    clink_config["length"] = connection_config.length
 
                 connection = clink_builder.build(hub, node, clink_config)
 
@@ -116,6 +118,10 @@ class HubBuilder:
                 clink_config = hub_config.clink_cfg
                 if hasattr(clink_config, "length"):
                     clink_config.length = (
+                        connection_1_config.length + connection_2_config.length
+                    )
+                if isinstance(clink_config, dict):
+                    clink_config["length"] = (
                         connection_1_config.length + connection_2_config.length
                     )
 

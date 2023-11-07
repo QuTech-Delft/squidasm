@@ -58,7 +58,8 @@ class ClientProtocol(BlueprintProtocol):
         in_port = self.context.ports[self.server_name]
         yield self.await_port_input(in_port)
         print(
-            f"{ns.sim_time()} ns: {self.context.node.name} receives from {self.server_name}: {in_port.rx_input().items[0]}"
+            f"{ns.sim_time()} ns: {self.context.node.name} "
+            f"receives from {self.server_name}: {in_port.rx_input().items[0]}"
         )
         egp.put(
             ReqReceive(remote_node_id=self.context.node_id_mapping[self.server_name])

@@ -17,8 +17,9 @@ from protocols import AliceProtocol, BobProtocol
 link_cfg = DepolariseLinkConfig(fidelity=0.9, prob_success=1, speed_of_light=1e9)
 
 # The following method sets up a metro hub configuration
+node_names = [f"node_{i}" for i in range(4)]
 cfg = create_metro_hub_network(
-    num_nodes=4,
+    node_names=node_names,
     node_distances=[10, 5, 9, 14],
     link_typ="depolarise",
     link_cfg=link_cfg,
@@ -48,7 +49,7 @@ scheduler_events = collect_schedule_events(scheduler)
 # Sets up the protocols
 protocol_mapping = {}
 num_epr_pairs = 10
-for i, node in enumerate(cfg.stacks):
+for i, node in enumerate(node_names):
     if i % 2 == 0:
         peer_name = cfg.stacks[i + 1].name
         prot = AliceProtocol(peer=peer_name, num_epr_pairs=num_epr_pairs)

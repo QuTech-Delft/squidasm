@@ -52,6 +52,17 @@ def create_complete_graph_network(
     qdevice_typ: str = "generic",
     qdevice_cfg: IQDeviceConfig = None,
 ) -> StackNetworkConfig:
+    """
+    Create a complete graph network configuration.
+    :param node_names: List of str with the names of the nodes. The amount of names will determine the amount of nodes.
+    :param link_typ: str specification of the link model to use for quantum links.
+    :param link_cfg: Configuration of the link model.
+    :param clink_typ: str specification of the clink model to use for classical communication.
+    :param clink_cfg: Configuration of the clink model.
+    :param qdevice_typ: str specification of the qdevice model to use for quantum devices.
+    :param qdevice_cfg: Configuration of qdevice.
+    :return: StackNetworkConfig object with a network.
+    """
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
 
     assert len(node_names) > 0
@@ -130,7 +141,7 @@ def create_simple_network(
 
 
 def create_metro_hub_network(
-    num_nodes: int,
+    node_names: List[str],
     node_distances: Union[float, List[float]],
     link_typ: str,
     link_cfg: ILinkConfig,
@@ -141,11 +152,23 @@ def create_metro_hub_network(
     qdevice_typ: str = "generic",
     qdevice_cfg: IQDeviceConfig = None,
 ) -> StackNetworkConfig:
-    """Create a star type network with a metro hub in the center."""
+    """Create a star type network with a metro hub in the center.
+    :param node_names: List of str with the names of the nodes. The amount of names will determine the amount of nodes.
+    :param node_distances: List of float or float with distances for each end-node to the central hub.
+    :param link_typ: str specification of the link model to use for quantum links.
+    :param link_cfg: Configuration of the link model.
+    :param schedule_typ: str specification of the schedule model to use for the metro hub.
+    :param schedule_cfg: Configuration of the schedule to use.
+    :param clink_typ: str specification of the clink model to use for classical communication.
+    :param clink_cfg: Configuration of the clink model.
+    :param qdevice_typ: str specification of the qdevice model to use for quantum devices.
+    :param qdevice_cfg: Configuration of qdevice.
+    :return: StackNetworkConfig object with a network.
+
+    """
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
     clink_cfg = InstantCLinkConfig() if clink_cfg is None else clink_cfg
 
-    node_names = [f"node_{i}" for i in range(num_nodes)]
     for node_name in node_names:
         qdevice_cfg = (
             GenericQDeviceConfig.perfect_config()
@@ -158,11 +181,10 @@ def create_metro_hub_network(
         network_config.stacks.append(stack)
 
     mh_connections = []
-    node_distances = (
-        [node_distances for _ in range(num_nodes)]
-        if not isinstance(node_distances, list)
-        else node_distances
-    )
+    # Convert node_distances to a list if it was not yet already
+    if not isinstance(node_distances, list):
+        node_distances = [node_distances for _ in range(len(node_names))]
+
     for node_name, dist in zip(node_names, node_distances):
         mh_connections.append(MetroHubConnectionConfig(stack=node_name, length=dist))
 

@@ -231,6 +231,23 @@ class TestGates(unittest.TestCase):
             expected_completion_time=500,
         )
 
+    def test_decoherence_none(self):
+        """Check that qubits do not experience decoherence if it is disabled"""
+        qdevice_op_time = 1e8
+        decoherence_time_scale = 0
+        network_cfg = create_simple_network(
+            node_names=["Alice"],
+            qdevice_op_time=qdevice_op_time,
+            qdevice_depolar_time=decoherence_time_scale,
+        )
+        program = GateTestProgram(num_qubits=2, gates=[GateOperation("X")])
+        results = run(config=network_cfg, programs={"Alice": program}, num_times=40)[0]
+
+        average_meas = self._average_results(results)
+        # In process qubit does not experience decoherence
+        self.assertAlmostEqual(average_meas[0], 1, delta=0.01)
+        self.assertAlmostEqual(average_meas[1], 0.0, delta=0.1)
+
     def test_decoherence_small(self):
         """Check that qubits not undergoing operations experience decoherence"""
         qdevice_op_time = 10

@@ -1,5 +1,10 @@
 This is a changelog that is separate from the main changelog, this is to log changes on the beta branch
 
+2023-TODO (b0.0.4)
+-------------------
+- Changed signature of create_metro_hub_network method in network_generation.py to use node_names instead of num_nodes as argument
+- Added tests for classical communication delays for metro hubs
+
 2023-10-26 (b0.0.3)
 -------------------
 - Expanded tests in regard to checking: classical communication, local gates & decoherence and EPR pair generation
