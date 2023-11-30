@@ -324,7 +324,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             qubit_state = qapi.reduced_dm(qubit).tolist()
         return qubit_state
 
-    def _handle_delivery(self, event):
+    def _handle_label_delivery(self, event):
         """
         Handles the completion of an entanglement generation
         Updates, the requests, number of pairs left etc,

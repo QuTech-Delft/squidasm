@@ -3,7 +3,10 @@ This is a changelog that is separate from the main changelog, this is to log cha
 2023-TODO (b0.0.4)
 -------------------
 - Changed signature of create_metro_hub_network method in network_generation.py to use node_names instead of num_nodes as argument
-- Added tests for classical communication delays for metro hubs
+- Added tests for classical communication and EPR generation delays for metro hubs
+- Renamed `state_delay` parameter in perfect link model to `delay`
+- Changed interplay between `LinkLayer` and `MagicDistributor` so that completion of a delivery in the `LinkLayer` happens on completion of label_delivery and not on state_delivery
+- Depolarise model has been edited such that success in the first cycle will have state delivery at half the cycle and label delivery at the end of the cycle
 
 2023-10-26 (b0.0.3)
 -------------------
