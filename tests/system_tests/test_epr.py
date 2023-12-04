@@ -245,7 +245,7 @@ class TestEPR(unittest.TestCase):
 
         network_cfg = create_2_node_network(
             link_typ="perfect",
-            link_cfg=PerfectLinkConfig(delay=delay),
+            link_cfg=PerfectLinkConfig(state_delay=delay),
             clink_typ="instant",
         )
         alice_req = [EPRRequest("Bob", is_create=True) for _ in range(num_req)]

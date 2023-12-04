@@ -68,7 +68,7 @@ if __name__ == "__main__":
     cfg = create_complete_graph_network(
         node_names_,
         "perfect",
-        PerfectLinkConfig(delay=100),
+        PerfectLinkConfig(state_delay=100),
         clink_typ="default",
         clink_cfg=DefaultCLinkConfig(delay=100),
     )
