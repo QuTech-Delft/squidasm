@@ -186,6 +186,28 @@ class TestMetropolitanHub(unittest.TestCase):
         self._check_delays(result_register, distance_dict)
         self._check_fidelity(result_register)
 
+    def test_egp_depolarizing_yaml(self):
+        num_nodes = 6
+        distances = [10.4, 23, 1, 4, 213.3e8, 15]
+        sender_names = [f"sender_{i}" for i in range(num_nodes // 2)]
+        receiver_names = [f"receiver_{i}" for i in range(num_nodes // 2)]
+
+        test_dir = pathlib.Path(__file__).parent.resolve()
+        network_cfg = StackNetworkConfig.from_file(
+            f"{test_dir}/yaml_configs/metro_hub_depolarise.yaml"
+        )
+
+        distance_dict = {
+            node_name: dist
+            for node_name, dist in zip(sender_names + receiver_names, distances)
+        }
+
+        result_register = self._perform_epr_test_run(
+            network_cfg, sender_names, receiver_names
+        )
+        self._check_delays(result_register, distance_dict)
+        self._check_fidelity(result_register)
+
     def test_egp_heralded_single_click(self):
         num_nodes = 6
         distances = [100, 23, 1e6, 1e3, 213.3e5, 15e6]
@@ -208,6 +230,31 @@ class TestMetropolitanHub(unittest.TestCase):
             clink_cfg=DefaultCLinkConfig(speed_of_light=1e9),
             schedule_typ="fifo",
             schedule_cfg=FIFOScheduleConfig(switch_time=0, max_multiplexing=3),
+        )
+
+        distance_dict = {
+            node_name: dist
+            for node_name, dist in zip(sender_names + receiver_names, distances)
+        }
+
+        result_register = self._perform_epr_test_run(
+            network_cfg, sender_names, receiver_names, minimum_fidelity=0
+        )
+        self._check_delays_with_mid_point(result_register, distance_dict)
+        result_register = self._perform_epr_test_run(
+            network_cfg, sender_names, receiver_names, minimum_fidelity=0.99
+        )
+        self._check_fidelity(result_register)
+
+    def test_egp_heralded_single_click_yaml(self):
+        num_nodes = 6
+        distances = [10.4, 23, 1, 4, 213.3e8, 15]
+        sender_names = [f"sender_{i}" for i in range(num_nodes // 2)]
+        receiver_names = [f"receiver_{i}" for i in range(num_nodes // 2)]
+
+        test_dir = pathlib.Path(__file__).parent.resolve()
+        network_cfg = StackNetworkConfig.from_file(
+            f"{test_dir}/yaml_configs/metro_hub_single-click-heralded.yaml"
         )
 
         distance_dict = {
@@ -329,12 +376,16 @@ class TestMetropolitanHub(unittest.TestCase):
                 )
 
     def _check_fidelity(self, result_register: EGPEventRegistration):
-        for received_egp in result_register.received_egp:
-            if received_egp.dm.shape[0] > 2:
-                fid = calculate_fidelity_epr(
-                    received_egp.dm, received_egp.result.bell_state
-                )
-                self.assertGreater(fid, 0.99)
+        received_egp_with_full_dm = [received_egp for received_egp in result_register.received_egp if received_egp.dm.shape[0] > 2]
+        # The protocol will discard qubits after registering the results, thereby destroying half of the state.
+        # The second party to look at the qubit state, will thus see a DM with only one qubit.
+        self.assertEqual(len(received_egp_with_full_dm), len(result_register.received_egp)/2)
+
+        for received_egp in received_egp_with_full_dm:
+            fid = calculate_fidelity_epr(
+                received_egp.dm, received_egp.result.bell_state
+            )
+            self.assertGreater(fid, 0.99)
 
 
 if __name__ == "__main__":

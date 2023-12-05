@@ -36,9 +36,11 @@ hubs:
       - stack: receiver_2
         length: 15
 
-    link_typ: perfect
+    link_typ: depolarise
     link_cfg:
-        dummy: null
+        speed_of_light: 1e9
+        fidelity: 1
+        prob_success: 1
 
     clink_typ: default
     clink_cfg:
@@ -46,5 +48,6 @@ hubs:
 
     schedule_typ: fifo
     schedule_cfg:
-      dummy: null
+      switch_time: 0
+      max_multiplexing: 3
 

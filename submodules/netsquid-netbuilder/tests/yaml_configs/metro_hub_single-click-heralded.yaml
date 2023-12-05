@@ -36,9 +36,12 @@ hubs:
       - stack: receiver_2
         length: 15
 
-    link_typ: perfect
+    link_typ: heralded-single-click
     link_cfg:
-        dummy: null
+      p_loss_init: 0
+      p_loss_length: 0
+      speed_of_light: 1e9
+      emission_fidelity: 1
 
     clink_typ: default
     clink_cfg:
@@ -46,5 +49,5 @@ hubs:
 
     schedule_typ: fifo
     schedule_cfg:
-      dummy: null
-
+      switch_time: 0
+      max_multiplexing: 3
