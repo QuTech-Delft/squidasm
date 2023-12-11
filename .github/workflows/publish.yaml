@@ -1,9 +1,18 @@
+
+name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+
+on: push
+jobs:
+  raise-warning:
+    name: WARNING temporarily disabled
+    runs-on: ubuntu-latest
+    steps:
+      - name: raise warning
+        run: >-
+          python -c
+          "print('WARNING this pipline is temporarily disabled')"
+
 # TODO This is a temporary measure for the in development work, we don't want to publish these versions to pypi
-#
-#name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-#
-#on: push
-#jobs:
 #  build-n-publish:
 #    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 #    runs-on: ubuntu-latest
