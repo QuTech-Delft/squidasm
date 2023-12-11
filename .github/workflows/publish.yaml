@@ -1,5 +1,5 @@
 
-name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+name: WARNING this pipeline is temporarily disabled
 
 on: push
 jobs:
@@ -10,9 +10,13 @@ jobs:
       - name: raise warning
         run: >-
           python -c
-          "print('WARNING this pipline is temporarily disabled')"
+          "print('WARNING this pipeline is temporarily disabled\n 
+          This is a temporary measure for the in development work, we do not want to publish these versions to pypi')"
 
 # TODO This is a temporary measure for the in development work, we don't want to publish these versions to pypi
+#
+#name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+#
 #  build-n-publish:
 #    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 #    runs-on: ubuntu-latest
