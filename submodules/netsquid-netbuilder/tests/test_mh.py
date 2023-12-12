@@ -248,7 +248,7 @@ class TestMetropolitanHub(unittest.TestCase):
 
     def test_egp_heralded_single_click_yaml(self):
         num_nodes = 6
-        distances = [10.4, 23, 1, 4, 213.3e8, 15]
+        distances = [10.4, 23, 1, 4, 213.3e4, 15]
         sender_names = [f"sender_{i}" for i in range(num_nodes // 2)]
         receiver_names = [f"receiver_{i}" for i in range(num_nodes // 2)]
 
