@@ -1,7 +1,7 @@
 SquidASM
 ++++++++++++
 
-.. image:: .github\banner.jpg
+.. image:: .github/banner.jpg
    :align: center
 
 .. installation-start-inclusion-marker-do-not-remove
