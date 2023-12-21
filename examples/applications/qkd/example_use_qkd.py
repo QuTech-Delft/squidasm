@@ -1,13 +1,13 @@
 import sys
 from typing import Any, Dict, Generator
 
+import netsquid as ns
 from bitarray import bitarray
 from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-import netsquid as ns
 from squidasm.util.qkd_routine import QKDRoutine
 from squidasm.util.routines import recv_int, send_int
 
