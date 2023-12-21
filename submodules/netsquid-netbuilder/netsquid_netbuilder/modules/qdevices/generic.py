@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+from netsquid_driver.measurement_services import MeasureService, SwapService
+from netsquid_driver.memory_manager_service import QuantumMemoryManager
+
+from netsquid_qrepchain.processing_nodes.memory_manager_implementations import (
+    MemoryManagerWithMoveProgram,
+)
+from netsquid_qrepchain.processing_nodes.operation_services_abstract import (
+    AbstractMeasureService,
+    AbstractSwapService,
+)
+from netsquid_netbuilder.builder.temp import AbstractMoveProgram
+
+
 from netsquid.components.instructions import (
     INSTR_CNOT,
     INSTR_CZ,
@@ -150,3 +163,17 @@ class GenericQDeviceBuilder(IQDeviceBuilder):
             phys_instructions=phys_instructions,
         )
         return qmem
+
+    @classmethod
+    def build_services(cls, node):
+        if node.qmemory is None:
+            return
+        driver = node.driver
+        driver.add_service(MeasureService, AbstractMeasureService(node=node))
+        driver.add_service(SwapService, AbstractSwapService(node=node))
+        driver.add_service(
+            QuantumMemoryManager,
+            MemoryManagerWithMoveProgram(
+                node=node, move_program=AbstractMoveProgram()
+            ),
+        )

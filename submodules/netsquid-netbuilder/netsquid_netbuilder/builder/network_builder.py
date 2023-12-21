@@ -13,8 +13,7 @@ from netsquid_driver.classical_socket_service import (
 from netsquid_driver.driver import Driver
 from netsquid_driver.EGP import EGPService
 from netsquid_driver.entanglement_agreement_service import EntanglementAgreementService
-from netsquid_driver.measurement_services import MeasureService, SwapService
-from netsquid_driver.memory_manager_service import QuantumMemoryManager
+
 from netsquid_driver.symmetric_agreement_service import SymmetricAgreementService
 from netsquid_entanglementtracker.bell_state_tracker import BellStateTracker
 from netsquid_entanglementtracker.entanglement_tracker_service import (
@@ -25,20 +24,13 @@ from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.builder.builder_utils import create_connection_ports
 from netsquid_netbuilder.builder.metro_hub import HubBuilder, MetroHubNode
 from netsquid_netbuilder.builder.repeater_chain import ChainBuilder
-from netsquid_netbuilder.builder.temp import AbstractMoveProgram
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
 from netsquid_netbuilder.network import Network
-from netsquid_qrepchain.processing_nodes.memory_manager_implementations import (
-    MemoryManagerWithMoveProgram,
-)
-from netsquid_qrepchain.processing_nodes.operation_services_abstract import (
-    AbstractMeasureService,
-    AbstractSwapService,
-)
+
 
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.stack import ProcessingNode
@@ -155,24 +147,28 @@ class NodeBuilder:
     ) -> Dict[str, ProcessingNode]:
         nodes = {}
         for node_config in config.stacks:
-            if node_config.qdevice_typ not in self.qdevice_builders.keys():
+            node_name = node_config.name
+            node_qdevice_typ = node_config.qdevice_typ
+
+            if node_qdevice_typ not in self.qdevice_builders.keys():
                 # TODO improve exception
                 raise Exception(
-                    f"No model of type: {node_config.qdevice_typ} registered"
+                    f"No model of type: {node_qdevice_typ} registered"
                 )
 
-            builder = self.qdevice_builders[node_config.qdevice_typ]
+            builder = self.qdevice_builders[node_qdevice_typ]
             qdevice = builder.build(
-                f"qdevice_{node_config.name}", qdevice_cfg=node_config.qdevice_cfg
+                f"qdevice_{node_name}", qdevice_cfg=node_config.qdevice_cfg
             )
 
             # TODO ProcessingNode is a very SquidASM centric object
-            nodes[node_config.name] = ProcessingNode(
-                node_config.name,
+            nodes[node_name] = ProcessingNode(
+                node_name,
                 qdevice=qdevice,
-                qdevice_type=node_config.qdevice_typ,
+                qdevice_type=node_qdevice_typ,
                 hacky_is_squidasm_flag=hacky_is_squidasm_flag,
             )
+            self.qdevice_builders[node_qdevice_typ].build_services(nodes[node_name])
         return nodes
 
 
@@ -332,14 +328,13 @@ class NetworkServicesBuilder:
     def build_routing_service(self, network: Network):
         for node in network.nodes.values():
             assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
-            port_routing_table = {
+            local_routing_table = self.routing_table[node.name]
+            local_port_routing_table = {
                 target_name: network.ports[(node.name, forward_node_name)]
-                for target_name, forward_node_name in self.routing_table[
-                    node.name
-                ].items()
+                for target_name, forward_node_name in local_routing_table.items()
             }
             routing_service = ClassicalRoutingService(
-                node=node, forwarding_table=port_routing_table
+                node=node, forwarding_table=local_port_routing_table
             )
 
             node.driver.add_service(ClassicalRoutingService, routing_service)
@@ -365,22 +360,6 @@ class NetworkServicesBuilder:
     def build_entanglement_tracker_services(self, network: Network):
         for node in network.nodes.values():
             node.driver.add_service(EntanglementTrackerService, BellStateTracker(node))
-
-
-class DeviceControlServiceBuilder:
-    def build(self, network: Network):
-        for node in network.nodes.values():
-            if node.qmemory is None:
-                continue
-            driver = node.driver
-            driver.add_service(MeasureService, AbstractMeasureService(node=node))
-            driver.add_service(SwapService, AbstractSwapService(node=node))
-            driver.add_service(
-                QuantumMemoryManager,
-                MemoryManagerWithMoveProgram(
-                    node=node, move_program=AbstractMoveProgram()
-                ),
-            )
 
 
 class ClassicalSocketBuilder:
