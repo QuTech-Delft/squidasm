@@ -177,7 +177,7 @@ The logger settings are set up in the ``run_simulation.py`` file:
 .. literalinclude:: ../../../examples/tutorial/3.2_logging/run_simulation.py
    :language: python
    :caption: examples/tutorial/3.2_logging/run_simulation.py
-   :emphasize-lines: 10-16
+   :emphasize-lines: 17-23
 
 
 A log level is set using the following command:
@@ -195,7 +195,7 @@ By default the logs are sent to terminal, but they can be redirected to a log fi
 .. literalinclude:: ../../../examples/tutorial/3.2_logging/run_simulation.py
    :language: python
    :caption: examples/tutorial/3.2_logging/run_simulation.py
-   :lines: 12-16
+   :lines: 18-22
 
 
 This will result in the logs being written into the ``info.log`` file.
@@ -206,7 +206,7 @@ After the simulation was run we can compare the message received by Bob with the
 .. literalinclude:: ../../../examples/tutorial/3.2_logging/run_simulation.py
    :language: python
    :caption: examples/tutorial/3.2_logging/run_simulation.py
-   :lines: 18-
+   :lines: 24-
 
 Usually this will result in the message being sent over successfully:
 

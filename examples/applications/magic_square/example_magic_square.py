@@ -3,11 +3,11 @@ from typing import List
 
 import numpy
 from netqasm.sdk.toolbox.measurements import parity_meas
+from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-from squidasm.util import create_two_node_network
 from squidasm.util.routines import recv_int
 
 
@@ -220,7 +220,7 @@ class Player2Program(Program):
 
 if __name__ == "__main__":
     # Create a network configuration
-    cfg = create_two_node_network(node_names=["Player1", "Player2"])
+    cfg = create_simple_network(node_names=["Player1", "Player2"])
 
     # generate a game
     strategy = get_default_strategy()

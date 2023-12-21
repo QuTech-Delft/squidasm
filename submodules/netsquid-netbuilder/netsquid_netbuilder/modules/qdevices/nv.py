@@ -84,12 +84,26 @@ class NVQDeviceConfig(IQDeviceConfig):
     """Electron measurement time in nanoseconds."""
 
     @classmethod
-    def perfect_config(cls) -> NVQDeviceConfig:
-        """Create a configuration for a device without any noise or errors."""
+    def perfect_config(cls, num_qubits: int = 100) -> NVQDeviceConfig:
+        """
+        Create a configuration for a device without any noise or errors.
+        :param num_qubits: number of qubits in the device.
+        """
         # get default config
         cfg = NVQDeviceConfig()
-
-        # set all error params to 0
+        # gate execution times
+        cfg.carbon_init = 0
+        cfg.carbon_rot_x = 0
+        cfg.carbon_rot_y = 0
+        cfg.carbon_rot_z = 0
+        cfg.electron_init = 0
+        cfg.electron_rot_x = 0
+        cfg.electron_rot_y = 0
+        cfg.electron_rot_z = 0
+        cfg.ec_controlled_dir_x = 0
+        cfg.ec_controlled_dir_y = 0
+        cfg.measure = 0
+        # operation errors
         cfg.electron_init_depolar_prob = 0
         cfg.electron_single_qubit_depolar_prob = 0
         cfg.prob_error_0 = 0
@@ -97,6 +111,13 @@ class NVQDeviceConfig(IQDeviceConfig):
         cfg.carbon_init_depolar_prob = 0
         cfg.carbon_z_rot_depolar_prob = 0
         cfg.ec_gate_depolar_prob = 0
+        # num qubits
+        cfg.num_qubits = num_qubits
+        # decoherence times (T=0 causes noise to be disabled)
+        cfg.electron_T1 = 0
+        cfg.electron_T2 = 0
+        cfg.carbon_T1 = 0
+        cfg.carbon_T2 = 0
         return cfg
 
 

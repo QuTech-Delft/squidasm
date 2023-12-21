@@ -1,15 +1,8 @@
-import inspect
 import logging
 import os
 import subprocess
 
 from netqasm.logging.glob import set_log_level
-
-
-def _has_first_argument(function, argument):
-    """Checks if a function takes a named argument as the first argument"""
-    argnames = inspect.getfullargspec(function).args
-    return argnames[0] == "no_output"
 
 
 def main():
@@ -24,7 +17,9 @@ def main():
                 filepath = os.path.join(root, filename)
                 print(f"Running example {filepath}")
                 result = subprocess.run(
-                    ["python3", filepath], stdout=subprocess.DEVNULL, cwd=root
+                    ["python3", filepath, "--test_run"],
+                    stdout=subprocess.DEVNULL,
+                    cwd=root,
                 )
                 if result.returncode != 0:
                     errors.append(f"Example {filepath} failed!")

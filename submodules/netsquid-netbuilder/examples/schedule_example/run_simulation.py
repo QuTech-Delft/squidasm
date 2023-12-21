@@ -6,7 +6,7 @@ from netsquid_netbuilder.data_collectors import collect_schedule_events
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run
-from netsquid_netbuilder.test_utils.network_generation import create_metro_hub_network
+from netsquid_netbuilder.util.network_generation import create_metro_hub_network
 from protocols import AliceProtocol, BobProtocol
 
 # In this example the value for speed_of_light has been set to 1e9. This makes it move at 1km per ns.
@@ -17,8 +17,9 @@ from protocols import AliceProtocol, BobProtocol
 link_cfg = DepolariseLinkConfig(fidelity=0.9, prob_success=1, speed_of_light=1e9)
 
 # The following method sets up a metro hub configuration
+node_names = [f"node_{i}" for i in range(4)]
 cfg = create_metro_hub_network(
-    nodes=4,
+    node_names=node_names,
     node_distances=[10, 5, 9, 14],
     link_typ="depolarise",
     link_cfg=link_cfg,
@@ -26,7 +27,9 @@ cfg = create_metro_hub_network(
     clink_cfg=DefaultCLinkConfig(speed_of_light=1e9),
     # Here we specify the type of scheduler
     schedule_typ="new_scheduler",
-    schedule_cfg=ExampleNewScheduleConfig(error_print_msg="Hello world!!", max_multiplexing=2, switch_time=0.0001),
+    schedule_cfg=ExampleNewScheduleConfig(
+        error_print_msg="Hello world!!", max_multiplexing=2, switch_time=0.0001
+    ),
 )
 
 # Next we need to make a "real" network from the network configuration
@@ -46,7 +49,7 @@ scheduler_events = collect_schedule_events(scheduler)
 # Sets up the protocols
 protocol_mapping = {}
 num_epr_pairs = 10
-for i, node in enumerate(cfg.stacks):
+for i, node in enumerate(node_names):
     if i % 2 == 0:
         peer_name = cfg.stacks[i + 1].name
         prot = AliceProtocol(peer=peer_name, num_epr_pairs=num_epr_pairs)

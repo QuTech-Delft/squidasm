@@ -55,6 +55,7 @@ def _setup_network(config: StackNetworkConfig) -> StackNetwork:
     for (node_name, peer_name), socket in csockets.items():
         stacks[node_name].host.register_csocket(peer_name, socket)
 
+
     link_prots: List[MagicLinkLayerProtocol] = []
     network.start()
 

@@ -1,8 +1,15 @@
+import sys
+
+import netsquid as ns
 from application import AliceProgram, BobProgram
 from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.logger import LogManager
 
 from squidasm.run.stack.run import run
+
+# Fix seed on test runs to avoid accidentally triggering the "error" in this example
+if "--test_run" in sys.argv:
+    ns.set_random_state(seed=42)
 
 # import network configuration from file
 cfg = StackNetworkConfig.from_file("config.yaml")

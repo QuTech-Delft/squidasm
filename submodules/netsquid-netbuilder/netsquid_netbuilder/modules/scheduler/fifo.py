@@ -49,7 +49,10 @@ class FIFOScheduleProtocol(IScheduleProtocol):
 
     def register_request(self, node_id: int, req: ReqCreateBase, create_id: int):
         # Each active request has two references
-        if len(self._per_node_ref_per_active_request) / 2 < self.params.max_multiplexing:
+        if (
+            len(self._per_node_ref_per_active_request) / 2
+            < self.params.max_multiplexing
+        ):
             self._activate_request(node_id, req, create_id)
         else:
             self._que.append(QueItem(node_id, req, create_id))
@@ -59,14 +62,19 @@ class FIFOScheduleProtocol(IScheduleProtocol):
             return
         self._per_node_ref_per_active_request.pop((node_id, res.create_id))
 
-        if (res.remote_node_id, res.create_id) not in self._per_node_ref_per_active_request.keys():
+        if (
+            res.remote_node_id,
+            res.create_id,
+        ) not in self._per_node_ref_per_active_request.keys():
             node_name = self._node_name_mapping[node_id]
             remote_node_name = self._node_name_mapping[res.remote_node_id]
             self._close_link(node_name, remote_node_name)
 
             if len(self._que) > 0:
                 que_item = self._que.pop(0)
-                self._activate_request(que_item.node_id, que_item.req, que_item.create_id)
+                self._activate_request(
+                    que_item.node_id, que_item.req, que_item.create_id
+                )
 
     def register_error(self, node_id: int, error: ResError):
         pass

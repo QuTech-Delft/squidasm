@@ -120,7 +120,7 @@ class HubBuilder:
             clink_config = hub_config.clink_cfg
 
             if isinstance(clink_config, dict):
-                clink_config = clink_cfg_typ(**hub_config.link_cfg)
+                clink_config = clink_cfg_typ(**clink_config)
             if not isinstance(clink_config, clink_cfg_typ):  # noqa
                 raise TypeError(
                     f"Incorrect configuration provided. Got {type(clink_config)},"
@@ -136,7 +136,6 @@ class HubBuilder:
             # Build hub - end node connections
             for connection_config in hub_config.connections:
                 node = network.end_nodes[connection_config.stack]
-                clink_config = hub_config.clink_cfg
                 if hasattr(clink_config, "length"):
                     clink_config.length = connection_config.length
 

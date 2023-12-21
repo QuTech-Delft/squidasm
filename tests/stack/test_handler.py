@@ -7,7 +7,7 @@ from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
 from netsquid_magic.models.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
-from netsquid_netbuilder.test_utils.network_generation import create_2_node_network
+from netsquid_netbuilder.util.network_generation import create_2_node_network
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import _run, _setup_network

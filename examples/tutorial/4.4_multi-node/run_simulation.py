@@ -1,21 +1,22 @@
 from application import ClientProgram, ServerProgram
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
-from netsquid_netbuilder.test_utils.network_generation import create_multi_node_network
+from netsquid_netbuilder.util.network_generation import create_complete_graph_network
 
 from squidasm.run.stack.run import run
 
 num_nodes = 6
+node_names = [f"Node_{i}" for i in range(num_nodes)]
+
 # import network configuration from file
-cfg = create_multi_node_network(
-    num_nodes,
+cfg = create_complete_graph_network(
+    node_names,
     "perfect",
     PerfectLinkConfig(state_delay=100),
     clink_typ="default",
     clink_cfg=DefaultCLinkConfig(delay=100),
 )
 
-node_names = [stack.name for stack in cfg.stacks]
 server_name = node_names[0]
 client_names = node_names[1:]
 # Create instances of programs to run

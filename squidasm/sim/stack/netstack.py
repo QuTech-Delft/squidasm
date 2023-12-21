@@ -21,7 +21,10 @@ from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z
 from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
 from netsquid.qubits.ketstates import BellIndex
-from netsquid_magic.magic_distributor import DoubleClickMagicDistributor
+from netsquid_magic.magic_distributor import (
+    DoubleClickMagicDistributor,
+    SingleClickMagicDistributor,
+)
 from qlink_interface import (
     ReqCreateAndKeep,
     ReqCreateBase,
@@ -336,10 +339,13 @@ class Netstack(ComponentProtocol):
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
 
+            # TODO this code can likely be removed as bell state corrections seem to be now included in NETQASM
             # This code is commented out for a hotfix as it was found that heralded link did not return
             # Phi+ bell state. The issue needs to be investigated.
             if isinstance(
                 current_egp._ll_prot._magic_distributor, DoubleClickMagicDistributor
+            ) or isinstance(
+                current_egp._ll_prot._magic_distributor, SingleClickMagicDistributor
             ):
                 pass
             # Bell state corrections. Resulting state is always Phi+ (i.e. B00).

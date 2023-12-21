@@ -1,11 +1,13 @@
+import sys
 from typing import Any, Dict, Generator
 
 from bitarray import bitarray
+from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-from squidasm.util import create_two_node_network
+import netsquid as ns
 from squidasm.util.qkd_routine import QKDRoutine
 from squidasm.util.routines import recv_int, send_int
 
@@ -113,7 +115,11 @@ class RecieverProgram(Program):
 
 
 if __name__ == "__main__":
-    cfg = create_two_node_network(node_names=["Alice", "Bob"], link_noise=0.1)
+    # Fix seed on test runs to avoid accidentally causing a event where the key is too short for the message
+    if "--test_run" in sys.argv:
+        ns.set_random_state(seed=42)
+
+    cfg = create_simple_network(node_names=["Alice", "Bob"], link_noise=0.1)
 
     # Prepare the message and protocols
     message = "Hello world"

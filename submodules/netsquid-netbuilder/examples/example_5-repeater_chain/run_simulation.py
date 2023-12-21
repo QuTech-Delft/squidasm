@@ -6,7 +6,7 @@ from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run
-from netsquid_netbuilder.test_utils.network_generation import (
+from netsquid_netbuilder.util.network_generation import (
     create_qia_prototype_network,
 )
 

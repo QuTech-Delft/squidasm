@@ -9,16 +9,16 @@ from netsquid_driver.entanglement_agreement_service import (
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import run
-from netsquid_netbuilder.test_utils.agreement_service_test_protocol import (
+from netsquid_netbuilder.util.agreement_service_test_protocol import (
     AgreementServiceResultRegistration,
     AgreementServiceTestProtocol,
 )
-from netsquid_netbuilder.test_utils.network_generation import (
+from netsquid_netbuilder.util.network_generation import (
     create_2_node_network,
     create_metro_hub_network,
     create_qia_prototype_network,
 )
-from netsquid_netbuilder.test_utils.test_builder import get_test_network_builder
+from netsquid_netbuilder.util.test_builder import get_test_network_builder
 
 
 class AgreementTestBase(unittest.TestCase):
@@ -88,7 +88,7 @@ class AgreementTestBase(unittest.TestCase):
             )
         elif network_typ == "metro":
             network_cfg = create_metro_hub_network(
-                nodes=["Alice", "Bob", "Dummy1", "Dummy2"],
+                node_names=["Alice", "Bob", "Dummy1", "Dummy2"],
                 node_distances=[1 / 3 * delay, 2 / 3 * delay, 10, 15],
                 link_typ="perfect",
                 link_cfg=PerfectLinkConfig(),

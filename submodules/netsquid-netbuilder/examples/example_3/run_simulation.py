@@ -2,14 +2,14 @@ import netsquid as ns
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run
-from netsquid_netbuilder.test_utils.network_generation import create_multi_node_network
+from netsquid_netbuilder.util.network_generation import create_complete_graph_network
 from protocols import ClientProtocol, ServerProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
 num_nodes = 10
 
 builder = get_default_builder()
-cfg = create_multi_node_network(
+cfg = create_complete_graph_network(
     num_nodes,
     "perfect",
     PerfectLinkConfig(),
