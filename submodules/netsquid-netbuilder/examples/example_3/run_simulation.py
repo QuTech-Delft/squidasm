@@ -6,11 +6,11 @@ from netsquid_netbuilder.util.network_generation import create_complete_graph_ne
 from protocols import ClientProtocol, ServerProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
-num_nodes = 10
+node_names = [f"node_{i}" for i in range(10)]
 
 builder = get_default_builder()
 cfg = create_complete_graph_network(
-    num_nodes,
+    node_names,
     "perfect",
     PerfectLinkConfig(),
     clink_typ="default",
@@ -18,7 +18,7 @@ cfg = create_complete_graph_network(
 )
 network = builder.build(cfg, hacky_is_squidasm_flag=False)
 
-clients = [f"node_{i}" for i in range(1, num_nodes)]
+clients = node_names[1:]
 
 server = ServerProtocol(clients)
 clients = {client: ClientProtocol("node_0") for client in clients}
