@@ -1,7 +1,7 @@
 import logging
 
 import netsquid as ns
-from cprotocols import AliceProtocol, BobProtocol
+from protocols import AliceProtocol, BobProtocol
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
@@ -22,9 +22,9 @@ cfg = create_qia_prototype_network(
     node_distances_hub2=5,
     node_distances_repeater_chain=20,
     link_typ="perfect",
-    link_cfg=PerfectLinkConfig(),
+    link_cfg=PerfectLinkConfig(speed_of_light=1e9),
     clink_typ="default",
-    clink_cfg=DefaultCLinkConfig(),
+    clink_cfg=DefaultCLinkConfig(speed_of_light=1e9),
 )
 network = builder.build(cfg, hacky_is_squidasm_flag=False)
 

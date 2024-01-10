@@ -7,6 +7,8 @@ from typing import Dict, List, Optional, Type
 from netsquid.components import Port
 from netsquid_driver.EGP import EGPService
 from netsquid_driver.entanglement_service import EntanglementService
+from netsquid_driver.new_entanglment_service import NewEntanglementService
+
 from netsquid_driver.swap_asap_service import SwapASAPService
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import RepeaterChainConfig
@@ -140,6 +142,8 @@ class ChainBuilder:
                     qdevice_type=repeater_node.qdevice_typ,
                     hacky_is_squidasm_flag=False,  # Do not give repeater nodes a qnos
                 )
+                builder.build_services(node)
+
                 # Add node to chain object
                 chain.repeater_nodes.append(node)
 
@@ -288,7 +292,6 @@ class ChainBuilder:
             for hub1_end_node, hub2_end_node in itertools.product(
                 chain.hub_1.end_nodes.values(), chain.hub_2.end_nodes.values()
             ):
-                break
                 egp_hub1_node = SwapAsapEndNodeLinkLayerProtocol(
                     hub1_end_node, hub2_end_node, chain
                 )
@@ -306,32 +309,33 @@ class ChainBuilder:
                 # self.protocol_controller.register(egp_hub1_node)
                 # self.protocol_controller.register(egp_hub2_node)
 
-            # self._setup_services(chain, network)
+            self._setup_services(network)
 
         return egp_dict
 
-    def _setup_services(self, chain: Chain, network: Network):
-        all_qnodes = (
-            chain.repeater_nodes
-            + list(chain.hub_2.end_nodes.values())
-            + list(chain.hub_1.end_nodes.values())
-        )
+    def _setup_services(self, network: Network):
+        all_qnodes = list(network.end_nodes.values())
+        for chain in network.chains.values():
+            all_qnodes += chain.repeater_nodes
 
         for node in all_qnodes:
             driver = node.driver
 
-            # incorporate this into Qdevice builder
-            # TODO See how to incorporate the MoveProgram's, possibly it is fine once we put all device
-            #  dependant things together in a package
+            local_link_dict = network.filter_for_node(node.name, network.links)
 
-            driver.services[EntanglementService] = SingleMemoryEntanglementMagic(
-                node, num_parallel_links=1
-            )  # Needs work
+            local_distributor_dict = {node_name: link.magic_distributor for node_name, link in local_link_dict.items()}
+            for magic_distributor in local_distributor_dict.values():
+                magic_distributor.clear_all_callbacks()
+
+            driver.services[EntanglementService] = NewEntanglementService(
+                node, local_distributor_dict,
+                node_name_id_mapping=network.node_name_id_mapping, num_parallel_links=1,
+            )
 
             # Investigate if this service is needed
             # driver.add_service(CutoffService, CutoffTimer(node=node, cutoff_time=cutoff_time))
 
-        for idx, repeater in enumerate(chain.repeater_nodes):
-            driver = repeater.driver
-
-            driver.add_service(SwapASAPService, SwapASAP(repeater))  # Needs work
+        for chain in network.chains.values():
+            for repeater in chain.repeater_nodes:
+                driver = repeater.driver
+                driver.add_service(SwapASAPService, SwapASAP(repeater))

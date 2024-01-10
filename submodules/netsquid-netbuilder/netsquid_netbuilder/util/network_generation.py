@@ -291,7 +291,7 @@ def create_qia_prototype_network(
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg={})
+        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg)
         repeater_stacks.append(stack)
 
     node_distances_repeater_chain = (

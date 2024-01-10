@@ -26,6 +26,7 @@ from netsquid.components.instructions import (
     INSTR_X,
     INSTR_Y,
     INSTR_Z,
+    INSTR_I,
 )
 from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qprocessor import PhysicalInstruction, QuantumProcessor
@@ -125,6 +126,7 @@ class GenericQDeviceBuilder(IQDeviceBuilder):
             INSTR_Z,
             INSTR_H,
             INSTR_K,
+            INSTR_I,  # TODO this had to be added as the AbstractSwapProgram uses an identity, possibly remove that in the future
         ]:
             phys_instructions.append(
                 PhysicalInstruction(

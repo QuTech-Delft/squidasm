@@ -34,6 +34,11 @@ class AliceProtocol(BlueprintProtocol):
         received_qubit_mem_pos = response.logical_qubit_id
         print(f"{ns.sim_time()} ns: Alice completes entanglement generation")
 
+        qdevice: QuantumProcessor = self.context.node.qdevice
+        qubit: Qubit = qdevice.peek(positions=received_qubit_mem_pos)[0]
+        dm = netsquid.qubits.qubitapi.reduced_dm(qubit.qstate.qubits)
+        print(f"{dm}")
+
 
 class BobProtocol(BlueprintProtocol):
     def __init__(self, peer_name: str):
@@ -48,7 +53,8 @@ class BobProtocol(BlueprintProtocol):
         socket.send(msg)
         print(f"{ns.sim_time()} ns: Bob sends: {msg}")
 
-        egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.PEER]))
+        # TODO this commented out as no EGP level agreement system is yet in place in SwapASAP EGP and defaults to always accept
+        #egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.PEER]))
 
         # Wait for a signal from the EGP.
         yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
@@ -56,7 +62,4 @@ class BobProtocol(BlueprintProtocol):
         received_qubit_mem_pos = response.logical_qubit_id
         print(f"{ns.sim_time()} ns: Bob completes entanglement generation")
 
-        qdevice: QuantumProcessor = self.context.node.qdevice
-        qubit: Qubit = qdevice.peek(positions=received_qubit_mem_pos)[0]
-        dm = netsquid.qubits.qubitapi.reduced_dm(qubit.qstate.qubits)
-        print(f"{dm}")
+
