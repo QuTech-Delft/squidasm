@@ -69,8 +69,7 @@ class BobProtocol(BlueprintProtocol):
         socket.send(msg)
         print(f"{ns.sim_time()} ns: Bob sends: {msg}")
 
-        # TODO this commented out as no EGP level agreement system is yet in place in SwapASAP EGP and defaults to always accept
-        #egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.PEER]))
+        egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.PEER]))
 
         while True:
             # Wait for a signal from the EGP.
