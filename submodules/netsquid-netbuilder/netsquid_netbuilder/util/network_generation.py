@@ -251,7 +251,7 @@ def create_qia_prototype_network(
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg={})
+        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg)
         network_config.stacks.append(stack)
 
     mh1_connections = connect_mh(node_distances_hub1, hub1_node_names)

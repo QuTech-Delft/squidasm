@@ -287,27 +287,31 @@ class ChainBuilder:
         return link_dict
 
     def build_egp(self, network: Network) -> Dict[(str, str), EGPService]:
-        egp_dict = {}
+
+        num_repeater_chains = int(len(network.chains) / 2)
+        if num_repeater_chains == 0:
+            return {}
+        elif num_repeater_chains == 1:
+            pass
+        else:
+            raise NotImplementedError("Simulation is currently limited to a single repeater chain")
+
+        temp_egp_dict: Dict[str, EGPService] = {}
+        for end_node in network.end_nodes.values():
+            repeater_egp = SwapAsapEndNodeLinkLayerProtocol(
+                end_node, network.node_name_id_mapping, list(network.chains.values())[0]
+            )
+            end_node.driver.add_service(EGPService, repeater_egp)
+            temp_egp_dict[end_node.name] = repeater_egp
+
+        egp_dict: Dict[(str, str), EGPService] = {}
         for chain in network.chains.values():
             for hub1_end_node, hub2_end_node in itertools.product(
                 chain.hub_1.end_nodes.values(), chain.hub_2.end_nodes.values()
             ):
-                egp_hub1_node = SwapAsapEndNodeLinkLayerProtocol(
-                    hub1_end_node, hub2_end_node, chain
-                )
-                egp_hub2_node = SwapAsapEndNodeLinkLayerProtocol(
-                    hub2_end_node, hub1_end_node, chain
-                )
 
-                egp_dict[(hub1_end_node.name, hub2_end_node.name)] = egp_hub1_node
-                egp_dict[(hub2_end_node.name, hub1_end_node.name)] = egp_hub2_node
-
-                # This only works if max 2 end nodes in network
-                hub1_end_node.driver.add_service(EGPService, egp_hub1_node)
-                hub2_end_node.driver.add_service(EGPService, egp_hub2_node)
-
-                # self.protocol_controller.register(egp_hub1_node)
-                # self.protocol_controller.register(egp_hub2_node)
+                egp_dict[(hub1_end_node.name, hub2_end_node.name)] = temp_egp_dict[hub1_end_node.name]
+                egp_dict[(hub2_end_node.name, hub1_end_node.name)] = temp_egp_dict[hub2_end_node.name]
 
             self._setup_services(network)
 
