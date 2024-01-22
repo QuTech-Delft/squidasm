@@ -1,3 +1,17 @@
+"""
+DISCLAIMER
+============
+
+This file creates various Netsquid Protocols in order to create listeners for each classical socket
+ and other functionalities.
+In a setting where one runs an application on hardware, one would, for example,
+ start and use a thread for each listener.
+But in SquidASM one can not create a functional application in the same fashion
+ due the underlying discrete event simulator, Netsquid.
+In this file, Netsquid Protocols have been created, but as these do not translate to hardware,
+ any application written using them will require a larger translation to be compatible with hardware.
+"""
+
 from logging import Logger
 from typing import Generator, Tuple
 
