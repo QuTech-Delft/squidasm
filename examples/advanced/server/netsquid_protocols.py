@@ -61,7 +61,7 @@ class QueueProtocol(Protocol):
 
         :return: A tuple with the source of the message and the message.
         """
-        if len(self._queue) == 0:
+        while len(self._queue) == 0:
             yield self.await_signal(sender=self, signal_label=self.QUEUE_STATUS_CHANGE_SIGNAL)  # fmt: skip
         return self._queue.pop()
 
