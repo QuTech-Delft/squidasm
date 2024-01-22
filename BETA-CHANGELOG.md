@@ -1,5 +1,9 @@
 This is a changelog that is separate from the main changelog, this is to log changes on the beta branch
 
+2024-01-22 (b0.0.5)
+-------------------
+- Added an advanced example for creating a server that can handle simultaneous incoming requests from multiple clients
+
 2023-12-04 (b0.0.4)
 -------------------
 - Changed interplay between `LinkLayer` and `MagicDistributor` so that completion of a delivery in the `LinkLayer` happens on completion of label_delivery instead of state_delivery
