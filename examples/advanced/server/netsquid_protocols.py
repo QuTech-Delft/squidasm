@@ -85,7 +85,7 @@ class CSocketListener(Protocol):
         self._context = context
         self._peer_name = peer_name
         self._queue_protocol = queue_protocol
-        self.logger = logger.getChild(f"PortListener({peer_name})")
+        self.logger = logger.getChild(f"CSocketListener({peer_name})")
 
     def run(self):
         csocket: Socket = self._context.csockets[self._peer_name]

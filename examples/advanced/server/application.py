@@ -31,9 +31,9 @@ class ClientProgram(Program):
         epr_socket = context.epr_sockets[self.server_name]
         connection = context.connection
 
-        # Wait to the desired time using a WaitingProtocol
-        waiting_protocol = SleepingProtocol()
-        yield from waiting_protocol.sleep(end_time=self.request_start_time)
+        # Wait to the desired time using a SleepingProtocol
+        sleeping_protocol = SleepingProtocol()
+        yield from sleeping_protocol.sleep(end_time=self.request_start_time)
 
         # submit the request to the server
         message = REQUEST_EPR_PAIR_GENERATION_MSG
@@ -80,8 +80,8 @@ class ServerProgram(Program):
 
         # Set up a CSocketListener for each client that will forward requests to the queue
         for client in self.clients:
-            thread = CSocketListener(context, client, queue_protocol, self.logger)
-            thread.start()
+            listener = CSocketListener(context, client, queue_protocol, self.logger)
+            listener.start()
 
         while True:
             # Wait for a new request if applicable and process the next item in the queue

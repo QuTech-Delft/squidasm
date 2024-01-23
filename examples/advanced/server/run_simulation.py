@@ -9,7 +9,7 @@ from netsquid_netbuilder.util.network_generation import create_complete_graph_ne
 from squidasm.run.stack.run import run
 
 num_nodes = 6
-random_request_start_times = False
+use_random_request_start_times = False
 node_names = [f"Node_{i}" for i in range(num_nodes)]
 
 cfg = create_complete_graph_network(
@@ -31,7 +31,7 @@ for client in client_names:
 for program in programs.values():
     program.logger.setLevel(logging.INFO)
 
-if random_request_start_times:
+if use_random_request_start_times:
     # Set the clients to start their requests at a random time between 0 and 400 ns
     for client in client_names:
         programs[client].request_start_time = numpy.random.randint(0, 400)
