@@ -27,9 +27,6 @@ from netsquid_qrepchain.control_layer.swap_asap import SwapASAP
 from netsquid_qrepchain.control_layer.swapasap_egp import (
     SwapAsapEndNodeLinkLayerProtocol,
 )
-from netsquid_qrepchain.processing_nodes.entanglement_magic import (
-    SingleMemoryEntanglementMagic,
-)
 
 from squidasm.sim.stack.stack import ProcessingNode
 
@@ -333,7 +330,7 @@ class ChainBuilder:
 
             driver.services[EntanglementService] = NewEntanglementService(
                 node, local_distributor_dict,
-                node_name_id_mapping=network.node_name_id_mapping, num_parallel_links=1,
+                node_name_id_mapping=network.node_name_id_mapping,
             )
 
             # Investigate if this service is needed

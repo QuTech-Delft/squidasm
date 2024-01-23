@@ -359,6 +359,7 @@ class NetworkServicesBuilder:
 
     def build_entanglement_tracker_services(self, network: Network):
         for node in network.nodes.values():
+            assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
             node.driver.add_service(EntanglementTrackerService, BellStateTracker(node))
 
 
