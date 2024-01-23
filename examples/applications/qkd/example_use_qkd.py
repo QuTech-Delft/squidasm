@@ -1,7 +1,7 @@
 import sys
-import netsquid as ns
 from typing import Any, Dict, Generator
 
+import netsquid as ns
 from bitarray import bitarray
 from netsquid_netbuilder.util.network_generation import create_simple_network
 
