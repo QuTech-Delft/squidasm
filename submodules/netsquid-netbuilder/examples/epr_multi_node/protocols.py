@@ -37,7 +37,7 @@ class ServerProtocol(BlueprintProtocol):
             received_qubit_mem_pos = response.logical_qubit_id
             result = self.context.node.qdevice.measure(received_qubit_mem_pos)[0]
             # TODO important to discard qubits otherwise memory gets full and program gets frozen
-            # TODO Look into fix possibility of getting frozen situation due to memory full
+            # TODO create a warning that memory is full
             self.context.node.qdevice.discard(received_qubit_mem_pos)
 
             print(

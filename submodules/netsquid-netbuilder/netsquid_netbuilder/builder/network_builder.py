@@ -109,7 +109,7 @@ class NetworkBuilder:
         network.sockets = self.socket_builder.build(network)
 
         # Create the scheduler
-        network.schedulers = self.hub_builder.build_schedule(network)
+        self.hub_builder.build_schedule(network)
 
         # Set up EGP protocols
         network.egp = self.egp_builder.build(network)

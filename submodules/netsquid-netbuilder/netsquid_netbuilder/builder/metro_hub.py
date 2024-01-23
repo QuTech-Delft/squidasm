@@ -190,12 +190,12 @@ class HubBuilder:
 
         return link_dict
 
-    def build_schedule(self, network: Network) -> Dict[str, IScheduleProtocol]:
-        schedule_dict = {}
+    def build_schedule(self, network: Network):
         if self.hub_configs is None:
-            return schedule_dict
+            return
         for hub_config in self.hub_configs:
             schedule_builder = self.scheduler_builders[hub_config.schedule_typ]
+            hub = network.hubs[hub_config.name]
 
             node_names = [config.stack for config in hub_config.connections]
             schedule = schedule_builder.build(
@@ -205,10 +205,9 @@ class HubBuilder:
                 schedule_config=hub_config.schedule_cfg,
             )
             self.protocol_controller.register(schedule)
-            schedule_dict[hub_config.name] = schedule
+            hub.scheduler = schedule
 
             for node_name_combination in itertools.combinations(node_names, 2):
                 link = network.links[node_name_combination]
                 link.scheduler = schedule
 
-        return schedule_dict

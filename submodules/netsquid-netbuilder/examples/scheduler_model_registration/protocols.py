@@ -18,15 +18,14 @@ class AliceProtocol(BlueprintProtocol):
         self._logger = LogManager.get_stack_logger(
             f"{self.__class__.__name__}_{self.context.node.name}"
         )
-        port = self.context.ports[self.peer]
+        socket = self.context.sockets[self.peer]
         egp = self.context.egp[self.peer]
         qdevice = self.context.node.qdevice
 
         for i in range(self.num_epr_pairs):
             # Do a classical message exchange first
-            yield self.await_port_input(port)
-            message = port.rx_input()
-            self._logger.info(f"{self.context.node.name} receives: {message.items[0]}")
+            message = yield from socket.recv()
+            self._logger.info(f"{self.context.node.name} receives: {message}")
 
             # Place a request to the EGP
             request = ReqCreateAndKeep(
@@ -62,7 +61,7 @@ class BobProtocol(BlueprintProtocol):
         )
 
         egp = self.context.egp[self.peer]
-        port = self.context.ports[self.peer]
+        socket = self.context.sockets[self.peer]
         qdevice = self.context.node.qdevice
 
         # Place a receive request at start, after this Bob is always open to create entanglement with Eve
@@ -71,7 +70,7 @@ class BobProtocol(BlueprintProtocol):
         for i in range(self.num_epr_pairs):
             # Classical message exchange
             msg = "Ready to start entanglement"
-            port.tx_output(msg)
+            socket.send(msg)
             self._logger.info(f"{self.context.node.name} sends: {msg}")
 
             # Wait for a signal from the EGP.

@@ -2,7 +2,7 @@ import logging
 
 from example_new_scheduler import ExampleNewScheduleBuilder, ExampleNewScheduleConfig
 from netsquid_magic.models.depolarise import DepolariseLinkConfig
-from netsquid_netbuilder.data_collectors import collect_schedule_events
+from netsquid_netbuilder.util.data_collectors import collect_schedule_events
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run
@@ -43,20 +43,20 @@ network = builder.build(cfg, hacky_is_squidasm_flag=False)
 # We can setup a listener to inspect what events happen with the scheduler
 # The scheduler_events is a dictionary with lists of the events for each event type.
 # See the docstring of collect_schedule_events for more info
-scheduler = network.schedulers["metro hub"]
+scheduler = network.hubs["metro hub"].scheduler
 scheduler_events = collect_schedule_events(scheduler)
 
 # Sets up the protocols
 protocol_mapping = {}
 num_epr_pairs = 10
-for i, node in enumerate(node_names):
+for i, node_name in enumerate(node_names):
     if i % 2 == 0:
         peer_name = cfg.stacks[i + 1].name
         prot = AliceProtocol(peer=peer_name, num_epr_pairs=num_epr_pairs)
     else:
         peer_name = cfg.stacks[i - 1].name
         prot = BobProtocol(peer=peer_name, num_epr_pairs=num_epr_pairs)
-    protocol_mapping[node.name] = prot
+    protocol_mapping[node_name] = prot
 
 # Set logging level
 LogManager.set_log_level(logging.INFO)
