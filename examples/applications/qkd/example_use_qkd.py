@@ -1,3 +1,5 @@
+import sys
+import netsquid as ns
 from typing import Any, Dict, Generator
 
 from bitarray import bitarray
@@ -113,6 +115,9 @@ class RecieverProgram(Program):
 
 
 if __name__ == "__main__":
+    if "--test_run" in sys.argv:
+        ns.set_random_state(seed=42)
+
     cfg = create_simple_network(node_names=["Alice", "Bob"], link_noise=0.1)
 
     # Prepare the message and protocols
