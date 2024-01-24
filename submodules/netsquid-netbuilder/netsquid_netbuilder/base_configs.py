@@ -85,8 +85,8 @@ class RepeaterChainConfig(YamlLoadable):
     repeater_nodes: List[StackConfig]
     lengths: List[float]
 
-    schedule_typ: str
-    schedule_cfg: Any
+    #schedule_typ: str
+    #schedule_cfg: Any
 
 
 # class DriverConfig(YamlLoadable):

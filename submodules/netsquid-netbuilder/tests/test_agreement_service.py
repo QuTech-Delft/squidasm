@@ -9,7 +9,7 @@ from netsquid_driver.entanglement_agreement_service import (
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import run
-from netsquid_netbuilder.util.agreement_service_test_protocol import (
+from netsquid_netbuilder.util.test_protocol_agreement_service import (
     AgreementServiceResultRegistration,
     AgreementServiceTestProtocol,
 )
