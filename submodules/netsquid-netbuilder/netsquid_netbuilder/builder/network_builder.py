@@ -13,25 +13,26 @@ from netsquid_driver.classical_socket_service import (
 from netsquid_driver.driver import Driver
 from netsquid_driver.EGP import EGPService
 from netsquid_driver.entanglement_agreement_service import EntanglementAgreementService
-
 from netsquid_driver.symmetric_agreement_service import SymmetricAgreementService
 from netsquid_entanglementtracker.bell_state_tracker import BellStateTracker
 from netsquid_entanglementtracker.entanglement_tracker_service import (
     EntanglementTrackerService,
 )
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
+from netsquid_magic.photonic_interface_interface import (
+    IPhotonicInterfaceBuilder,
+    IPhotonicInterfaceConfig,
+)
 from netsquid_netbuilder.base_configs import StackNetworkConfig
 from netsquid_netbuilder.builder.builder_utils import create_connection_ports
 from netsquid_netbuilder.builder.metro_hub import HubBuilder, MetroHubNode
 from netsquid_netbuilder.builder.repeater_chain import ChainBuilder
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
-from netsquid_magic.photonic_interface_interface import IPhotonicInterfaceConfig, IPhotonicInterfaceBuilder
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
 from netsquid_netbuilder.network import Network
-
 
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.stack import ProcessingNode
@@ -72,7 +73,10 @@ class NetworkBuilder:
         self.hub_builder.register_scheduler(key, builder)
 
     def register_photonic_interface(
-        self, key: str, builder: Type[IPhotonicInterfaceBuilder], config: Type[IPhotonicInterfaceConfig]
+        self,
+        key: str,
+        builder: Type[IPhotonicInterfaceBuilder],
+        config: Type[IPhotonicInterfaceConfig],
     ):
         self.chain_builder.register_photonic_interface(key, builder, config)
 
@@ -161,9 +165,7 @@ class NodeBuilder:
 
             if node_qdevice_typ not in self.qdevice_builders.keys():
                 # TODO improve exception
-                raise Exception(
-                    f"No model of type: {node_qdevice_typ} registered"
-                )
+                raise Exception(f"No model of type: {node_qdevice_typ} registered")
 
             builder = self.qdevice_builders[node_qdevice_typ]
             qdevice = builder.build(

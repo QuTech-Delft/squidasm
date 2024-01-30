@@ -32,9 +32,13 @@ class AliceProtocol(BlueprintProtocol):
         # Await request completion
         for _ in range(number):
             yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
-            response = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
+            response = egp.get_signal_result(
+                label=ResCreateAndKeep.__name__, receiver=self
+            )
             received_qubit_mem_pos = response.logical_qubit_id
-            print(f"{ns.sim_time()} ns: Alice completes entanglement generation and now has a qubit at mem_pos: {received_qubit_mem_pos}")
+            print(
+                f"{ns.sim_time()} ns: Alice completes entanglement generation and now has a qubit at mem_pos: {received_qubit_mem_pos}"
+            )
 
             qdevice: QuantumProcessor = self.context.node.qdevice
             qubit: Qubit = qdevice.peek(positions=received_qubit_mem_pos)[0]
@@ -51,9 +55,13 @@ class AliceProtocol(BlueprintProtocol):
         egp.put(request)
         for _ in range(number):
             yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
-            response = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
+            response = egp.get_signal_result(
+                label=ResCreateAndKeep.__name__, receiver=self
+            )
             received_qubit_mem_pos = response.logical_qubit_id
-            print(f"{ns.sim_time()} ns: Alice completes entanglement generation and now has a qubit at mem_pos: {received_qubit_mem_pos}")
+            print(
+                f"{ns.sim_time()} ns: Alice completes entanglement generation and now has a qubit at mem_pos: {received_qubit_mem_pos}"
+            )
 
 
 class BobProtocol(BlueprintProtocol):
@@ -74,8 +82,10 @@ class BobProtocol(BlueprintProtocol):
         while True:
             # Wait for a signal from the EGP.
             yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
-            response = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
+            response = egp.get_signal_result(
+                label=ResCreateAndKeep.__name__, receiver=self
+            )
             received_qubit_mem_pos = response.logical_qubit_id
-            print(f"{ns.sim_time()} ns: Bob completes entanglement generation and now has a qubit at mem_pos: {received_qubit_mem_pos}")
-
-
+            print(
+                f"{ns.sim_time()} ns: Bob completes entanglement generation and now has a qubit at mem_pos: {received_qubit_mem_pos}"
+            )

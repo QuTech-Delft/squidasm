@@ -2,10 +2,10 @@ import logging
 
 from example_new_scheduler import ExampleNewScheduleBuilder, ExampleNewScheduleConfig
 from netsquid_magic.models.depolarise import DepolariseLinkConfig
-from netsquid_netbuilder.util.data_collectors import collect_schedule_events
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run
+from netsquid_netbuilder.util.data_collectors import collect_schedule_events
 from netsquid_netbuilder.util.network_generation import create_metro_hub_network
 from protocols import AliceProtocol, BobProtocol
 

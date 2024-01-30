@@ -89,11 +89,8 @@ class RepeaterChainConfig(YamlLoadable):
     photonic_interface_loc: str = "end"
     photonic_interface_cfg: Optional[Any]
 
-    #schedule_typ: str
-    #schedule_cfg: Any
-
-
-
+    # schedule_typ: str
+    # schedule_cfg: Any
 
 
 class StackNetworkConfig(YamlLoadable):

@@ -1,22 +1,10 @@
 from __future__ import annotations
 
-from netsquid_driver.measurement_services import MeasureService, SwapService
-from netsquid_driver.memory_manager_service import QuantumMemoryManager
-
-from netsquid_qrepchain.processing_nodes.memory_manager_implementations import (
-    MemoryManagerWithMoveProgram,
-)
-from netsquid_qrepchain.processing_nodes.operation_services_abstract import (
-    AbstractMeasureService,
-    AbstractSwapService,
-)
-from netsquid_netbuilder.builder.temp import AbstractMoveProgram
-
-
 from netsquid.components.instructions import (
     INSTR_CNOT,
     INSTR_CZ,
     INSTR_H,
+    INSTR_I,
     INSTR_INIT,
     INSTR_K,
     INSTR_MEASURE,
@@ -26,13 +14,22 @@ from netsquid.components.instructions import (
     INSTR_X,
     INSTR_Y,
     INSTR_Z,
-    INSTR_I,
 )
 from netsquid.components.models.qerrormodels import DepolarNoiseModel, T1T2NoiseModel
 from netsquid.components.qprocessor import PhysicalInstruction, QuantumProcessor
+from netsquid_driver.measurement_services import MeasureService, SwapService
+from netsquid_driver.memory_manager_service import QuantumMemoryManager
+from netsquid_netbuilder.builder.temp import AbstractMoveProgram
 from netsquid_netbuilder.modules.qdevices.interface import (
     IQDeviceBuilder,
     IQDeviceConfig,
+)
+from netsquid_qrepchain.processing_nodes.memory_manager_implementations import (
+    MemoryManagerWithMoveProgram,
+)
+from netsquid_qrepchain.processing_nodes.operation_services_abstract import (
+    AbstractMeasureService,
+    AbstractSwapService,
 )
 
 
@@ -175,7 +172,5 @@ class GenericQDeviceBuilder(IQDeviceBuilder):
         driver.add_service(SwapService, AbstractSwapService(node=node))
         driver.add_service(
             QuantumMemoryManager,
-            MemoryManagerWithMoveProgram(
-                node=node, move_program=AbstractMoveProgram()
-            ),
+            MemoryManagerWithMoveProgram(node=node, move_program=AbstractMoveProgram()),
         )

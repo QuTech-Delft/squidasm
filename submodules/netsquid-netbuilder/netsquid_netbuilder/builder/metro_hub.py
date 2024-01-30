@@ -210,4 +210,3 @@ class HubBuilder:
             for node_name_combination in itertools.combinations(node_names, 2):
                 link = network.links[node_name_combination]
                 link.scheduler = schedule
-

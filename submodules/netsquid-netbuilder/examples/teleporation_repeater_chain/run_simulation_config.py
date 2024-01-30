@@ -1,12 +1,10 @@
 import logging
 
 import netsquid as ns
-
-from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.run import get_default_builder, run
-
-from protocols import TeleportationSenderProtocol, TeleportationReceiverProtocol
+from protocols import TeleportationReceiverProtocol, TeleportationSenderProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
 LogManager.set_log_level(logging.ERROR)

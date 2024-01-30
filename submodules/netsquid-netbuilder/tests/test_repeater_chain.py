@@ -1,10 +1,9 @@
 import itertools
 import unittest
+from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
 import netsquid as ns
-from dataclasses import dataclass, field
-
 from netsquid_magic.models.depolarise import DepolariseLinkBuilder, DepolariseLinkConfig
 from netsquid_magic.models.heralded_double_click import (
     HeraldedDoubleClickLinkBuilder,
@@ -108,11 +107,21 @@ class TestRepeaterChain(unittest.TestCase):
     @staticmethod
     def _calculate_distances(network: QIANetworkDescription):
         distances_dict = {}
-        for idx_h1, idx_h2 in itertools.product(range(len(network.sender_names)), range(len(network.receiver_names))):
-            distances_dict[(network.sender_names[idx_h1], network.receiver_names[idx_h2])] = \
-                [network.distances_h1[idx_h1]] + network.repeater_distances + [network.distances_h2[idx_h2]]
-            distances_dict[(network.receiver_names[idx_h2], network.sender_names[idx_h1])] = \
-                distances_dict[(network.sender_names[idx_h1], network.receiver_names[idx_h2])]
+        for idx_h1, idx_h2 in itertools.product(
+            range(len(network.sender_names)), range(len(network.receiver_names))
+        ):
+            distances_dict[
+                (network.sender_names[idx_h1], network.receiver_names[idx_h2])
+            ] = (
+                [network.distances_h1[idx_h1]]
+                + network.repeater_distances
+                + [network.distances_h2[idx_h2]]
+            )
+            distances_dict[
+                (network.receiver_names[idx_h2], network.sender_names[idx_h1])
+            ] = distances_dict[
+                (network.sender_names[idx_h1], network.receiver_names[idx_h2])
+            ]
 
         return distances_dict
 
@@ -145,10 +154,16 @@ class TestRepeaterChain(unittest.TestCase):
         )
 
     def _check_fidelity(self, result_register: EGPEventRegistration):
-        received_egp_with_full_dm = [received_egp for received_egp in result_register.received_egp if received_egp.dm.shape[0] > 2]
+        received_egp_with_full_dm = [
+            received_egp
+            for received_egp in result_register.received_egp
+            if received_egp.dm.shape[0] > 2
+        ]
         # The protocol will discard qubits after registering the results, thereby destroying half of the state.
         # The second party to look at the qubit state, will thus see a DM with only one qubit.
-        self.assertEqual(len(received_egp_with_full_dm), len(result_register.received_egp)/2)
+        self.assertEqual(
+            len(received_egp_with_full_dm), len(result_register.received_egp) / 2
+        )
 
         for received_egp in received_egp_with_full_dm:
             fid = calculate_fidelity_epr(
@@ -156,9 +171,11 @@ class TestRepeaterChain(unittest.TestCase):
             )
             self.assertGreater(fid, 0.99)
 
-    def _check_timing(self, result_register: EGPEventRegistration,
-                      distance_dict: Dict[Tuple[str, str], List[float]]
-):
+    def _check_timing(
+        self,
+        result_register: EGPEventRegistration,
+        distance_dict: Dict[Tuple[str, str], List[float]],
+    ):
         for received_egp in result_register.received_egp:
             distances = distance_dict[(received_egp.node_name, received_egp.peer_name)]
             distances_new = [distances[0] + distances[1]]
@@ -239,4 +256,3 @@ class TestRepeaterChain(unittest.TestCase):
 
         self._check_fidelity(result_register)
         self._check_timing(result_register, distances_dict)
-

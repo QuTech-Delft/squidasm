@@ -18,4 +18,3 @@ class IQDeviceBuilder(ABC):
     def build_services(cls, node):
         pass
         # TODO make abstract, possibly rework this entire system, as this is just draft
-

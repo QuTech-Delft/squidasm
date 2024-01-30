@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Type, Tuple
+from typing import Dict, List, Optional, Tuple, Type
 
 from netsquid.components import Port
 from netsquid_driver.EGP import EGPService
 from netsquid_driver.entanglement_service import EntanglementService
 from netsquid_driver.new_entanglment_service import NewEntanglementService
-
 from netsquid_driver.swap_asap_service import SwapASAPService
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
+from netsquid_magic.photonic_interface_interface import (
+    IPhotonicInterfaceBuilder,
+    IPhotonicInterfaceConfig,
+)
 from netsquid_netbuilder.base_configs import RepeaterChainConfig
 from netsquid_netbuilder.builder.builder_utils import (
     create_connection_ports,
@@ -21,7 +24,6 @@ from netsquid_netbuilder.builder.metro_hub import MetroHub
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
-from netsquid_magic.photonic_interface_interface import IPhotonicInterfaceConfig, IPhotonicInterfaceBuilder
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.network import Network
 from netsquid_qrepchain.control_layer.swap_asap import SwapASAP
@@ -59,7 +61,9 @@ class ChainBuilder:
         self.chain_configs: Optional[List[RepeaterChainConfig]] = None
         self.clink_builders: Dict[str, Type[ICLinkBuilder]] = {}
         self.clink_configs: Dict[str, Type[ICLinkConfig]] = {}
-        self.photonic_interface_builders: Dict[str, Type[IPhotonicInterfaceBuilder]] = {}
+        self.photonic_interface_builders: Dict[
+            str, Type[IPhotonicInterfaceBuilder]
+        ] = {}
         self.photonic_interface_configs: Dict[str, Type[IPhotonicInterfaceConfig]] = {}
         self._logger = LogManager.get_stack_logger(self.__class__.__name__)
 
@@ -79,7 +83,11 @@ class ChainBuilder:
         self.clink_configs[key] = config
 
     def register_photonic_interface(
-            self, key: str, builder: Type[IPhotonicInterfaceBuilder], config: Type[IPhotonicInterfaceConfig]):
+        self,
+        key: str,
+        builder: Type[IPhotonicInterfaceBuilder],
+        config: Type[IPhotonicInterfaceConfig],
+    ):
         self.photonic_interface_builders[key] = builder
         self.photonic_interface_configs[key] = config
 
@@ -299,7 +307,9 @@ class ChainBuilder:
         elif num_repeater_chains == 1:
             pass
         else:
-            raise NotImplementedError("Simulation is currently limited to a single repeater chain")
+            raise NotImplementedError(
+                "Simulation is currently limited to a single repeater chain"
+            )
 
         temp_egp_dict: Dict[str, EGPService] = {}
         for end_node in network.end_nodes.values():
@@ -315,8 +325,12 @@ class ChainBuilder:
                 chain.hub_1.end_nodes.values(), chain.hub_2.end_nodes.values()
             ):
 
-                egp_dict[(hub1_end_node.name, hub2_end_node.name)] = temp_egp_dict[hub1_end_node.name]
-                egp_dict[(hub2_end_node.name, hub1_end_node.name)] = temp_egp_dict[hub2_end_node.name]
+                egp_dict[(hub1_end_node.name, hub2_end_node.name)] = temp_egp_dict[
+                    hub1_end_node.name
+                ]
+                egp_dict[(hub2_end_node.name, hub1_end_node.name)] = temp_egp_dict[
+                    hub2_end_node.name
+                ]
 
             self._setup_services(network)
 
@@ -332,12 +346,16 @@ class ChainBuilder:
 
             local_link_dict = network.filter_for_node(node.name, network.links)
 
-            local_distributor_dict = {node_name: link.magic_distributor for node_name, link in local_link_dict.items()}
+            local_distributor_dict = {
+                node_name: link.magic_distributor
+                for node_name, link in local_link_dict.items()
+            }
             for magic_distributor in local_distributor_dict.values():
                 magic_distributor.clear_all_callbacks()
 
             driver.services[EntanglementService] = NewEntanglementService(
-                node, local_distributor_dict,
+                node,
+                local_distributor_dict,
                 node_name_id_mapping=network.node_name_id_mapping,
             )
 
@@ -356,13 +374,21 @@ class ChainBuilder:
             if chain_config.photonic_interface_typ is None:
                 return
 
-            photonic_interface_builder = self.photonic_interface_builders[chain_config.photonic_interface_typ]
-            photonic_interface_cfg_typ = self.photonic_interface_configs[chain_config.photonic_interface_typ]
+            photonic_interface_builder = self.photonic_interface_builders[
+                chain_config.photonic_interface_typ
+            ]
+            photonic_interface_cfg_typ = self.photonic_interface_configs[
+                chain_config.photonic_interface_typ
+            ]
             photonic_interface_config = chain_config.photonic_interface_cfg
 
             if isinstance(photonic_interface_config, dict):
-                photonic_interface_config = photonic_interface_cfg_typ(**photonic_interface_config)
-            if not isinstance(photonic_interface_config, photonic_interface_cfg_typ):  # noqa
+                photonic_interface_config = photonic_interface_cfg_typ(
+                    **photonic_interface_config
+                )
+            if not isinstance(
+                photonic_interface_config, photonic_interface_cfg_typ
+            ):  # noqa
                 raise TypeError(
                     f"Incorrect configuration provided. Got {type(photonic_interface_config)},"
                     f" expected {photonic_interface_cfg_typ.__name__}"
@@ -370,15 +396,21 @@ class ChainBuilder:
 
             chain = network.chains[(chain_config.metro_hub1, chain_config.metro_hub2)]
 
-            link_keys = self._get_photonic_interface_link_keys(chain, chain_config.photonic_interface_loc)
+            link_keys = self._get_photonic_interface_link_keys(
+                chain, chain_config.photonic_interface_loc
+            )
 
             for link_key in link_keys:
-                photonic_interface = photonic_interface_builder.build(photonic_interface_config)
+                photonic_interface = photonic_interface_builder.build(
+                    photonic_interface_config
+                )
                 link = network.links[link_key]
                 link.magic_distributor.photonic_interface = photonic_interface
 
     @staticmethod
-    def _get_photonic_interface_link_keys(chain: Chain, photonic_interface_loc) -> List[Tuple[str, str]]:
+    def _get_photonic_interface_link_keys(
+        chain: Chain, photonic_interface_loc
+    ) -> List[Tuple[str, str]]:
         link_keys = []
         if photonic_interface_loc == "end":
             for node in chain.hub_1.end_nodes.values():
@@ -387,11 +419,18 @@ class ChainBuilder:
                 link_keys.append((node.name, chain.repeater_nodes[-1].name))
         elif photonic_interface_loc == "pre-end":
             if len(chain.repeater_nodes) < 3:
-                raise ValueError(f"pre-end photonic interface is only compatible when 3 or more repeater nodes "
-                                 f"are used")
-            link_keys.append( (chain.repeater_nodes[0].name, chain.repeater_nodes[1].name))
-            link_keys.append( (chain.repeater_nodes[-2].name, chain.repeater_nodes[-1].name))
+                raise ValueError(
+                    f"pre-end photonic interface is only compatible when 3 or more repeater nodes "
+                    f"are used"
+                )
+            link_keys.append(
+                (chain.repeater_nodes[0].name, chain.repeater_nodes[1].name)
+            )
+            link_keys.append(
+                (chain.repeater_nodes[-2].name, chain.repeater_nodes[-1].name)
+            )
         else:
-            raise ValueError(f"photonic_interface_loc: {photonic_interface_loc} is not a valid option")
+            raise ValueError(
+                f"photonic_interface_loc: {photonic_interface_loc} is not a valid option"
+            )
         return link_keys
-

@@ -64,7 +64,9 @@ class TestInstantCLink(TestCLinkBase):
         messages = ["hi", "hello", "good day", "how are you doing"]
         message_times = [1, 1, 1, 1]
 
-        alice = ClassicalSenderProtocol("Bob", self.result_register, messages, message_times)
+        alice = ClassicalSenderProtocol(
+            "Bob", self.result_register, messages, message_times
+        )
         bob = ClassicalReceiverProtocol("Alice", self.result_register)
 
         run(network, {"Alice": alice, "Bob": bob})
@@ -79,7 +81,9 @@ class TestInstantCLink(TestCLinkBase):
         message_times = [1, 1, 1, 3, 3, 3]
         expected_times = [2, 2, 2, 3, 3, 3]
 
-        alice = ClassicalSenderProtocol("Bob", self.result_register, messages, message_times)
+        alice = ClassicalSenderProtocol(
+            "Bob", self.result_register, messages, message_times
+        )
         bob = ClassicalReceiverProtocol("Alice", self.result_register, listen_delay=2)
 
         run(network, {"Alice": alice, "Bob": bob})

@@ -2,16 +2,16 @@ import itertools
 from typing import List, Union
 
 from netsquid_magic.models.depolarise import DepolariseLinkConfig
+from netsquid_magic.photonic_interface_interface import IPhotonicInterfaceConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
     MetroHubConfig,
     MetroHubConnectionConfig,
+    RepeaterChainConfig,
     StackConfig,
     StackNetworkConfig,
-    RepeaterChainConfig,
 )
-from netsquid_magic.photonic_interface_interface import IPhotonicInterfaceConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.clinks.interface import ICLinkConfig
@@ -215,8 +215,6 @@ def connect_mh(
     return mh_connections
 
 
-
-
 def create_qia_prototype_network(
     nodes_hub1: Union[int, List[str]],
     node_distances_hub1: Union[float, List[float]],
@@ -254,7 +252,9 @@ def create_qia_prototype_network(
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg)
+        stack = StackConfig(
+            name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg
+        )
         network_config.stacks.append(stack)
 
     mh1_connections = connect_mh(node_distances_hub1, hub1_node_names)
@@ -284,9 +284,7 @@ def create_qia_prototype_network(
     )
     network_config.hubs = [mh1, mh2]
 
-    repeater_node_names = [
-        f"r{i}" for i in range(num_nodes_repeater_chain)
-    ]
+    repeater_node_names = [f"r{i}" for i in range(num_nodes_repeater_chain)]
     repeater_stacks = []
     for node_name in repeater_node_names:
         qdevice_cfg = (
@@ -294,7 +292,9 @@ def create_qia_prototype_network(
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg)
+        stack = StackConfig(
+            name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg
+        )
         repeater_stacks.append(stack)
 
     node_distances_repeater_chain = (
@@ -317,7 +317,7 @@ def create_qia_prototype_network(
         schedule_typ="TODO",
         schedule_cfg=None,
         photonic_interface_typ=photonic_interface_typ,
-        photonic_interface_cfg=photonic_interface_cfg
+        photonic_interface_cfg=photonic_interface_cfg,
     )
     network_config.repeater_chains = [repeater_chain]
 

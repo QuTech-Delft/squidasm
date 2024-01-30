@@ -1,22 +1,24 @@
 import math
-from typing import Generator
-from typing import Tuple
+from typing import Generator, Tuple
 
 import netsquid as ns
 import netsquid.qubits.qubitapi
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Qubit
-from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z, INSTR_ROT_Y, INSTR_INIT, INSTR_CNOT, INSTR_H, \
-    INSTR_MEASURE
+from netsquid.components.instructions import (
+    INSTR_CNOT,
+    INSTR_H,
+    INSTR_INIT,
+    INSTR_MEASURE,
+    INSTR_ROT_X,
+    INSTR_ROT_Y,
+    INSTR_ROT_Z,
+)
 from netsquid.components.qprogram import QuantumProgram
 from netsquid.qubits.ketstates import BellIndex
-from qlink_interface import (
-    ReqCreateAndKeep,
-    ReqReceive,
-    ResCreateAndKeep,
-)
-
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
+from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
+
 from pydynaa import EventExpression
 
 
@@ -56,18 +58,26 @@ def prepare_qubit(qdevice: QuantumProcessor, phi: float = 0, theta: float = 0):
     return qubit_position
 
 
-def teleport_send(qdevice: QuantumProcessor, teleportation_qubit_mem_pos: int, epr_qubit_mem_pos) -> Generator[EventExpression, None, Tuple[int, int]]:
+def teleport_send(
+    qdevice: QuantumProcessor, teleportation_qubit_mem_pos: int, epr_qubit_mem_pos
+) -> Generator[EventExpression, None, Tuple[int, int]]:
     prog = QuantumProgram()
-    prog.apply(INSTR_CNOT, qubit_indices=[teleportation_qubit_mem_pos, epr_qubit_mem_pos])
+    prog.apply(
+        INSTR_CNOT, qubit_indices=[teleportation_qubit_mem_pos, epr_qubit_mem_pos]
+    )
     prog.apply(INSTR_H, qubit_indices=[teleportation_qubit_mem_pos])
-    prog.apply(INSTR_MEASURE, qubit_indices=[teleportation_qubit_mem_pos], output_key="m1")
+    prog.apply(
+        INSTR_MEASURE, qubit_indices=[teleportation_qubit_mem_pos], output_key="m1"
+    )
     prog.apply(INSTR_MEASURE, qubit_indices=[epr_qubit_mem_pos], output_key="m2")
 
     yield qdevice.execute_program(prog)
     return prog.output["m1"][0], prog.output["m2"][0]
 
 
-def teleport_receive(qdevice: QuantumProcessor, epr_qubit_mem_pos: int, m1: int, m2: int) -> Generator[EventExpression, None, None]:
+def teleport_receive(
+    qdevice: QuantumProcessor, epr_qubit_mem_pos: int, m1: int, m2: int
+) -> Generator[EventExpression, None, None]:
     prog = QuantumProgram()
     if m2 == 1:
         prog.apply(INSTR_ROT_X, qubit_indices=[epr_qubit_mem_pos], angle=math.pi)
@@ -87,11 +97,15 @@ class TeleportationSenderProtocol(BlueprintProtocol):
         socket = self.context.sockets[self.PEER]
         egp = self.context.egp[self.PEER]
 
-        request = ReqCreateAndKeep(remote_node_id=self.context.node_id_mapping[self.PEER])
+        request = ReqCreateAndKeep(
+            remote_node_id=self.context.node_id_mapping[self.PEER]
+        )
         egp.put(request)
 
         yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
-        egp_result = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
+        egp_result = egp.get_signal_result(
+            label=ResCreateAndKeep.__name__, receiver=self
+        )
         print(f"{ns.sim_time()} ns: Alice completes entanglement generation")
 
         teleport_qubit_mem_pos = yield from prepare_qubit(qdevice, theta=math.pi, phi=0)
@@ -100,7 +114,9 @@ class TeleportationSenderProtocol(BlueprintProtocol):
         dm = netsquid.qubits.qubitapi.reduced_dm(qubit.qstate.qubits)
         print(f"{ns.sim_time()} ns: Alice prepared the teleportation qubit:\n{dm}")
 
-        m1, m2 = yield from teleport_send(qdevice, teleport_qubit_mem_pos, egp_result.logical_qubit_id)
+        m1, m2 = yield from teleport_send(
+            qdevice, teleport_qubit_mem_pos, egp_result.logical_qubit_id
+        )
         print(f"{ns.sim_time()} ns: Alice teleports the qubit with m1={m1} m2={m2}")
         socket.send(str(m1))
         socket.send(str(m2))
@@ -122,7 +138,9 @@ class TeleportationReceiverProtocol(BlueprintProtocol):
         response = egp.get_signal_result(label=ResCreateAndKeep.__name__, receiver=self)
         qubit: Qubit = qdevice.peek(positions=response.logical_qubit_id)[0]
         dm = netsquid.qubits.qubitapi.reduced_dm(qubit.qstate.qubits)
-        print(f"{ns.sim_time()} ns: Bob completes entanglement generation with bell state {response.bell_state}:\n{dm}")
+        print(
+            f"{ns.sim_time()} ns: Bob completes entanglement generation with bell state {response.bell_state}:\n{dm}"
+        )
 
         yield from bell_state_corrections(response, qdevice)
         dm = netsquid.qubits.qubitapi.reduced_dm(qubit.qstate.qubits)
@@ -139,4 +157,3 @@ class TeleportationReceiverProtocol(BlueprintProtocol):
 
         dm = netsquid.qubits.qubitapi.reduced_dm(qubit.qstate.qubits)
         print(f"{ns.sim_time()} ns: Bob finished teleportation routine:\n{dm}")
-

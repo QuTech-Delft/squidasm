@@ -376,10 +376,16 @@ class TestMetropolitanHub(unittest.TestCase):
                 )
 
     def _check_fidelity(self, result_register: EGPEventRegistration):
-        received_egp_with_full_dm = [received_egp for received_egp in result_register.received_egp if received_egp.dm.shape[0] > 2]
+        received_egp_with_full_dm = [
+            received_egp
+            for received_egp in result_register.received_egp
+            if received_egp.dm.shape[0] > 2
+        ]
         # The protocol will discard qubits after registering the results, thereby destroying half of the state.
         # The second party to look at the qubit state, will thus see a DM with only one qubit.
-        self.assertEqual(len(received_egp_with_full_dm), len(result_register.received_egp)/2)
+        self.assertEqual(
+            len(received_egp_with_full_dm), len(result_register.received_egp) / 2
+        )
 
         for received_egp in received_egp_with_full_dm:
             fid = calculate_fidelity_epr(

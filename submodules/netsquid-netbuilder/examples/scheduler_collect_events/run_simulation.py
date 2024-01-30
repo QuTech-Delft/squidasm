@@ -1,7 +1,7 @@
 from netsquid_netbuilder.base_configs import StackNetworkConfig
-from netsquid_netbuilder.util.data_collectors import collect_schedule_events
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.run import get_default_builder, run
+from netsquid_netbuilder.util.data_collectors import collect_schedule_events
 from protocols import AliceProtocol, BobProtocol
 
 logger = LogManager.get_stack_logger()

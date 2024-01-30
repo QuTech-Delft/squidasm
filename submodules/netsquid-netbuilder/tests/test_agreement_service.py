@@ -1,7 +1,6 @@
 import unittest
 
 import netsquid as ns
-
 from netsquid_driver.entanglement_agreement_service import (
     ReqEntanglementAgreement,
     ReqEntanglementAgreementAbort,
@@ -9,16 +8,16 @@ from netsquid_driver.entanglement_agreement_service import (
 from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import run
-from netsquid_netbuilder.util.test_protocol_agreement_service import (
-    AgreementServiceResultRegistration,
-    AgreementServiceTestProtocol,
-)
 from netsquid_netbuilder.util.network_generation import (
     create_2_node_network,
     create_metro_hub_network,
     create_qia_prototype_network,
 )
 from netsquid_netbuilder.util.test_builder import get_test_network_builder
+from netsquid_netbuilder.util.test_protocol_agreement_service import (
+    AgreementServiceResultRegistration,
+    AgreementServiceTestProtocol,
+)
 
 
 class AgreementTestBase(unittest.TestCase):

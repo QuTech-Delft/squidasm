@@ -47,7 +47,12 @@ class ClassicalSenderProtocol(BlueprintProtocol):
 
 
 class ClassicalReceiverProtocol(BlueprintProtocol):
-    def __init__(self, peer: str, result_reg: ClassicalMessageEventRegistration, listen_delay: float = 0):
+    def __init__(
+        self,
+        peer: str,
+        result_reg: ClassicalMessageEventRegistration,
+        listen_delay: float = 0,
+    ):
         super().__init__()
         self.peer = peer
         self.result_reg = result_reg
