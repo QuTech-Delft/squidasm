@@ -85,19 +85,15 @@ class RepeaterChainConfig(YamlLoadable):
     repeater_nodes: List[StackConfig]
     lengths: List[float]
 
+    photonic_interface_typ: Optional[str]
+    photonic_interface_loc: str = "end"
+    photonic_interface_cfg: Optional[Any]
+
     #schedule_typ: str
     #schedule_cfg: Any
 
 
-# class DriverConfig(YamlLoadable):
-#     preset: Optional[str]
-#     """Preset to use"""
-#     services: Optional[List[ServiceConfig]]
-#     """Additional services to use install"""
-#
-#
-# class ServiceConfig(YamlLoadable):
-#     name: str
+
 
 
 class StackNetworkConfig(YamlLoadable):

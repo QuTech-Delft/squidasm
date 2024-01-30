@@ -26,6 +26,7 @@ from netsquid_netbuilder.builder.metro_hub import HubBuilder, MetroHubNode
 from netsquid_netbuilder.builder.repeater_chain import ChainBuilder
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
+from netsquid_magic.photonic_interface_interface import IPhotonicInterfaceConfig, IPhotonicInterfaceBuilder
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
@@ -70,6 +71,11 @@ class NetworkBuilder:
     def register_scheduler(self, key: str, builder: Type[IScheduleBuilder]):
         self.hub_builder.register_scheduler(key, builder)
 
+    def register_photonic_interface(
+        self, key: str, builder: Type[IPhotonicInterfaceBuilder], config: Type[IPhotonicInterfaceConfig]
+    ):
+        self.chain_builder.register_photonic_interface(key, builder, config)
+
     def build(self, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Network:
         self.hub_builder.set_configs(config.hubs)
         self.chain_builder.set_configs(config.repeater_chains)
@@ -100,6 +106,9 @@ class NetworkBuilder:
         network.links = self.link_builder.build(config, network.end_nodes)
         network.links.update(self.hub_builder.build_links(network))
         network.links.update(self.chain_builder.build_links(network))
+
+        # Install photonic interface models in relevant links
+        self.chain_builder.build_photonic_interfaces(network)
 
         # setup classical messaging
         self.routing_builder.build_routing_info(network)

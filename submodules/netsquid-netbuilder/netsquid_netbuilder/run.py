@@ -23,6 +23,10 @@ from netsquid_netbuilder.modules.clinks.instant import (
     InstantCLinkBuilder,
     InstantCLinkConfig,
 )
+from netsquid_netbuilder.modules.photonic_interface.depolarizing import (
+    DepolarizingPhotonicInterfaceConfig,
+    DepolarizingPhotonicInterfaceBuilder
+)
 from netsquid_netbuilder.modules.links.nv import NVLinkBuilder, NVLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceBuilder
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceBuilder
@@ -54,6 +58,9 @@ def get_default_builder() -> NetworkBuilder:
         HeraldedDoubleClickLinkConfig,
     )
     builder.register_link("nv", NVLinkBuilder, NVLinkConfig)
+
+    builder.register_photonic_interface("depolarise", DepolarizingPhotonicInterfaceBuilder,
+                                        DepolarizingPhotonicInterfaceConfig)
 
     # default clink models registration
     builder.register_clink("instant", InstantCLinkBuilder, InstantCLinkConfig)

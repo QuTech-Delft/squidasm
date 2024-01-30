@@ -8,6 +8,7 @@ from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 from netsquid_netbuilder.run import get_default_builder, run
 from netsquid_netbuilder.util.network_generation import create_qia_prototype_network
+from netsquid_netbuilder.modules.photonic_interface.depolarizing import DepolarizingPhotonicInterfaceConfig
 from protocols import TeleportationSenderProtocol, TeleportationReceiverProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
@@ -28,6 +29,8 @@ qdevice_cfg = GenericQDeviceConfig(
 
 link_cfg = DepolariseLinkConfig(speed_of_light=1e9, fidelity=1, prob_success=0.1)
 
+photonic_interface_cfg = DepolarizingPhotonicInterfaceConfig(prob_max_mixed=0.2, p_loss=0.5)
+
 # 70 km between two end nodes on different hubs
 cfg = create_qia_prototype_network(
     nodes_hub1=2,
@@ -41,7 +44,9 @@ cfg = create_qia_prototype_network(
     clink_typ="default",
     clink_cfg=DefaultCLinkConfig(speed_of_light=1e9),
     qdevice_typ="generic",
-    qdevice_cfg=qdevice_cfg
+    qdevice_cfg=qdevice_cfg,
+    photonic_interface_typ="depolarise",
+    photonic_interface_cfg=photonic_interface_cfg
 )
 network = builder.build(cfg, hacky_is_squidasm_flag=False)
 

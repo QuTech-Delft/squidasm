@@ -46,30 +46,30 @@ repeater_node_qdevice_cfg: &repeater_node_qdevice_cfg
   two_qubit_gate_depolar_prob: 0
 
 stacks:
-  - name: hub1_node_0
+  - name: h1n0
     qdevice_typ: generic
     qdevice_cfg:
       <<: *end_node_qdevice_cfg
-  - name: hub1_node_1
+  - name: h1n1
     qdevice_typ: generic
     qdevice_cfg:
       <<: *end_node_qdevice_cfg
-  - name: hub2_node_0
+  - name: h2n0
     qdevice_typ: generic
     qdevice_cfg:
       <<: *end_node_qdevice_cfg
-  - name: hub2_node_1
+  - name: h2n1
     qdevice_typ: generic
     qdevice_cfg:
       <<: *end_node_qdevice_cfg
 
 
 hubs:
-  - name: hub1
+  - name: h1
     connections:
-      - stack: hub1_node_0
+      - stack: h1n0
         length: 10
-      - stack: hub1_node_1
+      - stack: h1n1
         length: 20
 
     link_typ: heralded-double-click
@@ -85,11 +85,11 @@ hubs:
       switch_time: 1000
       max_multiplexing: 1
 
-  - name: hub2
+  - name: h2
     connections:
-      - stack: hub2_node_0
+      - stack: h2n0
         length: 31
-      - stack: hub2_node_1
+      - stack: h2n1
         length: 4
 
     link_typ: heralded-double-click
@@ -106,8 +106,8 @@ hubs:
       max_multiplexing: 1
 
 repeater_chains:
-  - metro_hub1: hub1
-    metro_hub2: hub2
+  - metro_hub1: h1
+    metro_hub2: h2
 
     link_typ: heralded-double-click
     link_cfg:
@@ -118,15 +118,21 @@ repeater_chains:
       length: 0
 
     repeater_nodes:
-      - name: repeater_0
+      - name: r0
         qdevice_typ: generic
         qdevice_cfg:
           <<: *repeater_node_qdevice_cfg
 
-      - name: repeater_1
+      - name: r1
         qdevice_typ: generic
         qdevice_cfg:
           <<: *repeater_node_qdevice_cfg
+
+    photonic_interface_typ: depolarise
+    photonic_interface_loc: end
+    photonic_interface_cfg:
+      prob_max_mixed: 0.3
+      p_loss: 0.9
 
     lengths:
       - 10

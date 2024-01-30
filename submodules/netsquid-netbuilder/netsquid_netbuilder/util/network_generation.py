@@ -11,6 +11,7 @@ from netsquid_netbuilder.base_configs import (
     StackNetworkConfig,
     RepeaterChainConfig,
 )
+from netsquid_magic.photonic_interface_interface import IPhotonicInterfaceConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.clinks.interface import ICLinkConfig
@@ -231,6 +232,8 @@ def create_qia_prototype_network(
     clink_cfg: ICLinkConfig = None,
     qdevice_typ: str = "generic",
     qdevice_cfg: IQDeviceConfig = None,
+    photonic_interface_typ: str = None,
+    photonic_interface_cfg: IPhotonicInterfaceConfig = None,
 ) -> StackNetworkConfig:
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
     clink_cfg = InstantCLinkConfig() if clink_cfg is None else clink_cfg
@@ -282,7 +285,7 @@ def create_qia_prototype_network(
     network_config.hubs = [mh1, mh2]
 
     repeater_node_names = [
-        f"repeater_node_{i}" for i in range(num_nodes_repeater_chain)
+        f"r{i}" for i in range(num_nodes_repeater_chain)
     ]
     repeater_stacks = []
     for node_name in repeater_node_names:
@@ -313,6 +316,8 @@ def create_qia_prototype_network(
         lengths=node_distances_repeater_chain,
         schedule_typ="TODO",
         schedule_cfg=None,
+        photonic_interface_typ=photonic_interface_typ,
+        photonic_interface_cfg=photonic_interface_cfg
     )
     network_config.repeater_chains = [repeater_chain]
 

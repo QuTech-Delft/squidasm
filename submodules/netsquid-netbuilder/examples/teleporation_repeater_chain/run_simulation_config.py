@@ -20,8 +20,8 @@ network = builder.build(cfg, hacky_is_squidasm_flag=False)
 sim_stats = run(
     network,
     {
-        "hub1_node_0": TeleportationSenderProtocol("hub2_node_0"),
-        "hub2_node_0": TeleportationReceiverProtocol("hub1_node_0"),
+        "h1n0": TeleportationSenderProtocol("h2n0"),
+        "h2n0": TeleportationReceiverProtocol("h1n0"),
     },
 )
 print(sim_stats)

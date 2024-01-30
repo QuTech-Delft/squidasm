@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type, Tuple
 
 from netsquid.components import Port
 from netsquid_driver.EGP import EGPService
@@ -21,6 +21,7 @@ from netsquid_netbuilder.builder.metro_hub import MetroHub
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
+from netsquid_magic.photonic_interface_interface import IPhotonicInterfaceConfig, IPhotonicInterfaceBuilder
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.network import Network
 from netsquid_qrepchain.control_layer.swap_asap import SwapASAP
@@ -58,6 +59,8 @@ class ChainBuilder:
         self.chain_configs: Optional[List[RepeaterChainConfig]] = None
         self.clink_builders: Dict[str, Type[ICLinkBuilder]] = {}
         self.clink_configs: Dict[str, Type[ICLinkConfig]] = {}
+        self.photonic_interface_builders: Dict[str, Type[IPhotonicInterfaceBuilder]] = {}
+        self.photonic_interface_configs: Dict[str, Type[IPhotonicInterfaceConfig]] = {}
         self._logger = LogManager.get_stack_logger(self.__class__.__name__)
 
     def register_qdevice(self, key: str, builder: Type[IQDeviceBuilder]):
@@ -74,6 +77,11 @@ class ChainBuilder:
     ):
         self.clink_builders[key] = builder
         self.clink_configs[key] = config
+
+    def register_photonic_interface(
+            self, key: str, builder: Type[IPhotonicInterfaceBuilder], config: Type[IPhotonicInterfaceConfig]):
+        self.photonic_interface_builders[key] = builder
+        self.photonic_interface_configs[key] = config
 
     def set_configs(self, chain_configs: List[RepeaterChainConfig]):
         if chain_configs is None:
@@ -114,7 +122,7 @@ class ChainBuilder:
         for chain_config in self.chain_configs:
 
             base_repeater_node_name = (
-                f"Chain_{chain_config.metro_hub1}-{chain_config.metro_hub2}_repeater_"
+                f"c({chain_config.metro_hub1}-{chain_config.metro_hub2})_"
             )
 
             chain = network.chains[(chain_config.metro_hub1, chain_config.metro_hub2)]
@@ -127,7 +135,7 @@ class ChainBuilder:
 
                 builder = self.qdevice_builders[repeater_node.qdevice_typ]
 
-                repeater_name = base_repeater_node_name + f"{repeater_index}"
+                repeater_name = base_repeater_node_name + f"{repeater_node.name}"
                 qdevice = builder.build(
                     f"qdevice_{repeater_name}", qdevice_cfg=repeater_node.qdevice_cfg
                 )
@@ -340,3 +348,50 @@ class ChainBuilder:
             for repeater in chain.repeater_nodes:
                 driver = repeater.driver
                 driver.add_service(SwapASAPService, SwapASAP(repeater))
+
+    def build_photonic_interfaces(self, network: Network):
+        if self.chain_configs is None:
+            return
+        for chain_config in self.chain_configs:
+            if chain_config.photonic_interface_typ is None:
+                return
+
+            photonic_interface_builder = self.photonic_interface_builders[chain_config.photonic_interface_typ]
+            photonic_interface_cfg_typ = self.photonic_interface_configs[chain_config.photonic_interface_typ]
+            photonic_interface_config = chain_config.photonic_interface_cfg
+
+            if isinstance(photonic_interface_config, dict):
+                photonic_interface_config = photonic_interface_cfg_typ(**photonic_interface_config)
+            if not isinstance(photonic_interface_config, photonic_interface_cfg_typ):  # noqa
+                raise TypeError(
+                    f"Incorrect configuration provided. Got {type(photonic_interface_config)},"
+                    f" expected {photonic_interface_cfg_typ.__name__}"
+                )
+
+            chain = network.chains[(chain_config.metro_hub1, chain_config.metro_hub2)]
+
+            link_keys = self._get_photonic_interface_link_keys(chain, chain_config.photonic_interface_loc)
+
+            for link_key in link_keys:
+                photonic_interface = photonic_interface_builder.build(photonic_interface_config)
+                link = network.links[link_key]
+                link.magic_distributor.photonic_interface = photonic_interface
+
+    @staticmethod
+    def _get_photonic_interface_link_keys(chain: Chain, photonic_interface_loc) -> List[Tuple[str, str]]:
+        link_keys = []
+        if photonic_interface_loc == "end":
+            for node in chain.hub_1.end_nodes.values():
+                link_keys.append((node.name, chain.repeater_nodes[0].name))
+            for node in chain.hub_2.end_nodes.values():
+                link_keys.append((node.name, chain.repeater_nodes[-1].name))
+        elif photonic_interface_loc == "pre-end":
+            if len(chain.repeater_nodes) < 3:
+                raise ValueError(f"pre-end photonic interface is only compatible when 3 or more repeater nodes "
+                                 f"are used")
+            link_keys.append( (chain.repeater_nodes[0].name, chain.repeater_nodes[1].name))
+            link_keys.append( (chain.repeater_nodes[-2].name, chain.repeater_nodes[-1].name))
+        else:
+            raise ValueError(f"photonic_interface_loc: {photonic_interface_loc} is not a valid option")
+        return link_keys
+
