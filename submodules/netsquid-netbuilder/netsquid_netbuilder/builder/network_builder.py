@@ -133,6 +133,7 @@ class NetworkBuilder:
             self.protocol_controller.register(node.driver)
         network._protocol_controller = self.protocol_controller
 
+        self._logger.info(network.node_name_id_mapping)
         return network
 
     @staticmethod

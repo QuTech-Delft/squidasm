@@ -3,6 +3,8 @@ from typing import Generator, List
 
 import netsquid as ns
 import numpy as np
+
+from netsquid_entanglementtracker.entanglement_tracker_service import EntanglementTrackerService
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 from netsquid_netbuilder.util.test_protocol_clink import ClassicalMessageEventInfo
 from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
@@ -44,13 +46,13 @@ class EGPCreateProtocol(BlueprintProtocol):
         socket = self.context.sockets[self.peer]
         egp = self.context.egp[self.peer]
 
-        for _ in range(self.n_epr):
-            # Wait for classical message in order to delay the egp request to peer
-            message = yield from socket.recv()
-            self.result_reg.received_classical.append(
-                ClassicalMessageEventInfo(ns.sim_time(), self.peer, message)
-            )
+        # Wait for classical message in order to delay the egp request to peer
+        message = yield from socket.recv()
+        self.result_reg.received_classical.append(
+            ClassicalMessageEventInfo(ns.sim_time(), self.peer, message)
+        )
 
+        for _ in range(self.n_epr):
             # create request
             request = ReqCreateAndKeep(
                 remote_node_id=self.context.node_id_mapping[self.peer],
@@ -75,6 +77,7 @@ class EGPCreateProtocol(BlueprintProtocol):
 
             # Free qubit
             node.qdevice.discard(qubit_mem_pos)
+            node.driver[EntanglementTrackerService].register_local_discard_mem_pos(qubit_mem_pos)
 
 
 class EGPReceiveProtocol(BlueprintProtocol):
@@ -89,12 +92,12 @@ class EGPReceiveProtocol(BlueprintProtocol):
         socket = self.context.sockets[self.peer]
         egp = self.context.egp[self.peer]
 
+        msg = "test_msg"
+        socket.send(msg)
+
+        egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.peer]))
+
         for _ in range(self.n_epr):
-            msg = "test_msg"
-            socket.send(msg)
-
-            egp.put(ReqReceive(remote_node_id=self.context.node_id_mapping[self.peer]))
-
             # Wait for a signal from the EGP.
             yield self.await_signal(sender=egp, signal_label=ResCreateAndKeep.__name__)
             response = egp.get_signal_result(
@@ -111,3 +114,4 @@ class EGPReceiveProtocol(BlueprintProtocol):
 
             # Free qubit
             node.qdevice.discard(qubit_mem_pos)
+            node.driver[EntanglementTrackerService].register_local_discard_mem_pos(qubit_mem_pos)
