@@ -45,6 +45,8 @@ class QIANetworkDescription:
 class TestRepeaterChain(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
+        ns.set_qstate_formalism(ns.QFormalism.DM)
+
         self.builder = get_test_network_builder()
         self.builder.register_link(
             "depolarise", DepolariseLinkBuilder, DepolariseLinkConfig
