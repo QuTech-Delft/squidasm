@@ -191,6 +191,7 @@ class TestPhotonicInterfaceChain(unittest.TestCase):
         # Find expected fidelity by computing probability that the state is not maximally mixed
         prob_max_mixed = 1 - (1 - prob_max_mixed_single_interface)**2
 
+        # Find the expected completion time
         assert repeater_distances[0] == repeater_distances[-1]
         single_epr_attempt_time = end_distance + repeater_distances[0]
         expected_completion_time = 3/2 * single_epr_attempt_time / (1-prob_loss_single_interface)
@@ -223,6 +224,8 @@ class TestPhotonicInterfaceChain(unittest.TestCase):
         prob_max_mixed_link = fidelity_to_prob_max_mixed(link_fidelity)
         prob_max_mixed = 1 - (1 - prob_max_mixed_single_interface)**2 * (1-prob_max_mixed_link)**4
 
+        # Find the expected completion time, the contribution to the expected completion time from the links without
+        # photonic interface is ignored
         assert repeater_distances[0] == repeater_distances[-1]
         single_epr_attempt_time = end_distance + repeater_distances[0]
         expected_completion_time = 3/2 * single_epr_attempt_time / ((1-prob_loss_single_interface) * prob_success_link)
