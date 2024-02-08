@@ -8,19 +8,18 @@ from netsquid_magic.photonic_interface_interface import (
     IPhotonicInterfaceBuilder,
     IPhotonicInterfaceConfig,
 )
-from netsquid_netbuilder.util.fidelity import fidelity_to_prob_max_mixed
 
 
 class DepolarizingPhotonicInterfaceConfig(IPhotonicInterfaceConfig):
-    fidelity: float = 0
-    """Probability of producing a maximally mixed state"""
+    prob_max_mixed: float = 0
+    """Probability of producing a maximally mixed state due to the photonic interface."""
     p_loss: float = 0
-    """Probability of losing the photon in the conversion"""
+    """Probability of failing the EPR pair generation due to a loss at the photonic interface."""
 
 
 class DepolarizingPhotonicInterface(IPhotonicInterface):
     def __init__(self, config: DepolarizingPhotonicInterfaceConfig):
-        self.fidelity = config.fidelity
+        self.prob_max_mixed = config.prob_max_mixed
         self.p_loss = config.p_loss
 
     @property
@@ -28,7 +27,7 @@ class DepolarizingPhotonicInterface(IPhotonicInterface):
         return 1 - self.p_loss
 
     def operate(self, state: QRepr) -> QRepr:
-        if self.fidelity == 0:
+        if self.prob_max_mixed == 0:
             return state
 
         maximally_mixed = np.array(
@@ -36,13 +35,11 @@ class DepolarizingPhotonicInterface(IPhotonicInterface):
             dtype=complex,
         )
 
-        prob_max_mixed = fidelity_to_prob_max_mixed(self.fidelity)
-
         original_state = state.reduced_dm()
         return DenseDMRepr(
             num_qubits=state.num_qubits,
-            dm=prob_max_mixed * maximally_mixed
-               + (1 - prob_max_mixed) * original_state,
+            dm=self.prob_max_mixed * maximally_mixed
+               + (1 - self.prob_max_mixed) * original_state,
         )
 
 

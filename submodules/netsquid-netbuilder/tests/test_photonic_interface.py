@@ -37,6 +37,9 @@ from netsquid_netbuilder.util.test_protocol_link import (
 class TestPhotonicInterfaceChain(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
+        ns.set_random_state(seed=42)
+        np.random.seed(seed=42)
+
         ns.set_qstate_formalism(ns.QFormalism.DM)
 
         self.builder = get_test_network_builder()
@@ -126,8 +129,11 @@ class TestPhotonicInterfaceChain(unittest.TestCase):
         fid_list = [calculate_fidelity_epr(r.dm, r.result.bell_state) for r in received_egp_with_full_dm]
         fid = np.average(fid_list)
 
-        completion_time = np.average([r.time for r in result_register.received_egp])
+        times = sorted([r.time for r in received_egp_with_full_dm])
+        completion_times = [times[0] - result_register.received_classical[0].time]
+        completion_times += [times[i+1] - times[i] for i in range(len(times)-1)]
 
+        completion_time = np.average(completion_times)
         return fid, completion_time
 
     def _create_network(self, repeater_distances: list, end_distance: float,
@@ -169,43 +175,59 @@ class TestPhotonicInterfaceChain(unittest.TestCase):
     def test_photonic_interface_perfect_link(self):
         repeater_distances = [10, 20, 20, 10]
         end_distance = 10
-        photonic_interface_fidelity = 0.5
+        prob_max_mixed_single_interface = 0.3
+        prob_loss_single_interface = 0.7
 
         link_cfg = DepolariseLinkConfig(speed_of_light=1e9, fidelity=1, prob_success=1)
-        photonic_interface_cfg = DepolarizingPhotonicInterfaceConfig(fidelity=photonic_interface_fidelity, p_loss=0)
+        photonic_interface_cfg = DepolarizingPhotonicInterfaceConfig(prob_max_mixed=prob_max_mixed_single_interface,
+                                                                     p_loss=prob_loss_single_interface)
 
         network_cfg = self._create_network(repeater_distances, end_distance,
                                            link_typ="depolarise", link_cfg=link_cfg,
                                            photonic_interface_typ="depolarise", photonic_interface_cfg=photonic_interface_cfg)
 
-        fid, completion_time = self._perform_epr_test_run(network_cfg, num_epr=1)
+        fid, completion_time = self._perform_epr_test_run(network_cfg, num_epr=100)
 
         # Find expected fidelity by computing probability that the state is not maximally mixed
-        prob_max_mixed_single_interface = fidelity_to_prob_max_mixed(photonic_interface_fidelity)
         prob_max_mixed = 1 - (1 - prob_max_mixed_single_interface)**2
+
+        assert repeater_distances[0] == repeater_distances[-1]
+        single_epr_attempt_time = end_distance + repeater_distances[0]
+        expected_completion_time = 3/2 * single_epr_attempt_time / (1-prob_loss_single_interface)
 
         self.assertAlmostEqual(fid, prob_max_mixed_to_fidelity(prob_max_mixed),
                                delta=1e-9)
+        self.assertAlmostEqual(completion_time, expected_completion_time,
+                               delta=expected_completion_time*0.05)
 
     def test_photonic_interface(self):
         repeater_distances = [10, 20, 20, 10]
         end_distance = 10
-        photonic_interface_fidelity = 0.8
+        prob_max_mixed_single_interface = 0.2
         link_fidelity = 0.9
+        prob_loss_single_interface = 1 - 0.001
+        prob_success_link = 0.1
 
-        link_cfg = DepolariseLinkConfig(speed_of_light=1e9, fidelity=link_fidelity, prob_success=1)
-        photonic_interface_cfg = DepolarizingPhotonicInterfaceConfig(fidelity=photonic_interface_fidelity, p_loss=0)
+        link_cfg = DepolariseLinkConfig(speed_of_light=1e9, fidelity=link_fidelity, prob_success=prob_success_link)
+        photonic_interface_cfg = DepolarizingPhotonicInterfaceConfig(prob_max_mixed=prob_max_mixed_single_interface,
+                                                                     p_loss=prob_loss_single_interface
+)
 
         network_cfg = self._create_network(repeater_distances, end_distance,
                                            link_typ="depolarise", link_cfg=link_cfg,
                                            photonic_interface_typ="depolarise", photonic_interface_cfg=photonic_interface_cfg)
 
-        fid, completion_time = self._perform_epr_test_run(network_cfg, num_epr=1)
+        fid, completion_time = self._perform_epr_test_run(network_cfg, num_epr=100)
 
         # Find expected fidelity by computing probability that the state is not maximally mixed
-        prob_max_mixed_single_interface = fidelity_to_prob_max_mixed(photonic_interface_fidelity)
         prob_max_mixed_link = fidelity_to_prob_max_mixed(link_fidelity)
         prob_max_mixed = 1 - (1 - prob_max_mixed_single_interface)**2 * (1-prob_max_mixed_link)**4
 
+        assert repeater_distances[0] == repeater_distances[-1]
+        single_epr_attempt_time = end_distance + repeater_distances[0]
+        expected_completion_time = 3/2 * single_epr_attempt_time / ((1-prob_loss_single_interface) * prob_success_link)
+
         self.assertAlmostEqual(fid, prob_max_mixed_to_fidelity(prob_max_mixed),
                                delta=1e-9)
+        self.assertAlmostEqual(completion_time, expected_completion_time,
+                               delta=expected_completion_time*0.05)
