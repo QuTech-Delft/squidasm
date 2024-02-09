@@ -17,11 +17,11 @@ help:
 	@echo "clean             Removes all .pyc files."
 
 _check_variables:
-ifndef NETSQUIDPYPI_USER
-	$(error Set the environment variable NETSQUIDPYPI_USER before installing)
+ifeq ($(NETSQUID_USER),)
+	$(error A username is required: please set the environment variable NETSQUIDPYPI_USER before installing)
 endif
-ifndef NETSQUIDPYPI_PWD
-	$(error Set the environment variable NETSQUIDPYPI_PWD before installing)
+ifeq ($(NETSQUID_PWD),)
+	$(error A password is required: please set the environment variable NETSQUIDPYPI_PWD before installing)
 endif
 
 clean:
