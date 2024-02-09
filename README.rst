@@ -34,6 +34,13 @@ This can be done by executing the following code, but with your own user name an
     export NETSQUIDPYPI_USER=user1234
     export NETSQUIDPYPI_PWD=password1234
 
+It's also possible to write your password to a text file instead, and set the path to that file with another environment variable:
+
+.. code-block:: bash
+
+    export NETSQUIDPYPI_USER=user1234
+    export NETSQUIDPYPI_PWD_FILEPATH=password.txt
+
 For a more permanent solution, if SquidASM is installed more than once, these lines can be added to ``~\.bashrc``.
 
 Then, to install squidasm execute the following command inside the newly created squidasm folder:
@@ -78,7 +85,7 @@ Multithreaded simulation uses multiple threads: one thread for each application 
 
 Since application layer code is in a separate thread, it can do blocking operations, e.g. waiting for user input or receiving a message over TCP, without blocking the reset of the simulation. The way applications are written for the multithread simulator is hence closest to how they would be written when running on real hardware.
 
-Since the quantum simulator (i.e. NetSquid) uses simulated time and does not work well with real-time interaction (like waiting for events outside the simulator process), the multithreaded simulator uses busy loops in some cases, which slows down overall execution. 
+Since the quantum simulator (i.e. NetSquid) uses simulated time and does not work well with real-time interaction (like waiting for events outside the simulator process), the multithreaded simulator uses busy loops in some cases, which slows down overall execution.
 
 Singlethread
 -------------
