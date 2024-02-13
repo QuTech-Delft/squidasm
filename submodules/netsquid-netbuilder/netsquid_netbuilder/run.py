@@ -34,6 +34,8 @@ from netsquid_netbuilder.modules.scheduler.fifo import FIFOScheduleBuilder
 from netsquid_netbuilder.modules.scheduler.static import StaticScheduleBuilder
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 
+from netsquid_netbuilder.modules.qrep_chain_control.swap_asap.swap_asap_builder import SwapASAPConfig, SwapASAPBuilder
+
 if typing.TYPE_CHECKING:
     from netsquid_netbuilder.network import Network
 
@@ -72,6 +74,9 @@ def get_default_builder() -> NetworkBuilder:
     # default schedulers
     builder.register_scheduler("static", StaticScheduleBuilder)
     builder.register_scheduler("fifo", FIFOScheduleBuilder)
+
+    # default quantum repeater chain control
+    builder.register_qrep_chain_control("swapASAP", SwapASAPBuilder, SwapASAPConfig)
 
     return builder
 

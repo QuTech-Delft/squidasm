@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Type
 
 from netsquid.components import Port
 from netsquid_driver.EGP import EGPService
-from netsquid_driver.entanglement_service import EntanglementService
-from netsquid_driver.new_entanglment_service import NewEntanglementService
-from netsquid_driver.swap_asap_service import SwapASAPService
+
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_magic.photonic_interface_interface import (
     IPhotonicInterfaceBuilder,
@@ -26,10 +23,7 @@ from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkCo
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
 from netsquid_netbuilder.network import Network
-from netsquid_qrepchain.control_layer.swap_asap import SwapASAP
-from netsquid_qrepchain.control_layer.swapasap_egp import (
-    SwapAsapEndNodeLinkLayerProtocol,
-)
+from netsquid_netbuilder.modules.qrep_chain_control.interface import IQRepChainControlBuilder, IQRepChainControlConfig
 
 from squidasm.sim.stack.stack import ProcessingNode
 
@@ -61,10 +55,10 @@ class ChainBuilder:
         self.chain_configs: Optional[List[RepeaterChainConfig]] = None
         self.clink_builders: Dict[str, Type[ICLinkBuilder]] = {}
         self.clink_configs: Dict[str, Type[ICLinkConfig]] = {}
-        self.photonic_interface_builders: Dict[
-            str, Type[IPhotonicInterfaceBuilder]
-        ] = {}
+        self.photonic_interface_builders: Dict[str, Type[IPhotonicInterfaceBuilder]] = {}
         self.photonic_interface_configs: Dict[str, Type[IPhotonicInterfaceConfig]] = {}
+        self.qrep_chain_control_builders: Dict[str, Type[IQRepChainControlBuilder]] = {}
+        self.qrep_chain_control_configs: Dict[str, Type[IQRepChainControlConfig]] = {}
         self._logger = LogManager.get_stack_logger(self.__class__.__name__)
 
     def register_qdevice(self, key: str, builder: Type[IQDeviceBuilder]):
@@ -90,6 +84,15 @@ class ChainBuilder:
     ):
         self.photonic_interface_builders[key] = builder
         self.photonic_interface_configs[key] = config
+
+    def register_qrep_chain_control(
+        self,
+        key: str,
+        builder: Type[IQRepChainControlBuilder],
+        config: Type[IQRepChainControlConfig],
+    ):
+        self.qrep_chain_control_builders[key] = builder
+        self.qrep_chain_control_configs[key] = config
 
     def set_configs(self, chain_configs: List[RepeaterChainConfig]):
         if chain_configs is None:
@@ -300,72 +303,32 @@ class ChainBuilder:
         return link_dict
 
     def build_egp(self, network: Network) -> Dict[(str, str), EGPService]:
-
         num_repeater_chains = int(len(network.chains) / 2)
+        egp_dict = {}
+
         if num_repeater_chains == 0:
-            return {}
+            return egp_dict
         elif num_repeater_chains == 1:
             pass
         else:
-            raise NotImplementedError(
-                "Simulation is currently limited to a single repeater chain"
-            )
+            raise NotImplementedError("Simulation is currently limited to a single repeater chain") # noqa
 
-        temp_egp_dict: Dict[str, EGPService] = {}
-        for end_node in network.end_nodes.values():
-            repeater_egp = SwapAsapEndNodeLinkLayerProtocol(
-                end_node, network.node_name_id_mapping, list(network.chains.values())[0]
-            )
-            end_node.driver.add_service(EGPService, repeater_egp)
-            temp_egp_dict[end_node.name] = repeater_egp
+        for chain_config in self.chain_configs:
+            qrep_control_builder = self.qrep_chain_control_builders[chain_config.qrep_chain_control_typ] # noqa
+            qrep_control_cfg_typ = self.qrep_chain_control_configs[chain_config.qrep_chain_control_typ] # noqa
+            qrep_control_config = chain_config.qrep_chain_control_cfg
+            chain = network.chains[(chain_config.metro_hub1, chain_config.metro_hub2)]
 
-        egp_dict: Dict[(str, str), EGPService] = {}
-        for chain in network.chains.values():
-            for hub1_end_node, hub2_end_node in itertools.product(
-                chain.hub_1.end_nodes.values(), chain.hub_2.end_nodes.values()
-            ):
-
-                egp_dict[(hub1_end_node.name, hub2_end_node.name)] = temp_egp_dict[
-                    hub1_end_node.name
-                ]
-                egp_dict[(hub2_end_node.name, hub1_end_node.name)] = temp_egp_dict[
-                    hub2_end_node.name
-                ]
-
-            self._setup_services(network)
+            if isinstance(qrep_control_config, dict):
+                qrep_control_config = qrep_control_cfg_typ(**qrep_control_config)  # noqa
+            if not isinstance(qrep_control_config, qrep_control_cfg_typ):  # noqa
+                raise TypeError(
+                    f"Incorrect configuration provided. Got {type(qrep_control_config)},"
+                    f" expected {qrep_control_cfg_typ.__name__}"
+                )
+            egp_dict.update(qrep_control_builder.build(chain, network, qrep_control_config))
 
         return egp_dict
-
-    def _setup_services(self, network: Network):
-        all_qnodes = list(network.end_nodes.values())
-        for chain in network.chains.values():
-            all_qnodes += chain.repeater_nodes
-
-        for node in all_qnodes:
-            driver = node.driver
-
-            local_link_dict = network.filter_for_node(node.name, network.links)
-
-            local_distributor_dict = {
-                node_name: link.magic_distributor
-                for node_name, link in local_link_dict.items()
-            }
-            for magic_distributor in local_distributor_dict.values():
-                magic_distributor.clear_all_callbacks()
-
-            driver.services[EntanglementService] = NewEntanglementService(
-                node,
-                local_distributor_dict,
-                node_name_id_mapping=network.node_name_id_mapping,
-            )
-
-            # Investigate if this service is needed
-            # driver.add_service(CutoffService, CutoffTimer(node=node, cutoff_time=cutoff_time))
-
-        for chain in network.chains.values():
-            for repeater in chain.repeater_nodes:
-                driver = repeater.driver
-                driver.add_service(SwapASAPService, SwapASAP(repeater))
 
     def build_photonic_interfaces(self, network: Network):
         if self.chain_configs is None:
@@ -374,36 +337,23 @@ class ChainBuilder:
             if chain_config.photonic_interface_typ is None:
                 return
 
-            photonic_interface_builder = self.photonic_interface_builders[
-                chain_config.photonic_interface_typ
-            ]
-            photonic_interface_cfg_typ = self.photonic_interface_configs[
-                chain_config.photonic_interface_typ
-            ]
+            photonic_interface_builder = self.photonic_interface_builders[chain_config.photonic_interface_typ]  # noqa
+            photonic_interface_cfg_typ = self.photonic_interface_configs[chain_config.photonic_interface_typ]  # noqa
             photonic_interface_config = chain_config.photonic_interface_cfg
+            chain = network.chains[(chain_config.metro_hub1, chain_config.metro_hub2)]
 
             if isinstance(photonic_interface_config, dict):
-                photonic_interface_config = photonic_interface_cfg_typ(
-                    **photonic_interface_config
-                )
-            if not isinstance(
-                photonic_interface_config, photonic_interface_cfg_typ
-            ):  # noqa
+                photonic_interface_config = photonic_interface_cfg_typ(**photonic_interface_config)  # noqa
+            if not isinstance(photonic_interface_config, photonic_interface_cfg_typ):  # noqa
                 raise TypeError(
                     f"Incorrect configuration provided. Got {type(photonic_interface_config)},"
                     f" expected {photonic_interface_cfg_typ.__name__}"
                 )
 
-            chain = network.chains[(chain_config.metro_hub1, chain_config.metro_hub2)]
-
-            link_keys = self._get_photonic_interface_link_keys(
-                chain, chain_config.photonic_interface_loc
-            )
+            link_keys = self._get_photonic_interface_link_keys(chain, chain_config.photonic_interface_loc)  # noqa
 
             for link_key in link_keys:
-                photonic_interface = photonic_interface_builder.build(
-                    photonic_interface_config
-                )
+                photonic_interface = photonic_interface_builder.build(photonic_interface_config) # noqa
                 link = network.links[link_key]
                 link.magic_distributor.photonic_interface = photonic_interface
 

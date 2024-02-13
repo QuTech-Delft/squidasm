@@ -31,6 +31,7 @@ from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
+from netsquid_netbuilder.modules.qrep_chain_control.interface import IQRepChainControlBuilder, IQRepChainControlConfig
 from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
 from netsquid_netbuilder.network import Network
 
@@ -79,6 +80,14 @@ class NetworkBuilder:
         config: Type[IPhotonicInterfaceConfig],
     ):
         self.chain_builder.register_photonic_interface(key, builder, config)
+
+    def register_qrep_chain_control(
+        self,
+        key: str,
+        builder: Type[IQRepChainControlBuilder],
+        config: Type[IQRepChainControlConfig],
+    ):
+        self.chain_builder.register_qrep_chain_control(key, builder, config)
 
     def build(self, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Network:
         self.hub_builder.set_configs(config.hubs)

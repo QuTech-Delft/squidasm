@@ -3,6 +3,7 @@ from typing import List, Union
 
 from netsquid_magic.models.depolarise import DepolariseLinkConfig
 from netsquid_magic.photonic_interface_interface import IPhotonicInterfaceConfig
+from netsquid_netbuilder.modules.qrep_chain_control.interface import IQRepChainControlConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
@@ -14,6 +15,7 @@ from netsquid_netbuilder.base_configs import (
 )
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
+from netsquid_netbuilder.modules.qrep_chain_control.swap_asap.swap_asap_builder import SwapASAPConfig
 from netsquid_netbuilder.modules.clinks.interface import ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
@@ -232,6 +234,8 @@ def create_qia_prototype_network(
     qdevice_cfg: IQDeviceConfig = None,
     photonic_interface_typ: str = None,
     photonic_interface_cfg: IPhotonicInterfaceConfig = None,
+    qrep_chain_control_typ: str = "swapASAP",
+    qrep_chain_control_cfg: IQRepChainControlConfig = None,
 ) -> StackNetworkConfig:
     network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
     clink_cfg = InstantCLinkConfig() if clink_cfg is None else clink_cfg
@@ -305,6 +309,8 @@ def create_qia_prototype_network(
         ]
     )
 
+    qrep_chain_control_cfg = qrep_chain_control_cfg if qrep_chain_control_cfg is not None else SwapASAPConfig()
+
     repeater_chain = RepeaterChainConfig(
         metro_hub1="mh1",
         metro_hub2="mh2",
@@ -318,6 +324,8 @@ def create_qia_prototype_network(
         schedule_cfg=None,
         photonic_interface_typ=photonic_interface_typ,
         photonic_interface_cfg=photonic_interface_cfg,
+        qrep_chain_control_typ=qrep_chain_control_typ,
+        qrep_chain_control_cfg=qrep_chain_control_cfg
     )
     network_config.repeater_chains = [repeater_chain]
 

@@ -134,6 +134,10 @@ repeater_chains:
       prob_max_mixed: 0.3
       p_loss: 0.9
 
+    qrep_chain_control_typ: swapASAP
+    qrep_chain_control_cfg:
+      dummy: null
+
     lengths:
       - 10
       - 20

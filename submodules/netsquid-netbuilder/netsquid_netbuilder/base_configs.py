@@ -89,6 +89,9 @@ class RepeaterChainConfig(YamlLoadable):
     photonic_interface_loc: str = "end"
     photonic_interface_cfg: Optional[Any]
 
+    qrep_chain_control_typ: str
+    qrep_chain_control_cfg: Any
+
     # schedule_typ: str
     # schedule_cfg: Any
 
