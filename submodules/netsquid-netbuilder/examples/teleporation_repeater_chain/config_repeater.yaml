@@ -136,7 +136,8 @@ repeater_chains:
 
     qrep_chain_control_typ: swapASAP
     qrep_chain_control_cfg:
-      dummy: null
+      cutoff_time: null
+      parallel_link_generation: true
 
     lengths:
       - 10

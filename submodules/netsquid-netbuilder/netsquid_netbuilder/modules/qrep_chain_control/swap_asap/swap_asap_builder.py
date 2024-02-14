@@ -23,6 +23,7 @@ from squidasm.sim.stack.stack import ProcessingNode
 
 class SwapASAPConfig(IQRepChainControlConfig):
     cutoff_time: float = None
+    parallel_link_generation: bool = True
 
 
 class SwapASAPBuilder(IQRepChainControlBuilder):
@@ -70,10 +71,13 @@ class SwapASAPBuilder(IQRepChainControlBuilder):
             for magic_distributor in local_distributor_dict.values():
                 magic_distributor.clear_all_callbacks()
 
+            num_parallel_links = 2 if control_cfg.parallel_link_generation else 1
+
             driver.services[EntanglementService] = NewEntanglementService(
                 node,
                 local_distributor_dict,
                 node_name_id_mapping=network.node_name_id_mapping,
+                num_parallel_links=num_parallel_links
             )
 
             if control_cfg.cutoff_time:

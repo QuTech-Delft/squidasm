@@ -3,6 +3,7 @@ import logging
 import netsquid as ns
 from netsquid_magic.models.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.logger import LogManager
+from netsquid_netbuilder.modules.qrep_chain_control.swap_asap.swap_asap_builder import SwapASAPConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.photonic_interface.depolarizing import (
     DepolarizingPhotonicInterfaceConfig,
@@ -50,6 +51,8 @@ cfg = create_qia_prototype_network(
     qdevice_cfg=qdevice_cfg,
     photonic_interface_typ="depolarise",
     photonic_interface_cfg=photonic_interface_cfg,
+    qrep_chain_control_typ="swapASAP",
+    qrep_chain_control_cfg=SwapASAPConfig(parallel_link_generation=True)
 )
 network = builder.build(cfg, hacky_is_squidasm_flag=False)
 
