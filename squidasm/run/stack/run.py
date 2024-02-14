@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 import netsquid as ns
 from netsquid_driver.classical_socket_service import ClassicalSocket
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.run import get_default_builder
 
 from squidasm.sim.stack.context import NetSquidContext
@@ -20,7 +20,7 @@ def fidelity_to_prob_max_mixed(fid: float) -> float:
     return (1 - fid) * 4.0 / 3.0
 
 
-def _setup_network(config: StackNetworkConfig) -> StackNetwork:
+def _setup_network(config: NetworkConfig) -> StackNetwork:
     NetSquidContext.reset()
     builder = get_default_builder()
     network = builder.build(config)
@@ -87,7 +87,7 @@ def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
 
 
 def run(
-    config: StackNetworkConfig, programs: Dict[str, Program], num_times: int = 1
+    config: NetworkConfig, programs: Dict[str, Program], num_times: int = 1
 ) -> List[List[Dict[str, Any]]]:
     """Run programs on a network specified by a network configuration.
 

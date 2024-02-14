@@ -89,7 +89,7 @@ class HubBuilder:
         for hub_config in self.hub_configs:
             hub = network.hubs[hub_config.name]
             for connection in hub_config.connections:
-                hub.end_nodes[connection.stack] = network.end_nodes[connection.stack]
+                hub.end_nodes[connection.node] = network.end_nodes[connection.node]
 
     def create_metro_hub_objects(self) -> Dict[str, MetroHub]:
         hubs = {}
@@ -99,7 +99,7 @@ class HubBuilder:
 
                 # Populate hub_end_node_length field of metro hub object
                 for connection in hub_config.connections:
-                    hub.end_node_lengths[connection.stack] = connection.length
+                    hub.end_node_lengths[connection.node] = connection.length
         return hubs
 
     def build_hub_nodes(self, network: Network):
@@ -135,7 +135,7 @@ class HubBuilder:
 
             # Build hub - end node connections
             for connection_config in hub_config.connections:
-                node = network.end_nodes[connection_config.stack]
+                node = network.end_nodes[connection_config.node]
                 if hasattr(clink_config, "length"):
                     clink_config.length = connection_config.length
 
@@ -177,8 +177,8 @@ class HubBuilder:
             for conn_1_cfg, conn_2_cfg in itertools.combinations(
                 hub_config.connections, 2
             ):
-                node1 = network.end_nodes[conn_1_cfg.stack]
-                node2 = network.end_nodes[conn_2_cfg.stack]
+                node1 = network.end_nodes[conn_1_cfg.node]
+                node2 = network.end_nodes[conn_2_cfg.node]
                 link_set_length(link_config, conn_1_cfg.length, conn_2_cfg.length)
 
                 link_prot = link_builder.build(node1, node2, link_config)
@@ -197,7 +197,7 @@ class HubBuilder:
             schedule_builder = self.scheduler_builders[hub_config.schedule_typ]
             hub = network.hubs[hub_config.name]
 
-            node_names = [config.stack for config in hub_config.connections]
+            node_names = [config.node for config in hub_config.connections]
             schedule = schedule_builder.build(
                 hub_config.name,
                 network,

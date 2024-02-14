@@ -101,7 +101,7 @@ The various stack types are discussed in :ref:`label_stack_types`.
 
 Links connect the stacks with a way of generating EPR pairs between the two nodes.
 A link requires references to the two stacks it is to connect.
-This is done by registering the names of the stacks in the fields ``stack1`` and ``stack2``.
+This is done by registering the names of the stacks in the fields ``node1`` and ``node2``.
 The model type of the link is specified using the ``typ`` field.
 The various settings for the model are defined inside ``cfg``.
 
@@ -248,7 +248,7 @@ This link object is used to replace the original links inside the configuration:
 
 .. code-block:: python
 
-    link = LinkConfig(stack1="Alice", stack2="Bob", typ="depolarise", cfg=depolarise_config)
+    link = LinkConfig(node1="Alice", node2="Bob", typ="depolarise", cfg=depolarise_config)
 
     # Replace link from YAML file with new depolarise link
     cfg.links = [link]

@@ -10,7 +10,7 @@ from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.futures import Future, RegFuture
 from netqasm.sdk.qubit import Qubit
 from netsquid_driver.classical_socket_service import ClassicalSocket
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 
@@ -156,7 +156,7 @@ PI_OVER_2 = math.pi / 2
 
 
 def computation_round(
-    cfg: StackNetworkConfig,
+    cfg: NetworkConfig,
     num_times: int = 1,
     alpha: float = 0.0,
     beta: float = 0.0,
@@ -187,7 +187,7 @@ def computation_round(
 
 
 def trap_round(
-    cfg: StackNetworkConfig,
+    cfg: NetworkConfig,
     num_times: int = 1,
     alpha: float = 0.0,
     beta: float = 0.0,
@@ -233,9 +233,9 @@ if __name__ == "__main__":
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config_nv.yaml")
-    cfg = StackNetworkConfig.from_file(cfg_file)
-    cfg.stacks[0].qdevice_cfg = NVQDeviceConfig.perfect_config()
-    cfg.stacks[1].qdevice_cfg = NVQDeviceConfig.perfect_config()
+    cfg = NetworkConfig.from_file(cfg_file)
+    cfg.processing_nodes[0].qdevice_cfg = NVQDeviceConfig.perfect_config()
+    cfg.processing_nodes[1].qdevice_cfg = NVQDeviceConfig.perfect_config()
 
     # computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
     trap_round(cfg=cfg, num_times=num_times, dummy=2)

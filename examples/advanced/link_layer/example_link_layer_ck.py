@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict, Generator
 
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.logger import LogManager
 
 from pydynaa import EventExpression
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     LogManager.set_log_level("WARNING")
 
     num_times = 1
-    cfg = StackNetworkConfig.from_file(
+    cfg = NetworkConfig.from_file(
         os.path.join(os.getcwd(), os.path.dirname(__file__), "config.yaml")
     )
 

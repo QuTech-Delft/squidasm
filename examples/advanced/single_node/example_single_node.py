@@ -2,7 +2,7 @@ from typing import Any, Dict, Generator
 
 from netqasm.lang.parsing.text import parse_text_protosubroutine
 from netqasm.sdk.qubit import Qubit
-from netsquid_netbuilder.base_configs import StackConfig, StackNetworkConfig
+from netsquid_netbuilder.base_configs import ProcessingNodeConfig, NetworkConfig
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 
@@ -53,12 +53,12 @@ if __name__ == "__main__":
     LogManager.set_log_level("WARNING")
 
     num_times = 1
-    client = StackConfig(
+    client = ProcessingNodeConfig(
         name="client",
         qdevice_typ="nv",
         qdevice_cfg=NVQDeviceConfig.perfect_config(),
     )
-    cfg = StackNetworkConfig(stacks=[client], links=[])
+    cfg = NetworkConfig(processing_nodes=[client], links=[])
 
     num_pairs = 10
 

@@ -8,8 +8,8 @@ from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
-    StackConfig,
-    StackNetworkConfig,
+    ProcessingNodeConfig,
+    NetworkConfig,
 )
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
@@ -95,7 +95,7 @@ class ServerProgram(Program):
 
 
 def get_distribution(
-    cfg: StackNetworkConfig,
+    cfg: NetworkConfig,
     num_times: int,
     alpha: float,
     theta1: float,
@@ -121,26 +121,26 @@ PI_OVER_2 = math.pi / 2
 if __name__ == "__main__":
     num_times = 100
 
-    client_stack = StackConfig(
+    client_stack = ProcessingNodeConfig(
         name="client",
         qdevice_typ="generic",
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
-    server_stack = StackConfig(
+    server_stack = ProcessingNodeConfig(
         name="server",
         qdevice_typ="generic",
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
-        stack1="client", stack2="server", typ="perfect", cfg=PerfectLinkConfig()
+        node1="client", node2="server", typ="perfect", cfg=PerfectLinkConfig()
     )
 
     clink = CLinkConfig(
-        stack1="client", stack2="server", typ="instant", cfg=InstantCLinkConfig()
+        node1="client", node2="server", typ="instant", cfg=InstantCLinkConfig()
     )
 
-    cfg = StackNetworkConfig(
-        stacks=[client_stack, server_stack], links=[link], clinks=[clink]
+    cfg = NetworkConfig(
+        processing_nodes=[client_stack, server_stack], links=[link], clinks=[clink]
     )
 
     get_distribution(cfg, num_times, alpha=0, theta1=0)

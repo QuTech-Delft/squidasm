@@ -2,7 +2,7 @@ import netsquid as ns
 import numpy as np
 from matplotlib import pyplot
 from netsquid_magic.models.depolarise import DepolariseLinkConfig
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.run import get_default_builder, run
 from netsquid_netbuilder.util.network_generation import create_2_node_network
 from protocols import AliceProtocol, BobProtocol
@@ -11,7 +11,7 @@ ns.set_qstate_formalism(ns.QFormalism.DM)
 builder = get_default_builder()
 
 
-def run_simulation(cfg: StackNetworkConfig) -> float:
+def run_simulation(cfg: NetworkConfig) -> float:
     network = builder.build(cfg)
 
     alice = AliceProtocol()

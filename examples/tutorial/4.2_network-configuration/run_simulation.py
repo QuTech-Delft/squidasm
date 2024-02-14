@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 from application import AliceProgram, BobProgram
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 
 from squidasm.run.stack.run import run
 
@@ -14,7 +14,7 @@ config_files.sort()
 for config_file in config_files:
 
     # import network configuration from file
-    cfg = StackNetworkConfig.from_file(config_file)
+    cfg = NetworkConfig.from_file(config_file)
 
     # Set a parameter, the number of epr rounds, for the programs
     epr_rounds = 10

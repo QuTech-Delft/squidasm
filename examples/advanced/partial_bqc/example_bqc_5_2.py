@@ -8,8 +8,8 @@ from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
-    StackConfig,
-    StackNetworkConfig,
+    ProcessingNodeConfig,
+    NetworkConfig,
 )
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
@@ -97,26 +97,26 @@ class ServerProgram(Program):
 
 if __name__ == "__main__":
 
-    client_stack = StackConfig(
+    client_stack = ProcessingNodeConfig(
         name="client",
         qdevice_typ="generic",
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
-    server_stack = StackConfig(
+    server_stack = ProcessingNodeConfig(
         name="server",
         qdevice_typ="generic",
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
-        stack1="client", stack2="server", typ="perfect", cfg=PerfectLinkConfig()
+        node1="client", node2="server", typ="perfect", cfg=PerfectLinkConfig()
     )
 
     clink = CLinkConfig(
-        stack1="client", stack2="server", typ="instant", cfg=InstantCLinkConfig()
+        node1="client", node2="server", typ="instant", cfg=InstantCLinkConfig()
     )
 
-    cfg = StackNetworkConfig(
-        stacks=[client_stack, server_stack], links=[link], clinks=[clink]
+    cfg = NetworkConfig(
+        processing_nodes=[client_stack, server_stack], links=[link], clinks=[clink]
     )
 
     client_program = ClientProgram(alpha=0, beta=0)

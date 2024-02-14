@@ -1,5 +1,5 @@
 # A configuration with a perfect generic qdevice and a link with a heralded model using a two click protocol
-stacks:
+processing_nodes:
   - name: Alice
     qdevice_typ: generic
     qdevice_cfg:
@@ -32,15 +32,15 @@ link_config: &link_cfg
     num_resolving: False
 
 links:
-  - stack1: Alice
-    stack2: Bob
+  - node1: Alice
+    node2: Bob
     typ: heralded-double-click
     cfg:
       <<: *link_cfg
 
 clinks:
-  - stack1: Alice
-    stack2: Bob
+  - node1: Alice
+    node2: Bob
     typ: instant
     cfg:
       dummy: null

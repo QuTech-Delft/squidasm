@@ -5,7 +5,7 @@ qdevice_settings: &qdevice_settings
     T1: 0
     T2: 0
 
-stacks:
+processing_nodes:
   - name: sender_0
     <<: *qdevice_settings
   - name: receiver_0
@@ -23,17 +23,17 @@ stacks:
 hubs:
   - name: Hub1
     connections:
-      - stack: sender_0
+      - node: sender_0
         length: 10.4
-      - stack: sender_1
+      - node: sender_1
         length: 23
-      - stack: sender_2
+      - node: sender_2
         length: 1
-      - stack: receiver_0
+      - node: receiver_0
         length: 4
-      - stack: receiver_1
+      - node: receiver_1
         length: 213.3e8
-      - stack: receiver_2
+      - node: receiver_2
         length: 15
 
     link_typ: depolarise

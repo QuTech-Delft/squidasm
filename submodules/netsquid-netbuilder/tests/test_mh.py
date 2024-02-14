@@ -13,7 +13,7 @@ from netsquid_magic.models.heralded_single_click import (
     HeraldedSingleClickLinkConfig,
 )
 from netsquid_magic.models.perfect import PerfectLinkConfig
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.scheduler.fifo import FIFOScheduleConfig
 from netsquid_netbuilder.run import run
@@ -57,7 +57,7 @@ class TestMetropolitanHub(unittest.TestCase):
 
     def _perform_classical_delay_test(
         self,
-        network_cfg: StackNetworkConfig,
+        network_cfg: NetworkConfig,
         sender_names: List[str],
         receiver_names: List[str],
         distances: List[float],
@@ -122,7 +122,7 @@ class TestMetropolitanHub(unittest.TestCase):
         receiver_names = [f"receiver_{i}" for i in range(num_nodes // 2)]
 
         test_dir = pathlib.Path(__file__).parent.resolve()
-        network_cfg = StackNetworkConfig.from_file(
+        network_cfg = NetworkConfig.from_file(
             f"{test_dir}/yaml_configs/metro_hub.yaml"
         )
 
@@ -195,7 +195,7 @@ class TestMetropolitanHub(unittest.TestCase):
         receiver_names = [f"receiver_{i}" for i in range(num_nodes // 2)]
 
         test_dir = pathlib.Path(__file__).parent.resolve()
-        network_cfg = StackNetworkConfig.from_file(
+        network_cfg = NetworkConfig.from_file(
             f"{test_dir}/yaml_configs/metro_hub_depolarise.yaml"
         )
 
@@ -255,7 +255,7 @@ class TestMetropolitanHub(unittest.TestCase):
         receiver_names = [f"receiver_{i}" for i in range(num_nodes // 2)]
 
         test_dir = pathlib.Path(__file__).parent.resolve()
-        network_cfg = StackNetworkConfig.from_file(
+        network_cfg = NetworkConfig.from_file(
             f"{test_dir}/yaml_configs/metro_hub_single-click-heralded.yaml"
         )
 
@@ -315,7 +315,7 @@ class TestMetropolitanHub(unittest.TestCase):
 
     def _perform_epr_test_run(
         self,
-        network_cfg: StackNetworkConfig,
+        network_cfg: NetworkConfig,
         sender_names: List[str],
         receiver_names: List[str],
         minimum_fidelity: float = 0,

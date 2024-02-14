@@ -13,7 +13,7 @@ from netsquid_magic.models.heralded_single_click import (
     HeraldedSingleClickLinkConfig,
 )
 from netsquid_magic.models.perfect import PerfectLinkConfig
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.photonic_interface.depolarizing import (
     DepolarizingPhotonicInterfaceBuilder,
@@ -99,7 +99,7 @@ class TestPhotonicInterfaceChain(unittest.TestCase):
 
     def _perform_epr_test_run(
         self,
-        network_cfg: StackNetworkConfig,
+        network_cfg: NetworkConfig,
         num_epr: int,
         minimum_fidelity: float = 0,
     ):
@@ -139,7 +139,7 @@ class TestPhotonicInterfaceChain(unittest.TestCase):
     def _create_network(self, repeater_distances: list, end_distance: float,
                         link_typ: str, link_cfg,
                         photonic_interface_typ: str,
-                        photonic_interface_cfg) -> StackNetworkConfig:
+                        photonic_interface_cfg) -> NetworkConfig:
         network_cfg = create_qia_prototype_network(
             nodes_hub1=["sender"],
             node_distances_hub1=[end_distance],

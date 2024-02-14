@@ -25,7 +25,7 @@ qdevice: &qdevice
   prob_error_1: 0.005
   num_qubits: 2
 
-stacks:
+processing_nodes:
   - name: client
     qdevice_typ: nv
     qdevice_cfg:
@@ -36,8 +36,8 @@ stacks:
       <<: *qdevice
 
 links:
-  - stack1: client
-    stack2: server
+  - node1: client
+    node2: server
     typ: perfect
     cfg:
       length_A: 0.01
@@ -47,8 +47,8 @@ links:
       alpha: 0.9
 
 clinks:
-  - stack1: client
-    stack2: server
+  - node1: client
+    node2: server
     typ: default
     cfg:
       delay: 0.5

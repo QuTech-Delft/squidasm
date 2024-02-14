@@ -43,7 +43,7 @@ qdevice_cfq: &qdevice_cfg
     ec_controlled_dir_y: 500_000
     measure: 3_700
 
-stacks:
+processing_nodes:
   - name: Alice
     qdevice_typ: nv
     qdevice_cfg:
@@ -54,15 +54,15 @@ stacks:
       <<: *qdevice_cfg
 
 links:
-  - stack1: Alice
-    stack2: Bob
+  - node1: Alice
+    node2: Bob
     typ: perfect
     cfg:
       dummy: null
 
 clinks:
-  - stack1: Alice
-    stack2: Bob
+  - node1: Alice
+    node2: Bob
     typ: instant
     cfg:
       dummy: null

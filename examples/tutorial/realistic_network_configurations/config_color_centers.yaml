@@ -33,7 +33,7 @@ qdevice_cfq: &qdevice_cfg
     measure: 3_700
 
 
-stacks:
+processing_nodes:
   - name: Alice
     qdevice_typ: nv
     qdevice_cfg:
@@ -57,15 +57,15 @@ link_cfg: &link_cfg
     num_resolving: False
 
 links:
-  - stack1: Alice
-    stack2: Bob
+  - node1: Alice
+    node2: Bob
     typ: heralded-double-click
     cfg:
       <<: *link_cfg
 
 clinks:
-  - stack1: Alice
-    stack2: Bob
+  - node1: Alice
+    node2: Bob
     typ: default
     cfg:
       delay: 20

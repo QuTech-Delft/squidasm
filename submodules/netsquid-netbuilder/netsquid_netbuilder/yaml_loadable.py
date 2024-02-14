@@ -15,6 +15,6 @@ def _from_file(path: str, typ: Any) -> Any:
 
 class YamlLoadable(BaseModel, ABC):
     @classmethod
-    def from_file(cls, path: str) -> __class__:
+    def from_file(cls, path: str) -> Any:
         """Load the configuration from a YAML file."""
         return _from_file(path, cls)  # type: ignore

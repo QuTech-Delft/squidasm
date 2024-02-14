@@ -1,11 +1,11 @@
 import netsquid as ns
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.run import get_default_builder, run
 from protocols import AliceProtocol, BobProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
 # Load network config
-cfg = StackNetworkConfig.from_file("config.yaml")
+cfg = NetworkConfig.from_file("config.yaml")
 
 # Build network
 builder = get_default_builder()

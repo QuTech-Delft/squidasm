@@ -1,7 +1,7 @@
 import logging
 
 import netsquid as ns
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.run import get_default_builder, run
 from protocols import TeleportationReceiverProtocol, TeleportationSenderProtocol
@@ -11,7 +11,7 @@ LogManager.set_log_level(logging.ERROR)
 
 builder = get_default_builder()
 
-cfg = StackNetworkConfig.from_file("config_repeater.yaml")
+cfg = NetworkConfig.from_file("config_repeater.yaml")
 network = builder.build(cfg, hacky_is_squidasm_flag=False)
 
 

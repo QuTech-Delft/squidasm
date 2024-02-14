@@ -7,7 +7,7 @@ All configurations can all be created via two routes:
     .. code-block:: python
 
         depolarise_config = DepolariseLinkConfig(fidelity=0.9)
-        link = LinkConfig(stack1="Alice", stack2="Bob", typ="depolarise", cfg=depolarise_config)
+        link = LinkConfig(node1="Alice", node2="Bob", typ="depolarise", cfg=depolarise_config)
 
 #. Loading from a YAML configuration file:
 

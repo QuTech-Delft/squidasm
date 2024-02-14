@@ -10,8 +10,8 @@ from netsquid_netbuilder.base_configs import (
     MetroHubConfig,
     MetroHubConnectionConfig,
     RepeaterChainConfig,
-    StackConfig,
-    StackNetworkConfig,
+    ProcessingNodeConfig,
+    NetworkConfig,
 )
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
@@ -25,10 +25,10 @@ from netsquid_netbuilder.modules.scheduler.interface import IScheduleConfig
 
 
 def create_single_node_network(qdevice_typ: str, qdevice_cfg: IQDeviceConfig):
-    network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
+    network_config = NetworkConfig(processing_nodes=[], links=[], clinks=[])
 
-    stack = StackConfig(name="Alice", qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg)
-    network_config.stacks.append(stack)
+    node = ProcessingNodeConfig(name="Alice", qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg)
+    network_config.processing_nodes.append(node)
 
     return network_config
 
@@ -40,7 +40,7 @@ def create_2_node_network(
     clink_cfg: ICLinkConfig = None,
     qdevice_typ: str = "generic",
     qdevice_cfg: IQDeviceConfig = None,
-) -> StackNetworkConfig:
+) -> NetworkConfig:
     node_names = ["Alice", "Bob"]
     return create_complete_graph_network(
         node_names, link_typ, link_cfg, clink_typ, clink_cfg, qdevice_typ, qdevice_cfg
@@ -55,7 +55,7 @@ def create_complete_graph_network(
     clink_cfg: ICLinkConfig = None,
     qdevice_typ: str = "generic",
     qdevice_cfg: IQDeviceConfig = None,
-) -> StackNetworkConfig:
+) -> NetworkConfig:
     """
     Create a complete graph network configuration.
     :param node_names: List of str with the names of the nodes. The amount of names will determine the amount of nodes.
@@ -67,7 +67,7 @@ def create_complete_graph_network(
     :param qdevice_cfg: Configuration of qdevice.
     :return: StackNetworkConfig object with a network.
     """
-    network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
+    network_config = NetworkConfig(processing_nodes=[], links=[], clinks=[])
 
     assert len(node_names) > 0
 
@@ -77,16 +77,16 @@ def create_complete_graph_network(
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(
+        node = ProcessingNodeConfig(
             name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg
         )
-        network_config.stacks.append(stack)
+        network_config.processing_nodes.append(node)
 
     for s1, s2 in itertools.combinations(node_names, 2):
-        link = LinkConfig(stack1=s1, stack2=s2, typ=link_typ, cfg=link_cfg)
+        link = LinkConfig(node1=s1, node2=s2, typ=link_typ, cfg=link_cfg)
         network_config.links.append(link)
 
-        clink = CLinkConfig(stack1=s1, stack2=s2, typ=clink_typ, cfg=clink_cfg)
+        clink = CLinkConfig(node1=s1, node2=s2, typ=clink_typ, cfg=clink_cfg)
         network_config.clinks.append(clink)
 
     return network_config
@@ -100,7 +100,7 @@ def create_simple_network(
     qdevice_op_time: float = 0,
     clink_delay: float = 0.0,
     link_delay: float = 0.0,
-) -> StackNetworkConfig:
+) -> NetworkConfig:
     """
     Create a complete graph network configuration with simple noise models.
     :param node_names: List of str with the names of the nodes. The amount of names will determine the amount of nodes.
@@ -155,7 +155,7 @@ def create_metro_hub_network(
     clink_cfg: ICLinkConfig = None,
     qdevice_typ: str = "generic",
     qdevice_cfg: IQDeviceConfig = None,
-) -> StackNetworkConfig:
+) -> NetworkConfig:
     """Create a star type network with a metro hub in the center.
     :param node_names: List of str with the names of the nodes. The amount of names will determine the amount of nodes.
     :param node_distances: List of float or float with distances for each end-node to the central hub.
@@ -170,7 +170,7 @@ def create_metro_hub_network(
     :return: StackNetworkConfig object with a network.
 
     """
-    network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
+    network_config = NetworkConfig(processing_nodes=[], links=[], clinks=[])
     clink_cfg = InstantCLinkConfig() if clink_cfg is None else clink_cfg
 
     for node_name in node_names:
@@ -179,10 +179,10 @@ def create_metro_hub_network(
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(
+        node = ProcessingNodeConfig(
             name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg
         )
-        network_config.stacks.append(stack)
+        network_config.processing_nodes.append(node)
 
     mh_connections = connect_mh(node_distances, node_names)
 
@@ -212,7 +212,7 @@ def connect_mh(
     assert len(node_names) == len(node_distances)
 
     for node_name, dist in zip(node_names, node_distances):
-        mh_connections.append(MetroHubConnectionConfig(stack=node_name, length=dist))
+        mh_connections.append(MetroHubConnectionConfig(node=node_name, length=dist))
 
     return mh_connections
 
@@ -236,8 +236,8 @@ def create_qia_prototype_network(
     photonic_interface_cfg: IPhotonicInterfaceConfig = None,
     qrep_chain_control_typ: str = "swapASAP",
     qrep_chain_control_cfg: IQRepChainControlConfig = None,
-) -> StackNetworkConfig:
-    network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
+) -> NetworkConfig:
+    network_config = NetworkConfig(processing_nodes=[], links=[], clinks=[])
     clink_cfg = InstantCLinkConfig() if clink_cfg is None else clink_cfg
 
     if isinstance(nodes_hub1, int):
@@ -256,10 +256,10 @@ def create_qia_prototype_network(
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(
+        node = ProcessingNodeConfig(
             name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg
         )
-        network_config.stacks.append(stack)
+        network_config.processing_nodes.append(node)
 
     mh1_connections = connect_mh(node_distances_hub1, hub1_node_names)
     mh2_connections = connect_mh(node_distances_hub2, hub2_node_names)
@@ -289,17 +289,17 @@ def create_qia_prototype_network(
     network_config.hubs = [mh1, mh2]
 
     repeater_node_names = [f"r{i}" for i in range(num_nodes_repeater_chain)]
-    repeater_stacks = []
+    repeater_nodes = []
     for node_name in repeater_node_names:
         qdevice_cfg = (
             GenericQDeviceConfig.perfect_config()
             if qdevice_cfg is None
             else qdevice_cfg
         )
-        stack = StackConfig(
+        node = ProcessingNodeConfig(
             name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg
         )
-        repeater_stacks.append(stack)
+        repeater_nodes.append(node)
 
     node_distances_repeater_chain = (
         node_distances_repeater_chain
@@ -318,7 +318,7 @@ def create_qia_prototype_network(
         link_cfg=link_cfg,
         clink_typ=clink_typ,
         clink_cfg=clink_cfg,
-        repeater_nodes=repeater_stacks,
+        repeater_nodes=repeater_nodes,
         lengths=node_distances_repeater_chain,
         schedule_typ="TODO",
         schedule_cfg=None,

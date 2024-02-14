@@ -21,7 +21,7 @@ link_config: &link_config
     # determines whether photon-number-resolving detectors are used for the Bell-state measurement
     num_resolving: False
 
-stacks:
+processing_nodes:
   - name: Node1
     qdevice_typ: generic
     qdevice_cfg:

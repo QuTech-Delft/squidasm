@@ -14,7 +14,7 @@ from netsquid_magic.models.heralded_single_click import (
     HeraldedSingleClickLinkConfig,
 )
 from netsquid_magic.models.perfect import PerfectLinkConfig
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.run import run
@@ -67,7 +67,7 @@ class TestRepeaterChain(unittest.TestCase):
 
     def _perform_classical_delay_test(
         self,
-        network_cfg: StackNetworkConfig,
+        network_cfg: NetworkConfig,
         sender_names: List[str],
         receiver_names: List[str],
         distances: Dict[Tuple[str, str], List[float]],
@@ -188,7 +188,7 @@ class TestRepeaterChain(unittest.TestCase):
 
     def _perform_epr_test_run(
         self,
-        network_cfg: StackNetworkConfig,
+        network_cfg: NetworkConfig,
         sender_names: List[str],
         receiver_names: List[str],
         minimum_fidelity: float = 0,

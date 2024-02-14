@@ -1,6 +1,6 @@
 import netsquid as ns
 from netsquid_abstractmodel.abstract_node import AbstractQdeviceBuilder
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.run import get_default_builder, run
 from protocols import AliceProtocol, BobProtocol
 
@@ -12,7 +12,7 @@ for config_file in [
     "heralded_single_click.yaml",
 ]:
     print(f"\n{config_file}\n")
-    cfg = StackNetworkConfig.from_file(config_file)
+    cfg = NetworkConfig.from_file(config_file)
 
     # Build network
     builder = get_default_builder()

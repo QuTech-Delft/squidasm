@@ -9,8 +9,8 @@ from netsquid_magic.models.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
-    StackConfig,
-    StackNetworkConfig,
+    ProcessingNodeConfig,
+    NetworkConfig,
 )
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
@@ -192,25 +192,25 @@ if __name__ == "__main__":
 
     num_times = 1
 
-    client = StackConfig(
+    client = ProcessingNodeConfig(
         name="client",
         qdevice_typ="nv",
         qdevice_cfg=NVQDeviceConfig.perfect_config(),
     )
-    server = StackConfig(
+    server = ProcessingNodeConfig(
         name="server",
         qdevice_typ="nv",
         qdevice_cfg=NVQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
-        stack1=client.name, stack2=server.name, typ="perfect", cfg=PerfectLinkConfig()
+        node1=client.name, node2=server.name, typ="perfect", cfg=PerfectLinkConfig()
     )
 
     clink = CLinkConfig(
-        stack1="client", stack2="server", typ="instant", cfg=InstantCLinkConfig()
+        node1="client", node2="server", typ="instant", cfg=InstantCLinkConfig()
     )
 
-    cfg = StackNetworkConfig(stacks=[client, server], links=[link], clinks=[clink])
+    cfg = NetworkConfig(processing_nodes=[client, server], links=[link], clinks=[clink])
 
     client_program = ClientProgram(num_repetitions=2)
     server_program = ServerProgram(num_repetitions=2)

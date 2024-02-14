@@ -45,7 +45,7 @@ repeater_node_qdevice_cfg: &repeater_node_qdevice_cfg
   single_qubit_gate_depolar_prob: 0
   two_qubit_gate_depolar_prob: 0
 
-stacks:
+processing_nodes:
   - name: h1n0
     qdevice_typ: generic
     qdevice_cfg:
@@ -67,9 +67,9 @@ stacks:
 hubs:
   - name: h1
     connections:
-      - stack: h1n0
+      - node: h1n0
         length: 10
-      - stack: h1n1
+      - node: h1n1
         length: 20
 
     link_typ: heralded-double-click
@@ -87,9 +87,9 @@ hubs:
 
   - name: h2
     connections:
-      - stack: h2n0
+      - node: h2n0
         length: 31
-      - stack: h2n1
+      - node: h2n1
         length: 4
 
     link_typ: heralded-double-click

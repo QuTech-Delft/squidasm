@@ -51,10 +51,10 @@ protocol_mapping = {}
 num_epr_pairs = 10
 for i, node_name in enumerate(node_names):
     if i % 2 == 0:
-        peer_name = cfg.stacks[i + 1].name
+        peer_name = cfg.processing_nodes[i + 1].name
         prot = AliceProtocol(peer=peer_name, num_epr_pairs=num_epr_pairs)
     else:
-        peer_name = cfg.stacks[i - 1].name
+        peer_name = cfg.processing_nodes[i - 1].name
         prot = BobProtocol(peer=peer_name, num_epr_pairs=num_epr_pairs)
     protocol_mapping[node_name] = prot
 

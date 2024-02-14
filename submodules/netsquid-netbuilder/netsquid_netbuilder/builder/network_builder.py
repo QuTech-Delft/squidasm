@@ -23,7 +23,7 @@ from netsquid_magic.photonic_interface_interface import (
     IPhotonicInterfaceBuilder,
     IPhotonicInterfaceConfig,
 )
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.builder.builder_utils import create_connection_ports
 from netsquid_netbuilder.builder.metro_hub import HubBuilder, MetroHubNode
 from netsquid_netbuilder.builder.repeater_chain import ChainBuilder
@@ -89,7 +89,7 @@ class NetworkBuilder:
     ):
         self.chain_builder.register_qrep_chain_control(key, builder, config)
 
-    def build(self, config: StackNetworkConfig, hacky_is_squidasm_flag=True) -> Network:
+    def build(self, config: NetworkConfig, hacky_is_squidasm_flag=True) -> Network:
         self.hub_builder.set_configs(config.hubs)
         self.chain_builder.set_configs(config.repeater_chains)
 
@@ -166,10 +166,10 @@ class NodeBuilder:
         self.qdevice_builders[key] = builder
 
     def build(
-        self, config: StackNetworkConfig, hacky_is_squidasm_flag=True
+        self, config: NetworkConfig, hacky_is_squidasm_flag=True
     ) -> Dict[str, ProcessingNode]:
         nodes = {}
-        for node_config in config.stacks:
+        for node_config in config.processing_nodes:
             node_name = node_config.name
             node_qdevice_typ = node_config.qdevice_typ
 
@@ -205,15 +205,15 @@ class ClassicalConnectionBuilder:
         self.clink_configs[key] = config
 
     def build(
-        self, config: StackNetworkConfig, network: Network
+        self, config: NetworkConfig, network: Network
     ) -> Dict[(str, str), Port]:
         nodes = network.end_nodes
         ports = {}
         if config.clinks is None:
             return {}
         for clink in config.clinks:
-            s1 = nodes[clink.stack1]
-            s2 = nodes[clink.stack2]
+            s1 = nodes[clink.node1]
+            s2 = nodes[clink.node2]
             clink_builder = self.clink_builders[clink.typ]
             connection = clink_builder.build(s1, s2, link_cfg=clink.cfg)
 
@@ -237,14 +237,14 @@ class LinkBuilder:
         self.link_configs[key] = config
 
     def build(
-        self, config: StackNetworkConfig, nodes: Dict[str, ProcessingNode]
+        self, config: NetworkConfig, nodes: Dict[str, ProcessingNode]
     ) -> Dict[(str, str), MagicLinkLayerProtocolWithSignaling]:
         link_dict = {}
         if config.links is None:
             return {}
         for link in config.links:
-            node1 = nodes[link.stack1]
-            node2 = nodes[link.stack2]
+            node1 = nodes[link.node1]
+            node2 = nodes[link.node2]
             if link.typ not in self.link_builders.keys():
                 # TODO improve exception
                 raise Exception(f"No model of type: {link.typ} registered")

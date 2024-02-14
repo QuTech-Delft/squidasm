@@ -6,7 +6,7 @@ from typing import Any, Dict, Generator
 
 from netqasm.lang.ir import BreakpointAction
 from netsquid_driver.classical_socket_service import ClassicalSocket
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.logger import LogManager
 
 from pydynaa import EventExpression
@@ -159,7 +159,7 @@ PI_OVER_2 = math.pi / 2
 
 
 def computation_round(
-    cfg: StackNetworkConfig,
+    cfg: NetworkConfig,
     num_times: int = 1,
     alpha: float = 0.0,
     beta: float = 0.0,
@@ -190,7 +190,7 @@ def computation_round(
 
 
 def trap_round(
-    cfg: StackNetworkConfig,
+    cfg: NetworkConfig,
     num_times: int = 1,
     alpha: float = 0.0,
     beta: float = 0.0,
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     # ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")
-    cfg = StackNetworkConfig.from_file(cfg_file)
+    cfg = NetworkConfig.from_file(cfg_file)
 
     computation_round(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)
     trap_round(cfg, num_times, dummy=1)

@@ -5,7 +5,7 @@ import os
 from typing import Any, Dict, Generator
 
 import netsquid as ns
-from netsquid_netbuilder.base_configs import StackNetworkConfig
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.logger import LogManager
 
 from pydynaa import EventExpression
@@ -98,7 +98,7 @@ PI_OVER_2 = math.pi / 2
 
 
 def run_app(
-    cfg: StackNetworkConfig,
+    cfg: NetworkConfig,
     num_times: int = 1,
     alpha: float = 0.0,
     beta: float = 0.0,
@@ -128,6 +128,6 @@ if __name__ == "__main__":
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")
-    cfg = StackNetworkConfig.from_file(cfg_file)
+    cfg = NetworkConfig.from_file(cfg_file)
 
     run_app(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)

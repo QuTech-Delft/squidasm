@@ -1,4 +1,4 @@
-stacks:
+processing_nodes:
   - name: Alice
     qdevice_typ: generic
     qdevice_cfg:
@@ -9,15 +9,15 @@ stacks:
       dummy: null
 
 links:
-  - stack1: Alice
-    stack2: Bob
+  - node1: Alice
+    node2: Bob
     typ: perfect
     cfg:
       state_delay: 2000
 
 clinks:
-  - stack1: Alice
-    stack2: Bob
+  - node1: Alice
+    node2: Bob
     typ: default
     cfg:
       delay: 400

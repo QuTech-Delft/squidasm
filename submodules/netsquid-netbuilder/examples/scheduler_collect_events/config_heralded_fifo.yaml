@@ -18,7 +18,7 @@ link_config: &link_config
     num_resolving: False
 
 
-stacks:
+processing_nodes:
   - name: Node1
     qdevice_typ: generic
     qdevice_cfg:
