@@ -5,6 +5,7 @@ from typing import Dict
 
 import netsquid as ns
 from netsquid_magic.models.depolarise import DepolariseLinkBuilder, DepolariseLinkConfig
+from netsquid_magic.models.fibre import FibreLinkBuilder, FibreLinkConfig
 from netsquid_magic.models.heralded_double_click import (
     HeraldedDoubleClickLinkBuilder,
     HeraldedDoubleClickLinkConfig,
@@ -24,6 +25,7 @@ from netsquid_netbuilder.modules.clinks.instant import (
     InstantCLinkConfig,
 )
 from netsquid_netbuilder.modules.links.nv import NVLinkBuilder, NVLinkConfig
+
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceBuilder
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceBuilder
 from netsquid_netbuilder.modules.scheduler.fifo import FIFOScheduleBuilder
@@ -43,6 +45,7 @@ def get_default_builder() -> NetworkBuilder:
     # default link models registration
     builder.register_link("perfect", PerfectLinkBuilder, PerfectLinkConfig)
     builder.register_link("depolarise", DepolariseLinkBuilder, DepolariseLinkConfig)
+    builder.register_link("fibre", FibreLinkBuilder, FibreLinkConfig)
     builder.register_link(
         "heralded-single-click",
         HeraldedSingleClickLinkBuilder,

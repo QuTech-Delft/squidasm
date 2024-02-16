@@ -148,7 +148,8 @@ def build_nv_qdevice(name: str, cfg: NVConfig) -> QuantumProcessor:
             duration=cfg.carbon_init,
         )
     )
-
+    
+    
     for (instr, dur) in zip(
         [INSTR_ROT_X, INSTR_ROT_Y, INSTR_ROT_Z],
         [cfg.carbon_rot_x, cfg.carbon_rot_y, cfg.carbon_rot_z],

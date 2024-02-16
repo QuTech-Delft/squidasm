@@ -228,3 +228,19 @@ def _set_length(config: ILinkConfig, dist1: float, dist2: float):
 
     if hasattr(config, "length"):
         config.length = dist1 + dist2
+        
+def _set_max_length(config: ILinkConfig, dist1: float, dist2: float):
+    if hasattr(
+        config,
+        "length_A",
+    ) and hasattr(config, "length_B"):
+        if (dist1 >= dist2):
+            config.length_A = dist1
+            config.length_B = dist1
+        else:
+            config.length_A = dist2
+            config.length_B = dist2
+        return
+
+    if hasattr(config, "length"):
+        config.length = dist1

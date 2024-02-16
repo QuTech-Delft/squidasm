@@ -124,6 +124,7 @@ class NetSquidNetwork(Network):
             self._global_logger.log(*args, **kwargs)
 
     def _build_network(self) -> None:
+
         for i, node_cfg in enumerate(self._network_config.nodes):
             try:
                 hardware = QuantumHardware(node_cfg.hardware)
@@ -146,6 +147,7 @@ class NetSquidNetwork(Network):
                     qdevice = build_nv_qdevice(
                         name=f"{node_cfg.name}_NVQDevice", cfg=self._nv_config
                     )
+                    
             elif hardware == QuantumHardware.TrappedIon:
                 raise ValueError("TrappedIon hardware not supported.")
             else:  # use generic hardware (vanilla flavour)

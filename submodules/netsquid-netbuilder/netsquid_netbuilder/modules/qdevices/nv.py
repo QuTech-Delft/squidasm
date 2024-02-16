@@ -68,7 +68,7 @@ class NVQDeviceConfig(IQDeviceConfig):
     """Carbon y rotation gate time in nanoseconds."""
     carbon_rot_z: float = 500_000
     """Carbon z rotation gate time in nanoseconds."""
-    electron_init: float = 2_000
+    electron_init: float = 2_000_000_000
     """Electron qubit initialization time in nanoseconds."""
     electron_rot_x: float = 5
     """Electron x rotation gate time in nanoseconds."""
@@ -89,6 +89,7 @@ class NVQDeviceConfig(IQDeviceConfig):
         Create a configuration for a device without any noise or errors.
         :param num_qubits: number of qubits in the device.
         """
+        
         # get default config
         cfg = NVQDeviceConfig()
         # gate execution times
@@ -124,6 +125,7 @@ class NVQDeviceConfig(IQDeviceConfig):
 class NVQDeviceBuilder(IQDeviceBuilder):
     @classmethod
     def build(cls, name: str, qdevice_cfg: NVQDeviceConfig) -> QuantumProcessor:
+        
         if isinstance(qdevice_cfg, dict):
             qdevice_cfg = NVQDeviceConfig(**qdevice_cfg)
 
