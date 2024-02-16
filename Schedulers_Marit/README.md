@@ -1,4 +1,5 @@
 README FILE MSC THESIS CODE MARIT TALSMA
+Based on SquidASM setup b0.0.4
 
 @Michal:
 
