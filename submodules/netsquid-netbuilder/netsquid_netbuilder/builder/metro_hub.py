@@ -11,7 +11,7 @@ from netsquid_netbuilder.builder.builder_utils import (
     link_has_length,
     link_set_length,
 )
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.scheduler.interface import (
@@ -33,7 +33,7 @@ class HubBuilder:
         self.clink_builders: Dict[str, Type[ICLinkBuilder]] = {}
         self.clink_configs: Dict[str, Type[ICLinkConfig]] = {}
         self.scheduler_builders: Dict[str, Type[IScheduleBuilder]] = {}
-        self._logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self._logger = SnippetLogManager.get_logger(self.__class__.__name__)
 
     def register_clink(
         self, key: str, builder: Type[ICLinkBuilder], config: Type[ICLinkConfig]

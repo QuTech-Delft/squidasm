@@ -11,7 +11,7 @@ from netqasm.sdk.futures import Future, RegFuture
 from netqasm.sdk.qubit import Qubit
 from netsquid_driver.classical_socket_service import ClassicalSocket
 from netsquid_netbuilder.base_configs import NetworkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 
 from pydynaa import EventExpression
@@ -234,7 +234,7 @@ def trap_round(
 
 if __name__ == "__main__":
     num_times = 50
-    LogManager.set_log_level("WARNING")
+    SnippetLogManager.set_log_level("WARNING")
 
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 

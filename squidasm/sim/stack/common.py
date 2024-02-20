@@ -7,7 +7,7 @@ from netqasm.lang.encoding import RegisterName
 from netqasm.sdk.shared_memory import Arrays, RegisterGroup, setup_registers
 from netsquid.components.component import Component, Port
 from netsquid.protocols import Protocol
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 
 from pydynaa import EventExpression
 
@@ -66,7 +66,7 @@ class ComponentProtocol(Protocol):
     def __init__(self, name: str, comp: Component) -> None:
         super().__init__(name)
         self._listeners: Dict[str, PortListener] = {}
-        self._logger: logging.Logger = LogManager.get_stack_logger(
+        self._logger: logging.Logger = SnippetLogManager.get_logger(
             f"{self.__class__.__name__}({comp.name})"
         )
 

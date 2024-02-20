@@ -6,7 +6,7 @@ from netqasm.sdk.toolbox.measurements import parity_meas
 from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.common import SnippetLogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 from squidasm.util.routines import recv_int
 
@@ -23,7 +23,7 @@ class Player1Program(Program):
     PEER_NAME = "Player2"
 
     def __init__(self, row: int, strategy: List[List[str]]):
-        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
         self.strategy = strategy
         self.row = row
         if self.row >= len(self.strategy):
@@ -115,7 +115,7 @@ class Player2Program(Program):
     PEER_NAME = "Player1"
 
     def __init__(self, col: int, strategy: List[List[str]]):
-        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
         self.strategy = strategy
         self.col = col
         if self.col >= len(self.strategy[0]):

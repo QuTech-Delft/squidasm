@@ -17,7 +17,7 @@ from netsquid_netbuilder.builder.builder_utils import (
     link_has_length,
     link_set_length,
 )
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
@@ -43,7 +43,7 @@ class ChainBuilder:
         self.photonic_interface_configs: Dict[str, Type[IPhotonicInterfaceConfig]] = {}
         self.qrep_chain_control_builders: Dict[str, Type[IQRepChainControlBuilder]] = {}
         self.qrep_chain_control_configs: Dict[str, Type[IQRepChainControlConfig]] = {}
-        self._logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self._logger = SnippetLogManager.get_logger(self.__class__.__name__)
 
     def register_qdevice(self, key: str, builder: Type[IQDeviceBuilder]):
         self.qdevice_builders[key] = builder

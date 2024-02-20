@@ -27,7 +27,7 @@ from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.builder.builder_utils import create_connection_ports
 from netsquid_netbuilder.builder.metro_hub import HubBuilder, MetroHubNode
 from netsquid_netbuilder.builder.repeater_chain import ChainBuilder
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
@@ -35,7 +35,7 @@ from netsquid_netbuilder.modules.qrep_chain_control.interface import IQRepChainC
 from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
 from netsquid_netbuilder.network import Network
 
-from squidasm.sim.stack.egp import EgpProtocol
+from netsquid_magic.egp import EgpProtocol
 from netsquid_netbuilder.nodes import QDeviceNode, NodeWithDriver
 
 
@@ -50,7 +50,7 @@ class NetworkBuilder:
         self.egp_builder = EGPBuilder(self.protocol_controller)
         self.hub_builder = HubBuilder(self.protocol_controller)
         self.chain_builder = ChainBuilder(self.protocol_controller)
-        self._logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self._logger = SnippetLogManager.get_logger(self.__class__.__name__)
 
     def register_qdevice(self, key: str, builder: Type[IQDeviceBuilder]):
         self.node_builder.register(key, builder)

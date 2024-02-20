@@ -2,17 +2,17 @@ import logging
 
 import netsquid as ns
 from netsquid_netbuilder.base_configs import NetworkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.run import get_default_builder, run
 from protocols import TeleportationReceiverProtocol, TeleportationSenderProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
-LogManager.set_log_level(logging.ERROR)
+SnippetLogManager.set_log_level(logging.ERROR)
 
 builder = get_default_builder()
 
 cfg = NetworkConfig.from_file("config_repeater.yaml")
-network = builder.build(cfg, hacky_is_squidasm_flag=False)
+network = builder.build(cfg)
 
 
 sim_stats = run(

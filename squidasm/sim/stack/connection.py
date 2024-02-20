@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from netqasm.sdk.transpile import SubroutineTranspiler
     from squidasm.sim.stack.host import Host
 
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 
 from .context import NetSquidNetworkInfo
 
@@ -45,7 +45,7 @@ class QnosConnection(BaseNetQASMConnection):
         self._host = host
 
         self._shared_memory = None
-        self._logger: logging.Logger = LogManager.get_stack_logger(
+        self._logger: logging.Logger = SnippetLogManager.get_logger(
             f"{self.__class__.__name__}({self.app_name})"
         )
 

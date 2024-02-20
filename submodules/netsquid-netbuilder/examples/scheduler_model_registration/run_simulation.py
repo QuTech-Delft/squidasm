@@ -2,7 +2,7 @@ import logging
 
 from example_new_scheduler import ExampleNewScheduleBuilder, ExampleNewScheduleConfig
 from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run
 from netsquid_netbuilder.util.data_collectors import collect_schedule_events
@@ -38,7 +38,7 @@ cfg = create_metro_hub_network(
 # we must register the new model to the builder
 builder = get_default_builder()
 builder.register_scheduler(key="new_scheduler", builder=ExampleNewScheduleBuilder)
-network = builder.build(cfg, hacky_is_squidasm_flag=False)
+network = builder.build(cfg)
 
 # We can setup a listener to inspect what events happen with the scheduler
 # The scheduler_events is a dictionary with lists of the events for each event type.
@@ -59,7 +59,7 @@ for i, node_name in enumerate(node_names):
     protocol_mapping[node_name] = prot
 
 # Set logging level
-LogManager.set_log_level(logging.INFO)
+SnippetLogManager.set_log_level(logging.INFO)
 # Run the simulation
 sim_stats = run(network, protocol_mapping)
 

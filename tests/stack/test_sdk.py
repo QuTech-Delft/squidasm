@@ -6,7 +6,7 @@ from netqasm.sdk.qubit import Qubit
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
 from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 from netsquid_netbuilder.util.network_generation import (
     create_2_node_network,
@@ -31,7 +31,7 @@ class TestSdkSingleNode(unittest.TestCase):
     def tearDown(self) -> None:
         assert self._program is not None
         self._node.host.enqueue_program(self._program, 1)
-        LogManager.set_log_level("INFO")
+        SnippetLogManager.set_log_level("INFO")
         _run(self.network)
         if self._check_qmem:
             self._check_qmem(self._node.qdevice)

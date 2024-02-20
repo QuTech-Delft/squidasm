@@ -16,7 +16,7 @@ cfg = create_complete_graph_network(
     clink_typ="default",
     clink_cfg=DefaultCLinkConfig(delay=100),
 )
-network = builder.build(cfg, hacky_is_squidasm_flag=False)
+network = builder.build(cfg)
 
 clients = node_names[1:]
 

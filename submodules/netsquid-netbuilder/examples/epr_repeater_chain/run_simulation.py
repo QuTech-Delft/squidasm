@@ -2,14 +2,14 @@ import logging
 
 import netsquid as ns
 from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run
 from netsquid_netbuilder.util.network_generation import create_qia_prototype_network
 from protocols import AliceProtocol, BobProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
-LogManager.set_log_level(logging.INFO)
+SnippetLogManager.set_log_level(logging.INFO)
 
 builder = get_default_builder()
 cfg = create_qia_prototype_network(
@@ -24,7 +24,7 @@ cfg = create_qia_prototype_network(
     clink_typ="default",
     clink_cfg=DefaultCLinkConfig(speed_of_light=1e9),
 )
-network = builder.build(cfg, hacky_is_squidasm_flag=False)
+network = builder.build(cfg)
 
 
 sim_stats = run(

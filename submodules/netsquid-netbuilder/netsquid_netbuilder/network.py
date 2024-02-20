@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from netsquid_netbuilder.builder.network_builder import ProtocolController
     from netsquid_netbuilder.builder.repeater_chain import Chain
 
-    from squidasm.sim.stack.egp import EGPService
+    from netsquid_magic.egp import EGPService
     from netsquid_netbuilder.nodes import MetroHubNode, ProcessingNode, RepeaterNode, NodeWithDriver
 
 

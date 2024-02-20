@@ -47,7 +47,7 @@ from squidasm.sim.stack.common import (
     PhysicalQuantumMemory,
     PortListener,
 )
-from squidasm.sim.stack.egp import EgpProtocol
+from netsquid_magic.egp import EgpProtocol
 from squidasm.sim.stack.signals import (
     SIGNAL_MEMORY_FREED,
     SIGNAL_PEER_NSTK_MSG,

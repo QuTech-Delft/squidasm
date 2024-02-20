@@ -9,7 +9,7 @@ from netqasm.sdk.epr_socket import EPRSocket
 from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.common import SnippetLogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 from squidasm.util import get_qubit_state
 from squidasm.util.routines import (
@@ -54,7 +54,7 @@ class ClientProgram(Program):
     PEER_NAME = "Server"
 
     def __init__(self, params: BQCProgramParams):
-        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
         self.alpha = params.alpha
         self.beta = params.beta
         self.theta1 = params.theta1
@@ -120,7 +120,7 @@ class ServerProgram(Program):
     PEER_NAME = "Client"
 
     def __init__(self):
-        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
 
     @property
     def meta(self) -> ProgramMeta:

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Union
 
 from netsquid.protocols import Protocol
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.yaml_loadable import YamlLoadable
 from qlink_interface import ReqCreateBase, ResError
 from qlink_interface.interface import ResCreate
@@ -48,7 +48,7 @@ class IScheduleProtocol(Protocol, metaclass=ABCMeta):
 
         self._evhandler = EventHandler(self._handle_event)
         self._ev_to_timeslot: Dict[Event, TimeSlot] = {}
-        self._logger = LogManager.get_stack_logger(
+        self._logger = SnippetLogManager.get_logger(
             f"{self.__class__.__name__}({self.name})"
         )
 

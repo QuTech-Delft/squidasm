@@ -1,6 +1,6 @@
 from typing import Generator
 
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
 
@@ -15,7 +15,7 @@ class AliceProtocol(BlueprintProtocol):
         self._logger = None
 
     def run(self) -> Generator[EventExpression, None, None]:
-        self._logger = LogManager.get_stack_logger(
+        self._logger = SnippetLogManager.get_logger(
             f"{self.__class__.__name__}_{self.context.node.name}"
         )
         socket = self.context.sockets[self.peer]
@@ -56,7 +56,7 @@ class BobProtocol(BlueprintProtocol):
         self._logger = None
 
     def run(self) -> Generator[EventExpression, None, None]:
-        self._logger = LogManager.get_stack_logger(
+        self._logger = SnippetLogManager.get_logger(
             f"{self.__class__.__name__}_{self.context.node.name}"
         )
 

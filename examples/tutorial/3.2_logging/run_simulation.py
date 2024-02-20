@@ -3,7 +3,7 @@ import sys
 import netsquid as ns
 from application import AliceProgram, BobProgram
 from netsquid_netbuilder.base_configs import NetworkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 
 from squidasm.run.stack.run import run
 
@@ -15,12 +15,12 @@ if "--test_run" in sys.argv:
 cfg = NetworkConfig.from_file("config.yaml")
 
 # Set log level
-LogManager.set_log_level("INFO")
+SnippetLogManager.set_log_level("INFO")
 # Disable logging to terminal
-logger = LogManager.get_stack_logger()
+logger = SnippetLogManager.get_logger()
 logger.handlers = []
 # Enable logging to file
-LogManager.log_to_file("info.log")
+SnippetLogManager.log_to_file("info.log")
 
 
 # Create instances of programs to run

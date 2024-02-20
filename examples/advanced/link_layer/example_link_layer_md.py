@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict, Generator
 
 from netsquid_netbuilder.base_configs import NetworkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
@@ -74,7 +74,7 @@ class ServerProgram(Program):
 
 
 if __name__ == "__main__":
-    LogManager.set_log_level("WARNING")
+    SnippetLogManager.set_log_level("WARNING")
 
     num_times = 1
     cfg = NetworkConfig.from_file(

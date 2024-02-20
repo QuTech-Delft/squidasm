@@ -10,7 +10,7 @@ from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.common import SnippetLogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -47,7 +47,7 @@ class QkdProgram(Program, abc.ABC):
         self._num_epr = num_epr
         self._num_test_bits = num_epr // 4 if num_test_bits is None else num_test_bits
         self._buf_msgs = []
-        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
 
     def _distribute_states(
         self, context: ProgramContext, is_init: bool

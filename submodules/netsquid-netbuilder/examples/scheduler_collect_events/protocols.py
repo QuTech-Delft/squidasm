@@ -1,6 +1,6 @@
 from typing import Generator
 
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep
 
@@ -12,7 +12,7 @@ class AliceProtocol(BlueprintProtocol):
         super().__init__()
         self.peer = peer
         self.num_epr_pairs = num_epr_pairs
-        self._logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self._logger = SnippetLogManager.get_logger(self.__class__.__name__)
 
     def run(self) -> Generator[EventExpression, None, None]:
         socket = self.context.sockets[self.peer]
@@ -46,7 +46,7 @@ class BobProtocol(BlueprintProtocol):
         super().__init__()
         self.peer = peer
         self.num_epr_pairs = num_epr_pairs
-        self._logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self._logger = SnippetLogManager.get_logger(self.__class__.__name__)
 
     def run(self) -> Generator[EventExpression, None, None]:
         egp = self.context.egp[self.peer]

@@ -2,7 +2,7 @@ import logging
 
 import netsquid as ns
 from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.qrep_chain_control.swap_asap.swap_asap_builder import SwapASAPConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.photonic_interface.depolarizing import (
@@ -14,7 +14,7 @@ from netsquid_netbuilder.util.network_generation import create_qia_prototype_net
 from protocols import TeleportationReceiverProtocol, TeleportationSenderProtocol
 
 ns.set_qstate_formalism(ns.QFormalism.DM)
-LogManager.set_log_level(logging.ERROR)
+SnippetLogManager.set_log_level(logging.ERROR)
 
 builder = get_default_builder()
 
@@ -54,7 +54,7 @@ cfg = create_qia_prototype_network(
     qrep_chain_control_typ="swapASAP",
     qrep_chain_control_cfg=SwapASAPConfig(parallel_link_generation=True)
 )
-network = builder.build(cfg, hacky_is_squidasm_flag=False)
+network = builder.build(cfg)
 
 
 sim_stats = run(

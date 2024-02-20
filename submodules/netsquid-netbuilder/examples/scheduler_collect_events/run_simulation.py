@@ -1,17 +1,17 @@
 from netsquid_netbuilder.base_configs import NetworkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.run import get_default_builder, run
 from netsquid_netbuilder.util.data_collectors import collect_schedule_events
 from protocols import AliceProtocol, BobProtocol
 
-logger = LogManager.get_stack_logger()
-LogManager.set_log_level(10)
+logger = SnippetLogManager.get_logger()
+SnippetLogManager.set_log_level(10)
 
 cfg = NetworkConfig.from_file("config_heralded_fifo.yaml")
 num_epr_pairs = 10
 
 builder = get_default_builder()
-network = builder.build(cfg, hacky_is_squidasm_flag=False)
+network = builder.build(cfg)
 
 alice_A = AliceProtocol(peer="Node2", num_epr_pairs=num_epr_pairs)
 bob_A = BobProtocol(peer="Node1", num_epr_pairs=num_epr_pairs)

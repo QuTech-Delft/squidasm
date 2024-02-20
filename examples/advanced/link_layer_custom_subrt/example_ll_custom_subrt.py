@@ -12,7 +12,7 @@ from netsquid_netbuilder.base_configs import (
     ProcessingNodeConfig,
     NetworkConfig,
 )
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 
@@ -187,7 +187,7 @@ class ServerProgram(FidelityVsRateProgram):
 
 
 if __name__ == "__main__":
-    LogManager.set_log_level("WARNING")
+    SnippetLogManager.set_log_level("WARNING")
     # LogManager.log_to_file(os.path.join(os.path.dirname(__file__), "debug.log"))
 
     num_times = 1

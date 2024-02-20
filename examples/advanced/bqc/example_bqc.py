@@ -7,7 +7,7 @@ from typing import Any, Dict, Generator
 from netqasm.lang.ir import BreakpointAction
 from netsquid_driver.classical_socket_service import ClassicalSocket
 from netsquid_netbuilder.base_configs import NetworkConfig
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
@@ -231,7 +231,7 @@ def trap_round(
 
 if __name__ == "__main__":
     num_times = 1
-    LogManager.set_log_level("WARNING")
+    SnippetLogManager.set_log_level("WARNING")
     # ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")

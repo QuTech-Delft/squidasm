@@ -13,7 +13,7 @@ from netsquid_netbuilder.base_configs import (
     ProcessingNodeConfig,
     NetworkConfig,
 )
-from netsquid_netbuilder.logger import LogManager
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 
@@ -139,7 +139,7 @@ PI_OVER_2 = math.pi / 2
 
 if __name__ == "__main__":
     num_times = 1
-    LogManager.set_log_level("WARNING")
+    SnippetLogManager.set_log_level("WARNING")
 
     client_stack = ProcessingNodeConfig(
         name="client",

@@ -5,7 +5,7 @@ from netqasm.sdk import Qubit
 from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.common import SnippetLogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -26,7 +26,7 @@ class AliceProgram(Program):
     PEER_NAME = "Bob"
 
     def __init__(self, x: int):
-        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
         self.x = x
 
     @property
@@ -72,7 +72,7 @@ class BobProgram(Program):
     PEER_NAME = "Alice"
 
     def __init__(self, y: int):
-        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
+        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
         self.y = y
 
     @property
