@@ -4,7 +4,7 @@ from typing import Generator, List
 import netsquid as ns
 import numpy as np
 
-from netsquid_entanglementtracker.entanglement_tracker_service import EntanglementTrackerService
+from netsquid_driver.entanglement_tracker_service import EntanglementTrackerService
 from netsquid_netbuilder.protocol_base import BlueprintProtocol
 from netsquid_netbuilder.util.test_protocol_clink import ClassicalMessageEventInfo
 from qlink_interface import ReqCreateAndKeep, ReqReceive, ResCreateAndKeep

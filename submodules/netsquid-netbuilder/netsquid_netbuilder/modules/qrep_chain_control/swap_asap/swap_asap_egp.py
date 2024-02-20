@@ -13,7 +13,7 @@ from netsquid_driver.EGP import EGPService, ResMeasureDirectly, ResCreateAndKeep
 from netsquid_driver.entanglement_service import (EntanglementService, ReqEntanglement,
                                                   ResEntanglementSuccess, ResEntanglementError, ReqEntanglementAbort,
                                                   EntanglementError)
-from netsquid_entanglementtracker.entanglement_tracker_service import EntanglementTrackerService
+from netsquid_driver.entanglement_tracker_service import EntanglementTrackerService
 from netsquid_driver.measurement_services import MeasureService, ReqMeasure, ResMeasure
 from netsquid_driver.classical_routing_service import ClassicalRoutingService, RemoteServiceRequest
 from qlink_interface import MeasurementBasis, ReqCreateBase, ReqCreateAndKeep, ReqMeasureDirectly, ReqReceive, ReqStopReceive, ResError, ErrorCode

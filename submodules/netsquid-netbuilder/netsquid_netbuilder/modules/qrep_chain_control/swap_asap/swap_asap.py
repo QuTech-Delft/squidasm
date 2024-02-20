@@ -1,7 +1,7 @@
 from netsquid.protocols.nodeprotocols import NodeProtocol
 from netsquid_driver.entanglement_service import ReqEntanglement, EntanglementService, \
     ResEntanglementSuccess, ResEntanglementError, ReqEntanglementAbort
-from netsquid_entanglementtracker.entanglement_tracker_service import EntanglementTrackerService, ResNewLocalLink, \
+from netsquid_driver.entanglement_tracker_service import EntanglementTrackerService, ResNewLocalLink, \
     ResLocalDiscard, LinkStatus
 from netsquid_driver.measurement_services import SwapService, ReqSwap, ResSwap
 from netsquid.components import Message

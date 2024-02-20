@@ -15,7 +15,7 @@ from netsquid_driver.EGP import EGPService
 from netsquid_driver.entanglement_agreement_service import EntanglementAgreementService
 from netsquid_driver.symmetric_agreement_service import SymmetricAgreementService
 from netsquid_entanglementtracker.bell_state_tracker import BellStateTracker
-from netsquid_entanglementtracker.entanglement_tracker_service import (
+from netsquid_driver.entanglement_tracker_service import (
     EntanglementTrackerService,
 )
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
