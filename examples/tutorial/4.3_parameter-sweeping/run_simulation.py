@@ -1,7 +1,7 @@
 import numpy as np
 from application import AliceProgram, BobProgram
 from matplotlib import pyplot
-from netsquid_magic.models.depolarise import DepolariseLinkConfig
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.base_configs import LinkConfig, NetworkConfig
 
 from squidasm.run.stack.run import run

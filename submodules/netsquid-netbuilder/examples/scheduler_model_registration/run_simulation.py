@@ -1,7 +1,7 @@
 import logging
 
 from example_new_scheduler import ExampleNewScheduleBuilder, ExampleNewScheduleConfig
-from netsquid_magic.models.depolarise import DepolariseLinkConfig
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import get_default_builder, run

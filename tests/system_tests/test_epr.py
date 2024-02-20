@@ -4,10 +4,10 @@ from typing import Any, List
 
 import netsquid as ns
 from netsquid.qubits.ketstates import BellIndex
-from netsquid_magic.models.depolarise import DepolariseLinkConfig
-from netsquid_magic.models.heralded_double_click import HeraldedDoubleClickLinkConfig
-from netsquid_magic.models.heralded_single_click import HeraldedSingleClickLinkConfig
-from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
+from netsquid_netbuilder.modules.links.heralded_double_click import HeraldedDoubleClickLinkConfig
+from netsquid_netbuilder.modules.links.heralded_single_click import HeraldedSingleClickLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.util.fidelity import calculate_fidelity_epr
 from netsquid_netbuilder.util.network_generation import (
     create_2_node_network,

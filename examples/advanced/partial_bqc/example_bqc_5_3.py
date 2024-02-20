@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, Generator
 
-from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,

@@ -1,5 +1,5 @@
 from application import ClientProgram, ServerProgram
-from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.util.network_generation import create_complete_graph_network
 

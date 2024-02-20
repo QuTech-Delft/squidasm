@@ -1,8 +1,8 @@
 import itertools
 from typing import List, Union
 
-from netsquid_magic.models.depolarise import DepolariseLinkConfig
-from netsquid_magic.photonic_interface_interface import IPhotonicInterfaceConfig
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
+from netsquid_netbuilder.modules.photonic_interface.interface import IPhotonicInterfaceConfig
 from netsquid_netbuilder.modules.qrep_chain_control.interface import IQRepChainControlConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,

@@ -3,8 +3,8 @@ from __future__ import annotations
 import numpy as np
 from netsquid.qubits import DenseDMRepr
 from netsquid.qubits.qrepr import QRepr
-from netsquid_magic.photonic_interface_interface import (
-    IPhotonicInterface,
+from netsquid_magic.photonic_interface import IPhotonicInterface
+from netsquid_netbuilder.modules.photonic_interface.interface import (
     IPhotonicInterfaceBuilder,
     IPhotonicInterfaceConfig,
 )

@@ -5,7 +5,7 @@ from netsquid_driver.entanglement_agreement_service import (
     ReqEntanglementAgreement,
     ReqEntanglementAgreementAbort,
 )
-from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.run import run
 from netsquid_netbuilder.util.network_generation import (

@@ -4,16 +4,16 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
 import netsquid as ns
-from netsquid_magic.models.depolarise import DepolariseLinkBuilder, DepolariseLinkConfig
-from netsquid_magic.models.heralded_double_click import (
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkBuilder, DepolariseLinkConfig
+from netsquid_netbuilder.modules.links.heralded_double_click import (
     HeraldedDoubleClickLinkBuilder,
     HeraldedDoubleClickLinkConfig,
 )
-from netsquid_magic.models.heralded_single_click import (
+from netsquid_netbuilder.modules.links.heralded_single_click import (
     HeraldedSingleClickLinkBuilder,
     HeraldedSingleClickLinkConfig,
 )
-from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig

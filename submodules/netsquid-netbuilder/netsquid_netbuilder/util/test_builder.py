@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from netsquid_magic.models.perfect import PerfectLinkBuilder, PerfectLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkBuilder, PerfectLinkConfig
 from netsquid_netbuilder.builder.network_builder import NetworkBuilder
 from netsquid_netbuilder.modules.clinks.default import (
     DefaultCLinkBuilder,

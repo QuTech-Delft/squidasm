@@ -7,7 +7,7 @@ from netsquid.nodes import Node
 from netsquid_driver.EGP import EGPService
 
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
-from netsquid_magic.photonic_interface_interface import (
+from netsquid_netbuilder.modules.photonic_interface.interface import (
     IPhotonicInterfaceBuilder,
     IPhotonicInterfaceConfig,
 )

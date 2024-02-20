@@ -1,7 +1,7 @@
 import logging
 
 import netsquid as ns
-from netsquid_magic.models.depolarise import DepolariseLinkConfig
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.qrep_chain_control.swap_asap.swap_asap_builder import SwapASAPConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig

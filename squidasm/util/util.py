@@ -7,7 +7,7 @@ from deprecated import deprecated
 from netqasm.sdk.qubit import Qubit
 from netsquid.qubits import operators
 from netsquid.qubits import qubitapi as qapi
-from netsquid_magic.models.depolarise import DepolariseLinkConfig
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,

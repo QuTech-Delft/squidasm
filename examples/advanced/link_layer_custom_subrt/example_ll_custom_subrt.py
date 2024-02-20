@@ -5,7 +5,7 @@ from typing import Any, Dict, Generator
 from netqasm.lang.parsing.text import parse_text_protosubroutine
 from netqasm.sdk import Qubit
 from netqasm.sdk.futures import Array
-from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,

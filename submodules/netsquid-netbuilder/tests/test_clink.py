@@ -2,7 +2,7 @@ import unittest
 from typing import List
 
 import netsquid as ns
-from netsquid_magic.models.perfect import PerfectLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
 from netsquid_netbuilder.modules.clinks.interface import ICLinkConfig

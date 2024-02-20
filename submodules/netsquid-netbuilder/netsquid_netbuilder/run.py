@@ -4,16 +4,16 @@ import typing
 from typing import Dict
 
 import netsquid as ns
-from netsquid_magic.models.depolarise import DepolariseLinkBuilder, DepolariseLinkConfig
-from netsquid_magic.models.heralded_double_click import (
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkBuilder, DepolariseLinkConfig
+from netsquid_netbuilder.modules.links.heralded_double_click import (
     HeraldedDoubleClickLinkBuilder,
     HeraldedDoubleClickLinkConfig,
 )
-from netsquid_magic.models.heralded_single_click import (
+from netsquid_netbuilder.modules.links.heralded_single_click import (
     HeraldedSingleClickLinkBuilder,
     HeraldedSingleClickLinkConfig,
 )
-from netsquid_magic.models.perfect import PerfectLinkBuilder, PerfectLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkBuilder, PerfectLinkConfig
 from netsquid_netbuilder.builder.network_builder import NetworkBuilder
 from netsquid_netbuilder.modules.clinks.default import (
     DefaultCLinkBuilder,

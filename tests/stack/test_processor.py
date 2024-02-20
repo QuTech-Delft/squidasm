@@ -6,7 +6,7 @@ from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.parsing import parse_text_subroutine
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
-from netsquid_magic.models.depolarise import DepolariseLinkConfig
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 from netsquid_netbuilder.util.network_generation import (
     create_2_node_network,

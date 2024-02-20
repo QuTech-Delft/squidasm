@@ -19,7 +19,7 @@ from netsquid_entanglementtracker.entanglement_tracker_service import (
     EntanglementTrackerService,
 )
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
-from netsquid_magic.photonic_interface_interface import (
+from netsquid_netbuilder.modules.photonic_interface.interface import  (
     IPhotonicInterfaceBuilder,
     IPhotonicInterfaceConfig,
 )
