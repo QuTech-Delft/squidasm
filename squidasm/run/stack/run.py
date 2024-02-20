@@ -7,13 +7,13 @@ import netsquid as ns
 from netsquid_driver.classical_socket_service import ClassicalSocket
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
 from netsquid_netbuilder.base_configs import NetworkConfig
-from squidasm.run.stack.build import create_stack_network_builder
 
+from squidasm.run.stack.build import create_stack_network_builder
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.qnos_network_service import QNOSNetworkService
-from squidasm.sim.stack.stack import NodeStack, StackNode, StackNetwork
+from squidasm.sim.stack.stack import NodeStack, StackNetwork, StackNode
 
 
 def _setup_network(config: NetworkConfig) -> StackNetwork:

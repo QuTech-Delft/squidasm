@@ -6,13 +6,13 @@ from netsquid.components import QuantumProcessor
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 from netsquid.protocols import Protocol
+from netsquid_magic.egp import EgpProtocol
 
 from squidasm.sim.stack.common import (
     AppMemory,
     NVPhysicalQuantumMemory,
     PhysicalQuantumMemory,
 )
-from netsquid_magic.egp import EgpProtocol
 from squidasm.sim.stack.handler import Handler, HandlerComponent
 from squidasm.sim.stack.netstack import Netstack, NetstackComponent
 from squidasm.sim.stack.processor import (

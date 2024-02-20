@@ -67,7 +67,9 @@ class StackNetworkConfig(YamlLoadable):
         return cls._from_file(path)  # type: ignore
 
 
-def _convert_stack_network_config(stack_network_config: StackNetworkConfig) -> NetworkConfig:
+def _convert_stack_network_config(
+    stack_network_config: StackNetworkConfig,
+) -> NetworkConfig:
     # Convert stack nodes to processing nodes
     processing_nodes = []
     for stack_config in stack_network_config.stacks:

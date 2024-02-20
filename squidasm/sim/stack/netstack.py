@@ -21,6 +21,7 @@ from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z
 from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
 from netsquid.qubits.ketstates import BellIndex
+from netsquid_magic.egp import EgpProtocol
 from netsquid_magic.magic_distributor import (
     DoubleClickMagicDistributor,
     SingleClickMagicDistributor,
@@ -47,7 +48,6 @@ from squidasm.sim.stack.common import (
     PhysicalQuantumMemory,
     PortListener,
 )
-from netsquid_magic.egp import EgpProtocol
 from squidasm.sim.stack.signals import (
     SIGNAL_MEMORY_FREED,
     SIGNAL_PEER_NSTK_MSG,

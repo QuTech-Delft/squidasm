@@ -7,10 +7,10 @@ from netsquid.components.component import Port
 from netsquid.nodes.network import Network
 from netsquid.protocols import Protocol
 from netsquid_driver.classical_socket_service import ClassicalSocket
+from netsquid_magic.egp import EgpProtocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
 from netsquid_netbuilder.nodes import QDeviceNode
 
-from netsquid_magic.egp import EgpProtocol
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent
 
@@ -42,7 +42,9 @@ class StackNode(QDeviceNode):
     ) -> None:
         """ProcessingNode constructor. Typically created indirectly through
         constructing a `NodeStack`."""
-        super().__init__(name, qdevice=qdevice, qdevice_type=qdevice_type, node_id=node_id)
+        super().__init__(
+            name, qdevice=qdevice, qdevice_type=qdevice_type, node_id=node_id
+        )
 
         qnos_comp = QnosComponent(self)
         self.add_subcomponent(qnos_comp, "qnos")

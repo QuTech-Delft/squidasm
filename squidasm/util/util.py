@@ -7,14 +7,14 @@ from deprecated import deprecated
 from netqasm.sdk.qubit import Qubit
 from netsquid.qubits import operators
 from netsquid.qubits import qubitapi as qapi
-from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
-    ProcessingNodeConfig,
     NetworkConfig,
+    ProcessingNodeConfig,
 )
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 
 import squidasm.sim.stack.globals
@@ -118,4 +118,6 @@ def create_two_node_network(
         typ="default",
         cfg=DefaultCLinkConfig(delay=clink_delay),
     )
-    return NetworkConfig(processing_nodes=processing_nodes, links=[link], clinks=[clink])
+    return NetworkConfig(
+        processing_nodes=processing_nodes, links=[link], clinks=[clink]
+    )
