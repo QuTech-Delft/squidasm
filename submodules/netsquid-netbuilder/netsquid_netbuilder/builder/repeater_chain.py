@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Type
+from typing import Dict, List, Optional, Tuple, Type, TYPE_CHECKING
 
 from netsquid.components import Port
+from netsquid.nodes import Node
 from netsquid_driver.EGP import EGPService
 
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
@@ -17,38 +17,22 @@ from netsquid_netbuilder.builder.builder_utils import (
     link_has_length,
     link_set_length,
 )
-from netsquid_netbuilder.builder.metro_hub import MetroHub
 from netsquid_netbuilder.logger import LogManager
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.qdevices.interface import IQDeviceBuilder
-from netsquid_netbuilder.network import Network
+from netsquid_netbuilder.network import Network, Chain, MetroHub
 from netsquid_netbuilder.modules.qrep_chain_control.interface import IQRepChainControlBuilder, IQRepChainControlConfig
 
-from squidasm.sim.stack.stack import ProcessingNode
+from netsquid_netbuilder.nodes import QDeviceNode, RepeaterNode
 
-
-@dataclass
-class Chain:
-    hub_1: MetroHub
-    hub_2: MetroHub
-    repeater_nodes: List[ProcessingNode] = field(default_factory=list)
-    link_lengths: List[float] = field(default_factory=list)
-    scheduler = None
-
-    @property
-    def name(self) -> str:
-        return f"Chain ({self.hub_1.name}-{self.hub_2.name})"
-
-    @property
-    def repeater_nodes_dict(self) -> Dict[str, ProcessingNode]:
-        return {node.name: node for node in self.repeater_nodes}
+if TYPE_CHECKING:
+    from netsquid_netbuilder.builder.network_builder import ProtocolController
 
 
 class ChainBuilder:
     def __init__(self, protocol_controller):
-        # TODO add type to protocol controller
-        self.protocol_controller = protocol_controller
+        self.protocol_controller: ProtocolController = protocol_controller
         self.qdevice_builders: Dict[str, Type[IQDeviceBuilder]] = {}
         self.link_builders: Dict[str, Type[ILinkBuilder]] = {}
         self.link_configs: Dict[str, Type[ILinkConfig]] = {}
@@ -151,12 +135,10 @@ class ChainBuilder:
                     f"qdevice_{repeater_name}", qdevice_cfg=repeater_node.qdevice_cfg
                 )
 
-                # TODO ProcessingNode is a very SquidASM centric object
-                node = ProcessingNode(
+                node = RepeaterNode(
                     repeater_name,
                     qdevice=qdevice,
                     qdevice_type=repeater_node.qdevice_typ,
-                    hacky_is_squidasm_flag=False,  # Do not give repeater nodes a qnos
                 )
                 builder.build_services(node)
 
@@ -199,7 +181,7 @@ class ChainBuilder:
                 )
 
             def _connect_nodes(
-                node_1: ProcessingNode, node_2: ProcessingNode, length: float
+                node_1: Node, node_2: Node, length: float
             ):
                 if hasattr(clink_config, "length"):
                     clink_config.length = length
@@ -266,7 +248,7 @@ class ChainBuilder:
             hub2_edge_repeater_node = chain.repeater_nodes[-1]
 
             def _create_link(
-                node1: ProcessingNode, node2: ProcessingNode
+                node1: QDeviceNode, node2: QDeviceNode
             ) -> MagicLinkLayerProtocolWithSignaling:
                 link = link_builder.build(node1, node2, link_config)
                 self.protocol_controller.register(link)

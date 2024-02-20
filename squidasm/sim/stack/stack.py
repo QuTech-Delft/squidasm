@@ -4,19 +4,18 @@ from typing import Dict, List, Optional
 
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Port
-from netsquid.nodes import Node
 from netsquid.nodes.network import Network
 from netsquid.protocols import Protocol
 from netsquid_driver.classical_socket_service import ClassicalSocket
-from netsquid_driver.driver import Driver
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
+from netsquid_netbuilder.nodes import QDeviceNode
 
 from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent
 
 
-class ProcessingNode(Node):
+class StackNode(QDeviceNode):
     """NetSquid component representing a quantum network node containing a software
     stack consisting of Host, QNodeOS and QDevice.
 
@@ -40,34 +39,22 @@ class ProcessingNode(Node):
         qdevice: QuantumProcessor,
         qdevice_type: str,
         node_id: Optional[int] = None,
-        hacky_is_squidasm_flag=True,
     ) -> None:
         """ProcessingNode constructor. Typically created indirectly through
         constructing a `NodeStack`."""
-        super().__init__(name, ID=node_id)
-        self.qmemory = qdevice
-        self.qmemory_typ = qdevice_type
-        driver = Driver(f"Driver_{name}")
-        self.add_subcomponent(driver, "driver")
+        super().__init__(name, qdevice=qdevice, qdevice_type=qdevice_type, node_id=node_id)
 
-        self.hacky_is_squidasm_flag = hacky_is_squidasm_flag
-        # TODO remove self.add_ports(["host_peer_out", "host_peer_in"])
+        qnos_comp = QnosComponent(self)
+        self.add_subcomponent(qnos_comp, "qnos")
 
-        if hacky_is_squidasm_flag:
-            qnos_comp = QnosComponent(self)
-            self.add_subcomponent(qnos_comp, "qnos")
+        host_comp = HostComponent(self)
+        self.add_subcomponent(host_comp, "host")
 
-            host_comp = HostComponent(self)
-            self.add_subcomponent(host_comp, "host")
+        self.host_comp.ports["qnos_out"].connect(self.qnos_comp.ports["host_in"])
+        self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])
 
-            self.host_comp.ports["qnos_out"].connect(self.qnos_comp.ports["host_in"])
-            self.host_comp.ports["qnos_in"].connect(self.qnos_comp.ports["host_out"])
-
-            # Ports for communicating with other nodes
-            self.add_ports(["qnos_peer_out", "qnos_peer_in"])
-
-            # TODO remove self.qnos_comp.peer_out_port.forward_output(self.qnos_peer_out_port)
-            # TODO remove self.qnos_peer_in_port.forward_input(self.qnos_comp.peer_in_port)
+        # Ports for communicating with other nodes
+        self.add_ports(["qnos_peer_out", "qnos_peer_in"])
 
     @property
     def qnos_comp(self) -> QnosComponent:
@@ -76,14 +63,6 @@ class ProcessingNode(Node):
     @property
     def host_comp(self) -> HostComponent:
         return self.subcomponents["host"]
-
-    @property
-    def qdevice(self) -> QuantumProcessor:
-        return self.qmemory
-
-    @property
-    def driver(self) -> Driver:
-        return self.subcomponents["driver"]
 
     def qnos_peer_port(self, peer_id: int) -> Port:
         return self.ports[f"qnos_peer_{peer_id}"]
@@ -108,7 +87,7 @@ class NodeStack(Protocol):
     def __init__(
         self,
         name: str,
-        node: Optional[ProcessingNode] = None,
+        node: Optional[StackNode] = None,
         qdevice_type: Optional[str] = "generic",
         qdevice: Optional[QuantumProcessor] = None,
         node_id: Optional[int] = None,
@@ -134,7 +113,7 @@ class NodeStack(Protocol):
             self._node = node
         else:
             assert qdevice is not None
-            self._node = ProcessingNode(name, qdevice, node_id)
+            self._node = StackNode(name, qdevice, node_id)
 
         self._host: Optional[Host] = None
         self._qnos: Optional[Qnos] = None
@@ -154,7 +133,7 @@ class NodeStack(Protocol):
         self.qnos.assign_egp(remote_node_id, egp)
 
     @property
-    def node(self) -> ProcessingNode:
+    def node(self) -> StackNode:
         return self._node
 
     @property

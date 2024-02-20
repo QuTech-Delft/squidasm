@@ -7,28 +7,24 @@ import netsquid as ns
 from netsquid_driver.classical_socket_service import ClassicalSocket
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
 from netsquid_netbuilder.base_configs import NetworkConfig
-from netsquid_netbuilder.run import get_default_builder
+from squidasm.run.stack.build import create_stack_network_builder
 
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.qnos_network_service import QNOSNetworkService
-from squidasm.sim.stack.stack import NodeStack, ProcessingNode, StackNetwork
-
-
-def fidelity_to_prob_max_mixed(fid: float) -> float:
-    return (1 - fid) * 4.0 / 3.0
+from squidasm.sim.stack.stack import NodeStack, StackNode, StackNetwork
 
 
 def _setup_network(config: NetworkConfig) -> StackNetwork:
     NetSquidContext.reset()
-    builder = get_default_builder()
+    builder = create_stack_network_builder()
     network = builder.build(config)
 
     stacks: Dict[str, NodeStack] = {}
 
     for node_name, node in network.end_nodes.items():
-        assert isinstance(node, ProcessingNode)
+        assert isinstance(node, StackNode)
         stack = NodeStack(name=node_name, node=node, qdevice_type=node.qmemory_typ)
         NetSquidContext.add_node(stack.node.ID, node_name)
         stacks[node_name] = stack
@@ -44,6 +40,7 @@ def _setup_network(config: NetworkConfig) -> StackNetwork:
         s2.qnos.netstack.register_peer(s1.node.ID)
 
     for node_name, node in network.end_nodes.items():
+        assert isinstance(node, StackNode)
         service = QNOSNetworkService(node, node.qnos_comp)
         node.driver.add_service(QNOSNetworkService, service)
         for remote_name, remote_node in network.end_nodes.items():
@@ -56,6 +53,7 @@ def _setup_network(config: NetworkConfig) -> StackNetwork:
         stacks[node_name].host.register_csocket(peer_name, socket)
 
     link_prots: List[MagicLinkLayerProtocol] = []
+    # TODO move this start to same method where stacks and ns.sim_run() are
     network.start()
 
     return StackNetwork(stacks, link_prots, csockets)
@@ -64,17 +62,9 @@ def _setup_network(config: NetworkConfig) -> StackNetwork:
 def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
     """Run the protocols of a network and programs running in that network.
 
-    NOTE: For now, only two nodes and a single link are supported.
-
     :param network: `StackNetwork` representing the nodes and links
     :return: final results of the programs
     """
-    # assert len(network.stacks) <= 2
-    # assert len(network.links) <= 1
-
-    # start all link layer protocols
-    # TODO used to be start protocols here
-    # ProtocolController.start_all()
 
     # Start the node protocols.
     for _, stack in network.stacks.items():

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import itertools
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type, TYPE_CHECKING
 
 from netsquid.components import Port
-from netsquid.nodes import Node
-from netsquid_driver.driver import Driver
 from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
 from netsquid_netbuilder.base_configs import MetroHubConfig
 from netsquid_netbuilder.builder.builder_utils import (
@@ -19,44 +16,17 @@ from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkCo
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_netbuilder.modules.scheduler.interface import (
     IScheduleBuilder,
-    IScheduleProtocol,
 )
-from netsquid_netbuilder.network import Network
+from netsquid_netbuilder.network import Network, MetroHub
+from netsquid_netbuilder.nodes import MetroHubNode
 
-from squidasm.sim.stack.stack import ProcessingNode
-
-
-@dataclass
-class MetroHub:
-    hub_node: MetroHubNode = None
-    end_nodes: Dict[str, ProcessingNode] = field(default_factory=dict)
-    scheduler: IScheduleProtocol = None
-    end_node_lengths: Dict[str, float] = field(default_factory=dict)
-
-    @property
-    def name(self) -> str:
-        return self.hub_node.name
-
-
-class MetroHubNode(Node):
-    def __init__(
-        self,
-        name: str,
-        node_id: Optional[int] = None,
-    ) -> None:
-        super().__init__(name, ID=node_id)
-        driver = Driver(f"Driver_{name}")
-        self.add_subcomponent(driver, "driver")
-
-    @property
-    def driver(self) -> Driver:
-        return self.subcomponents["driver"]
+if TYPE_CHECKING:
+    from netsquid_netbuilder.builder.network_builder import ProtocolController
 
 
 class HubBuilder:
     def __init__(self, protocol_controller):
-        # TODO add type to protocol controller
-        self.protocol_controller = protocol_controller
+        self.protocol_controller: ProtocolController = protocol_controller
         self.link_builders: Dict[str, Type[ILinkBuilder]] = {}
         self.link_configs: Dict[str, Type[ILinkConfig]] = {}
         self.hub_configs: Optional[List[MetroHubConfig]] = None

@@ -7,7 +7,7 @@ from netsquid_magic.link_layer import (
 from netsquid_netbuilder.modules.links.interface import ILinkBuilder, ILinkConfig
 from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
 
-from squidasm.sim.stack.stack import ProcessingNode
+from netsquid_netbuilder.nodes import QDeviceNode
 
 
 class NVLinkConfig(ILinkConfig):
@@ -21,7 +21,7 @@ class NVLinkConfig(ILinkConfig):
 class NVLinkBuilder(ILinkBuilder):
     @classmethod
     def build(
-        cls, node1: ProcessingNode, node2: ProcessingNode, link_cfg: NVLinkConfig
+        cls, node1: QDeviceNode, node2: QDeviceNode, link_cfg: NVLinkConfig
     ) -> MagicLinkLayerProtocolWithSignaling:
         if isinstance(link_cfg, dict):
             link_cfg = NVLinkConfig(**link_cfg)

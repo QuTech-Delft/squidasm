@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from netsquid.nodes.connections import DirectConnection
 from netsquid_netbuilder.yaml_loadable import YamlLoadable
 
-from squidasm.sim.stack.stack import ProcessingNode
+from netsquid.nodes import Node
 
 
 class ICLinkConfig(YamlLoadable, ABC):
@@ -14,6 +14,6 @@ class ICLinkBuilder(ABC):
     @classmethod
     @abstractmethod
     def build(
-        cls, node1: ProcessingNode, node2: ProcessingNode, link_cfg: ICLinkConfig
+        cls, node1: Node, node2: Node, link_cfg: ICLinkConfig
     ) -> DirectConnection:
         pass

@@ -8,7 +8,7 @@ from netsquid.components.models.delaymodels import FixedDelayModel
 from netsquid.nodes.connections import DirectConnection
 from netsquid_netbuilder.modules.clinks.interface import ICLinkBuilder, ICLinkConfig
 
-from squidasm.sim.stack.stack import ProcessingNode
+from netsquid.nodes import Node
 
 
 class DefaultCLinkConfig(ICLinkConfig):
@@ -20,7 +20,7 @@ class DefaultCLinkConfig(ICLinkConfig):
 class DefaultCLinkBuilder(ICLinkBuilder):
     @classmethod
     def build(
-        cls, node1: ProcessingNode, node2: ProcessingNode, link_cfg: DefaultCLinkConfig
+        cls, node1: Node, node2: Node, link_cfg: DefaultCLinkConfig
     ) -> DirectConnection:
         link_cfg = cls._pre_process_config(link_cfg)
 

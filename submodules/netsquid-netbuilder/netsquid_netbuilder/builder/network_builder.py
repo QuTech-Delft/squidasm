@@ -36,7 +36,7 @@ from netsquid_netbuilder.modules.scheduler.interface import IScheduleBuilder
 from netsquid_netbuilder.network import Network
 
 from squidasm.sim.stack.egp import EgpProtocol
-from squidasm.sim.stack.stack import ProcessingNode
+from netsquid_netbuilder.nodes import QDeviceNode, NodeWithDriver
 
 
 class NetworkBuilder:
@@ -89,7 +89,7 @@ class NetworkBuilder:
     ):
         self.chain_builder.register_qrep_chain_control(key, builder, config)
 
-    def build(self, config: NetworkConfig, hacky_is_squidasm_flag=True) -> Network:
+    def build(self, config: NetworkConfig) -> Network:
         self.hub_builder.set_configs(config.hubs)
         self.chain_builder.set_configs(config.repeater_chains)
 
@@ -99,7 +99,7 @@ class NetworkBuilder:
         network.chains = self.chain_builder.create_chain_objects(network.hubs)
 
         # Create node instances
-        network.end_nodes = self.node_builder.build(config, hacky_is_squidasm_flag)
+        network.end_nodes = self.node_builder.build(config)
         self.hub_builder.register_end_nodes_to_hub(network)
         self.hub_builder.build_hub_nodes(network)
         self.chain_builder.build_repeater_nodes(network)
@@ -166,8 +166,7 @@ class NodeBuilder:
         self.qdevice_builders[key] = builder
 
     def build(
-        self, config: NetworkConfig, hacky_is_squidasm_flag=True
-    ) -> Dict[str, ProcessingNode]:
+        self, config: NetworkConfig) -> Dict[str, QDeviceNode]:
         nodes = {}
         for node_config in config.processing_nodes:
             node_name = node_config.name
@@ -182,12 +181,10 @@ class NodeBuilder:
                 f"qdevice_{node_name}", qdevice_cfg=node_config.qdevice_cfg
             )
 
-            # TODO ProcessingNode is a very SquidASM centric object
-            nodes[node_name] = ProcessingNode(
+            nodes[node_name] = QDeviceNode(
                 node_name,
                 qdevice=qdevice,
                 qdevice_type=node_qdevice_typ,
-                hacky_is_squidasm_flag=hacky_is_squidasm_flag,
             )
             self.qdevice_builders[node_qdevice_typ].build_services(nodes[node_name])
         return nodes
@@ -237,7 +234,7 @@ class LinkBuilder:
         self.link_configs[key] = config
 
     def build(
-        self, config: NetworkConfig, nodes: Dict[str, ProcessingNode]
+        self, config: NetworkConfig, nodes: Dict[str, QDeviceNode]
     ) -> Dict[(str, str), MagicLinkLayerProtocolWithSignaling]:
         link_dict = {}
         if config.links is None:
@@ -348,7 +345,7 @@ class NetworkServicesBuilder:
 
     def build_routing_service(self, network: Network):
         for node in network.nodes.values():
-            assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
+            assert isinstance(node, NodeWithDriver)
             local_routing_table = self.routing_table[node.name]
             local_port_routing_table = {
                 target_name: network.ports[(node.name, forward_node_name)]
@@ -366,7 +363,7 @@ class NetworkServicesBuilder:
 
     def build_entanglement_agreement_services(self, network: Network):
         for node in network.nodes.values():
-            assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
+            assert isinstance(node, NodeWithDriver)
 
             node.driver.add_service(
                 EntanglementAgreementService,
@@ -380,7 +377,7 @@ class NetworkServicesBuilder:
 
     def build_entanglement_tracker_services(self, network: Network):
         for node in network.nodes.values():
-            assert isinstance(node, ProcessingNode) or isinstance(node, MetroHubNode)
+            assert isinstance(node, NodeWithDriver)
             node.driver.add_service(EntanglementTrackerService, BellStateTracker(node))
 
 

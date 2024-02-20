@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Dict, Optional, List
+from dataclasses import dataclass, field
+
+from netsquid_netbuilder.modules.scheduler.interface import IScheduleProtocol
 
 if TYPE_CHECKING:
     from netsquid.components import Port
@@ -13,13 +16,13 @@ if TYPE_CHECKING:
     from netsquid_netbuilder.builder.repeater_chain import Chain
 
     from squidasm.sim.stack.egp import EGPService
-    from squidasm.sim.stack.stack import ProcessingNode
+    from netsquid_netbuilder.nodes import MetroHubNode, ProcessingNode, RepeaterNode, NodeWithDriver
 
 
 class ProtocolContext:
     def __init__(
         self,
-        node: ProcessingNode,
+        node: Node,
         links: Dict[str, MagicLinkLayerProtocolWithSignaling],
         egp: Dict[str, EGPService],
         node_id_mapping: Dict[str, int],
@@ -77,7 +80,7 @@ class Network:
             raise ValueError(f"Could not find node: {node_name} in network")
 
     @property
-    def nodes(self) -> Dict[str, Node]:
+    def nodes(self) -> Dict[str, NodeWithDriver]:
         nodes = {}
         nodes.update(self.end_nodes)
         nodes.update({hub_name: hub.hub_node for hub_name, hub in self.hubs.items()})
@@ -99,3 +102,32 @@ class Network:
 
     def stop(self):
         self._protocol_controller.stop_all()
+
+
+@dataclass
+class MetroHub:
+    hub_node: MetroHubNode = None
+    end_nodes: Dict[str, ProcessingNode] = field(default_factory=dict)
+    scheduler: IScheduleProtocol = None
+    end_node_lengths: Dict[str, float] = field(default_factory=dict)
+
+    @property
+    def name(self) -> str:
+        return self.hub_node.name
+
+
+@dataclass
+class Chain:
+    hub_1: MetroHub
+    hub_2: MetroHub
+    repeater_nodes: List[RepeaterNode] = field(default_factory=list)
+    link_lengths: List[float] = field(default_factory=list)
+    scheduler = None
+
+    @property
+    def name(self) -> str:
+        return f"Chain ({self.hub_1.name}-{self.hub_2.name})"
+
+    @property
+    def repeater_nodes_dict(self) -> Dict[str, RepeaterNode]:
+        return {node.name: node for node in self.repeater_nodes}

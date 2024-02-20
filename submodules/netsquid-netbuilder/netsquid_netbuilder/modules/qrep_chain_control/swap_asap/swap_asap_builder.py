@@ -18,7 +18,7 @@ from netsquid_netbuilder.modules.qrep_chain_control.swap_asap.swap_asap_service 
 from netsquid_netbuilder.network import Network
 from netsquid_netbuilder.yaml_loadable import YamlLoadable
 
-from squidasm.sim.stack.stack import ProcessingNode
+from netsquid_netbuilder.nodes import QDeviceNode
 
 
 class SwapASAPConfig(IQRepChainControlConfig):
