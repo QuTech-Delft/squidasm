@@ -1,18 +1,8 @@
 SquidASM
 ++++++++++++
 
-WARNING
-===============
-This is a beta version of netsquid-netbuilder that aims to fully integrate SquidASM with the netsquid-snippets.
-This version is highly unstable, will likely undergo significant changes in the near future
-and is only meant to provide feedback for the future version.
-
-The installation of this beta version relies on git submodules, for a install or update the following command
-must be used before calling ``make install``:
-
-.. code-block:: bash
-	git submodule update --init
-
+.. image:: .github/banner.jpg
+   :align: center
 
 .. installation-start-inclusion-marker-do-not-remove
 
@@ -43,6 +33,13 @@ This can be done by executing the following code, but with your own user name an
 
     export NETSQUIDPYPI_USER=user1234
     export NETSQUIDPYPI_PWD=password1234
+
+It's also possible to write your password to a text file instead, and set the path to that file with another environment variable:
+
+.. code-block:: bash
+
+    export NETSQUIDPYPI_USER=user1234
+    export NETSQUIDPYPI_PWD_FILEPATH=password.txt
 
 For a more permanent solution, if SquidASM is installed more than once, these lines can be added to ``~\.bashrc``.
 
@@ -88,7 +85,7 @@ Multithreaded simulation uses multiple threads: one thread for each application 
 
 Since application layer code is in a separate thread, it can do blocking operations, e.g. waiting for user input or receiving a message over TCP, without blocking the reset of the simulation. The way applications are written for the multithread simulator is hence closest to how they would be written when running on real hardware.
 
-Since the quantum simulator (i.e. NetSquid) uses simulated time and does not work well with real-time interaction (like waiting for events outside the simulator process), the multithreaded simulator uses busy loops in some cases, which slows down overall execution. 
+Since the quantum simulator (i.e. NetSquid) uses simulated time and does not work well with real-time interaction (like waiting for events outside the simulator process), the multithreaded simulator uses busy loops in some cases, which slows down overall execution.
 
 Singlethread
 -------------

@@ -4,7 +4,14 @@ TESTDIR        = tests
 EXAMPLEDIR     = examples
 GIT            = git
 RUNEXAMPLES    = ${EXAMPLEDIR}/run_examples.py
-PIP_FLAGS      = --extra-index-url=https://${NETSQUIDPYPI_USER}:${NETSQUIDPYPI_PWD}@pypi.netsquid.org
+NETSQUID_USER  = $(shell ${PYTHON3} -c "import sys, urllib.parse as ul; print(ul.quote_plus('${NETSQUIDPYPI_USER}'))")
+ifndef NETSQUIDPYPI_PWD
+	ifdef NETSQUIDPYPI_PWD_FILEPATH
+		NETSQUIDPYPI_PWD = $(shell ${PYTHON3} -c "import pathlib; print(pathlib.Path('${NETSQUIDPYPI_PWD_FILEPATH}').read_text().strip())")
+	endif
+endif
+NETSQUID_PWD   = $(shell ${PYTHON3} -c "import sys, urllib.parse as ul; print(ul.quote_plus('${NETSQUIDPYPI_PWD}'))")
+PIP_FLAGS      = --extra-index-url=https://${NETSQUID_USER}:${NETSQUID_PWD}@pypi.netsquid.org
 
 help:
 	@echo "install           Installs the package (editable)."
@@ -16,11 +23,11 @@ help:
 	@echo "clean             Removes all .pyc files."
 
 _check_variables:
-ifndef NETSQUIDPYPI_USER
-	$(error Set the environment variable NETSQUIDPYPI_USER before installing)
+ifeq ($(NETSQUID_USER),)
+	$(error A username is required: please set the environment variable NETSQUIDPYPI_USER before installing)
 endif
-ifndef NETSQUIDPYPI_PWD
-	$(error Set the environment variable NETSQUIDPYPI_PWD before installing)
+ifeq ($(NETSQUID_PWD),)
+	$(error A password is required: please set the environment variable NETSQUIDPYPI_PWD before installing, or write the password to a file and set the environment variable NETSQUIDPYPI_PWD_FILEPATH before installing)
 endif
 
 clean:

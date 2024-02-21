@@ -1,6 +1,17 @@
 CHANGELOG
 =========
 
+2023-09-21 (0.12.1)
+------------------
+- Relaxed pydynaa and pydantic version requirements
+
+2023-08-15 (0.12.0)
+------------------
+- Refactor of examples
+- Added converted QNE application examples
+- Created routines for QKD, teleportation, distributed CNOT, distributed CPhase
+- Added utility methods for getting qubit density matrix and generating a network
+
 2023-04-06 (0.11.0)
 ------------------
 - Added documentation, specifically a tutorial for readthedocs

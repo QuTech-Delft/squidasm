@@ -1,3 +1,4 @@
+*.env
 *.pyc
 *.DS_Store
 *.out
@@ -12,5 +13,7 @@ examples/**/*.png
 htmlcov/
 .coverage
 .idea/*
+.python-version
 .vscode/*
+.venv
 venv
