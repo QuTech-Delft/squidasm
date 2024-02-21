@@ -48,7 +48,6 @@ lint: lint-isort lint-black lint-flake8
 
 tests:
 	@$(PYTHON3) -m pytest tests
-	@$(PYTHON3) -m pytest submodules/netsquid-netbuilder/tests
 
 examples:
 	@${PYTHON3} ${RUNEXAMPLES}
@@ -58,25 +57,14 @@ docs html:
 
 install: _check_variables
 	@$(PYTHON3) -m pip install -e . ${PIP_FLAGS}
-	$(GIT) submodule update --init
-	@$(PYTHON3) -m pip install -e submodules/netsquid-magic/ ${PIP_FLAGS}
-	@$(PYTHON3) -m pip install -e submodules/netsquid-abstractmodel/ ${PIP_FLAGS}
-	@$(PYTHON3) -m pip install -e submodules/netsquid-driver/ ${PIP_FLAGS}
-	@$(PYTHON3) -m pip install -e submodules/netsquid-qrepchain/ ${PIP_FLAGS}
-	@$(PYTHON3) -m pip install -e submodules/netsquid-entanglementtracker/
-	@$(PYTHON3) -m pip install -e submodules/netsquid-netbuilder/ ${PIP_FLAGS}
-
+	$(GIT) submodule update --init --recursive
+	make -C submodules/netsquid-netbuilder install
 
 
 install-dev: _check_variables
 	@$(PYTHON3) -m pip install -e .[dev] ${PIP_FLAGS}
-	$(GIT) submodule update --init
-	@$(PYTHON3) -m pip install -e submodules/netsquid-magic/ ${PIP_FLAGS}
-	@$(PYTHON3) -m pip install -e submodules/netsquid-abstractmodel/ ${PIP_FLAGS}
-	@$(PYTHON3) -m pip install -e submodules/netsquid-driver/ ${PIP_FLAGS}
-	@$(PYTHON3) -m pip install -e submodules/netsquid-qrepchain/ ${PIP_FLAGS}
-	@$(PYTHON3) -m pip install -e submodules/netsquid-entanglementtracker/ ${PIP_FLAGS}
-	@$(PYTHON3) -m pip install -e submodules/netsquid-netbuilder/ ${PIP_FLAGS}
+	$(GIT) submodule update --init --recursive
+	make -C submodules/netsquid-netbuilder install-dev
 
 verify: clean tests examples _verified
 
