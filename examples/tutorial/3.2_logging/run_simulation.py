@@ -2,8 +2,8 @@ import sys
 
 import netsquid as ns
 from application import AliceProgram, BobProgram
-from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_driver.logger import SnippetLogManager
+from netsquid_netbuilder.base_configs import NetworkConfig
 
 from squidasm.run.stack.run import run
 

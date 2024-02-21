@@ -5,8 +5,8 @@ import netsquid as ns
 from netqasm.sdk.qubit import Qubit
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
-from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_driver.logger import SnippetLogManager
+from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 from netsquid_netbuilder.util.network_generation import (
     create_2_node_network,

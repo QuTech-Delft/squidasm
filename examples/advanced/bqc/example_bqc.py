@@ -6,8 +6,8 @@ from typing import Any, Dict, Generator
 
 from netqasm.lang.ir import BreakpointAction
 from netsquid_driver.classical_socket_service import ClassicalSocket
-from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_driver.logger import SnippetLogManager
+from netsquid_netbuilder.base_configs import NetworkConfig
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run

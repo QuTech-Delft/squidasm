@@ -6,15 +6,15 @@ from typing import Any, Dict, Generator
 from netqasm.lang.operand import Template
 from netqasm.sdk.toolbox.state_prep import get_angle_spec_from_float
 from netsquid_driver.classical_socket_service import ClassicalSocket
-from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
+from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
-    ProcessingNodeConfig,
     NetworkConfig,
+    ProcessingNodeConfig,
 )
-from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 
 from pydynaa import EventExpression

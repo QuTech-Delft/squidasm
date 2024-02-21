@@ -3,14 +3,14 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, Generator
 
-from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
-    ProcessingNodeConfig,
     NetworkConfig,
+    ProcessingNodeConfig,
 )
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 
 from pydynaa import EventExpression

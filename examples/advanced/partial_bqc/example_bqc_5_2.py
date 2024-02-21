@@ -4,14 +4,14 @@ from typing import Any, Dict, Generator
 
 from netqasm.sdk.qubit import Qubit
 from netsquid_driver.classical_socket_service import ClassicalSocket
-from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
-    ProcessingNodeConfig,
     NetworkConfig,
+    ProcessingNodeConfig,
 )
 from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
+from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
 from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 
 from pydynaa import EventExpression

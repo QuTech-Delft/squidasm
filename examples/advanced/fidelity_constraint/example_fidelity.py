@@ -5,8 +5,8 @@ import os
 from typing import Any, Dict, Generator
 
 import netsquid as ns
-from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_driver.logger import SnippetLogManager
+from netsquid_netbuilder.base_configs import NetworkConfig
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run

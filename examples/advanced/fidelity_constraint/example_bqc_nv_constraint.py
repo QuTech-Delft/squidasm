@@ -10,8 +10,8 @@ from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.futures import Future, RegFuture
 from netqasm.sdk.qubit import Qubit
 from netsquid_driver.classical_socket_service import ClassicalSocket
-from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_driver.logger import SnippetLogManager
+from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 
 from pydynaa import EventExpression
