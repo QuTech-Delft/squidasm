@@ -1,53 +1,38 @@
-
-name: WARNING this pipeline is temporarily disabled
+name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
 on: push
 jobs:
-  raise-warning:
-    name: WARNING temporarily disabled
+  build-n-publish:
+    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
     steps:
-      - name: raise warning
-        run: >-
-          python -c
-          "print('WARNING this pipeline is temporarily disabled\n 
-          This is a temporary measure for the in development work, we do not want to publish these versions to pypi')"
-
-# TODO This is a temporary measure for the in development work, we don't want to publish these versions to pypi
-#
-#name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-#
-#  build-n-publish:
-#    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-#    runs-on: ubuntu-latest
-#    steps:
-#    - uses: actions/checkout@master
-#    - name: Set up Python 3.8
-#      uses: actions/setup-python@v1
-#      with:
-#        python-version: 3.8
-#    - name: Install pypa/build
-#      run: >-
-#        python -m
-#        pip install
-#        build
-#        --user
-#    - name: Build a binary wheel and a source tarball
-#      run: >-
-#        python -m
-#        build
-#        --sdist
-#        --wheel
-#        --outdir dist/
-#        .
-#    - name: Publish distribution 📦 to Test PyPI
-#      if: startsWith(github.ref, 'refs/tags')
-#      uses: pypa/gh-action-pypi-publish@master
-#      with:
-#        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-#        repository_url: https://test.pypi.org/legacy/
-#    - name: Publish distribution 📦 to PyPI
-#      if: success() && startsWith(github.ref, 'refs/tags')
-#      uses: pypa/gh-action-pypi-publish@master
-#      with:
-#        password: ${{ secrets.PYPI_API_TOKEN }}
+    - uses: actions/checkout@master
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: Install pypa/build
+      run: >-
+        python -m
+        pip install
+        build
+        --user
+    - name: Build a binary wheel and a source tarball
+      run: >-
+        python -m
+        build
+        --sdist
+        --wheel
+        --outdir dist/
+        .
+    - name: Publish distribution 📦 to Test PyPI
+      if: startsWith(github.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        repository_url: https://test.pypi.org/legacy/
+    - name: Publish distribution 📦 to PyPI
+      if: success() && startsWith(github.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
