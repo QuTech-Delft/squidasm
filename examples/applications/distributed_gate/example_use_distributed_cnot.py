@@ -7,7 +7,7 @@ from netqasm.sdk.toolbox.state_prep import set_qubit_state
 from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import SnippetLogManager
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 from squidasm.util import get_qubit_state, get_reference_state
 from squidasm.util.routines import (
@@ -37,7 +37,7 @@ class ControllerProgram(Program):
     PEER_NAME = "Target"
 
     def __init__(self, params: DistributedCGateParams):
-        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
+        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
         self.phi = params.phi
         self.theta = params.theta
         self.gate = params.gate
@@ -86,7 +86,7 @@ class TargetProgram(Program):
     PEER_NAME = "Controller"
 
     def __init__(self, params: DistributedCGateParams):
-        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
+        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
         self.phi = params.phi
         self.theta = params.theta
         self.gate = params.gate

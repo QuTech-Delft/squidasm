@@ -6,11 +6,11 @@ from typing import Any, Dict, Generator
 
 from netqasm.lang.ir import BreakpointAction
 from netsquid_driver.classical_socket_service import ClassicalSocket
-from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.base_configs import NetworkConfig
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 # Example Blind Quantum Computation application.
@@ -231,7 +231,7 @@ def trap_round(
 
 if __name__ == "__main__":
     num_times = 1
-    SnippetLogManager.set_log_level("WARNING")
+    LogManager.set_log_level("WARNING")
     # ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")

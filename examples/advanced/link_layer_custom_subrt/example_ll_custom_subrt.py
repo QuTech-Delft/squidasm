@@ -5,7 +5,6 @@ from typing import Any, Dict, Generator
 from netqasm.lang.parsing.text import parse_text_protosubroutine
 from netqasm.sdk import Qubit
 from netqasm.sdk.futures import Array
-from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
@@ -18,6 +17,7 @@ from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 client_subrt_path = os.path.join(os.path.dirname(__file__), "client.nqasm")
@@ -187,7 +187,7 @@ class ServerProgram(FidelityVsRateProgram):
 
 
 if __name__ == "__main__":
-    SnippetLogManager.set_log_level("WARNING")
+    LogManager.set_log_level("WARNING")
     # LogManager.log_to_file(os.path.join(os.path.dirname(__file__), "debug.log"))
 
     num_times = 1

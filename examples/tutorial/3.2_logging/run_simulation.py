@@ -2,10 +2,10 @@ import sys
 
 import netsquid as ns
 from application import AliceProgram, BobProgram
-from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.base_configs import NetworkConfig
 
 from squidasm.run.stack.run import run
+from squidasm.sim.stack.common import LogManager
 
 # Fix seed on test runs to avoid accidentally triggering the "error" in this example
 if "--test_run" in sys.argv:
@@ -15,12 +15,12 @@ if "--test_run" in sys.argv:
 cfg = NetworkConfig.from_file("config.yaml")
 
 # Set log level
-SnippetLogManager.set_log_level("INFO")
+LogManager.set_log_level("INFO")
 # Disable logging to terminal
-logger = SnippetLogManager.get_logger()
+logger = LogManager.get_stack_logger()
 logger.handlers = []
 # Enable logging to file
-SnippetLogManager.log_to_file("info.log")
+LogManager.log_to_file("info.log")
 
 
 # Create instances of programs to run

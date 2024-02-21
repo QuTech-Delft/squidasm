@@ -6,7 +6,6 @@ from typing import Any, Dict, Generator
 from netqasm.lang.operand import Template
 from netqasm.sdk.toolbox.state_prep import get_angle_spec_from_float
 from netsquid_driver.classical_socket_service import ClassicalSocket
-from netsquid_driver.logger import SnippetLogManager
 from netsquid_netbuilder.base_configs import (
     CLinkConfig,
     LinkConfig,
@@ -19,6 +18,7 @@ from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -139,7 +139,7 @@ PI_OVER_2 = math.pi / 2
 
 if __name__ == "__main__":
     num_times = 1
-    SnippetLogManager.set_log_level("WARNING")
+    LogManager.set_log_level("WARNING")
 
     client_stack = ProcessingNodeConfig(
         name="client",

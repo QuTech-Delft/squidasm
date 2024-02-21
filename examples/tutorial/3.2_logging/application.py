@@ -3,8 +3,8 @@ from typing import List
 from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.epr_socket import EPRSocket
-from netsquid_driver.logger import SnippetLogManager
 
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 
@@ -44,7 +44,7 @@ class AliceProgram(Program):
         epr_socket = context.epr_sockets[self.PEER_NAME]
         connection = context.connection
 
-        logger = SnippetLogManager.get_logger("AliceProgram")
+        logger = LogManager.get_stack_logger("AliceProgram")
 
         for i, bit in enumerate(self._message):
             logger.debug(f"Start round: {i}")
@@ -89,7 +89,7 @@ class BobProgram(Program):
         epr_socket: EPRSocket = context.epr_sockets[self.PEER_NAME]
         connection: BaseNetQASMConnection = context.connection
 
-        logger = SnippetLogManager.get_logger("BobProgram")
+        logger = LogManager.get_stack_logger("BobProgram")
 
         bit_continue = 1
         received_message = []

@@ -7,7 +7,7 @@ from netqasm.sdk.toolbox.state_prep import set_qubit_state
 from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from squidasm.run.stack.run import run
-from squidasm.sim.stack.common import SnippetLogManager
+from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 from squidasm.util import get_qubit_state, get_reference_state
 from squidasm.util.routines import teleport_recv, teleport_send
@@ -33,7 +33,7 @@ class SenderProgram(Program):
     PEER_NAME = "Receiver"
 
     def __init__(self, params: TeleportParams):
-        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
+        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
         self.phi = params.phi
         self.theta = params.theta
 
@@ -66,7 +66,7 @@ class ReceiverProgram(Program):
     PEER_NAME = "Sender"
 
     def __init__(self):
-        self.logger = SnippetLogManager.get_logger(self.__class__.__name__)
+        self.logger = LogManager.get_stack_logger(self.__class__.__name__)
 
     @property
     def meta(self) -> ProgramMeta:
