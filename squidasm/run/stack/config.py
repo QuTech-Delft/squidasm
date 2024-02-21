@@ -109,7 +109,7 @@ class StackNetworkConfig(YamlLoadable):
     """List of all the links connecting the stacks in the network."""
     @classmethod
     def from_file(cls, path: str) -> StackNetworkConfig:
-        return cls._from_file(path)  # type: ignore
+        return super().from_file(path)  # type: ignore
 
 
 def _convert_stack_network_config(
@@ -129,11 +129,18 @@ def _convert_stack_network_config(
     # Convert link config types
     links = []
     for link_config in stack_network_config.links:
+        link_typ = link_config.typ
+        link_cfg = link_config.cfg
+        if link_typ == "heralded":
+            link_typ = "heralded-double-click"
+        if link_cfg is None and link_typ == "perfect":
+            link_cfg = netbuilder_links.PerfectLinkConfig()
+
         link = netbuilder_configs.LinkConfig(
             node1=link_config.stack1,
             node2=link_config.stack2,
-            typ=link_config.typ,
-            cfg=link_config.cfg,
+            typ=link_typ,
+            cfg=link_cfg,
         )
         links.append(link)
 
@@ -152,8 +159,8 @@ def _convert_stack_network_config(
         # Link all nodes with instant classical connections
         for node1, node2 in itertools.combinations(processing_nodes, 2):
             clink = netbuilder_configs.CLinkConfig(
-                node1=node1,
-                node2=node2,
+                node1=node1.name,
+                node2=node2.name,
                 typ="instant",
                 cfg=netbuilder_clinks.InstantCLinkConfig(),
             )

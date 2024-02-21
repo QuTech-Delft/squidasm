@@ -6,17 +6,10 @@ import numpy as np
 from netqasm.sdk.qubit import Qubit
 from netsquid.qubits import operators
 from netsquid.qubits import qubitapi as qapi
-from netsquid_netbuilder.base_configs import (
-    CLinkConfig,
-    LinkConfig,
-    NetworkConfig,
-    ProcessingNodeConfig,
-)
-from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
-from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
-from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
+
 
 import squidasm.sim.stack.globals
+from squidasm.run.stack.config import StackNetworkConfig, CLinkConfig, LinkConfig, StackConfig, DepolariseLinkConfig, GenericQDeviceConfig, DefaultCLinkConfig
 
 
 def create_two_node_network(
@@ -25,7 +18,7 @@ def create_two_node_network(
     qdevice_noise: float = 0,
     clink_delay: float = 0.0,
     link_delay: float = 0.0,
-) -> NetworkConfig:
+) -> StackNetworkConfig:
     """
     Create a network configuration with two nodes, with simple noise models.
     :param node_names: List of str with the names of the two nodes
@@ -42,7 +35,7 @@ def create_two_node_network(
     qdevice_cfg.two_qubit_gate_depolar_prob = qdevice_noise
     qdevice_cfg.single_qubit_gate_depolar_prob = qdevice_noise
     processing_nodes = [
-        ProcessingNodeConfig(name=name, qdevice_typ="generic", qdevice_cfg=qdevice_cfg)
+        StackConfig(name=name, qdevice_typ="generic", qdevice_cfg=qdevice_cfg)
         for name in node_names
     ]
 
@@ -58,8 +51,8 @@ def create_two_node_network(
         typ="default",
         cfg=DefaultCLinkConfig(delay=clink_delay),
     )
-    return NetworkConfig(
-        processing_nodes=processing_nodes, links=[link], clinks=[clink]
+    return StackNetworkConfig(
+        stacks=processing_nodes, links=[link], clinks=[clink]
     )
 
 
