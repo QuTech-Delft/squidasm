@@ -1,11 +1,21 @@
 from __future__ import annotations
 
 import itertools
-from typing import Any, List
+from typing import Any, List, Optional
 
-from netsquid_netbuilder.base_configs import NetworkConfig
-from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
+import netsquid_netbuilder.base_configs as netbuilder_configs
+import netsquid_netbuilder.modules.qdevices as netbuilder_qdevices
+import netsquid_netbuilder.modules.links as netbuilder_links
+import netsquid_netbuilder.modules.clinks as netbuilder_clinks
 from netsquid_netbuilder.yaml_loadable import YamlLoadable
+
+
+class GenericQDeviceConfig(netbuilder_qdevices.GenericQDeviceConfig):
+    pass
+
+
+class NVQDeviceConfig(netbuilder_qdevices.NVQDeviceConfig):
+    pass
 
 
 class StackConfig(YamlLoadable):
@@ -28,8 +38,24 @@ class StackConfig(YamlLoadable):
         return StackConfig(
             name=name,
             qdevice_typ="generic",
-            qdevice_cfg=GenericQDeviceConfig.perfect_config(),
+            qdevice_cfg=netbuilder_qdevices.GenericQDeviceConfig.perfect_config(),
         )
+
+
+class DepolariseLinkConfig(netbuilder_links.DepolariseLinkConfig):
+    pass
+
+
+class HeraldedLinkConfig(netbuilder_links.HeraldedDoubleClickLinkConfig):
+    pass
+
+
+class InstantCLinkConfig(netbuilder_clinks.InstantCLinkConfig):
+    pass
+
+
+class DefaultCLinkConfig(netbuilder_clinks.DefaultCLinkConfig):
+    pass
 
 
 class LinkConfig(YamlLoadable):
@@ -54,6 +80,24 @@ class LinkConfig(YamlLoadable):
         return LinkConfig(stack1=stack1, stack2=stack2, typ="perfect", cfg=None)
 
 
+class CLinkConfig(YamlLoadable):
+    """Configuration for a single clink."""
+
+    stack1: str
+    """Name of the first stack being connected via clink."""
+    stack2: str
+    """Name of the second stack being connected via clink."""
+    typ: str
+    """Type of the clink."""
+    cfg: Any
+    """Configuration of the clink, allowed configuration depends on type."""
+
+    @classmethod
+    def perfect_config(cls, stack1: str, stack2: str) -> LinkConfig:
+        """Create a configuration for a link without any noise or errors."""
+        return LinkConfig(stack1=stack1, stack2=stack2, typ="instant", cfg=None)
+
+
 class StackNetworkConfig(YamlLoadable):
     """Full network configuration."""
 
@@ -61,7 +105,8 @@ class StackNetworkConfig(YamlLoadable):
     """List of all the stacks in the network."""
     links: List[LinkConfig]
     """List of all the links connecting the stacks in the network."""
-
+    clinks: Optional[List[LinkConfig]]
+    """List of all the links connecting the stacks in the network."""
     @classmethod
     def from_file(cls, path: str) -> StackNetworkConfig:
         return cls._from_file(path)  # type: ignore
@@ -69,17 +114,52 @@ class StackNetworkConfig(YamlLoadable):
 
 def _convert_stack_network_config(
     stack_network_config: StackNetworkConfig,
-) -> NetworkConfig:
+) -> netbuilder_configs.NetworkConfig:
+
     # Convert stack nodes to processing nodes
     processing_nodes = []
     for stack_config in stack_network_config.stacks:
-        pass
+        processing_node = netbuilder_configs.ProcessingNodeConfig(
+            name=stack_config.name,
+            qdevice_typ=stack_config.qdevice_typ,
+            qdevice_cfg=stack_config.qdevice_cfg
+        )
+        processing_nodes.append(processing_node)
 
+    # Convert link config types
+    links = []
     for link_config in stack_network_config.links:
-        pass
+        link = netbuilder_configs.LinkConfig(
+            node1=link_config.stack1,
+            node2=link_config.stack2,
+            typ=link_config.typ,
+            cfg=link_config.cfg,
+        )
+        links.append(link)
 
-    # Link all nodes with instant classical connections
-    for node1, node2 in itertools.combinations(processing_nodes, 2):
-        pass
+    # If clinks are given convert types, if not connect all nodes
+    clinks = []
+    if stack_network_config.clinks:
+        for clink_config in stack_network_config.clinks:
+            clink = netbuilder_configs.CLinkConfig(
+                node1=clink_config.stack1,
+                node2=clink_config.stack2,
+                typ=clink_config.typ,
+                cfg=clink_config.cfg,
+            )
+            clinks.append(clink)
+    else:
+        # Link all nodes with instant classical connections
+        for node1, node2 in itertools.combinations(processing_nodes, 2):
+            clink = netbuilder_configs.CLinkConfig(
+                node1=node1,
+                node2=node2,
+                typ="instant",
+                cfg=netbuilder_clinks.InstantCLinkConfig(),
+            )
+            clinks.append(clink)
 
-    return NetworkConfig()
+    return netbuilder_configs.NetworkConfig(
+        processing_nodes=processing_nodes,
+        links=links,
+        clinks=clinks)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import netsquid as ns
 from netsquid_driver.classical_socket_service import ClassicalSocket
@@ -14,6 +14,8 @@ from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.qnos_network_service import QNOSNetworkService
 from squidasm.sim.stack.stack import NodeStack, StackNetwork, StackNode
+from squidasm.run.stack.config import StackNetworkConfig
+from squidasm.run.stack.config import _convert_stack_network_config
 
 
 def _setup_network(config: NetworkConfig) -> StackNetwork:
@@ -77,7 +79,7 @@ def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
 
 
 def run(
-    config: NetworkConfig, programs: Dict[str, Program], num_times: int = 1
+    config: Union[NetworkConfig, StackNetworkConfig], programs: Dict[str, Program], num_times: int = 1
 ) -> List[List[Dict[str, Any]]]:
     """Run programs on a network specified by a network configuration.
 
@@ -86,6 +88,9 @@ def run(
     :param num_times: numbers of times to run the programs, defaults to 1
     :return: program results, outer list is per stack, inner list is per program iteration
     """
+    if isinstance(config, StackNetworkConfig):
+        config = _convert_stack_network_config(config)
+
     network = _setup_network(config)
 
     NetSquidContext.set_nodes({})
