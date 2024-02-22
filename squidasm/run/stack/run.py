@@ -9,13 +9,12 @@ from netsquid_magic.link_layer import MagicLinkLayerProtocol
 from netsquid_netbuilder.base_configs import NetworkConfig
 
 from squidasm.run.stack.build import create_stack_network_builder
+from squidasm.run.stack.config import StackNetworkConfig, _convert_stack_network_config
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
 from squidasm.sim.stack.qnos_network_service import QNOSNetworkService
 from squidasm.sim.stack.stack import NodeStack, StackNetwork, StackNode
-from squidasm.run.stack.config import StackNetworkConfig
-from squidasm.run.stack.config import _convert_stack_network_config
 
 
 def _setup_network(config: NetworkConfig) -> StackNetwork:
@@ -79,7 +78,9 @@ def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
 
 
 def run(
-    config: Union[NetworkConfig, StackNetworkConfig], programs: Dict[str, Program], num_times: int = 1
+    config: Union[NetworkConfig, StackNetworkConfig],
+    programs: Dict[str, Program],
+    num_times: int = 1,
 ) -> List[List[Dict[str, Any]]]:
     """Run programs on a network specified by a network configuration.
 

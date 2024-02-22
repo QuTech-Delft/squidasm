@@ -7,9 +7,16 @@ from netqasm.sdk.qubit import Qubit
 from netsquid.qubits import operators
 from netsquid.qubits import qubitapi as qapi
 
-
 import squidasm.sim.stack.globals
-from squidasm.run.stack.config import StackNetworkConfig, CLinkConfig, LinkConfig, StackConfig, DepolariseLinkConfig, GenericQDeviceConfig, DefaultCLinkConfig
+from squidasm.run.stack.config import (
+    CLinkConfig,
+    DefaultCLinkConfig,
+    DepolariseLinkConfig,
+    GenericQDeviceConfig,
+    LinkConfig,
+    StackConfig,
+    StackNetworkConfig,
+)
 
 
 def create_two_node_network(
@@ -51,9 +58,7 @@ def create_two_node_network(
         typ="default",
         cfg=DefaultCLinkConfig(delay=clink_delay),
     )
-    return StackNetworkConfig(
-        stacks=processing_nodes, links=[link], clinks=[clink]
-    )
+    return StackNetworkConfig(stacks=processing_nodes, links=[link], clinks=[clink])
 
 
 def get_qubit_state(q: Qubit, node_name, full_state=False) -> np.ndarray:

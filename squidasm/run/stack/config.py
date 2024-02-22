@@ -4,9 +4,9 @@ import itertools
 from typing import Any, List, Optional
 
 import netsquid_netbuilder.base_configs as netbuilder_configs
-import netsquid_netbuilder.modules.qdevices as netbuilder_qdevices
-import netsquid_netbuilder.modules.links as netbuilder_links
 import netsquid_netbuilder.modules.clinks as netbuilder_clinks
+import netsquid_netbuilder.modules.links as netbuilder_links
+import netsquid_netbuilder.modules.qdevices as netbuilder_qdevices
 from netsquid_netbuilder.yaml_loadable import YamlLoadable
 
 
@@ -107,6 +107,7 @@ class StackNetworkConfig(YamlLoadable):
     """List of all the links connecting the stacks in the network."""
     clinks: Optional[List[LinkConfig]]
     """List of all the links connecting the stacks in the network."""
+
     @classmethod
     def from_file(cls, path: str) -> StackNetworkConfig:
         return super().from_file(path)  # type: ignore
@@ -122,7 +123,7 @@ def _convert_stack_network_config(
         processing_node = netbuilder_configs.ProcessingNodeConfig(
             name=stack_config.name,
             qdevice_typ=stack_config.qdevice_typ,
-            qdevice_cfg=stack_config.qdevice_cfg
+            qdevice_cfg=stack_config.qdevice_cfg,
         )
         processing_nodes.append(processing_node)
 
@@ -167,6 +168,5 @@ def _convert_stack_network_config(
             clinks.append(clink)
 
     return netbuilder_configs.NetworkConfig(
-        processing_nodes=processing_nodes,
-        links=links,
-        clinks=clinks)
+        processing_nodes=processing_nodes, links=links, clinks=clinks
+    )
