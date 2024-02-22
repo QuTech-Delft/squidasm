@@ -15,13 +15,15 @@ from squidasm.sim.stack.qnos import QnosComponent
 
 @dataclass
 class ReqQNOSMessage:
-    """Make a request to send a message to a remote node"""
+    """Request to send a message to a QNOS component on a remote node"""
 
     origin: str
     message: str
 
 
 class QNOSNetworkService(ServiceProtocol):
+    """Interface with the Netsquid network for routing communication between remote QNOS components."""
+
     RECEIVED_MESSAGE = "Received message"
 
     def __init__(self, node, qnos_component: QnosComponent):
@@ -31,6 +33,32 @@ class QNOSNetworkService(ServiceProtocol):
         self.register_request(ReqQNOSMessage, self.receive_qnos_message)
         self._listener_to_name: Dict[PortListener, str] = {}
         self._port_to_name: Dict[Port, str] = {}
+
+    def receive_qnos_message(self, req: ReqQNOSMessage):
+        """Receive a message from a remote QNOS component.
+
+        Will forward received communication to local QNOS component.
+        """
+        if req.origin not in self.node_id_name_mapping.keys():
+            raise RuntimeError(
+                f"Node: {self.node.name} received QNOS request"
+                f" from unregistered peer {req.origin}"
+            )
+
+        remote_id = self.node_id_name_mapping[req.origin]
+        port = self.qnos_comp.peer_in_port(remote_id)
+        port.tx_input(req.message)
+
+    def send_qnos_message(self, msg: str, target: str):
+        """Send a message to a remote QNOS component"""
+        service_request = RemoteServiceRequest(
+            request=ReqQNOSMessage(origin=self.node.name, message=msg),
+            origin=self.node.name,
+            service=QNOSNetworkService,
+            targets=[target],
+        )
+
+        self.node.driver.services[ClassicalRoutingService].put(service_request)
 
     def register_remote_node(self, node_name: str, node_id: int):
         assert self.qnos_comp.peer_in_port(node_id) is not None
@@ -44,7 +72,7 @@ class QNOSNetworkService(ServiceProtocol):
         if len(self._port_to_name) == 0:
             return
 
-        any_port_output_expr = self._build_combined_event_expr()
+        any_port_output_expr = self._build_combined_port_output_event_expr()
         while True:
             yield any_port_output_expr
             for event in any_port_output_expr.triggered_events:
@@ -54,7 +82,7 @@ class QNOSNetworkService(ServiceProtocol):
                 for item in port.rx_output().items:
                     self.send_qnos_message(item, target=remote_node)
 
-    def _build_combined_event_expr(self) -> EventExpression:
+    def _build_combined_port_output_event_expr(self) -> EventExpression:
         ports = list(self._port_to_name.keys())
 
         evt_expr = self.await_port_output(ports[0])
@@ -62,27 +90,6 @@ class QNOSNetworkService(ServiceProtocol):
             evt_expr = evt_expr | self.await_port_output(port)
 
         return evt_expr
-
-    def receive_qnos_message(self, req: ReqQNOSMessage):
-        if req.origin not in self.node_id_name_mapping.keys():
-            raise RuntimeError(
-                f"Node: {self.node.name} received QNOS request"
-                f" from unregistered peer {req.origin}"
-            )
-
-        remote_id = self.node_id_name_mapping[req.origin]
-        port = self.qnos_comp.peer_in_port(remote_id)
-        port.tx_input(req.message)
-
-    def send_qnos_message(self, msg: str, target: str):
-        service_request = RemoteServiceRequest(
-            request=ReqQNOSMessage(origin=self.node.name, message=msg),
-            origin=self.node.name,
-            service=QNOSNetworkService,
-            targets=[target],
-        )
-
-        self.node.driver.services[ClassicalRoutingService].put(service_request)
 
     def start(self) -> None:
         super().start()

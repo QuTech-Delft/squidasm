@@ -43,9 +43,6 @@ class QnosComponent(Component):
         # Ports for communicating with Host
         self.add_ports(["host_out", "host_in"])
 
-        # Ports for communicating with other nodes
-        # self.add_ports(["peer_out", "peer_in"])
-
         comp_handler = HandlerComponent(node)
         self.add_subcomponent(comp_handler, "handler")
 
