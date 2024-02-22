@@ -5,12 +5,12 @@ from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from netqasm.sdk.classical_communication.message import StructuredMessage
-from netsquid_driver.classical_socket_service import ClassicalSocket
 from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from pydynaa import EventExpression
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
+from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 
 

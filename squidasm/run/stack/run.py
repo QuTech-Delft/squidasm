@@ -50,8 +50,8 @@ def _setup_network(config: NetworkConfig) -> StackNetwork:
 
     # used to build ClassicalSockets here, now just import from network
     csockets: Dict[(str, str), ClassicalSocket] = network.sockets
-    for (node_name, peer_name), socket in csockets.items():
-        stacks[node_name].host.register_csocket(peer_name, socket)
+    for (node_name, peer_name), netsquid_socket in csockets.items():
+        stacks[node_name].host.register_netsquid_socket(peer_name, netsquid_socket)
 
     link_prots: List[MagicLinkLayerProtocol] = []
     # TODO move this start to same method where stacks and ns.sim_run() are

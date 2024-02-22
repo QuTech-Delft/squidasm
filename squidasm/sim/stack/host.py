@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Generator, List, Optional, Type
 
+import netsquid_driver.classical_socket_service as netsquid_classical_socket_service
 from netqasm.backend.messages import (
     InitNewAppMessage,
     OpenEPRSocketMessage,
@@ -11,12 +12,12 @@ from netqasm.sdk.epr_socket import EPRSocket
 from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
-from netsquid_driver.classical_socket_service import ClassicalSocket
 
 from pydynaa import EventExpression
 from squidasm.sim.stack.common import ComponentProtocol, PortListener
 from squidasm.sim.stack.connection import QnosConnection
 from squidasm.sim.stack.context import NetSquidContext
+from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext
 from squidasm.sim.stack.signals import SIGNAL_HAND_HOST_MSG
 
@@ -78,8 +79,10 @@ class Host(ComponentProtocol):
         # Results of program runs so far.
         self._program_results: List[Dict[str, Any]] = []
 
-        # Registration of classical sockets
-        self._csockets: Dict[str, ClassicalSocket] = {}
+        # Registration of classical netsquid sockets
+        self._netsquid_sockets: Dict[
+            str, netsquid_classical_socket_service.ClassicalSocket
+        ] = {}
 
     @property
     def compiler(self) -> Optional[Type[SubroutineTranspiler]]:
@@ -95,8 +98,12 @@ class Host(ComponentProtocol):
     def receive_qnos_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("qnos", SIGNAL_HAND_HOST_MSG))
 
-    def register_csocket(self, remote_node: str, csocket: ClassicalSocket):
-        self._csockets[remote_node] = csocket
+    def register_netsquid_socket(
+        self,
+        remote_node: str,
+        netsquid_socket: netsquid_classical_socket_service.ClassicalSocket,
+    ):
+        self._netsquid_sockets[remote_node] = netsquid_socket
 
     def run(self) -> Generator[EventExpression, None, None]:
         """Run this protocol. Automatically called by NetSquid during simulation."""
@@ -141,9 +148,16 @@ class Host(ComponentProtocol):
             # Create classical sockets that can be used by the program SDK code.
             classical_sockets: Dict[str, ClassicalSocket] = {}
             for remote_name in prog_meta.csockets:
-                # TODO add error handling if csocket missing remote name desired in csockets
-                assert remote_name in self._csockets.keys()
-                classical_sockets[remote_name] = self._csockets[remote_name]
+                if remote_name not in self._netsquid_sockets.keys():
+                    raise ValueError(
+                        f"Could not find a classical connection to node {remote_name}"
+                    )
+
+                classical_sockets[remote_name] = ClassicalSocket(
+                    netsquid_socket=self._netsquid_sockets[remote_name],
+                    app_name=prog_meta.name,
+                    remote_app_name=remote_name,
+                )
 
             context = ProgramContext(
                 netqasm_connection=conn,
