@@ -1,5 +1,5 @@
 # Perfect 2 node network, no noise from either computation on the nodes or communication between nodes
-processing_nodes:
+stacks:
   - name: Alice
     qdevice_typ: generic
     qdevice_cfg:
@@ -10,15 +10,13 @@ processing_nodes:
       dummy: null
 
 links:
-  - node1: Alice
-    node2: Bob
+  - stack1: Alice
+    stack2: Bob
     typ: perfect
     cfg:
       dummy: null
 
 clinks:
-  - node1: Alice
-    node2: Bob
+  - stack1: Alice
+    stack2: Bob
     typ: instant
-    cfg:
-      dummy: null

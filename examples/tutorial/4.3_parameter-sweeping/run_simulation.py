@@ -1,17 +1,20 @@
 import numpy as np
 from application import AliceProgram, BobProgram
 from matplotlib import pyplot
-from netsquid_netbuilder.base_configs import LinkConfig, NetworkConfig
-from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 
+from squidasm.run.stack.config import (
+    DepolariseLinkConfig,
+    LinkConfig,
+    StackNetworkConfig,
+)
 from squidasm.run.stack.run import run
 
 # import network configuration from file
-cfg = NetworkConfig.from_file("config.yaml")
+cfg = StackNetworkConfig.from_file("config.yaml")
 
 # Create a depolarise link in python
 depolarise_config = DepolariseLinkConfig.from_file("depolarise_link_config.yaml")
-link = LinkConfig(node1="Alice", node2="Bob", typ="depolarise", cfg=depolarise_config)
+link = LinkConfig(stack1="Alice", stack2="Bob", typ="depolarise", cfg=depolarise_config)
 
 # Replace link from YAML file with new depolarise link
 cfg.links = [link]

@@ -3,17 +3,13 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, Generator
 
-from netsquid_netbuilder.base_configs import (
-    CLinkConfig,
-    LinkConfig,
-    NetworkConfig,
-    ProcessingNodeConfig,
-)
-from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
-from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
-from netsquid_netbuilder.modules.qdevices.generic import GenericQDeviceConfig
-
 from pydynaa import EventExpression
+from squidasm.run.stack.config import (
+    GenericQDeviceConfig,
+    LinkConfig,
+    StackConfig,
+    StackNetworkConfig,
+)
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -95,7 +91,7 @@ class ServerProgram(Program):
 
 
 def get_distribution(
-    cfg: NetworkConfig,
+    cfg: StackNetworkConfig,
     num_times: int,
     alpha: float,
     theta1: float,
@@ -121,27 +117,23 @@ PI_OVER_2 = math.pi / 2
 if __name__ == "__main__":
     num_times = 100
 
-    client_stack = ProcessingNodeConfig(
+    client_stack = StackConfig(
         name="client",
         qdevice_typ="generic",
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
-    server_stack = ProcessingNodeConfig(
+    server_stack = StackConfig(
         name="server",
         qdevice_typ="generic",
         qdevice_cfg=GenericQDeviceConfig.perfect_config(),
     )
     link = LinkConfig(
-        node1="client", node2="server", typ="perfect", cfg=PerfectLinkConfig()
+        stack1="client",
+        stack2="server",
+        typ="perfect",
     )
 
-    clink = CLinkConfig(
-        node1="client", node2="server", typ="instant", cfg=InstantCLinkConfig()
-    )
-
-    cfg = NetworkConfig(
-        processing_nodes=[client_stack, server_stack], links=[link], clinks=[clink]
-    )
+    cfg = StackNetworkConfig(stacks=[client_stack, server_stack], links=[link])
 
     get_distribution(cfg, num_times, alpha=0, theta1=0)
     get_distribution(cfg, num_times, alpha=PI, theta1=0)

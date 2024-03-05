@@ -16,7 +16,7 @@ qdevice_cfg: &qdevice_cfg
   single_qubit_gate_depolar_prob: 0.01
   two_qubit_gate_depolar_prob: 0.1
 
-processing_nodes:
+stacks:
   - name: Alice
     qdevice_typ: generic
     qdevice_cfg:
@@ -27,15 +27,13 @@ processing_nodes:
       <<: *qdevice_cfg
 
 links:
-  - node1: Alice
-    node2: Bob
+  - stack1: Alice
+    stack2: Bob
     typ: perfect
     cfg:
       dummy: null
 
 clinks:
-  - node1: Alice
-    node2: Bob
+  - stack1: Alice
+    stack2: Bob
     typ: instant
-    cfg:
-      dummy: null

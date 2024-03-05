@@ -5,9 +5,9 @@ import os
 from typing import Any, Dict, Generator
 
 import netsquid as ns
-from netsquid_netbuilder.base_configs import NetworkConfig
 
 from pydynaa import EventExpression
+from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -98,7 +98,7 @@ PI_OVER_2 = math.pi / 2
 
 
 def run_app(
-    cfg: NetworkConfig,
+    cfg: StackNetworkConfig,
     num_times: int = 1,
     alpha: float = 0.0,
     beta: float = 0.0,
@@ -128,6 +128,6 @@ if __name__ == "__main__":
     ns.set_qstate_formalism(ns.qubits.qformalism.QFormalism.DM)
 
     cfg_file = os.path.join(os.path.dirname(__file__), "config.yaml")
-    cfg = NetworkConfig.from_file(cfg_file)
+    cfg = StackNetworkConfig.from_file(cfg_file)
 
     run_app(cfg, num_times, alpha=PI_OVER_2, beta=PI_OVER_2)

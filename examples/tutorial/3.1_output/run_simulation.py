@@ -1,11 +1,11 @@
 import numpy as np
 from application import AliceProgram, BobProgram
-from netsquid_netbuilder.base_configs import NetworkConfig
 
+from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 
 # import network configuration from file
-cfg = NetworkConfig.from_file("config.yaml")
+cfg = StackNetworkConfig.from_file("config.yaml")
 
 
 # Set a parameter, the number of epr rounds, for the programs

@@ -2,8 +2,8 @@ import sys
 
 import netsquid as ns
 from application import AliceProgram, BobProgram
-from netsquid_netbuilder.base_configs import NetworkConfig
 
+from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 
@@ -12,7 +12,7 @@ if "--test_run" in sys.argv:
     ns.set_random_state(seed=42)
 
 # import network configuration from file
-cfg = NetworkConfig.from_file("config.yaml")
+cfg = StackNetworkConfig.from_file("config.yaml")
 
 # Set log level
 LogManager.set_log_level("INFO")

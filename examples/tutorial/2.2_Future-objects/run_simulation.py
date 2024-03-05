@@ -1,10 +1,10 @@
 from application import AliceProgram, BobProgram
-from netsquid_netbuilder.base_configs import NetworkConfig
 
+from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 
 # import network configuration from file
-cfg = NetworkConfig.from_file("config.yaml")
+cfg = StackNetworkConfig.from_file("config.yaml")
 
 # Create instances of programs to run
 alice_program = AliceProgram()

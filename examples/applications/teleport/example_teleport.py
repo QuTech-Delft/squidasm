@@ -5,12 +5,11 @@ import numpy
 from netqasm.sdk import Qubit
 from netqasm.sdk.classical_communication.message import StructuredMessage
 from netqasm.sdk.toolbox.state_prep import set_qubit_state
-from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
-from squidasm.util import get_qubit_state, get_reference_state
+from squidasm.util import create_two_node_network, get_qubit_state, get_reference_state
 
 
 @dataclass
@@ -121,7 +120,7 @@ class ReceiverProgram(Program):
 
 if __name__ == "__main__":
     # Create a network configuration
-    cfg = create_simple_network(node_names=["Receiver", "Sender"])
+    cfg = create_two_node_network(node_names=["Receiver", "Sender"])
 
     # generate parameters randomly
     params = TeleportParams.generate_random_params()

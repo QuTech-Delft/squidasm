@@ -8,7 +8,7 @@ qdevice_cfg: &qdevice_cfg
   two_qubit_gate_time: 1.e+5
   measurement_time: 1.e+4
 
-processing_nodes:
+stacks:
   - name: client
     qdevice_typ: generic
     qdevice_cfg: 
@@ -24,15 +24,15 @@ link_cfg: &link_cfg
   t_cycle: 1e3
 
 links:
-  - node1: client
-    node2: server
+  - stack1: client
+    stack2: server
     typ: depolarise
     cfg:
       <<: *link_cfg
 
 clinks:
-  - node1: client
-    node2: server
+  - stack1: client
+    stack2: server
     typ: default
     cfg:
       delay: 0.5

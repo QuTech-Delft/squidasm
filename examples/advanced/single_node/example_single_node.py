@@ -2,10 +2,9 @@ from typing import Any, Dict, Generator
 
 from netqasm.lang.parsing.text import parse_text_protosubroutine
 from netqasm.sdk.qubit import Qubit
-from netsquid_netbuilder.base_configs import NetworkConfig, ProcessingNodeConfig
-from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 
 from pydynaa import EventExpression
+from squidasm.run.stack.config import NVQDeviceConfig, StackConfig, StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -53,12 +52,12 @@ if __name__ == "__main__":
     LogManager.set_log_level("WARNING")
 
     num_times = 1
-    client = ProcessingNodeConfig(
+    client = StackConfig(
         name="client",
         qdevice_typ="nv",
         qdevice_cfg=NVQDeviceConfig.perfect_config(),
     )
-    cfg = NetworkConfig(processing_nodes=[client], links=[])
+    cfg = StackNetworkConfig(stacks=[client], links=[])
 
     num_pairs = 10
 

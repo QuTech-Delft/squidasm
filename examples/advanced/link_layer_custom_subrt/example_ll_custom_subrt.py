@@ -5,17 +5,14 @@ from typing import Any, Dict, Generator
 from netqasm.lang.parsing.text import parse_text_protosubroutine
 from netqasm.sdk import Qubit
 from netqasm.sdk.futures import Array
-from netsquid_netbuilder.base_configs import (
-    CLinkConfig,
-    LinkConfig,
-    NetworkConfig,
-    ProcessingNodeConfig,
-)
-from netsquid_netbuilder.modules.clinks.instant import InstantCLinkConfig
-from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
-from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
 
 from pydynaa import EventExpression
+from squidasm.run.stack.config import (
+    LinkConfig,
+    NVQDeviceConfig,
+    StackConfig,
+    StackNetworkConfig,
+)
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -192,25 +189,19 @@ if __name__ == "__main__":
 
     num_times = 1
 
-    client = ProcessingNodeConfig(
+    client = StackConfig(
         name="client",
         qdevice_typ="nv",
         qdevice_cfg=NVQDeviceConfig.perfect_config(),
     )
-    server = ProcessingNodeConfig(
+    server = StackConfig(
         name="server",
         qdevice_typ="nv",
         qdevice_cfg=NVQDeviceConfig.perfect_config(),
     )
-    link = LinkConfig(
-        node1=client.name, node2=server.name, typ="perfect", cfg=PerfectLinkConfig()
-    )
+    link = LinkConfig(stack1=client.name, stack2=server.name, typ="perfect")
 
-    clink = CLinkConfig(
-        node1="client", node2="server", typ="instant", cfg=InstantCLinkConfig()
-    )
-
-    cfg = NetworkConfig(processing_nodes=[client, server], links=[link], clinks=[clink])
+    cfg = StackNetworkConfig(stacks=[client, server], links=[link])
 
     client_program = ClientProgram(num_repetitions=2)
     server_program = ServerProgram(num_repetitions=2)

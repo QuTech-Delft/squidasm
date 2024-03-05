@@ -8,7 +8,7 @@ qdevice_cfg: &qdevice_cfg
   two_qubit_gate_time: 1.e+5
   measurement_time: 1.e+4
 
-processing_nodes:
+stacks:
   - name: client
     qdevice_typ: generic
     qdevice_cfg: 
@@ -19,24 +19,22 @@ processing_nodes:
       <<: *qdevice_cfg
   
 link_cfg: &link_cfg
-  length_A: 50
-  length_B: 50
-  p_loss_length_A: 0.2
-  p_loss_length_B: 0.2
+  length: 100
+  p_loss_length: 0.2
   dark_count_probability: 0
   detector_efficiency: 1
   visibility: 1
 
 links:
-  - node1: client
-    node2: server
-    typ: heralded-double-click
+  - stack1: client
+    stack2: server
+    typ: heralded
     cfg:
       <<: *link_cfg
 
 clinks:
-  - node1: client
-    node2: server
+  - stack1: client
+    stack2: server
     typ: default
     cfg:
       delay: 0.5

@@ -1,9 +1,8 @@
 import os
 from typing import Any, Dict, Generator
 
-from netsquid_netbuilder.base_configs import NetworkConfig
-
 from pydynaa import EventExpression
+from squidasm.run.stack.config import StackNetworkConfig
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.common import LogManager
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -77,7 +76,7 @@ if __name__ == "__main__":
     LogManager.set_log_level("WARNING")
 
     num_times = 1
-    cfg = NetworkConfig.from_file(
+    cfg = StackNetworkConfig.from_file(
         os.path.join(os.getcwd(), os.path.dirname(__file__), "config.yaml")
     )
 
