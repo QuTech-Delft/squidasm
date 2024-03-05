@@ -91,7 +91,7 @@ We start with the simplest configuration file, one without any noise:
     :language: yaml
     :caption: examples/tutorial/4.2_network-configuration/1_perfect.yaml
 
-The network requires two types of objects to be specified: stacks and links.
+The network requires three types of objects to be specified: stacks, links and clinks.
 
 Stacks are the end nodes of the network and run applications.
 Each stack requires a name, this name will be used by the links and applications for reference.
@@ -101,8 +101,14 @@ The various stack types are discussed in :ref:`label_stack_types`.
 
 Links connect the stacks with a way of generating EPR pairs between the two nodes.
 A link requires references to the two stacks it is to connect.
-This is done by registering the names of the stacks in the fields ``node1`` and ``node2``.
+This is done by registering the names of the stacks in the fields ``stack1`` and ``stack2``.
 The model type of the link is specified using the ``typ`` field.
+The various settings for the model are defined inside ``cfg``.
+
+Clinks are shorthand for classical links. These are similar to links, but for classical message communication.
+A clink requires references to the two stacks it is to connect with a classical link.
+This is done by registering the names of the stacks in the fields ``stack1`` and ``stack2``.
+The model type of the clink is specified using the ``typ`` field.
 The various settings for the model are defined inside ``cfg``.
 
 .. _label_stack_types:
@@ -202,6 +208,31 @@ The heralded link uses the double click model as developed and described by this
 .. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/5_heralded_link.yaml
     :language: yaml
     :caption: examples/tutorial/4.2_network-configuration/5_heralded_link.yaml
+
+Clink types
++++++++++++
+
+instant clink
+----------------
+The instant clink is a classical link model where all classical communication is instant.
+It does not have any configuration options.
+
+.. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/1_perfect.yaml
+    :language: yaml
+    :caption: examples/tutorial/4.2_network-configuration/1_perfect.yaml
+    :lines: 19-22
+
+
+default clink
+----------------
+The default clink is a classical link model where classical communication is delayed by exactly the delay specified in
+the configuration.
+
+.. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/6_default.yaml
+    :language: yaml
+    :caption: examples/tutorial/4.2_network-configuration/1_perfect.yaml
+    :lines: 19-24
+
 
 Parameter sweeping
 =====================
