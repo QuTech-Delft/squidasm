@@ -105,7 +105,7 @@ class StackNetworkConfig(YamlLoadable):
     """List of all the stacks in the network."""
     links: List[LinkConfig]
     """List of all the links connecting the stacks in the network."""
-    clinks: Optional[List[LinkConfig]]
+    clinks: Optional[List[CLinkConfig]]
     """List of all the links connecting the stacks in the network."""
 
     @classmethod
