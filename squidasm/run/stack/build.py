@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import Dict, TYPE_CHECKING
+from typing import Dict
 
 from netsquid_netbuilder.base_configs import NetworkConfig
 from netsquid_netbuilder.builder.network_builder import NetworkBuilder, NodeBuilder
 from netsquid_netbuilder.run import get_default_builder
 
-if TYPE_CHECKING:
-    from squidasm.sim.stack.stack import StackNode
+from squidasm.sim.stack.stack import StackNode
 
 
 class StackNodeBuilder(NodeBuilder):

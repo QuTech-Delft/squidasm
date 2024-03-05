@@ -40,3 +40,12 @@ Link configurations
     :maxdepth: 2
 
     configurations/link_configurations
+
+
+CLink configurations
++++++++++++++++++++++
+
+.. toctree::
+    :maxdepth: 2
+
+    configurations/clink_configurations

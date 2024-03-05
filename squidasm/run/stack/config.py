@@ -11,11 +11,11 @@ from netsquid_netbuilder.yaml_loadable import YamlLoadable
 
 
 class GenericQDeviceConfig(netbuilder_qdevices.GenericQDeviceConfig):
-    pass
+    __doc__ = netbuilder_qdevices.GenericQDeviceConfig.__doc__
 
 
 class NVQDeviceConfig(netbuilder_qdevices.NVQDeviceConfig):
-    pass
+    __doc__ = netbuilder_qdevices.NVQDeviceConfig.__doc__
 
 
 class StackConfig(YamlLoadable):
@@ -43,19 +43,19 @@ class StackConfig(YamlLoadable):
 
 
 class DepolariseLinkConfig(netbuilder_links.DepolariseLinkConfig):
-    pass
+    __doc__ = netbuilder_links.DepolariseLinkConfig.__doc__
 
 
 class HeraldedLinkConfig(netbuilder_links.HeraldedDoubleClickLinkConfig):
-    pass
+    __doc__ = netbuilder_links.HeraldedDoubleClickLinkConfig.__doc__
 
 
 class InstantCLinkConfig(netbuilder_clinks.InstantCLinkConfig):
-    pass
+    __doc__ = netbuilder_clinks.InstantCLinkConfig.__doc__
 
 
 class DefaultCLinkConfig(netbuilder_clinks.DefaultCLinkConfig):
-    pass
+    __doc__ = netbuilder_clinks.DefaultCLinkConfig.__doc__
 
 
 class LinkConfig(YamlLoadable):

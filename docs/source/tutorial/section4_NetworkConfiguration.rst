@@ -246,7 +246,7 @@ Our goal is to use ``run_simulation.py`` to modify the network of ``config.yaml`
 replace its link with a depolarize link, perform multiple simulations with varying fidelity for the link
 and generate an graph of the fidelity vs error rate.
 
-.. literalinclude:: ../../../examples/tutorial/4.3_parameter-sweeping/run_simulation.py
+.. literalinclude:: ../../../examples/tutorial/4.4_parameter-sweeping/run_simulation.py
     :language: python
     :caption: examples/tutorial/4.3_parameter-sweeping/run_simulation.py
     :emphasize-lines: 12-20, 26-27
@@ -265,7 +265,7 @@ We then load in the configuration options for the depolarise link:
 
 This creates the ``DepolariseLinkConfig`` object based on the parameters in the file ``depolarise_link_config.yaml``:
 
-.. literalinclude:: ../../../examples/tutorial/4.3_parameter-sweeping/depolarise_link_config.yaml
+.. literalinclude:: ../../../examples/tutorial/4.4_parameter-sweeping/depolarise_link_config.yaml
     :language: yaml
     :caption: examples/tutorial/4.3_parameter-sweeping/depolarise_link_config.yaml
 
