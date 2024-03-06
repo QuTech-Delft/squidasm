@@ -152,6 +152,12 @@ class Qnos(Protocol):
         raise RuntimeError(f"no virtual ID found for physical ID {phys_id}")
 
     def assign_egp(self, remote_node_id: int, egp: EgpProtocol) -> None:
+        """Set the EGP protocol that this network stack uses to produce
+        entangled pairs with a remote node.
+
+        :param remote_node_id: The ID of the remote node.
+        :param egp: The EGP protocol instance for generating EPR pairs with the remote node.
+        """
         self.netstack.assign_egp(remote_node_id, egp)
 
     @property

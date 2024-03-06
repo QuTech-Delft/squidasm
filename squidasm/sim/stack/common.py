@@ -43,6 +43,7 @@ class LogManager:
     @classmethod
     def get_stack_logger(cls, sub_logger: Optional[str] = None) -> logging.Logger:
         """Obtain the SquidASM logger.
+
         :param sub_logger: If used, it will return a child logger of the main SquidASM logger
         :return: The SquidASM logger
         """
@@ -70,6 +71,7 @@ class LogManager:
     @classmethod
     def log_to_file(cls, path: str) -> None:
         """Sets up sending the logs to an output file. Does not affect other log output methods.
+
         :param path: Location of output file. Overwrites existing file.
         """
         fileHandler = logging.FileHandler(path, mode="w")

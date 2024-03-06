@@ -128,10 +128,12 @@ class NodeStack(Protocol):
             self._qnos = Qnos(self.qnos_comp, qdevice_type)
 
     def assign_egp(self, remote_node_id: int, egp: EgpProtocol) -> None:
-        """Set the link layer protocol to use for entanglement generation.
+        """Set the EGP protocol that this network stack uses to produce
+        entangled pairs with a remote node.
 
-        The same link layer protocol object is used by both nodes sharing a link in
-        the network."""
+        :param remote_node_id: The ID of the remote node.
+        :param egp: The EGP protocol instance for generating EPR pairs with the remote node.
+        """
         self.qnos.assign_egp(remote_node_id, egp)
 
     @property

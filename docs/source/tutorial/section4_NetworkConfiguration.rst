@@ -303,7 +303,7 @@ This link object is used to replace the original links inside the configuration:
 
 .. code-block:: python
 
-    link = LinkConfig(node1="Alice", node2="Bob", typ="depolarise", cfg=depolarise_config)
+    link = LinkConfig(stack1="Alice", stack2="Bob", typ="depolarise", cfg=depolarise_config)
 
     # Replace link from YAML file with new depolarise link
     cfg.links = [link]

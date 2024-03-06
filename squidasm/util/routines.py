@@ -2,6 +2,7 @@ from enum import Enum, auto
 from typing import Generator, Optional, Tuple
 
 from netqasm.sdk import EPRSocket
+from netqasm.sdk.classical_communication.socket import Socket
 from netqasm.sdk.connection import BaseNetQASMConnection
 from netqasm.sdk.qubit import Qubit
 
@@ -251,8 +252,8 @@ def create_ghz(
     connection: BaseNetQASMConnection,
     down_epr_socket: Optional[EPRSocket] = None,
     up_epr_socket: Optional[EPRSocket] = None,
-    down_socket=None,
-    up_socket=None,
+    down_socket: Optional[Socket] = None,
+    up_socket: Optional[Socket] = None,
     do_corrections: bool = False,
 ) -> Generator[None, None, Tuple[Qubit, int]]:
     r"""Local protocol to create a GHZ state between multiples nodes.
@@ -278,30 +279,18 @@ def create_ghz(
       creates one on the `up_epr_socket`.
     * "end", which receives an EPR pair on the `down_epr_socket`.
 
-    NOTE There has to be exactly one "start" and exactly one "end" but zero or more "middle".
-    NOTE Both `down_epr_socket` and `up_epr_socket` cannot be `None`.
-    NOTE Method was copied from netqasm package and was adapted for SquidASM
+    .. note::
+        There has to be exactly one "start" and exactly one "end" but zero or more "middle".
+        Both `down_epr_socket` and `up_epr_socket` cannot be `None`.
 
-    Parameters
-    ----------
-    connection : :class:`.sdk.connection.BaseNetQASMConnection`
-        The connection to the quantum node controller used for sending instructions.
-    down_epr_socket : :class:`.sdk.epr_socket.esck.EPRSocket`
-        The esck.EPRSocket to be used for receiving EPR pairs from downstream.
-    up_epr_socket : :class:`.sdk.epr_socket.esck.EPRSocket`
-        The esck.EPRSocket to be used for create EPR pairs upstream.
-    down_socket : :class:`.sdk.classical_communication.socket.Socket`
-        The classical socket to be used for sending corrections, if `do_corrections = True`.
-    up_socket : :class:`.sdk.classical_communication.socket.Socket`
-        The classical socket to be used for sending corrections, if `do_corrections = True`.
-    do_corrections : bool
-        If corrections should be applied to make the GHZ in the standard form
+    :param connection: The connection to the quantum node controller used for sending instructions.
+    :param down_epr_socket: The EPRSocket to be used for receiving EPR pairs from downstream.
+    :param up_epr_socket: The EPRSocket to be used for create EPR pairs upstream.
+    :param down_socket: The classical socket to be used for sending corrections, if `do_corrections = True`.
+    :param up_socket: The classical socket to be used for sending corrections, if `do_corrections = True`.
+    :param do_corrections: If corrections should be applied to make the GHZ in the standard form
         :math:`|0\rangle^{\otimes n} + |1\rangle^{\otimes n}` or not.
-
-    Returns
-    -------
-    tuple
-        Of the form `(q, m)` where `q` is the qubit part of the state and `m` is the measurement outcome.
+    :return: Of the form `(q, m)` where `q` is the qubit part of the state and `m` is the measurement outcome.
     """
     if down_epr_socket is None and up_epr_socket is None:
         raise TypeError("Both down_epr_socket and up_epr_socket cannot be None")

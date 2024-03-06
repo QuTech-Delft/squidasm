@@ -137,10 +137,11 @@ class Netstack(ComponentProtocol):
         )
 
     def assign_egp(self, remote_node_id: int, egp: EgpProtocol) -> None:
-        """Set the magic link layer protocol that this network stack uses to produce
-        entangled pairs with the remote node.
+        """Set the EGP protocol that this network stack uses to produce
+        entangled pairs with a remote node.
 
-        :param egp:
+        :param remote_node_id: The ID of the remote node.
+        :param egp: The EGP protocol instance for generating EPR pairs with the remote node.
         """
         self._egp[remote_node_id] = egp
 
@@ -696,7 +697,7 @@ class Netstack(ComponentProtocol):
     def handle_breakpoint_create_request(
         self,
     ) -> Generator[EventExpression, None, None]:
-        # TODO figure out how to get remote node id here
+        # TODO breakpoint requests do not include a reference to the remote node id that is needed
         raise NotImplementedError("Breakpoints not working currently")
         # Synchronize with the remote node.
         self._send_peer_msg("breakpoint start")
@@ -724,7 +725,7 @@ class Netstack(ComponentProtocol):
         self,
     ) -> Generator[EventExpression, None, None]:
         # Synchronize with the remote node.
-        # TODO figure out how to get remote node id here
+        # TODO breakpoint requests do not include a reference to the remote node id that is needed
         raise NotImplementedError("Breakpoints not working currently")
 
         msg = yield from self._receive_peer_msg()
