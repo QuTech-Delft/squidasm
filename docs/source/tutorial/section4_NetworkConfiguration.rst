@@ -233,6 +233,30 @@ the configuration.
     :caption: examples/tutorial/4.2_network-configuration/1_perfect.yaml
     :lines: 19-24
 
+Multiple nodes
+==================
+SquidASM is capable of simulating networks that consist of more than two nodes.
+This extends straightforwardly from two node networks.
+To add an extra node, Charlie, the network configuration must be extended with a stack for Charlie
+and the desired connections must be added.
+
+.. literalinclude:: ../../../examples/tutorial/4.3_multi-node/config.yaml
+    :language: yaml
+    :caption: examples/tutorial/4.3_multi-node/config.yaml
+
+While the previous example has connected the Charlie stack to both Alice and Bob, this is not mandatory,
+as long as the application does not attempt to use a non-existent link.
+For larger networks it is useful to create the network configuration object via :ref:`label_API_util` methods or create it programmatically yourself.
+
+To write programs for networks with more than two nodes in the network, one must register each of the nodes for which a connection is used to the `ProgramMeta` object.
+An example of a program where we have three nodes in the network: Alice, Bob and Charlie, is shown below.
+In this example both Bob and Charlie generate a EPR pair with Alice. Alice will then perform a bell state measurement and send the corrections to Charlie.
+This will result in Bob and Charlie sharing an EPR pair.
+
+.. literalinclude:: ../../../examples/tutorial/4.3_multi-node/application.py
+   :language: python
+   :caption: examples/tutorial/4.3_multi-node/application.py AliceProgram
+   :pyobject: AliceProgram
 
 Parameter sweeping
 =====================

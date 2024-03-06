@@ -2,11 +2,11 @@ from typing import List
 
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
 from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
-from netsquid_netbuilder.util.network_generation import create_complete_graph_network
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
 from squidasm.util.routines import create_ghz
+from squidasm.util.util import create_complete_graph_network
 
 
 class GHZProgram(Program):

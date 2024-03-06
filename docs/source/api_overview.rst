@@ -16,6 +16,8 @@ These objects have their documentation on `NETQASM SDK documentation <https://ne
     modules/logger
     modules/program
     modules/classical_socket
+    modules/util
+    modules/routines
 
 
 

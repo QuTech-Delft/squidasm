@@ -1,4 +1,4 @@
-"""Utility functions for examples"""
+import itertools
 from typing import List
 
 import netsquid.qubits
@@ -6,6 +6,9 @@ import numpy as np
 from netqasm.sdk.qubit import Qubit
 from netsquid.qubits import operators
 from netsquid.qubits import qubitapi as qapi
+from netsquid_netbuilder.modules.clinks import ICLinkConfig
+from netsquid_netbuilder.modules.links import ILinkConfig
+from netsquid_netbuilder.modules.qdevices import IQDeviceConfig
 
 import squidasm.sim.stack.globals
 from squidasm.run.stack.config import (
@@ -28,6 +31,7 @@ def create_two_node_network(
 ) -> StackNetworkConfig:
     """
     Create a network configuration with two nodes, with simple noise models.
+
     :param node_names: List of str with the names of the two nodes
     :param link_noise: A number between 0 and 1 that indicates how noisy the generated EPR pairs are.
     :param qdevice_noise: A number between 0 and 1 that indicates how noisy the qubit operations on the nodes are.
@@ -61,18 +65,65 @@ def create_two_node_network(
     return StackNetworkConfig(stacks=processing_nodes, links=[link], clinks=[clink])
 
 
+def create_complete_graph_network(
+    node_names: List[str],
+    link_typ: str,
+    link_cfg: ILinkConfig,
+    clink_typ: str = "instant",
+    clink_cfg: ICLinkConfig = None,
+    qdevice_typ: str = "generic",
+    qdevice_cfg: IQDeviceConfig = None,
+) -> StackNetworkConfig:
+    """
+    Create a complete graph network configuration.
+    The network generated will connect each node to each other node directly using the link and clink models provided.
+
+    :param node_names: List of str with the names of the nodes. The amount of names will determine the amount of nodes.
+    :param link_typ: str specification of the link model to use for quantum links.
+    :param link_cfg: Configuration of the link model.
+    :param clink_typ: str specification of the clink model to use for classical communication.
+    :param clink_cfg: Configuration of the clink model.
+    :param qdevice_typ: str specification of the qdevice model to use for quantum devices.
+    :param qdevice_cfg: Configuration of qdevice.
+    :return: StackNetworkConfig object with a network.
+    """
+    network_config = StackNetworkConfig(stacks=[], links=[], clinks=[])
+
+    assert len(node_names) > 0
+
+    for node_name in node_names:
+        qdevice_cfg = (
+            GenericQDeviceConfig.perfect_config()
+            if qdevice_cfg is None
+            else qdevice_cfg
+        )
+        node = StackConfig(
+            name=node_name, qdevice_typ=qdevice_typ, qdevice_cfg=qdevice_cfg
+        )
+        network_config.stacks.append(node)
+
+    for s1, s2 in itertools.combinations(node_names, 2):
+        link = LinkConfig(stack1=s1, stack2=s2, typ=link_typ, cfg=link_cfg)
+        network_config.links.append(link)
+
+        clink = CLinkConfig(stack1=s1, stack2=s2, typ=clink_typ, cfg=clink_cfg)
+        network_config.clinks.append(clink)
+
+    return network_config
+
+
 def get_qubit_state(q: Qubit, node_name, full_state=False) -> np.ndarray:
     """
     Retrieves the underlying quantum state from a qubit in density matrix formalism.
-     This is only possible in simulation.
+    This is only possible in simulation.
 
     .. note:: The function gets the *current* qubit. So make sure the subroutine is flushed
               before calling the method.
 
     :param q: The qubit to get the state of or list of qubits.
-    :param node_name:  Node name of current node.
-    Requirement for this parameter is due to software limitation,
-     can be made unnecessary in future version of SquidASM.
+    :param node_name: Node name of current node.
+        Requirement for this parameter is due to software limitation,
+        can be made unnecessary in future version of SquidASM.
     :param full_state: Flag to retrieve the full underlying entangled state and not only this qubit subspace.
     :return: An array that is the density matrix description of the quantum state
     """
@@ -101,7 +152,7 @@ def get_qubit_state(q: Qubit, node_name, full_state=False) -> np.ndarray:
 def get_reference_state(phi: float, theta: float) -> np.ndarray:
     """
     Gives the reference quantum state for a qubit in density matrix formalism,
-     that is in a pure state matching a state on the Bloch sphere described by the angles phi and theta.
+    that is in a pure state matching a state on the Bloch sphere described by the angles phi and theta.
 
     :param phi: Angle on Bloch sphere between state and x-axis
     :param theta: Angle on Bloch sphere between state and z-axis
