@@ -3,7 +3,17 @@ CHANGELOG
 
 2024-03-TODO (0.13.0)
 ------------------
-- TODO
+- Added configurable classical links
+- Added support for networks with more than two nodes
+- Added a tutorial example for network with three nodes
+- Added GHZ routine
+- Added GHZ routine usage example
+- Added utility method for generating complete graph networks
+- Expanded testing
+- Added a flag `--test_run` when running examples via `run_examples.py` to indicate a test run of an example
+- Fix the netsquid seed in various examples to avoid accidental failure when performing a test run
+- Netqasm breakpoint requests are temporarily not supported
+- Various bugfixes
 
 2023-09-21 (0.12.1)
 ------------------
