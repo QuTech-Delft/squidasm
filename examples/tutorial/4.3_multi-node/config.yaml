@@ -1,0 +1,73 @@
+# 3 node network, all the sources of noise have been disabled for this example
+qdevice_cfg: &qdevice_cfg
+  num_qubits: 2
+
+  # coherence times (same for each qubit)
+  T1: 0
+  T2: 0
+
+  # gate execution times
+  init_time: 10_000
+  single_qubit_gate_time: 1_000
+  two_qubit_gate_time: 100_000
+  measure_time: 10_000
+
+  # noise model
+  single_qubit_gate_depolar_prob: 0.
+  two_qubit_gate_depolar_prob: 0.
+
+stacks:
+  - name: Alice
+    qdevice_typ: generic
+    qdevice_cfg:
+      <<: *qdevice_cfg
+
+  - name: Bob
+    qdevice_typ: generic
+    qdevice_cfg:
+      <<: *qdevice_cfg
+
+  - name: Charlie
+    qdevice_typ: generic
+    qdevice_cfg:
+      <<: *qdevice_cfg
+
+
+link_cfg: &link_cfg
+  fidelity: 1
+  prob_success: 0.3
+  t_cycle: 1e5
+
+links:
+  - stack1: Alice
+    stack2: Bob
+    typ: depolarise
+    cfg:
+      <<: *link_cfg
+  - stack1: Alice
+    stack2: Charlie
+    typ: depolarise
+    cfg:
+      <<: *link_cfg
+  - stack1: Bob
+    stack2: Charlie
+    typ: depolarise
+    cfg:
+      <<: *link_cfg
+
+clinks:
+  - stack1: Alice
+    stack2: Bob
+    typ: default
+    cfg:
+      delay: 5e3
+  - stack1: Alice
+    stack2: Charlie
+    typ: default
+    cfg:
+      delay: 1e4
+  - stack1: Bob
+    stack2: Charlie
+    typ: default
+    cfg:
+      delay: 1e4

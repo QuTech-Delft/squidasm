@@ -11,7 +11,7 @@ from squidasm.sim.stack.program import ProgramContext
 
 
 @dataclass
-class PairInfo:
+class _PairInfo:
     """Information that a node has about one generated pair.
     The information is filled progressively during the protocol."""
 
@@ -34,7 +34,7 @@ class QKDRoutine:
     @staticmethod
     def _distribute_states(
         context: ProgramContext, is_init: bool, peer_name: str, num_epr: int
-    ) -> Generator[EventExpression, None, List[PairInfo]]:
+    ) -> Generator[EventExpression, None, List[_PairInfo]]:
         """
         Generates and measures a number of entangled qubits in a random basis.
         :param context: Local program context
@@ -56,14 +56,14 @@ class QKDRoutine:
                 q.H()
             m = q.measure()
             yield from conn.flush()
-            results.append(PairInfo(index=i, outcome=int(m), basis=basis))
+            results.append(_PairInfo(index=i, outcome=int(m), basis=basis))
 
         return results
 
     @staticmethod
     def _filter_bases(
-        socket: ClassicalSocket, pairs_info: List[PairInfo], is_init: bool
-    ) -> Generator[EventExpression, None, List[PairInfo]]:
+        socket: ClassicalSocket, pairs_info: List[_PairInfo], is_init: bool
+    ) -> Generator[EventExpression, None, List[_PairInfo]]:
         """
         Communicates the random base choices with the peer and filters out the measured entangled qubits
          that where measured in a different basis.
@@ -90,10 +90,10 @@ class QKDRoutine:
     @staticmethod
     def _estimate_error_rate(
         socket: ClassicalSocket,
-        pairs_info: List[PairInfo],
+        pairs_info: List[_PairInfo],
         num_test_bits: int,
         is_init: bool,
-    ) -> Generator[EventExpression, None, Tuple[List[PairInfo], float]]:
+    ) -> Generator[EventExpression, None, Tuple[List[_PairInfo], float]]:
         """
         Estimates the error rate for the raw key, by choosing a random subset of the key to exchange with the peer.
         :param socket: classical socket to peer.

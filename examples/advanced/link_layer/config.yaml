@@ -45,3 +45,10 @@ links:
       full_cycle: 0.1
       cycle_time: 1.0
       alpha: 0.9
+
+clinks:
+  - stack1: client
+    stack2: server
+    typ: default
+    cfg:
+      delay: 0.5

@@ -21,6 +21,7 @@ The rotation gates will rotate the qubit around the specified axis with a given 
  .. autoclass:: squidasm.run.stack.config.GenericQDeviceConfig
     :members:
     :undoc-members:
+    :inherited-members: BaseModel
     :member-order: bysource
 
 NV QDevice
@@ -44,4 +45,5 @@ The topology of the NV qdevice only allows for CXDIR and CYDIR gates between the
  .. autoclass:: squidasm.run.stack.config.NVQDeviceConfig
     :members:
     :undoc-members:
+    :inherited-members: BaseModel
     :member-order: bysource

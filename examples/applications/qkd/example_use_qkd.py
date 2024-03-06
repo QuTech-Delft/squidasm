@@ -1,5 +1,7 @@
+import sys
 from typing import Any, Dict, Generator
 
+import netsquid as ns
 from bitarray import bitarray
 
 from pydynaa import EventExpression
@@ -113,6 +115,10 @@ class RecieverProgram(Program):
 
 
 if __name__ == "__main__":
+    # Fix seed on test runs to avoid accidentally causing a event where the key is too short for the message
+    if "--test_run" in sys.argv:
+        ns.set_random_state(seed=42)
+
     cfg = create_two_node_network(node_names=["Alice", "Bob"], link_noise=0.1)
 
     # Prepare the message and protocols

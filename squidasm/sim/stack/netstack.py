@@ -17,12 +17,8 @@ from netqasm.sdk.build_epr import (
 )
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Component, Port
-from netsquid.components.instructions import INSTR_ROT_X, INSTR_ROT_Z
-from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
-from netsquid.qubits.ketstates import BellIndex
-from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
-from netsquid_magic.magic_distributor import DoubleClickMagicDistributor
+from netsquid_magic.egp import EgpProtocol
 from qlink_interface import (
     ReqCreateAndKeep,
     ReqCreateBase,
@@ -45,7 +41,6 @@ from squidasm.sim.stack.common import (
     PhysicalQuantumMemory,
     PortListener,
 )
-from squidasm.sim.stack.egp import EgpProtocol
 from squidasm.sim.stack.signals import (
     SIGNAL_MEMORY_FREED,
     SIGNAL_PEER_NSTK_MSG,
@@ -78,7 +73,6 @@ class NetstackComponent(Component):
         super().__init__(f"{node.name}_netstack")
         self._node = node
         self.add_ports(["proc_out", "proc_in"])
-        self.add_ports(["peer_out", "peer_in"])
 
     @property
     def processor_in_port(self) -> Port:
@@ -88,13 +82,14 @@ class NetstackComponent(Component):
     def processor_out_port(self) -> Port:
         return self.ports["proc_out"]
 
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
+    def peer_in_port(self, peer_id: int) -> Port:
+        return self.ports[f"peer_in_{peer_id}"]
 
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
+    def peer_out_port(self, peer_id: int) -> Port:
+        return self.ports[f"peer_out_{peer_id}"]
+
+    def register_peer(self, peer_id: int):
+        self.add_ports([f"peer_out_{peer_id}", f"peer_in_{peer_id}"])
 
     @property
     def node(self) -> Node:
@@ -131,21 +126,24 @@ class Netstack(ComponentProtocol):
             "processor",
             PortListener(self._comp.processor_in_port, SIGNAL_PROC_NSTK_MSG),
         )
-        self.add_listener(
-            "peer",
-            PortListener(self._comp.peer_in_port, SIGNAL_PEER_NSTK_MSG),
-        )
 
-        self._egp: Optional[EgpProtocol] = None
+        self._egp: Dict[int, EgpProtocol] = {}
         self._epr_sockets: Dict[int, List[EprSocket]] = {}  # app ID -> [socket]
 
-    def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
-        """Set the magic link layer protocol that this network stack uses to produce
-        entangled pairs with the remote node.
+    def register_peer(self, peer_id: int):
+        self.add_listener(
+            f"peer_{peer_id}",
+            PortListener(self._comp.peer_in_port(peer_id), SIGNAL_PEER_NSTK_MSG),
+        )
 
-        :param prot: link layer protocol instance
+    def assign_egp(self, remote_node_id: int, egp: EgpProtocol) -> None:
+        """Set the EGP protocol that this network stack uses to produce
+        entangled pairs with a remote node.
+
+        :param remote_node_id: The ID of the remote node.
+        :param egp: The EGP protocol instance for generating EPR pairs with the remote node.
         """
-        self._egp = EgpProtocol(self._comp.node, prot)
+        self._egp[remote_node_id] = egp
 
     def open_epr_socket(self, app_id: int, socket_id: int, remote_node_id: int) -> None:
         """Create a new EPR socket with the specified remote node.
@@ -167,31 +165,27 @@ class Netstack(ComponentProtocol):
         message."""
         return (yield from self._receive_msg("processor", SIGNAL_PROC_NSTK_MSG))
 
-    def _send_peer_msg(self, msg: str) -> None:
+    def _send_peer_msg(self, peer_id: int, msg: str) -> None:
         """Send a message to the network stack of the other node.
 
         NOTE: for now we assume there is only one other node, which is 'the' peer."""
-        self._comp.peer_out_port.tx_output(msg)
+        self._comp.peer_out_port(peer_id).tx_output(msg)
 
-    def _receive_peer_msg(self) -> Generator[EventExpression, None, str]:
+    def _receive_peer_msg(self, peer_id: int) -> Generator[EventExpression, None, str]:
         """Receive a message from the network stack of the other node. Block until
         there is at least one message.
 
         NOTE: for now we assume there is only one other node, which is 'the' peer."""
-        return (yield from self._receive_msg("peer", SIGNAL_PEER_NSTK_MSG))
+        return (yield from self._receive_msg(f"peer_{peer_id}", SIGNAL_PEER_NSTK_MSG))
 
     def start(self) -> None:
         """Start this protocol. The NetSquid simulator will call and yield on the
         `run` method. Also start the underlying EGP protocol."""
         super().start()
-        if self._egp:
-            self._egp.start()
 
     def stop(self) -> None:
         """Stop this protocol. The NetSquid simulator will stop calling `run`.
         Also stop the underlying EGP protocol."""
-        if self._egp:
-            self._egp.stop()
         super().stop()
 
     def _read_request_args_array(self, app_id: int, array_addr: int) -> List[int]:
@@ -325,41 +319,19 @@ class Netstack(ComponentProtocol):
 
             # Put the request to the EGP.
             self._logger.info(f"putting CK request for pair {pair_index}")
-            self._egp.put(request)
+            current_egp = self._egp[req.remote_node_id]
+            current_egp.put(request)
 
             # Wait for a signal from the EGP.
             self._logger.info(f"waiting for result for pair {pair_index}")
             yield self.await_signal(
-                sender=self._egp, signal_label=ResCreateAndKeep.__name__
+                sender=current_egp, signal_label=ResCreateAndKeep.__name__
             )
             # Get the EGP's result.
-            result: ResCreateAndKeep = self._egp.get_signal_result(
+            result: ResCreateAndKeep = current_egp.get_signal_result(
                 ResCreateAndKeep.__name__, receiver=self
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
-
-            # This code is commented out for a hotfix as it was found that heralded link did not return
-            # Phi+ bell state. The issue needs to be investigated.
-            if isinstance(
-                self._egp._ll_prot._magic_distributor, DoubleClickMagicDistributor
-            ):
-                pass
-            # Bell state corrections. Resulting state is always Phi+ (i.e. B00).
-            elif result.bell_state == BellIndex.B00:
-                pass
-            elif result.bell_state == BellIndex.B01:
-                prog = QuantumProgram()
-                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-                yield self.qdevice.execute_program(prog)
-            elif result.bell_state == BellIndex.B10:
-                prog = QuantumProgram()
-                prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-                yield self.qdevice.execute_program(prog)
-            elif result.bell_state == BellIndex.B11:
-                prog = QuantumProgram()
-                prog.apply(INSTR_ROT_X, qubit_indices=[0], angle=PI)
-                prog.apply(INSTR_ROT_Z, qubit_indices=[0], angle=PI)
-                yield self.qdevice.execute_program(prog)
 
             virt_id = app_mem.get_array_value(req.qubit_array_addr, pair_index)
             app_mem.map_virt_id(virt_id, phys_id)
@@ -423,7 +395,8 @@ class Netstack(ComponentProtocol):
         """
 
         # Put the reqeust to the EGP.
-        self._egp.put(request)
+        current_egp = self._egp[req.remote_node_id]
+        current_egp.put(request)
 
         results: List[ResMeasureDirectly] = []
 
@@ -436,9 +409,9 @@ class Netstack(ComponentProtocol):
             phys_id = self.physical_memory.allocate_comm()
 
             yield self.await_signal(
-                sender=self._egp, signal_label=ResMeasureDirectly.__name__
+                sender=current_egp, signal_label=ResMeasureDirectly.__name__
             )
-            result: ResMeasureDirectly = self._egp.get_signal_result(
+            result: ResMeasureDirectly = current_egp.get_signal_result(
                 ResMeasureDirectly.__name__, receiver=self
             )
             self._logger.debug(f"bell index: {result.bell_state}")
@@ -493,9 +466,10 @@ class Netstack(ComponentProtocol):
         # Create the link layer request object.
         request = self._construct_request(req.remote_node_id, args)
 
+        peer_id = req.remote_node_id
         # Send it to the receiver node and wait for an acknowledgement.
-        self._send_peer_msg(request)
-        peer_msg = yield from self._receive_peer_msg()
+        self._send_peer_msg(peer_id, request)
+        peer_msg = yield from self._receive_peer_msg(peer_id)
         self._logger.debug(f"received peer msg: {peer_msg}")
 
         # Handle the request.
@@ -559,16 +533,18 @@ class Netstack(ComponentProtocol):
                     )
 
             # Put the request to the EGP.
+            current_egp = self._egp[req.remote_node_id]
+
             self._logger.info(f"putting CK request for pair {pair_index}")
-            self._egp.put(ReqReceive(remote_node_id=req.remote_node_id))
+            current_egp.put(ReqReceive(remote_node_id=req.remote_node_id))
             self._logger.info(f"waiting for result for pair {pair_index}")
 
             # Wait for a signal from the EGP.
             yield self.await_signal(
-                sender=self._egp, signal_label=ResCreateAndKeep.__name__
+                sender=current_egp, signal_label=ResCreateAndKeep.__name__
             )
             # Get the EGP's result.
-            result: ResCreateAndKeep = self._egp.get_signal_result(
+            result: ResCreateAndKeep = current_egp.get_signal_result(
                 ResCreateAndKeep.__name__, receiver=self
             )
             self._logger.info(f"got result for pair {pair_index}: {result}")
@@ -636,7 +612,9 @@ class Netstack(ComponentProtocol):
         """
         assert isinstance(request, ReqMeasureDirectly)
 
-        self._egp.put(ReqReceive(remote_node_id=req.remote_node_id))
+        current_egp = self._egp[req.remote_node_id]
+
+        current_egp.put(ReqReceive(remote_node_id=req.remote_node_id))
 
         results: List[ResMeasureDirectly] = []
 
@@ -644,9 +622,9 @@ class Netstack(ComponentProtocol):
             phys_id = self.physical_memory.allocate_comm()
 
             yield self.await_signal(
-                sender=self._egp, signal_label=ResMeasureDirectly.__name__
+                sender=current_egp, signal_label=ResMeasureDirectly.__name__
             )
-            result: ResMeasureDirectly = self._egp.get_signal_result(
+            result: ResMeasureDirectly = current_egp.get_signal_result(
                 ResMeasureDirectly.__name__, receiver=self
             )
             results.append(result)
@@ -701,13 +679,13 @@ class Netstack(ComponentProtocol):
         # request. Also, we simply block until synchronizing with the other node,
         # and then fully handle the request. There is no support for queueing
         # and/or interleaving multiple different requests.
-        create_request = yield from self._receive_peer_msg()
+        create_request = yield from self._receive_peer_msg(req.remote_node_id)
         self._logger.debug(f"received {create_request} from peer")
 
         # Acknowledge to the remote node that we received the request and we will
         # start handling it.
         self._logger.debug("sending 'ready' to peer")
-        self._send_peer_msg("ready")
+        self._send_peer_msg(req.remote_node_id, "ready")
 
         # Handle the request, based on the type that we now know because of the
         # other node.
@@ -719,6 +697,8 @@ class Netstack(ComponentProtocol):
     def handle_breakpoint_create_request(
         self,
     ) -> Generator[EventExpression, None, None]:
+        # TODO breakpoint requests do not include a reference to the remote node id that is needed
+        raise NotImplementedError("Breakpoints not working currently")
         # Synchronize with the remote node.
         self._send_peer_msg("breakpoint start")
         response = yield from self._receive_peer_msg()
@@ -745,6 +725,9 @@ class Netstack(ComponentProtocol):
         self,
     ) -> Generator[EventExpression, None, None]:
         # Synchronize with the remote node.
+        # TODO breakpoint requests do not include a reference to the remote node id that is needed
+        raise NotImplementedError("Breakpoints not working currently")
+
         msg = yield from self._receive_peer_msg()
         assert msg == "breakpoint start"
         self._send_peer_msg("breakpoint start")

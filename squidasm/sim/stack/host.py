@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Generator, List, Optional, Type
 
+import netsquid_driver.classical_socket_service as netsquid_classical_socket_service
 from netqasm.backend.messages import (
     InitNewAppMessage,
     OpenEPRSocketMessage,
@@ -18,7 +19,7 @@ from squidasm.sim.stack.connection import QnosConnection
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.csocket import ClassicalSocket
 from squidasm.sim.stack.program import Program, ProgramContext
-from squidasm.sim.stack.signals import SIGNAL_HAND_HOST_MSG, SIGNAL_HOST_HOST_MSG
+from squidasm.sim.stack.signals import SIGNAL_HAND_HOST_MSG
 
 
 class HostComponent(Component):
@@ -33,7 +34,6 @@ class HostComponent(Component):
     def __init__(self, node: Node) -> None:
         super().__init__(f"{node.name}_host")
         self.add_ports(["qnos_in", "qnos_out"])
-        self.add_ports(["peer_in", "peer_out"])
 
     @property
     def qnos_in_port(self) -> Port:
@@ -42,14 +42,6 @@ class HostComponent(Component):
     @property
     def qnos_out_port(self) -> Port:
         return self.ports["qnos_out"]
-
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
-
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
 
 
 class Host(ComponentProtocol):
@@ -67,10 +59,6 @@ class Host(ComponentProtocol):
         self.add_listener(
             "qnos",
             PortListener(self._comp.ports["qnos_in"], SIGNAL_HAND_HOST_MSG),
-        )
-        self.add_listener(
-            "peer",
-            PortListener(self._comp.ports["peer_in"], SIGNAL_HOST_HOST_MSG),
         )
 
         if qdevice_type == "nv":
@@ -91,6 +79,11 @@ class Host(ComponentProtocol):
         # Results of program runs so far.
         self._program_results: List[Dict[str, Any]] = []
 
+        # Registration of classical netsquid sockets
+        self._netsquid_sockets: Dict[
+            str, netsquid_classical_socket_service.ClassicalSocket
+        ] = {}
+
     @property
     def compiler(self) -> Optional[Type[SubroutineTranspiler]]:
         return self._compiler
@@ -105,11 +98,12 @@ class Host(ComponentProtocol):
     def receive_qnos_msg(self) -> Generator[EventExpression, None, str]:
         return (yield from self._receive_msg("qnos", SIGNAL_HAND_HOST_MSG))
 
-    def send_peer_msg(self, msg: str) -> None:
-        self._comp.peer_out_port.tx_output(msg)
-
-    def receive_peer_msg(self) -> Generator[EventExpression, None, str]:
-        return (yield from self._receive_msg("peer", SIGNAL_HOST_HOST_MSG))
+    def register_netsquid_socket(
+        self,
+        remote_node: str,
+        netsquid_socket: netsquid_classical_socket_service.ClassicalSocket,
+    ):
+        self._netsquid_sockets[remote_node] = netsquid_socket
 
     def run(self) -> Generator[EventExpression, None, None]:
         """Run this protocol. Automatically called by NetSquid during simulation."""
@@ -139,7 +133,7 @@ class Host(ComponentProtocol):
             )
 
             # Create EPR sockets that can be used by the program SDK code.
-            epr_sockets: Dict[int, EPRSocket] = {}
+            epr_sockets: Dict[str, EPRSocket] = {}
             for i, remote_name in enumerate(prog_meta.epr_sockets):
                 remote_id = None
                 nodes = NetSquidContext.get_nodes()
@@ -152,16 +146,17 @@ class Host(ComponentProtocol):
                 epr_sockets[remote_name].conn = conn
 
             # Create classical sockets that can be used by the program SDK code.
-            classical_sockets: Dict[int, ClassicalSocket] = {}
-            for i, remote_name in enumerate(prog_meta.csockets):
-                remote_id = None
-                nodes = NetSquidContext.get_nodes()
-                for id, name in nodes.items():
-                    if name == remote_name:
-                        remote_id = id
-                assert remote_id is not None
+            classical_sockets: Dict[str, ClassicalSocket] = {}
+            for remote_name in prog_meta.csockets:
+                if remote_name not in self._netsquid_sockets.keys():
+                    raise ValueError(
+                        f"Could not find a classical connection to node {remote_name}"
+                    )
+
                 classical_sockets[remote_name] = ClassicalSocket(
-                    self, prog_meta.name, remote_name
+                    netsquid_socket=self._netsquid_sockets[remote_name],
+                    app_name=prog_meta.name,
+                    remote_app_name=remote_name,
                 )
 
             context = ProgramContext(

@@ -7,7 +7,7 @@ All configurations can all be created via two routes:
     .. code-block:: python
 
         depolarise_config = DepolariseLinkConfig(fidelity=0.9)
-        link = LinkConfig(stack1="Alice", stack2="Bob", typ="depolarise", cfg=depolarise_config)
+        link = LinkConfig(stack1="Alice", stack1="Bob", typ="depolarise", cfg=depolarise_config)
 
 #. Loading from a YAML configuration file:
 
@@ -40,3 +40,12 @@ Link configurations
     :maxdepth: 2
 
     configurations/link_configurations
+
+
+CLink configurations
++++++++++++++++++++++
+
+.. toctree::
+    :maxdepth: 2
+
+    configurations/clink_configurations

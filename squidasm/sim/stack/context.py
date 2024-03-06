@@ -57,3 +57,8 @@ class NetSquidContext:
     @classmethod
     def add_protocol(cls, name: str, protocol: Host) -> None:
         cls._protocols[name] = protocol
+
+    @classmethod
+    def reset(cls):
+        cls._nodes = {}
+        cls._protocols = {}

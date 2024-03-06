@@ -91,7 +91,7 @@ We start with the simplest configuration file, one without any noise:
     :language: yaml
     :caption: examples/tutorial/4.2_network-configuration/1_perfect.yaml
 
-The network requires two types of objects to be specified: stacks and links.
+The network requires three types of objects to be specified: stacks, links and clinks.
 
 Stacks are the end nodes of the network and run applications.
 Each stack requires a name, this name will be used by the links and applications for reference.
@@ -103,6 +103,12 @@ Links connect the stacks with a way of generating EPR pairs between the two node
 A link requires references to the two stacks it is to connect.
 This is done by registering the names of the stacks in the fields ``stack1`` and ``stack2``.
 The model type of the link is specified using the ``typ`` field.
+The various settings for the model are defined inside ``cfg``.
+
+Clinks are shorthand for classical links. These are similar to links, but for classical message communication.
+A clink requires references to the two stacks it is to connect with a classical link.
+This is done by registering the names of the stacks in the fields ``stack1`` and ``stack2``.
+The model type of the clink is specified using the ``typ`` field.
 The various settings for the model are defined inside ``cfg``.
 
 .. _label_stack_types:
@@ -203,6 +209,55 @@ The heralded link uses the double click model as developed and described by this
     :language: yaml
     :caption: examples/tutorial/4.2_network-configuration/5_heralded_link.yaml
 
+Clink types
++++++++++++
+
+instant clink
+----------------
+The instant clink is a classical link model where all classical communication is instant.
+It does not have any configuration options.
+
+.. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/1_perfect.yaml
+    :language: yaml
+    :caption: examples/tutorial/4.2_network-configuration/1_perfect.yaml
+    :lines: 19-22
+
+
+default clink
+----------------
+The default clink is a classical link model where classical communication is delayed by exactly the delay specified in
+the configuration.
+
+.. literalinclude:: ../../../examples/tutorial/4.2_network-configuration/6_default.yaml
+    :language: yaml
+    :caption: examples/tutorial/4.2_network-configuration/1_perfect.yaml
+    :lines: 19-24
+
+Multiple nodes
+==================
+SquidASM is capable of simulating networks that consist of more than two nodes.
+This extends straightforwardly from two node networks.
+To add an extra node, Charlie, the network configuration must be extended with a stack for Charlie
+and the desired connections must be added.
+
+.. literalinclude:: ../../../examples/tutorial/4.3_multi-node/config.yaml
+    :language: yaml
+    :caption: examples/tutorial/4.3_multi-node/config.yaml
+
+While the previous example has connected the Charlie stack to both Alice and Bob, this is not mandatory,
+as long as the application does not attempt to use a non-existent link.
+For larger networks it is useful to create the network configuration object via :ref:`label_API_util` methods or create it programmatically yourself.
+
+To write programs for networks with more than two nodes in the network, one must register each of the nodes for which a connection is used to the `ProgramMeta` object.
+An example of a program where we have three nodes in the network: Alice, Bob and Charlie, is shown below.
+In this example both Bob and Charlie generate a EPR pair with Alice. Alice will then perform a bell state measurement and send the corrections to Charlie.
+This will result in Bob and Charlie sharing an EPR pair.
+
+.. literalinclude:: ../../../examples/tutorial/4.3_multi-node/application.py
+   :language: python
+   :caption: examples/tutorial/4.3_multi-node/application.py AliceProgram
+   :pyobject: AliceProgram
+
 Parameter sweeping
 =====================
 Often it will be desired to simulate not a single network configuration, but a range of parameters.
@@ -215,7 +270,7 @@ Our goal is to use ``run_simulation.py`` to modify the network of ``config.yaml`
 replace its link with a depolarize link, perform multiple simulations with varying fidelity for the link
 and generate an graph of the fidelity vs error rate.
 
-.. literalinclude:: ../../../examples/tutorial/4.3_parameter-sweeping/run_simulation.py
+.. literalinclude:: ../../../examples/tutorial/4.4_parameter-sweeping/run_simulation.py
     :language: python
     :caption: examples/tutorial/4.3_parameter-sweeping/run_simulation.py
     :emphasize-lines: 12-20, 26-27
@@ -234,7 +289,7 @@ We then load in the configuration options for the depolarise link:
 
 This creates the ``DepolariseLinkConfig`` object based on the parameters in the file ``depolarise_link_config.yaml``:
 
-.. literalinclude:: ../../../examples/tutorial/4.3_parameter-sweeping/depolarise_link_config.yaml
+.. literalinclude:: ../../../examples/tutorial/4.4_parameter-sweeping/depolarise_link_config.yaml
     :language: yaml
     :caption: examples/tutorial/4.3_parameter-sweeping/depolarise_link_config.yaml
 
