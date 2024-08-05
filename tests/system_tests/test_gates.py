@@ -5,10 +5,19 @@ from typing import List, Optional
 import netsquid as ns
 import numpy as np
 from netqasm.sdk.qubit import Qubit
+from netsquid_netbuilder.base_configs import NetworkConfig, ProcessingNodeConfig
+from netsquid_netbuilder.modules.qdevices import GenericQDeviceConfig
 from netsquid_netbuilder.util.network_generation import create_simple_network
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
+
+
+def _create_single_node_network(qdevice_cfg: GenericQDeviceConfig):
+    node = ProcessingNodeConfig(
+        name="Alice", qdevice_typ="generic", qdevice_cfg=qdevice_cfg
+    )
+    return NetworkConfig(processing_nodes=[node], links=[], clinks=[])
 
 
 @dataclass
@@ -235,11 +244,13 @@ class TestGates(unittest.TestCase):
         """Check that qubits do not experience decoherence if it is disabled"""
         qdevice_op_time = 1e8
         decoherence_time_scale = 0
-        network_cfg = create_simple_network(
-            node_names=["Alice"],
-            qdevice_op_time=qdevice_op_time,
-            qdevice_depolar_time=decoherence_time_scale,
-        )
+
+        qdevice_cfg = GenericQDeviceConfig.perfect_config(num_qubits=2)
+        qdevice_cfg.T1 = decoherence_time_scale
+        qdevice_cfg.T2 = decoherence_time_scale
+        qdevice_cfg.single_qubit_gate_time = qdevice_op_time
+        network_cfg = _create_single_node_network(qdevice_cfg)
+
         program = GateTestProgram(num_qubits=2, gates=[GateOperation("X")])
         results = run(config=network_cfg, programs={"Alice": program}, num_times=40)[0]
 
@@ -251,12 +262,14 @@ class TestGates(unittest.TestCase):
     def test_decoherence_small(self):
         """Check that qubits not undergoing operations experience decoherence"""
         qdevice_op_time = 10
-        decoherence_time_scale = 100
-        network_cfg = create_simple_network(
-            node_names=["Alice"],
-            qdevice_op_time=qdevice_op_time,
-            qdevice_depolar_time=decoherence_time_scale,
-        )
+        decoherence_time_scale = 40
+
+        qdevice_cfg = GenericQDeviceConfig.perfect_config(num_qubits=2)
+        qdevice_cfg.T1 = decoherence_time_scale
+        qdevice_cfg.T2 = decoherence_time_scale
+        qdevice_cfg.single_qubit_gate_time = qdevice_op_time
+        network_cfg = _create_single_node_network(qdevice_cfg)
+
         program = GateTestProgram(num_qubits=2, gates=[GateOperation("X")])
         results = run(config=network_cfg, programs={"Alice": program}, num_times=40)[0]
 
@@ -267,17 +280,18 @@ class TestGates(unittest.TestCase):
         self.assertGreater(average_meas[1], 0)
         self.assertAlmostEqual(average_meas[1], 0.0, delta=0.1)
 
-    @unittest.expectedFailure  # Seems decoherence model flips the state on long term instead of making it random
     def test_decoherence_large(self):
         """Check that qubits not undergoing operation experience decoherence and
         that under large decoherence its results are random in the end"""
         qdevice_op_time = 10
-        decoherence_time_scale = 10
-        network_cfg = create_simple_network(
-            node_names=["Alice"],
-            qdevice_op_time=qdevice_op_time,
-            qdevice_depolar_time=decoherence_time_scale,
-        )
+        decoherence_time_scale = 1
+
+        qdevice_cfg = GenericQDeviceConfig.perfect_config(num_qubits=2)
+        qdevice_cfg.T1 = decoherence_time_scale
+        qdevice_cfg.T2 = decoherence_time_scale
+        qdevice_cfg.single_qubit_gate_time = qdevice_op_time
+        network_cfg = _create_single_node_network(qdevice_cfg)
+
         program = GateTestProgram(num_qubits=2, gates=[GateOperation("X")])
         results = run(config=network_cfg, programs={"Alice": program}, num_times=40)[0]
 
