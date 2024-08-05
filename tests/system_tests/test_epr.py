@@ -86,6 +86,7 @@ class EPRKeepProgram(Program):
 class TestEPR(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
+        ns.set_qstate_formalism(ns.QFormalism.DM)
 
     def tearDown(self) -> None:
         pass
@@ -427,8 +428,8 @@ class TestEPR(unittest.TestCase):
             for qubit_state in self._get_result(results, "Alice", "qubit_states"):
                 self.assertAlmostEqual(
                     calculate_fidelity_epr(qubit_state, BellIndex.PHI_PLUS),
-                    1,
-                    delta=1e-4,
+                    0.99,  # This is currently the hardcoded value for MINIMUM_FIDELITY in netstack.py
+                    delta=5e-2,
                 )
 
     def test_double_click_link_temp_single_req(self):

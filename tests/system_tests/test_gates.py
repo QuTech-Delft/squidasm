@@ -84,6 +84,7 @@ class TestGates(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
         ns.set_random_state(seed=42)
+        ns.set_qstate_formalism(ns.QFormalism.KET)
 
     def tearDown(self) -> None:
         pass
@@ -321,6 +322,33 @@ class TestGates(unittest.TestCase):
         results = run(config=network_cfg, programs={"Alice": program}, num_times=40)[0]
 
         average_meas = self._average_results(results)
+        # Expect qubit result to be random
+        self.assertAlmostEqual(average_meas[1], 0.5, delta=0.1)
+
+    @unittest.expectedFailure  # Stationary state of decoherence in a T1T2NoiseModel
+    # in DM formalism is set to |0> which produces different behaviour with respect to Ket formalism
+    def test_decoherence_large_dm_formalism(self):
+        """Check that qubits not undergoing operation experience decoherence and
+        that under large decoherence its results are random in the end.
+        Starting state is 0 for decoherence test qubit.
+        This test checks that the outcome is identical when using DM formalism"""
+        ns.set_qstate_formalism(ns.QFormalism.DM)
+
+        qdevice_op_time = 10
+        decoherence_time_scale = 1
+
+        qdevice_cfg = GenericQDeviceConfig.perfect_config(num_qubits=2)
+        qdevice_cfg.T1 = decoherence_time_scale
+        qdevice_cfg.T2 = decoherence_time_scale
+        qdevice_cfg.single_qubit_gate_time = qdevice_op_time
+        network_cfg = _create_single_node_network(qdevice_cfg)
+
+        program = GateTestProgram(num_qubits=2, gates=[GateOperation("X")])
+        results = run(config=network_cfg, programs={"Alice": program}, num_times=40)[0]
+
+        average_meas = self._average_results(results)
+        # In process qubit does not experience decoherence
+        self.assertAlmostEqual(average_meas[0], 1, delta=0.01)
         # Expect qubit result to be random
         self.assertAlmostEqual(average_meas[1], 0.5, delta=0.1)
 
