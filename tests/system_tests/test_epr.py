@@ -4,18 +4,18 @@ from typing import Any, List
 
 import netsquid as ns
 from netsquid.qubits.ketstates import BellIndex
-from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
-from netsquid_netbuilder.modules.links.heralded_double_click import (
-    HeraldedDoubleClickLinkConfig,
+from netsquid_netbuilder.modules.qlinks.depolarise import DepolariseQLinkConfig
+from netsquid_netbuilder.modules.qlinks.heralded_double_click import (
+    HeraldedDoubleClickQLinkConfig,
 )
-from netsquid_netbuilder.modules.links.heralded_single_click import (
-    HeraldedSingleClickLinkConfig,
+from netsquid_netbuilder.modules.qlinks.heralded_single_click import (
+    HeraldedSingleClickQLinkConfig,
 )
-from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
+from netsquid_netbuilder.modules.qlinks.perfect import PerfectQLinkConfig
 from netsquid_netbuilder.util.fidelity import calculate_fidelity_epr
 from netsquid_netbuilder.util.network_generation import (
     create_2_node_network,
-    create_simple_network,
+    create_complete_graph_network_simplified,
 )
 
 from squidasm.run.stack.run import run
@@ -104,7 +104,7 @@ class TestEPR(unittest.TestCase):
         cdelay = 10
         qdelay = 15
         num_req = 4
-        network_cfg = create_simple_network(
+        network_cfg = create_complete_graph_network_simplified(
             node_names=["Alice", "Bob"], clink_delay=cdelay, link_delay=qdelay
         )
         alice_req = [EPRRequest("Bob", is_create=True) for _ in range(num_req)]
@@ -139,7 +139,7 @@ class TestEPR(unittest.TestCase):
         qdelay = 77
         num_req = 3
         num_qubits = 6
-        network_cfg = create_simple_network(
+        network_cfg = create_complete_graph_network_simplified(
             node_names=["Alice", "Bob"], clink_delay=cdelay, link_delay=qdelay
         )
         alice_req = [
@@ -177,7 +177,7 @@ class TestEPR(unittest.TestCase):
         cdelay = 66
         qdelay = 10
         num_req = 5
-        network_cfg = create_simple_network(
+        network_cfg = create_complete_graph_network_simplified(
             node_names=["Alice", "Bob", "Charlie"],
             clink_delay=cdelay,
             link_delay=qdelay,
@@ -249,8 +249,8 @@ class TestEPR(unittest.TestCase):
         num_req = 5
 
         network_cfg = create_2_node_network(
-            link_typ="perfect",
-            link_cfg=PerfectLinkConfig(state_delay=delay),
+            qlink_typ="perfect",
+            qlink_cfg=PerfectQLinkConfig(state_delay=delay),
             clink_typ="instant",
         )
         alice_req = [EPRRequest("Bob", is_create=True) for _ in range(num_req)]
@@ -283,8 +283,8 @@ class TestEPR(unittest.TestCase):
         num_req = 7
 
         network_cfg = create_2_node_network(
-            link_typ="depolarise",
-            link_cfg=DepolariseLinkConfig(t_cycle=delay, fidelity=1, prob_success=1),
+            qlink_typ="depolarise",
+            qlink_cfg=DepolariseQLinkConfig(t_cycle=delay, fidelity=1, prob_success=1),
             clink_typ="instant",
         )
         alice_req = [EPRRequest("Bob", is_create=True) for _ in range(num_req)]
@@ -317,8 +317,8 @@ class TestEPR(unittest.TestCase):
         num_req = 6
 
         network_cfg = create_2_node_network(
-            link_typ="heralded-single-click",
-            link_cfg=HeraldedSingleClickLinkConfig(
+            qlink_typ="heralded-single-click",
+            qlink_cfg=HeraldedSingleClickQLinkConfig(
                 length=delay,
                 p_loss_init=0,
                 p_loss_length=0,
@@ -357,8 +357,8 @@ class TestEPR(unittest.TestCase):
         num_req = 8
 
         network_cfg = create_2_node_network(
-            link_typ="heralded-double-click",
-            link_cfg=HeraldedDoubleClickLinkConfig(
+            qlink_typ="heralded-double-click",
+            qlink_cfg=HeraldedDoubleClickQLinkConfig(
                 length=delay,
                 p_loss_init=0,
                 p_loss_length=0,
@@ -398,8 +398,8 @@ class TestEPR(unittest.TestCase):
             ns.sim_reset()
 
             network_cfg = create_2_node_network(
-                link_typ="heralded-single-click",
-                link_cfg=HeraldedSingleClickLinkConfig(
+                qlink_typ="heralded-single-click",
+                qlink_cfg=HeraldedSingleClickQLinkConfig(
                     length=delay,
                     p_loss_init=0,
                     p_loss_length=0,
@@ -441,8 +441,8 @@ class TestEPR(unittest.TestCase):
         for _ in range(20):
             ns.sim_reset()
             network_cfg = create_2_node_network(
-                link_typ="heralded-double-click",
-                link_cfg=HeraldedDoubleClickLinkConfig(
+                qlink_typ="heralded-double-click",
+                qlink_cfg=HeraldedDoubleClickQLinkConfig(
                     length=delay,
                     p_loss_init=0,
                     p_loss_length=0,

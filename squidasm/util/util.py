@@ -7,8 +7,8 @@ from netqasm.sdk.qubit import Qubit
 from netsquid.qubits import operators
 from netsquid.qubits import qubitapi as qapi
 from netsquid_netbuilder.modules.clinks import ICLinkConfig
-from netsquid_netbuilder.modules.links import ILinkConfig
 from netsquid_netbuilder.modules.qdevices import IQDeviceConfig
+from netsquid_netbuilder.modules.qlinks import IQLinkConfig
 
 import squidasm.sim.stack.globals
 from squidasm.run.stack.config import (
@@ -68,7 +68,7 @@ def create_two_node_network(
 def create_complete_graph_network(
     node_names: List[str],
     link_typ: str,
-    link_cfg: ILinkConfig,
+    link_cfg: IQLinkConfig,
     clink_typ: str = "instant",
     clink_cfg: ICLinkConfig = None,
     qdevice_typ: str = "generic",

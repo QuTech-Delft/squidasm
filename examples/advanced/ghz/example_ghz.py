@@ -1,7 +1,7 @@
 from typing import List
 
 from netsquid_netbuilder.modules.clinks.default import DefaultCLinkConfig
-from netsquid_netbuilder.modules.links.perfect import PerfectLinkConfig
+from netsquid_netbuilder.modules.qlinks.perfect import PerfectQLinkConfig
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     cfg = create_complete_graph_network(
         node_names_,
         "perfect",
-        PerfectLinkConfig(state_delay=100),
+        PerfectQLinkConfig(state_delay=100),
         clink_typ="default",
         clink_cfg=DefaultCLinkConfig(delay=100),
     )

@@ -5,8 +5,8 @@ import netsquid as ns
 from netqasm.sdk.qubit import Qubit
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
-from netsquid_netbuilder.modules.links.depolarise import DepolariseLinkConfig
 from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
+from netsquid_netbuilder.modules.qlinks.depolarise import DepolariseQLinkConfig
 from netsquid_netbuilder.util.network_generation import (
     create_2_node_network,
     create_single_node_network,
@@ -131,8 +131,8 @@ class TestSdkTwoNodes(unittest.TestCase):
         ns.sim_reset()
         ns.nodes.node._node_ID_counter = -1
         network_cfg = create_2_node_network(
-            link_typ="depolarise",
-            link_cfg=DepolariseLinkConfig(fidelity=1, prob_success=0.5, t_cycle=10),
+            qlink_typ="depolarise",
+            qlink_cfg=DepolariseQLinkConfig(fidelity=1, prob_success=0.5, t_cycle=10),
             qdevice_typ="nv",
             qdevice_cfg=NVQDeviceConfig.perfect_config(),
         )

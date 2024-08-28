@@ -3,10 +3,10 @@ from __future__ import annotations
 import itertools
 from typing import Any, List, Optional
 
-import netsquid_netbuilder.base_configs as netbuilder_configs
 import netsquid_netbuilder.modules.clinks as netbuilder_clinks
-import netsquid_netbuilder.modules.links as netbuilder_links
 import netsquid_netbuilder.modules.qdevices as netbuilder_qdevices
+import netsquid_netbuilder.modules.qlinks as netbuilder_links
+import netsquid_netbuilder.network_config as netbuilder_configs
 from netsquid_netbuilder.yaml_loadable import YamlLoadable
 
 
@@ -42,12 +42,12 @@ class StackConfig(YamlLoadable):
         )
 
 
-class DepolariseLinkConfig(netbuilder_links.DepolariseLinkConfig):
-    __doc__ = netbuilder_links.DepolariseLinkConfig.__doc__
+class DepolariseLinkConfig(netbuilder_links.DepolariseQLinkConfig):
+    __doc__ = netbuilder_links.DepolariseQLinkConfig.__doc__
 
 
-class HeraldedLinkConfig(netbuilder_links.HeraldedDoubleClickLinkConfig):
-    __doc__ = netbuilder_links.HeraldedDoubleClickLinkConfig.__doc__
+class HeraldedLinkConfig(netbuilder_links.HeraldedDoubleClickQLinkConfig):
+    __doc__ = netbuilder_links.HeraldedDoubleClickQLinkConfig.__doc__
 
 
 class InstantCLinkConfig(netbuilder_clinks.InstantCLinkConfig):
@@ -128,22 +128,22 @@ def _convert_stack_network_config(
         processing_nodes.append(processing_node)
 
     # Convert link config types
-    links = []
+    qlinks = []
     for link_config in stack_network_config.links:
         link_typ = link_config.typ
         link_cfg = link_config.cfg
         if link_typ == "heralded":
             link_typ = "heralded-double-click"
         if link_cfg is None and link_typ == "perfect":
-            link_cfg = netbuilder_links.PerfectLinkConfig()
+            link_cfg = netbuilder_links.PerfectQLinkConfig()
 
-        link = netbuilder_configs.LinkConfig(
+        link = netbuilder_configs.QLinkConfig(
             node1=link_config.stack1,
             node2=link_config.stack2,
             typ=link_typ,
             cfg=link_cfg,
         )
-        links.append(link)
+        qlinks.append(link)
 
     # If clinks are given convert types, if not connect all nodes
     clinks = []
@@ -168,5 +168,5 @@ def _convert_stack_network_config(
             clinks.append(clink)
 
     return netbuilder_configs.NetworkConfig(
-        processing_nodes=processing_nodes, links=links, clinks=clinks
+        processing_nodes=processing_nodes, qlinks=qlinks, clinks=clinks
     )

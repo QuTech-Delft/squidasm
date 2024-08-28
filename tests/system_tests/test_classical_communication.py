@@ -3,7 +3,9 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 import netsquid as ns
-from netsquid_netbuilder.util.network_generation import create_simple_network
+from netsquid_netbuilder.util.network_generation import (
+    create_complete_graph_network_simplified,
+)
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -113,7 +115,7 @@ class TestClassicalCommunication(unittest.TestCase):
 
     def test_two_nodes(self):
         delay = 10
-        network_cfg = create_simple_network(
+        network_cfg = create_complete_graph_network_simplified(
             node_names=["Alice", "Bob"], clink_delay=delay
         )
         send_messages = {"Bob": ["0"]}
@@ -131,7 +133,7 @@ class TestClassicalCommunication(unittest.TestCase):
         delay = 5
         senders = [f"sender_{i}" for i in range(4)]
         receivers = [f"receiver_{i}" for i in range(5)]
-        network_cfg = create_simple_network(
+        network_cfg = create_complete_graph_network_simplified(
             node_names=senders + receivers, clink_delay=delay
         )
 
@@ -152,7 +154,7 @@ class TestClassicalCommunication(unittest.TestCase):
         num_messages = 6
         senders = [f"sender_{i}" for i in range(4)]
         receivers = [f"receiver_{i}" for i in range(5)]
-        network_cfg = create_simple_network(
+        network_cfg = create_complete_graph_network_simplified(
             node_names=senders + receivers, clink_delay=delay
         )
 

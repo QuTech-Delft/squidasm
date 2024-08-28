@@ -4,9 +4,13 @@ import itertools
 from typing import Any, Dict, List, Union
 
 import netsquid as ns
-from netsquid_driver.classical_socket_service import ClassicalSocket
+from netsquid_driver.classical_socket_service import (
+    ClassicalSocket,
+    ClassicalSocketService,
+)
+from netsquid_driver.connectionless_socket_service import ConnectionlessSocketService
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
-from netsquid_netbuilder.base_configs import NetworkConfig
+from netsquid_netbuilder.network_config import NetworkConfig
 
 from squidasm.run.stack.build import create_stack_network_builder
 from squidasm.run.stack.config import StackNetworkConfig, _convert_stack_network_config
@@ -49,7 +53,21 @@ def _setup_network(config: NetworkConfig) -> StackNetwork:
                 service.register_remote_node(remote_name, remote_node.ID)
 
     # used to build ClassicalSockets here, now just import from network
-    csockets: Dict[(str, str), ClassicalSocket] = network.sockets
+
+    csockets: Dict[(str, str), ClassicalSocket] = {}
+
+    for s1 in stacks.values():
+        socket_service = ConnectionlessSocketService(node=s1.node)
+        s1.node.driver.add_service(ClassicalSocketService, socket_service)
+        for s2 in stacks.values():
+            if s2 is s1:
+                continue
+            socket = socket_service.create_socket()
+            socket.bind(port_name="0", remote_node_name=s2.node.name)
+            socket.connect(remote_port_name="0", remote_node_name=s2.node.name)
+            csockets[(s1.node.name, s2.node.name)] = socket
+            network._protocol_controller.register(socket)
+
     for (node_name, peer_name), netsquid_socket in csockets.items():
         stacks[node_name].host.register_netsquid_socket(peer_name, netsquid_socket)
 

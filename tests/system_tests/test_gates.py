@@ -5,9 +5,11 @@ from typing import List, Optional
 import netsquid as ns
 import numpy as np
 from netqasm.sdk.qubit import Qubit
-from netsquid_netbuilder.base_configs import NetworkConfig, ProcessingNodeConfig
 from netsquid_netbuilder.modules.qdevices import GenericQDeviceConfig
-from netsquid_netbuilder.util.network_generation import create_simple_network
+from netsquid_netbuilder.network_config import NetworkConfig, ProcessingNodeConfig
+from netsquid_netbuilder.util.network_generation import (
+    create_complete_graph_network_simplified,
+)
 
 from squidasm.run.stack.run import run
 from squidasm.sim.stack.program import Program, ProgramContext, ProgramMeta
@@ -110,7 +112,7 @@ class TestGates(unittest.TestCase):
         :param delta: The tolerated deviation from this mean
         :param qdevice_noise: Noise level of operations on the qdevice"""
         qdevice_op_time = 100
-        network_cfg = create_simple_network(
+        network_cfg = create_complete_graph_network_simplified(
             node_names=["Alice"],
             qdevice_op_time=qdevice_op_time,
             qdevice_noise=qdevice_noise,
@@ -146,7 +148,7 @@ class TestGates(unittest.TestCase):
         :param delta: The tolerated deviation from the means
         :param expected_completion_time: Expectation for how long the operations should take"""
         qdevice_op_time = 100
-        network_cfg = create_simple_network(
+        network_cfg = create_complete_graph_network_simplified(
             node_names=["Alice"], qdevice_op_time=qdevice_op_time
         )
         program = GateTestProgram(num_qubits=2, gates=gates)

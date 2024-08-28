@@ -9,7 +9,7 @@ from netsquid.protocols import Protocol
 from netsquid_driver.classical_socket_service import ClassicalSocket
 from netsquid_magic.egp import EgpProtocol
 from netsquid_magic.link_layer import MagicLinkLayerProtocol
-from netsquid_netbuilder.nodes import QDeviceNode
+from netsquid_netbuilder.network import QDeviceNode
 
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent
