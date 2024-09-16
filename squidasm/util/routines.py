@@ -21,9 +21,9 @@ def measXY(q, angle: float):
 
 
 def remote_state_preparation(epr_socket, theta: float):
-    """Prepare a state Rz(theta)|+> to the server.
+    """Prepare a state :math:`R_z(theta)|+>` to the server.
     The resulting state on the server's side is actually
-    Rz(theta + m*pi) |+>, for the client's measurement outcome `m`.
+    :math:`R_z(theta + m*\\pi) |+>`, for the client's measurement outcome `m`.
     """
     epr = epr_socket.create_keep()[0]
     m = measXY(epr, theta)
