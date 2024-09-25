@@ -1,3 +1,4 @@
+# A 2 node network, perfect except for classical communication using a default model that has communication delay
 stacks:
   - name: Alice
     qdevice_typ: generic
@@ -14,3 +15,10 @@ links:
     typ: perfect
     cfg:
       dummy: null
+
+clinks:
+  - stack1: Alice
+    stack2: Bob
+    typ: default
+    cfg:
+      delay: 20

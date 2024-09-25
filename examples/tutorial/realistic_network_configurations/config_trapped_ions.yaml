@@ -45,3 +45,10 @@ links:
     typ: heralded
     cfg:
       <<: *link_cfg
+
+clinks:
+  - stack1: Alice
+    stack2: Bob
+    typ: default
+    cfg:
+      delay: 20

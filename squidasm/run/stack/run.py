@@ -1,137 +1,91 @@
 from __future__ import annotations
 
 import itertools
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import netsquid as ns
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocol,
-    MagicLinkLayerProtocolWithSignaling,
-    SingleClickTranslationUnit,
+from netsquid_driver.classical_socket_service import (
+    ClassicalSocket,
+    ClassicalSocketService,
 )
-from netsquid_magic.magic_distributor import (
-    DepolariseWithFailureMagicDistributor,
-    DoubleClickMagicDistributor,
-    PerfectStateMagicDistributor,
-)
-from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
-from netsquid_physlayer.heralded_connection import MiddleHeraldedConnection
+from netsquid_driver.connectionless_socket_service import ConnectionlessSocketService
+from netsquid_magic.link_layer import MagicLinkLayerProtocol
+from netsquid_netbuilder.network_config import NetworkConfig
 
-from squidasm.run.stack.build import build_generic_qdevice, build_nv_qdevice
-from squidasm.run.stack.config import (
-    DepolariseLinkConfig,
-    GenericQDeviceConfig,
-    HeraldedLinkConfig,
-    NVLinkConfig,
-    NVQDeviceConfig,
-    StackNetworkConfig,
-)
+from squidasm.run.stack.build import create_stack_network_builder
+from squidasm.run.stack.config import StackNetworkConfig, _convert_stack_network_config
 from squidasm.sim.stack.context import NetSquidContext
 from squidasm.sim.stack.globals import GlobalSimData
 from squidasm.sim.stack.program import Program
-from squidasm.sim.stack.stack import NodeStack, StackNetwork
+from squidasm.sim.stack.qnos_network_service import QNOSNetworkService
+from squidasm.sim.stack.stack import NodeStack, StackNetwork, StackNode
 
 
-def fidelity_to_prob_max_mixed(fid: float) -> float:
-    return (1 - fid) * 4.0 / 3.0
-
-
-def _setup_network(config: StackNetworkConfig) -> StackNetwork:
-    assert len(config.stacks) <= 2
-    assert len(config.links) <= 1
+def _setup_network(config: NetworkConfig) -> StackNetwork:
+    NetSquidContext.reset()
+    builder = create_stack_network_builder()
+    network = builder.build(config)
 
     stacks: Dict[str, NodeStack] = {}
+
+    for node_name, node in network.end_nodes.items():
+        assert isinstance(node, StackNode)
+        stack = NodeStack(name=node_name, node=node, qdevice_type=node.qmemory_typ)
+        NetSquidContext.add_node(stack.node.ID, node_name)
+        stacks[node_name] = stack
+
+    for id_tuple, egp in network.egp.items():
+        node_name, peer_name = id_tuple
+        stacks[node_name].assign_egp(network.node_name_id_mapping[peer_name], egp)
+
+    for s1, s2 in itertools.combinations(stacks.values(), 2):
+        s1.qnos_comp.register_peer(s2.node.ID)
+        s1.qnos.netstack.register_peer(s2.node.ID)
+        s2.qnos_comp.register_peer(s1.node.ID)
+        s2.qnos.netstack.register_peer(s1.node.ID)
+
+    for node_name, node in network.end_nodes.items():
+        assert isinstance(node, StackNode)
+        service = QNOSNetworkService(node, node.qnos_comp)
+        node.driver.add_service(QNOSNetworkService, service)
+        for remote_name, remote_node in network.end_nodes.items():
+            if remote_name != node_name:
+                service.register_remote_node(remote_name, remote_node.ID)
+
+    csockets: Dict[(str, str), ClassicalSocket] = {}
+
+    # Create classical sockets for all nodes
+    for s1 in stacks.values():
+        # Create a service on each node that manages the sockets
+        socket_service = ConnectionlessSocketService(node=s1.node)
+        s1.node.driver.add_service(ClassicalSocketService, socket_service)
+
+        # Create sockets to every other stack then bind and connect them at port "0"
+        for s2 in stacks.values():
+            if s2 is s1:
+                continue
+            socket = socket_service.create_socket()
+            socket.bind(port_name="0", remote_node_name=s2.node.name)
+            socket.connect(remote_port_name="0", remote_node_name=s2.node.name)
+            csockets[(s1.node.name, s2.node.name)] = socket
+            network._protocol_controller.register(socket)
+
+    # Give the classical (netsquid) sockets to the host component
+    for (node_name, peer_name), netsquid_socket in csockets.items():
+        stacks[node_name].host.register_netsquid_socket(peer_name, netsquid_socket)
+
     link_prots: List[MagicLinkLayerProtocol] = []
+    network.start()
 
-    for cfg in config.stacks:
-        if cfg.qdevice_typ == "nv":
-            qdevice_cfg = cfg.qdevice_cfg
-            if not isinstance(qdevice_cfg, NVQDeviceConfig):
-                qdevice_cfg = NVQDeviceConfig(**cfg.qdevice_cfg)
-            qdevice = build_nv_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
-            stack = NodeStack(cfg.name, qdevice_type="nv", qdevice=qdevice)
-        elif cfg.qdevice_typ == "generic":
-            qdevice_cfg = cfg.qdevice_cfg
-            if not isinstance(qdevice_cfg, GenericQDeviceConfig):
-                qdevice_cfg = GenericQDeviceConfig(**cfg.qdevice_cfg)
-            qdevice = build_generic_qdevice(f"qdevice_{cfg.name}", cfg=qdevice_cfg)
-            stack = NodeStack(cfg.name, qdevice_type="generic", qdevice=qdevice)
-        NetSquidContext.add_node(stack.node.ID, cfg.name)
-        stacks[cfg.name] = stack
-
-    for (_, s1), (_, s2) in itertools.combinations(stacks.items(), 2):
-        s1.connect_to(s2)
-
-    for link in config.links:
-        stack1 = stacks[link.stack1]
-        stack2 = stacks[link.stack2]
-        if link.typ == "perfect":
-            link_dist = PerfectStateMagicDistributor(
-                nodes=[stack1.node, stack2.node], state_delay=1000.0
-            )
-        elif link.typ == "depolarise":
-            link_cfg = link.cfg
-            if not isinstance(link_cfg, DepolariseLinkConfig):
-                link_cfg = DepolariseLinkConfig(**link.cfg)
-            prob_max_mixed = fidelity_to_prob_max_mixed(link_cfg.fidelity)
-            link_dist = DepolariseWithFailureMagicDistributor(
-                nodes=[stack1.node, stack2.node],
-                prob_max_mixed=prob_max_mixed,
-                prob_success=link_cfg.prob_success,
-                t_cycle=link_cfg.t_cycle,
-            )
-        elif link.typ == "nv":
-            link_cfg = link.cfg
-            if not isinstance(link_cfg, NVLinkConfig):
-                link_cfg = NVLinkConfig(**link.cfg)
-            link_dist = NVSingleClickMagicDistributor(
-                nodes=[stack1.node, stack2.node],
-                length_A=link_cfg.length_A,
-                length_B=link_cfg.length_B,
-                full_cycle=link_cfg.full_cycle,
-                cycle_time=link_cfg.cycle_time,
-                alpha=link_cfg.alpha,
-            )
-        elif link.typ == "heralded":
-            link_cfg = link.cfg
-            if not isinstance(link_cfg, HeraldedLinkConfig):
-                link_cfg = HeraldedLinkConfig(**link.cfg)
-            connection = MiddleHeraldedConnection(
-                name="heralded_conn", **link_cfg.dict()
-            )
-            link_dist = DoubleClickMagicDistributor(
-                [stack1.node, stack2.node], connection
-            )
-        else:
-            raise ValueError
-
-        link_prot = MagicLinkLayerProtocolWithSignaling(
-            nodes=[stack1.node, stack2.node],
-            magic_distributor=link_dist,
-            translation_unit=SingleClickTranslationUnit(),
-        )
-        stack1.assign_ll_protocol(link_prot)
-        stack2.assign_ll_protocol(link_prot)
-
-        link_prots.append(link_prot)
-
-    return StackNetwork(stacks, link_prots)
+    return StackNetwork(stacks, link_prots, csockets)
 
 
 def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
     """Run the protocols of a network and programs running in that network.
 
-    NOTE: For now, only two nodes and a single link are supported.
-
     :param network: `StackNetwork` representing the nodes and links
     :return: final results of the programs
     """
-    assert len(network.stacks) <= 2
-    assert len(network.links) <= 1
-
-    # Start the link protocols.
-    for link in network.links:
-        link.start()
 
     # Start the node protocols.
     for _, stack in network.stacks.items():
@@ -144,7 +98,9 @@ def _run(network: StackNetwork) -> List[List[Dict[str, Any]]]:
 
 
 def run(
-    config: StackNetworkConfig, programs: Dict[str, Program], num_times: int = 1
+    config: Union[NetworkConfig, StackNetworkConfig],
+    programs: Dict[str, Program],
+    num_times: int = 1,
 ) -> List[List[Dict[str, Any]]]:
     """Run programs on a network specified by a network configuration.
 
@@ -153,6 +109,9 @@ def run(
     :param num_times: numbers of times to run the programs, defaults to 1
     :return: program results, outer list is per stack, inner list is per program iteration
     """
+    if isinstance(config, StackNetworkConfig):
+        config = _convert_stack_network_config(config)
+
     network = _setup_network(config)
 
     NetSquidContext.set_nodes({})

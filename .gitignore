@@ -7,8 +7,9 @@
 *.pkl
 /docs/build/*
 /build/*
+examples/**/*.png
 /dist/*
-/*.egg-info/*
+**/*.egg-info/*
 htmlcov/
 .coverage
 .idea/*

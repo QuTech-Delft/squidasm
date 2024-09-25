@@ -7,22 +7,22 @@ from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.parsing import parse_text_subroutine
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
+from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
+from netsquid_netbuilder.util.network_generation import create_single_node_network
 
 from pydynaa import EventExpression
-from squidasm.run.stack.build import build_nv_qdevice
-from squidasm.run.stack.config import NVQDeviceConfig
+from squidasm.run.stack.run import _run, _setup_network
 from squidasm.sim.stack.common import AppMemory
 from squidasm.sim.stack.host import Host
-from squidasm.sim.stack.stack import NodeStack
 
 
 class TestSingleNode(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        qdevice = build_nv_qdevice(
-            "nv_qdevice_alice", cfg=NVQDeviceConfig.perfect_config()
-        )
-        self._node = NodeStack("alice", qdevice_type="nv", qdevice=qdevice)
+        config = NVQDeviceConfig.perfect_config()
+        network_cfg = create_single_node_network(qdevice_typ="nv", qdevice_cfg=config)
+        self.network = _setup_network(network_cfg)
+        self._node = self.network.stacks["Alice"]
 
         self._host: Optional[Type[Host]] = None
 
@@ -30,8 +30,7 @@ class TestSingleNode(unittest.TestCase):
         self._node.subprotocols[f"{self._node.name}_host_protocol"] = self._host(
             self._node.host_comp
         )
-        self._node.start()
-        ns.sim_run()
+        _run(self.network)
         if self._check_qmem:
             self._check_qmem(self._node.qdevice)
 

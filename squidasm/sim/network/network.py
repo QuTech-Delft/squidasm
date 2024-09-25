@@ -34,6 +34,11 @@ from netsquid_magic.magic_distributor import (
     MagicDistributor,
     PerfectStateMagicDistributor,
 )
+from netsquid_magic.model_parameters import (
+    BitFlipModelParameters,
+    DepolariseModelParameters,
+    PerfectModelParameters,
+)
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
 from qlink_interface import (
     ReqCreateAndKeep,
@@ -205,8 +210,9 @@ class NetSquidNetwork(Network):
         try:
             noise_type = NoiseType(link.noise_type)
             if noise_type == NoiseType.NoNoise:
+                model_params = PerfectModelParameters(state_delay=state_delay)
                 return PerfectStateMagicDistributor(
-                    nodes=[node1, node2], state_delay=state_delay
+                    nodes=[node1, node2], model_params=model_params
                 )
             elif (
                 noise_type == NoiseType.Depolarise
@@ -219,13 +225,19 @@ class NetSquidNetwork(Network):
                 noise_type == NoiseType.DiscreteDepolarise
             ):  # use Depolarise distributor defined in netsquid_magic
                 noise = 1 - link.fidelity
+                model_params = DepolariseModelParameters(prob_max_mixed=noise)
                 return DepolariseMagicDistributor(
-                    nodes=[node1, node2], prob_max_mixed=noise, state_delay=state_delay
+                    nodes=[node1, node2],
+                    model_params=model_params,
+                    state_delay=state_delay,
                 )
             elif noise_type == NoiseType.Bitflip:
                 flip_prob = 1 - link.fidelity
+                model_params = BitFlipModelParameters(flip_prob=flip_prob)
                 return BitflipMagicDistributor(
-                    nodes=[node1, node2], flip_prob=flip_prob, state_delay=state_delay
+                    model_params=model_params,
+                    state_delay=state_delay,
+                    nodes=[node1, node2],
                 )
         except ValueError:
             raise TypeError(f"Noise type {link.noise_type} not valid")
@@ -324,7 +336,7 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             qubit_state = qapi.reduced_dm(qubit).tolist()
         return qubit_state
 
-    def _handle_delivery(self, event):
+    def _handle_label_delivery(self, event):
         """
         Handles the completion of an entanglement generation
         Updates, the requests, number of pairs left etc,
@@ -340,6 +352,10 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
             # This indicates that this delivery event is not the "reference" delivery event returned by add_delivery
             # of the magic distributor. Since the below operations only need to be executed once, we can skip this.
             return
+
+        if queue_item is None:
+            return
+
         request = queue_item.request
         node_id = queue_item.node_id
         create_id = queue_item.create_id

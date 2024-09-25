@@ -4,19 +4,18 @@ from typing import Dict, List, Optional
 
 from netsquid.components import QuantumProcessor
 from netsquid.components.component import Port
-from netsquid.nodes import Node
 from netsquid.nodes.network import Network
 from netsquid.protocols import Protocol
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocol,
-    MagicLinkLayerProtocolWithSignaling,
-)
+from netsquid_driver.classical_socket_service import ClassicalSocket
+from netsquid_magic.egp import EgpProtocol
+from netsquid_magic.link_layer import MagicLinkLayerProtocol
+from netsquid_netbuilder.network import QDeviceNode
 
 from squidasm.sim.stack.host import Host, HostComponent
 from squidasm.sim.stack.qnos import Qnos, QnosComponent
 
 
-class ProcessingNode(Node):
+class StackNode(QDeviceNode):
     """NetSquid component representing a quantum network node containing a software
     stack consisting of Host, QNodeOS and QDevice.
 
@@ -38,12 +37,14 @@ class ProcessingNode(Node):
         self,
         name: str,
         qdevice: QuantumProcessor,
+        qdevice_type: str,
         node_id: Optional[int] = None,
     ) -> None:
         """ProcessingNode constructor. Typically created indirectly through
         constructing a `NodeStack`."""
-        super().__init__(name, ID=node_id)
-        self.qmemory = qdevice
+        super().__init__(
+            name, qdevice=qdevice, qdevice_type=qdevice_type, node_id=node_id
+        )
 
         qnos_comp = QnosComponent(self)
         self.add_subcomponent(qnos_comp, "qnos")
@@ -56,12 +57,6 @@ class ProcessingNode(Node):
 
         # Ports for communicating with other nodes
         self.add_ports(["qnos_peer_out", "qnos_peer_in"])
-        self.add_ports(["host_peer_out", "host_peer_in"])
-
-        self.qnos_comp.peer_out_port.forward_output(self.qnos_peer_out_port)
-        self.qnos_peer_in_port.forward_input(self.qnos_comp.peer_in_port)
-        self.host_comp.peer_out_port.forward_output(self.host_peer_out_port)
-        self.host_peer_in_port.forward_input(self.host_comp.peer_in_port)
 
     @property
     def qnos_comp(self) -> QnosComponent:
@@ -71,25 +66,16 @@ class ProcessingNode(Node):
     def host_comp(self) -> HostComponent:
         return self.subcomponents["host"]
 
-    @property
-    def qdevice(self) -> QuantumProcessor:
-        return self.qmemory
+    def qnos_peer_port(self, peer_id: int) -> Port:
+        return self.ports[f"qnos_peer_{peer_id}"]
 
-    @property
-    def host_peer_in_port(self) -> Port:
-        return self.ports["host_peer_in"]
-
-    @property
-    def host_peer_out_port(self) -> Port:
-        return self.ports["host_peer_out"]
-
-    @property
-    def qnos_peer_in_port(self) -> Port:
-        return self.ports["qnos_peer_in"]
-
-    @property
-    def qnos_peer_out_port(self) -> Port:
-        return self.ports["qnos_peer_out"]
+    def register_peer(self, peer_id: int):
+        self.add_ports([f"qnos_peer_{peer_id}"])
+        self.qnos_comp.register_peer(peer_id)
+        self.qnos_comp.peer_out_port(peer_id).forward_output(
+            self.qnos_peer_port(peer_id)
+        )
+        self.qnos_peer_port(peer_id).forward_input(self.qnos_comp.peer_in_port(peer_id))
 
 
 class NodeStack(Protocol):
@@ -103,7 +89,7 @@ class NodeStack(Protocol):
     def __init__(
         self,
         name: str,
-        node: Optional[ProcessingNode] = None,
+        node: Optional[StackNode] = None,
         qdevice_type: Optional[str] = "generic",
         qdevice: Optional[QuantumProcessor] = None,
         node_id: Optional[int] = None,
@@ -129,7 +115,7 @@ class NodeStack(Protocol):
             self._node = node
         else:
             assert qdevice is not None
-            self._node = ProcessingNode(name, qdevice, node_id)
+            self._node = StackNode(name, qdevice, node_id)
 
         self._host: Optional[Host] = None
         self._qnos: Optional[Qnos] = None
@@ -141,15 +127,17 @@ class NodeStack(Protocol):
             self._host = Host(self.host_comp, qdevice_type)
             self._qnos = Qnos(self.qnos_comp, qdevice_type)
 
-    def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
-        """Set the link layer protocol to use for entanglement generation.
+    def assign_egp(self, remote_node_id: int, egp: EgpProtocol) -> None:
+        """Set the EGP protocol that this network stack uses to produce
+        entangled pairs with a remote node.
 
-        The same link layer protocol object is used by both nodes sharing a link in
-        the network."""
-        self.qnos.assign_ll_protocol(prot)
+        :param remote_node_id: The ID of the remote node.
+        :param egp: The EGP protocol instance for generating EPR pairs with the remote node.
+        """
+        self.qnos.assign_egp(remote_node_id, egp)
 
     @property
-    def node(self) -> ProcessingNode:
+    def node(self) -> StackNode:
         return self._node
 
     @property
@@ -180,14 +168,6 @@ class NodeStack(Protocol):
     def qnos(self, qnos: Qnos) -> None:
         self._qnos = qnos
 
-    def connect_to(self, other: NodeStack) -> None:
-        """Create connections between ports of this NodeStack and those of
-        another NodeStack."""
-        self.node.host_peer_out_port.connect(other.node.host_peer_in_port)
-        self.node.host_peer_in_port.connect(other.node.host_peer_out_port)
-        self.node.qnos_peer_out_port.connect(other.node.qnos_peer_in_port)
-        self.node.qnos_peer_in_port.connect(other.node.qnos_peer_out_port)
-
     def start(self) -> None:
         assert self._host is not None
         assert self._qnos is not None
@@ -208,7 +188,10 @@ class StackNetwork(Network):
     `MagicLinkLayerProtocol`s."""
 
     def __init__(
-        self, stacks: Dict[str, NodeStack], links: List[MagicLinkLayerProtocol]
+        self,
+        stacks: Dict[str, NodeStack],
+        links: List[MagicLinkLayerProtocol],
+        csockets: Dict[(str, str), ClassicalSocket],
     ) -> None:
         """StackNetwork constructor.
 
@@ -219,6 +202,7 @@ class StackNetwork(Network):
         """
         self._stacks = stacks
         self._links = links
+        self._csockets = csockets
 
     @property
     def stacks(self) -> Dict[str, NodeStack]:
@@ -227,6 +211,10 @@ class StackNetwork(Network):
     @property
     def links(self) -> List[MagicLinkLayerProtocol]:
         return self._links
+
+    @property
+    def csockets(self) -> Dict[(str, str), ClassicalSocket]:
+        return self._csockets
 
     @property
     def qdevices(self) -> Dict[str, QuantumProcessor]:

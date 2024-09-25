@@ -12,42 +12,42 @@ from netqasm.lang.instr.flavour import NVFlavour
 from netqasm.lang.parsing import parse_text_subroutine
 from netsquid.components import QuantumProcessor
 from netsquid.qubits import ketstates, qubitapi
-from netsquid_magic.link_layer import (
-    MagicLinkLayerProtocolWithSignaling,
-    SingleClickTranslationUnit,
-)
-from netsquid_nv.magic_distributor import NVSingleClickMagicDistributor
+from netsquid_netbuilder.modules.qdevices.nv import NVQDeviceConfig
+from netsquid_netbuilder.modules.qlinks.depolarise import DepolariseQLinkConfig
+from netsquid_netbuilder.util.network_generation import create_2_node_network
 
 from pydynaa import EventExpression
-from squidasm.run.stack.build import build_nv_qdevice
-from squidasm.run.stack.config import NVQDeviceConfig
+from squidasm.run.stack.run import _run, _setup_network
 from squidasm.sim.stack.common import AppMemory
 from squidasm.sim.stack.host import Host
 from squidasm.sim.stack.processor import NVProcessor
-from squidasm.sim.stack.qnos import Qnos
-from squidasm.sim.stack.stack import NodeStack
 
 
 class TestTwoNodes(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        nv_cfg = NVQDeviceConfig.perfect_config()
-        alice_qdevice = build_nv_qdevice("nv_qdevice_alice", cfg=nv_cfg)
-        self._alice = NodeStack(
-            "alice", qdevice_type="nv", qdevice=alice_qdevice, node_id=0
+        ns.nodes.node._node_ID_counter = -1
+        network_cfg = create_2_node_network(
+            qlink_typ="depolarise",
+            qlink_cfg=DepolariseQLinkConfig(fidelity=1, prob_success=0.5, t_cycle=10),
+            qdevice_typ="nv",
+            qdevice_cfg=NVQDeviceConfig.perfect_config(),
         )
-        self._alice.host = Host(self._alice.host_comp)
-        self._alice.qnos = Qnos(self._alice.qnos_comp)
+        self.network = _setup_network(network_cfg)
+
+        self._alice = self.network.stacks["Alice"]
+        self._bob = self.network.stacks["Bob"]
+
+        # Routines and requests in tests use hard coded ID's for alice and bob
+        assert self._alice.node.ID == 0
+        assert self._bob.node.ID == 1
+
         self._alice.qnos.processor = NVProcessor(
             self._alice.qnos_comp.processor_comp, self._alice.qnos
         )
         # don't clear app memory so we can inspect it
         self._alice.qnos.handler.should_clear_memory = False
 
-        bob_qdevice = build_nv_qdevice("nv_qdevice_bob", cfg=nv_cfg)
-        self._bob = NodeStack("bob", qdevice_type="nv", qdevice=bob_qdevice, node_id=1)
-        self._bob.host = Host(self._bob.host_comp)
-        self._bob.qnos = Qnos(self._bob.qnos_comp)
         self._bob.qnos.processor = NVProcessor(
             self._bob.qnos_comp.processor_comp, self._bob.qnos
         )
@@ -57,35 +57,14 @@ class TestTwoNodes(unittest.TestCase):
         self._host_alice: Optional[Type[Host]] = None
         self._host_bob: Optional[Type[Host]] = None
 
-        self._alice.connect_to(self._bob)
-
-        self._link_dist = NVSingleClickMagicDistributor(
-            nodes=[self._alice.node, self._bob.node],
-            length_A=0.001,
-            length_B=0.001,
-            full_cycle=0.001,
-            t_cycle=10,
-        )
-        self._link_prot = MagicLinkLayerProtocolWithSignaling(
-            nodes=[self._alice.node, self._bob.node],
-            magic_distributor=self._link_dist,
-            translation_unit=SingleClickTranslationUnit(),
-        )
-
-        self._alice.assign_ll_protocol(self._link_prot)
-        self._bob.assign_ll_protocol(self._link_prot)
-
     def tearDown(self) -> None:
         assert self._host_alice is not None
         assert self._host_bob is not None
         self._alice.host = self._host_alice(self._alice.host_comp)
         self._bob.host = self._host_bob(self._bob.host_comp)
 
-        self._link_prot.start()
-        self._alice.start()
-        self._bob.start()
+        _run(self.network)
 
-        ns.sim_run()
         if self._check_qmem:
             self._check_qmem(self._alice.qdevice, self._bob.qdevice)
         if self._check_cmem:

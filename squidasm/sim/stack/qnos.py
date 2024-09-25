@@ -6,7 +6,7 @@ from netsquid.components import QuantumProcessor
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 from netsquid.protocols import Protocol
-from netsquid_magic.link_layer import MagicLinkLayerProtocolWithSignaling
+from netsquid_magic.egp import EgpProtocol
 
 from squidasm.sim.stack.common import (
     AppMemory,
@@ -43,9 +43,6 @@ class QnosComponent(Component):
         # Ports for communicating with Host
         self.add_ports(["host_out", "host_in"])
 
-        # Ports for communicating with other nodes
-        self.add_ports(["peer_out", "peer_in"])
-
         comp_handler = HandlerComponent(node)
         self.add_subcomponent(comp_handler, "handler")
 
@@ -54,9 +51,6 @@ class QnosComponent(Component):
 
         comp_netstack = NetstackComponent(node)
         self.add_subcomponent(comp_netstack, "netstack")
-
-        self.netstack_comp.ports["peer_out"].forward_output(self.peer_out_port)
-        self.peer_in_port.forward_input(self.netstack_comp.ports["peer_in"])
 
         self.handler_comp.ports["host_out"].forward_output(self.host_out_port)
         self.host_in_port.forward_input(self.handler_comp.ports["host_in"])
@@ -99,13 +93,21 @@ class QnosComponent(Component):
     def host_out_port(self) -> Port:
         return self.ports["host_out"]
 
-    @property
-    def peer_in_port(self) -> Port:
-        return self.ports["peer_in"]
+    def peer_in_port(self, peer_id: int) -> Port:
+        return self.ports[f"peer_in_{peer_id}"]
 
-    @property
-    def peer_out_port(self) -> Port:
-        return self.ports["peer_out"]
+    def peer_out_port(self, peer_id: int) -> Port:
+        return self.ports[f"peer_out_{peer_id}"]
+
+    def register_peer(self, peer_id: int):
+        self.add_ports([f"peer_out_{peer_id}", f"peer_in_{peer_id}"])
+        self.netstack_comp.register_peer(peer_id)
+        self.netstack_comp.ports[f"peer_out_{peer_id}"].forward_output(
+            self.peer_out_port(peer_id)
+        )
+        self.peer_in_port(peer_id).forward_input(
+            self.netstack_comp.ports[f"peer_in_{peer_id}"]
+        )
 
     @property
     def node(self) -> Node:
@@ -149,8 +151,14 @@ class Qnos(Protocol):
                 return app_id, virt_id
         raise RuntimeError(f"no virtual ID found for physical ID {phys_id}")
 
-    def assign_ll_protocol(self, prot: MagicLinkLayerProtocolWithSignaling) -> None:
-        self.netstack.assign_ll_protocol(prot)
+    def assign_egp(self, remote_node_id: int, egp: EgpProtocol) -> None:
+        """Set the EGP protocol that this network stack uses to produce
+        entangled pairs with a remote node.
+
+        :param remote_node_id: The ID of the remote node.
+        :param egp: The EGP protocol instance for generating EPR pairs with the remote node.
+        """
+        self.netstack.assign_egp(remote_node_id, egp)
 
     @property
     def handler(self) -> Handler:
