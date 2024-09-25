@@ -52,13 +52,15 @@ def _setup_network(config: NetworkConfig) -> StackNetwork:
             if remote_name != node_name:
                 service.register_remote_node(remote_name, remote_node.ID)
 
-    # used to build ClassicalSockets here, now just import from network
-
     csockets: Dict[(str, str), ClassicalSocket] = {}
 
+    # Create classical sockets for all nodes
     for s1 in stacks.values():
+        # Create a service on each node that manages the sockets
         socket_service = ConnectionlessSocketService(node=s1.node)
         s1.node.driver.add_service(ClassicalSocketService, socket_service)
+
+        # Create sockets to every other stack then bind and connect them at port "0"
         for s2 in stacks.values():
             if s2 is s1:
                 continue
@@ -68,11 +70,11 @@ def _setup_network(config: NetworkConfig) -> StackNetwork:
             csockets[(s1.node.name, s2.node.name)] = socket
             network._protocol_controller.register(socket)
 
+    # Give the classical (netsquid) sockets to the host component
     for (node_name, peer_name), netsquid_socket in csockets.items():
         stacks[node_name].host.register_netsquid_socket(peer_name, netsquid_socket)
 
     link_prots: List[MagicLinkLayerProtocol] = []
-    # TODO move this start to same method where stacks and ns.sim_run() are
     network.start()
 
     return StackNetwork(stacks, link_prots, csockets)

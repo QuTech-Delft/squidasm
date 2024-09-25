@@ -19,7 +19,6 @@ from squidasm.sim.stack.host import Host
 class TestSingleNode(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        ns.nodes.node._node_ID_counter = -1
         config = NVQDeviceConfig.perfect_config()
         network_cfg = create_single_node_network(qdevice_typ="nv", qdevice_cfg=config)
         self.network = _setup_network(network_cfg)

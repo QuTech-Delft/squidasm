@@ -3,17 +3,19 @@ CHANGELOG
 
 2024-09-26 (0.13.0)
 ------------------
-- Added configurable classical links
-- Added support for networks with more than two nodes
-- Added a tutorial example for network with three nodes
-- Added GHZ routine
-- Added GHZ routine usage example
-- Added utility method for generating complete graph networks
-- Expanded testing
-- Added a flag `--test_run` when running examples via `run_examples.py` to indicate a test run of an example
-- Fix the netsquid seed in various examples to avoid accidental failure when performing a test run
-- Netqasm breakpoint requests are temporarily not supported
-- Various bugfixes
+- Added configurable classical links.
+- Added support for networks with more than two nodes.
+- Added a tutorial example for a three-node network.
+- Added a GHZ routine for generating entangled states.
+- Added an example demonstrating usage of the GHZ routine.
+- Added a utility method for generating complete graph networks.
+- Added a `--test_run` flag to `run_examples.py` to indicate a test run of an example.
+- Fixed the NetSquid seed in two examples to avoid accidental test run failures.
+- Reworked the NetSquid simulation network creation process. The NetSquid network is now constructed using `netsquid-netbuilder` for better modularity and maintainability.
+- Added tests for classical communication, multi-node classical communication, and preservation of message ordering.
+- Added tests for gate operations, including gate noise and qubit decoherence effects.
+- Added tests for EPR pair generation using the perfect, depolarizing, heralded-single-click, and heralded-double-click models.
+- Removed support for Netqasm breakpoint requests.
 
 2023-09-21 (0.12.1)
 ------------------

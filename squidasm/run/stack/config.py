@@ -93,6 +93,10 @@ class CLinkConfig(YamlLoadable):
     """Configuration of the clink, allowed configuration depends on type."""
 
     @classmethod
+    def from_file(cls, path: str) -> CLinkConfig:
+        return cls._from_file(path)  # type: ignore
+
+    @classmethod
     def perfect_config(cls, stack1: str, stack2: str) -> LinkConfig:
         """Create a configuration for a link without any noise or errors."""
         return LinkConfig(stack1=stack1, stack2=stack2, typ="instant", cfg=None)
@@ -116,6 +120,7 @@ class StackNetworkConfig(YamlLoadable):
 def _convert_stack_network_config(
     stack_network_config: StackNetworkConfig,
 ) -> netbuilder_configs.NetworkConfig:
+    """Method to convert a StackNetworkConfig into a netsquid-netbuilder NetworkConfig object."""
 
     # Convert stack nodes to processing nodes
     processing_nodes = []

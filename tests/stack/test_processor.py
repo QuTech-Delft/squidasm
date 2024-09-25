@@ -116,7 +116,6 @@ class TestProcessorTwoNodes(unittest.TestCase):
 class TestProcessorSingleNode(unittest.TestCase):
     def setUp(self) -> None:
         ns.sim_reset()
-        ns.nodes.node._node_ID_counter = -1
         config = NVQDeviceConfig.perfect_config()
         config.num_qubits = 3
         network_cfg = create_single_node_network(qdevice_typ="nv", qdevice_cfg=config)

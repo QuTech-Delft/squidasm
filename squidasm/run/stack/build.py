@@ -10,6 +10,7 @@ from squidasm.sim.stack.stack import StackNode
 
 
 class StackNodeBuilder(NodeBuilder):
+    #  This is a copy of NodeBuilder build method, but the only difference is it creates StackNode objects
     def build(self, config: NetworkConfig) -> Dict[str, StackNode]:
         nodes = {}
         for node_config in config.processing_nodes:
@@ -17,8 +18,7 @@ class StackNodeBuilder(NodeBuilder):
             node_qdevice_typ = node_config.qdevice_typ
 
             if node_qdevice_typ not in self.qdevice_builders.keys():
-                # TODO improve exception
-                raise Exception(f"No model of type: {node_qdevice_typ} registered")
+                raise RuntimeError(f"No model of type: {node_qdevice_typ} registered")
 
             builder = self.qdevice_builders[node_qdevice_typ]
             qdevice = builder.build(

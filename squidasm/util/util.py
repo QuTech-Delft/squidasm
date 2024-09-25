@@ -45,7 +45,7 @@ def create_two_node_network(
     qdevice_cfg = GenericQDeviceConfig.perfect_config()
     qdevice_cfg.two_qubit_gate_depolar_prob = qdevice_noise
     qdevice_cfg.single_qubit_gate_depolar_prob = qdevice_noise
-    processing_nodes = [
+    stacks = [
         StackConfig(name=name, qdevice_typ="generic", qdevice_cfg=qdevice_cfg)
         for name in node_names
     ]
@@ -62,7 +62,7 @@ def create_two_node_network(
         typ="default",
         cfg=DefaultCLinkConfig(delay=clink_delay),
     )
-    return StackNetworkConfig(stacks=processing_nodes, links=[link], clinks=[clink])
+    return StackNetworkConfig(stacks=stacks, links=[link], clinks=[clink])
 
 
 def create_complete_graph_network(
