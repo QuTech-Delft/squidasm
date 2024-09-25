@@ -2,7 +2,6 @@ PYTHON3        = python3
 SOURCEDIR      = squidasm
 TESTDIR        = tests
 EXAMPLEDIR     = examples
-GIT            = git
 RUNEXAMPLES    = ${EXAMPLEDIR}/run_examples.py
 NETSQUID_USER  = $(shell ${PYTHON3} -c "import sys, urllib.parse as ul; print(ul.quote_plus('${NETSQUIDPYPI_USER}'))")
 ifndef NETSQUIDPYPI_PWD
