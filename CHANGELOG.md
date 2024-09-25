@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-2024-03-TODO (0.13.0)
+2024-09-26 (0.13.0)
 ------------------
 - Added configurable classical links
 - Added support for networks with more than two nodes
