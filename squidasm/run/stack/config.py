@@ -89,7 +89,7 @@ class CLinkConfig(YamlLoadable):
     """Name of the second stack being connected via clink."""
     typ: str
     """Type of the clink."""
-    cfg: Any
+    cfg: Optional[Any] = None
     """Configuration of the clink, allowed configuration depends on type."""
 
     @classmethod
@@ -109,7 +109,7 @@ class StackNetworkConfig(YamlLoadable):
     """List of all the stacks in the network."""
     links: List[LinkConfig]
     """List of all the links connecting the stacks in the network."""
-    clinks: Optional[List[CLinkConfig]]
+    clinks: Optional[List[CLinkConfig]] = None
     """List of all the links connecting the stacks in the network."""
 
     @classmethod
