@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+2024-09-26 (0.13.1)
+------------------
+- Bugfix for pydantic 2.x versions
+
 2024-09-26 (0.13.0)
 ------------------
 - Added configurable classical links.
