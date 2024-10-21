@@ -50,7 +50,7 @@ def get_network_config(
     return NetworkConfig(nodes, links)
 
 
-class TestSdkTwoNodes(unittest.TestCase):
+class TestNetwork(unittest.TestCase):
     @staticmethod
     def run_network_test(
         hardware: QuantumHardware = QuantumHardware.Generic,
