@@ -4,7 +4,7 @@ CHANGELOG
 2024-10-21 (0.13.2)
 ------------------
 - Bugfix for link noise models depolarise and discrete depolarise in multithread variant
-- Added tests for link noise and hardware models in multithread
+- Added tests for link noise and hardware models for multithread variant
 
 2024-10-20 (0.13.1)
 ------------------
