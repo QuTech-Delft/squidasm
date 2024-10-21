@@ -1,4 +1,5 @@
 import copy
+import dataclasses
 import os
 from typing import Dict, List, Optional, Tuple
 
@@ -37,6 +38,7 @@ from netsquid_magic.magic_distributor import (
 from netsquid_magic.model_parameters import (
     BitFlipModelParameters,
     DepolariseModelParameters,
+    IModelParameters,
     PerfectModelParameters,
 )
 from netsquid_magic.state_delivery_sampler import HeraldedStateDeliverySamplerFactory
@@ -218,18 +220,22 @@ class NetSquidNetwork(Network):
                 noise_type == NoiseType.Depolarise
             ):  # use Depolarise distributor defined in this module
                 noise = 1 - link.fidelity
+                model_params = LinearDepolariseModelParameters(
+                    cycle_time=state_delay, prob_success=1, prob_max_mixed=noise
+                )
                 return LinearDepolariseMagicDistributor(
-                    nodes=[node1, node2], depolar_noise=noise, state_delay=state_delay
+                    nodes=[node1, node2], model_params=model_params
                 )
             elif (
                 noise_type == NoiseType.DiscreteDepolarise
             ):  # use Depolarise distributor defined in netsquid_magic
                 noise = 1 - link.fidelity
-                model_params = DepolariseModelParameters(prob_max_mixed=noise)
+                model_params = DepolariseModelParameters(
+                    prob_max_mixed=noise, cycle_time=state_delay
+                )
                 return DepolariseMagicDistributor(
                     nodes=[node1, node2],
                     model_params=model_params,
-                    state_delay=state_delay,
                 )
             elif noise_type == NoiseType.Bitflip:
                 flip_prob = 1 - link.fidelity
@@ -555,32 +561,42 @@ class NVQDevice(QDevice):
         )
 
 
+@dataclasses.dataclass
+class LinearDepolariseModelParameters(IModelParameters):
+    """Data class for the parameters of the linear depolarising entanglement generation model."""
+
+    prob_max_mixed: float = 0
+    """Fraction of maximally mixed state in the EPR state generated."""
+    prob_success: float = 1
+    """Probability of successfully generating an EPR state per cycle."""
+
+    def verify(self):
+        super().verify()
+        self.verify_between_0_and_1("prob_max_mixed")
+        self.verify_between_0_and_1("prob_success")
+
+
 class LinearDepolariseMagicDistributor(MagicDistributor):
     """
     Distributes (noisy) EPR pairs to 2 connected nodes, using samplers created
     by a :class:`LinearDepolariseStateSamplerFactory`.
     """
 
-    def __init__(self, nodes, depolar_noise, **kwargs):
+    def __init__(self, nodes, model_params: LinearDepolariseModelParameters, **kwargs):
         """
         Parameters
         ----------
         nodes : list of :obj:`~netsquid.nodes.node.Node`
             Pair of nodes to which noisy EPR pairs will be distributed.
-        depolar_noise : float
-            Depolarizing noise.
+        model_params : LinearDepolariseModelParameters
+            Model parameters for LinearDepolariseModel model, but will not use `prob_success`.
         """
-        self.depolar_noise = depolar_noise
         super().__init__(
             delivery_sampler_factory=LinearDepolariseStateSamplerFactory(),
+            model_params=model_params,
+            label_delay=0,
+            state_delay=model_params.cycle_time,
             nodes=nodes,
-            **kwargs,
-        )
-
-    def add_delivery(self, memory_positions, **kwargs):
-        return super().add_delivery(
-            memory_positions=memory_positions,
-            depolar_noise=self.depolar_noise,
             **kwargs,
         )
 
@@ -597,13 +613,12 @@ class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
         )
 
     @staticmethod
-    def _delivery_func(depolar_noise, **kwargs):
+    def _delivery_func(model_params: LinearDepolariseModelParameters, **kwargs):
         """
         Parameters
         ----------
-        depolar_noise : float
-            Used to calculate the linear combination of the original state
-            and the maximally mixed state.
+        model_params : LinearDepolariseModelParameters
+            Model parameters for LinearDepolariseModel model, but will not use `prob_success`.
 
         Returns
         -------
@@ -620,7 +635,8 @@ class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
         return (
             StateSampler(
                 qreprs=[
-                    (1 - depolar_noise) * epr_state + depolar_noise * maximally_mixed
+                    (1 - model_params.prob_max_mixed) * epr_state
+                    + model_params.prob_max_mixed * maximally_mixed
                 ],
                 probabilities=[1],
             ),
