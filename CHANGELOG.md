@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+2024-11-TODO (0.13.3)
+------------------
+- Relax scipy requirement
+
+
 2024-10-21 (0.13.2)
 ------------------
 - Bugfix for link noise models depolarise and discrete depolarise in multithread variant
