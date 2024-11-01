@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-2024-11-TODO (0.13.3)
+2024-11-2 (0.13.3)
 ------------------
 - Relax scipy requirement
 
