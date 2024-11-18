@@ -53,7 +53,7 @@ from pydynaa import EventType
 from squidasm.sim.glob import QubitInfo, get_running_backend
 from squidasm.sim.network.nv_config import NVConfig, build_nv_qdevice
 
-T_SingleQubitState = Tuple[Tuple[np.complex, np.complex]]
+T_SingleQubitState = Tuple[Tuple[complex, complex]]
 
 EprDeliveredEvent: EventType = EventType(
     "EPR_DELIVERED",
@@ -626,11 +626,11 @@ class LinearDepolariseStateSamplerFactory(HeraldedStateDeliverySamplerFactory):
         """
         epr_state = np.array(
             [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]],
-            dtype=np.complex,
+            dtype=complex,
         )
         maximally_mixed = np.array(
             [[0.25, 0, 0, 0], [0, 0.25, 0, 0], [0, 0, 0.25, 0], [0, 0, 0, 0.25]],
-            dtype=np.complex,
+            dtype=complex,
         )
         return (
             StateSampler(
