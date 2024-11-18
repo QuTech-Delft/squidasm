@@ -1,10 +1,11 @@
 CHANGELOG
 =========
 
-2024-11-2 (0.13.3)
+2024-11-18 (0.13.3)
 ------------------
-- Relax scipy requirement
-
+- Relax scipy requirement to from <1.9 to <2.0
+- Relax numpy requirement from <1.23 to <2.0
+- Replace numpy.complex type with complex type
 
 2024-10-21 (0.13.2)
 ------------------
