@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+2024-12-16 (0.13.4)
+------------------
+- Bugfix for simulation time not resetting between different calls of the `squidasm.run.stack.run.run` method
+- Add support for S and T gates in generic qdevice
+
 2024-11-18 (0.13.3)
 ------------------
 - Relax scipy requirement to from <1.9 to <2.0
