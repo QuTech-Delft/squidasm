@@ -23,6 +23,7 @@ from squidasm.sim.stack.stack import NodeStack, StackNetwork, StackNode
 
 def _setup_network(config: NetworkConfig) -> StackNetwork:
     NetSquidContext.reset()
+    ns.sim_reset()
     builder = create_stack_network_builder()
     network = builder.build(config)
 
