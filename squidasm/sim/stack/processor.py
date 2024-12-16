@@ -21,6 +21,8 @@ from netsquid.components.instructions import (
     INSTR_ROT_X,
     INSTR_ROT_Y,
     INSTR_ROT_Z,
+    INSTR_S,
+    INSTR_T,
     INSTR_X,
     INSTR_Y,
     INSTR_Z,
@@ -683,6 +685,14 @@ class GenericProcessor(Processor):
         elif isinstance(instr, vanilla.GateKInstruction):
             prog = QuantumProgram()
             prog.apply(INSTR_K, qubit_indices=[phys_id])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.GateSInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_S, qubit_indices=[phys_id])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.GateTInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_T, qubit_indices=[phys_id])
             yield self.qdevice.execute_program(prog)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
