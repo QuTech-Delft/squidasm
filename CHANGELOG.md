@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+2025-05-13 (0.13.5)
+-------------------
+- Fix compatibility issue in MagicNetworkLayerProtocol due to changes in netsquid-magic
+- Add requirement on netsquid-magic >= 16.0.0, < 17.0.0
+
 2024-12-16 (0.13.4)
 ------------------
 - Bugfix for simulation time not resetting between different calls of the `squidasm.run.stack.run.run` method
