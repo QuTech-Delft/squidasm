@@ -353,7 +353,8 @@ class MagicNetworkLayerProtocol(MagicLinkLayerProtocol):
         # netsquid_magic package, with one change: the `messages` dict is
         # returned at the end, so that their contents can be logged.
         try:
-            queue_item = self._pop_from_requests_in_process(event)
+            delivery = self._magic_distributor.peek_delivery(event)
+            queue_item = self._pop_from_requests_in_process(delivery)
         except KeyError:
             # This indicates that this delivery event is not the "reference" delivery event returned by add_delivery
             # of the magic distributor. Since the below operations only need to be executed once, we can skip this.
