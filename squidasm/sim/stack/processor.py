@@ -173,6 +173,7 @@ class Processor(ComponentProtocol):
         self, subroutine: Subroutine
     ) -> Generator[EventExpression, None, None]:
         """Execute a NetQASM subroutine on this processor."""
+        self._logger.info(f"Executing subroutine {subroutine}")
         app_id = subroutine.app_id
         assert app_id in self.app_memories
         app_mem = self.app_memories[app_id]
@@ -230,6 +231,8 @@ class Processor(ComponentProtocol):
             pass
         elif isinstance(instr, core.SingleQubitInstruction):
             return self._interpret_single_qubit_instr(app_id, instr)
+        elif isinstance(instr, vanilla.MovInstruction) or isinstance(instr, nv.MovInstruction):
+            return self._interpret_mov(app_id, instr)
         elif isinstance(instr, core.TwoQubitInstruction):
             return self._interpret_two_qubit_instr(app_id, instr)
         elif isinstance(instr, core.RotationInstruction):
@@ -287,6 +290,12 @@ class Processor(ComponentProtocol):
     def _interpret_set(self, app_id: int, instr: core.SetInstruction) -> None:
         self._logger.debug(f"Set register {instr.reg} to {instr.imm}")
         self.app_memories[app_id].set_reg_value(instr.reg, instr.imm.value)
+
+    def _interpret_mov(self, app_id: int, instr: vanilla.MovInstruction) -> None:
+        self._logger.debug(f"Moving value from {instr.reg1} to {instr.reg0}")
+        app_mem = self.app_memories[app_id]
+        val = app_mem.get_reg_value(instr.reg1)
+        app_mem.set_reg_value(instr.reg0, val)
 
     def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
         app_mem = self.app_memories[app_id]
@@ -881,5 +890,25 @@ class NVProcessor(Processor):
             yield from self._do_controlled_rotation(app_id, instr, INSTR_CXDIR)
         elif isinstance(instr, nv.ControlledRotYInstruction):
             yield from self._do_controlled_rotation(app_id, instr, INSTR_CYDIR)
+        else:
+            raise RuntimeError(f"Unsupported instruction {instr}")
+
+    def _interpret_two_qubit_instr(
+        self, app_id: int, instr: core.SingleQubitInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id0 = app_mem.get_reg_value(instr.reg0)
+        phys_id0 = app_mem.phys_id_for(virt_id0)
+        virt_id1 = app_mem.get_reg_value(instr.reg1)
+        phys_id1 = app_mem.phys_id_for(virt_id1)
+
+        if isinstance(instr, vanilla.CnotInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_CNOT, qubit_indices=[phys_id0, phys_id1])
+            yield self.qdevice.execute_program(prog)
+        elif isinstance(instr, vanilla.CphaseInstruction):
+            prog = QuantumProgram()
+            prog.apply(INSTR_CZ, qubit_indices=[phys_id0, phys_id1])
+            yield self.qdevice.execute_program(prog)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")

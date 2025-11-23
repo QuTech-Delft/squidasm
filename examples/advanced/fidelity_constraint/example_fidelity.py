@@ -5,6 +5,9 @@ import os
 from typing import Any, Dict, Generator
 
 import netsquid as ns
+from netqasm.sdk.connection import BaseNetQASMConnection
+from netqasm.sdk.futures import RegFuture
+from netqasm.sdk.qubit import Qubit
 
 from pydynaa import EventExpression
 from squidasm.run.stack.config import StackNetworkConfig
@@ -53,16 +56,25 @@ class ClientProgram(Program):
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
 
-        eprs = epr_socket.create_keep(
-            number=2, min_fidelity_all_at_end=70, max_tries=20
-        )
+        outcomes = conn.new_array(length=2)
 
-        m0 = eprs[0].measure()
-        m1 = eprs[1].measure()
+        def post_create(_: BaseNetQASMConnection, q: Qubit, index: RegFuture):
+            q.measure(future=outcomes.get_future_index(index))
+
+        epr_socket.create_keep(
+            number=2,
+            min_fidelity_all_at_end=70,
+            max_tries=20,
+            sequential=True,
+            post_routine=post_create,
+        )
 
         yield from conn.flush()
 
-        return {"m0": int(m0), "m1": int(m1)}
+        m0 = int(outcomes.get_future_index(0))
+        m1 = int(outcomes.get_future_index(1))
+
+        return {"m0": m0, "m1": m1}
 
 
 class ServerProgram(Program):
@@ -83,14 +95,25 @@ class ServerProgram(Program):
         conn = context.connection
         epr_socket = context.epr_sockets[self.PEER]
 
-        eprs = epr_socket.recv_keep(number=2, min_fidelity_all_at_end=70, max_tries=20)
+        outcomes = conn.new_array(length=2)
 
-        m0 = eprs[0].measure()
-        m1 = eprs[1].measure()
+        def post_recv(_: BaseNetQASMConnection, q: Qubit, index: RegFuture):
+            q.measure(future=outcomes.get_future_index(index))
+
+        epr_socket.recv_keep(
+            number=2,
+            min_fidelity_all_at_end=70,
+            max_tries=20,
+            sequential=True,
+            post_routine=post_recv,
+        )
 
         yield from conn.flush()
 
-        return {"m0": int(m0), "m1": int(m1)}
+        m0 = int(outcomes.get_future_index(0))
+        m1 = int(outcomes.get_future_index(1))
+
+        return {"m0": m0, "m1": m1}
 
 
 PI = math.pi

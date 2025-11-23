@@ -12,6 +12,7 @@ from netsquid.components.instructions import (
     INSTR_ROT_X,
     INSTR_ROT_Y,
     INSTR_ROT_Z,
+    INSTR_SWAP,
 )
 from netsquid.nodes.node import Node as NetSquidNode
 
@@ -27,6 +28,7 @@ NV_NS_INSTR_MAPPING: T_InstrMap = {
     nv.RotZInstruction: INSTR_ROT_Z,
     nv.ControlledRotXInstruction: INSTR_CXDIR,
     nv.ControlledRotYInstruction: INSTR_CYDIR,
+    nv.MovInstruction: INSTR_SWAP,
 }
 
 
