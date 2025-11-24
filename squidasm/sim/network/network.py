@@ -551,6 +551,7 @@ class NVQDevice(QDevice):
             PhysicalInstruction(ns_instructions.INSTR_ROT_Z, duration=2),
             PhysicalInstruction(ns_instructions.INSTR_CXDIR, duration=5),
             PhysicalInstruction(ns_instructions.INSTR_CYDIR, duration=5),
+            PhysicalInstruction(ns_instructions.INSTR_SWAP, duration=5),
         ]
 
         super().__init__(
