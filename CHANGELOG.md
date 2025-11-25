@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+2025-11-24 (0.13.6)
+--------------------
+- Pin netqasm to 2.0.0 due to breaking changes in 2.1.0
+- Bump minimum netsquid version to 1.1.8 to resolve compatibility issues where older netsquid versions fail with newer scipy versions
+- Bump minimum Python version to 3.10 as required netsquid 1.1.8 dependency is not available for Python 3.9 and earlier
+
 2025-05-13 (0.13.5)
 -------------------
 - Fix compatibility issue in MagicNetworkLayerProtocol due to changes in netsquid-magic
