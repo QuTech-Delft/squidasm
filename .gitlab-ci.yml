@@ -1,4 +1,4 @@
-image: adahlberg/nlblueprintci:19.04
+image: mvanhooft/squidasm_ci:24.04
 
 .only_mr: &only_mr
     only:
@@ -14,6 +14,8 @@ image: adahlberg/nlblueprintci:19.04
         - echo "$SSH_PRIVATE_KEY" | ssh-add -
         - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
         - chmod 644 ~/.ssh/known_hosts
+        ## Start using the virtual environment
+        - source venv/bin/activate
         ## Install netqasm
         - echo $CI_COMMIT_REF_NAME
         - echo $CI_COMMIT_BRANCH
