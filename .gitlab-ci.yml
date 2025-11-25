@@ -27,7 +27,7 @@ image: mvanhooft/squidasm_ci:24.04
         - cd netqasm
         - make install
         - cd ..
-        - make install
+        - make install-dev
 
 stages:
     - lint
