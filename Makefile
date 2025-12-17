@@ -1,4 +1,5 @@
 PYTHON3        = python3
+GIT            = git
 SOURCEDIR      = squidasm
 TESTDIR        = tests
 EXAMPLEDIR     = examples
@@ -61,10 +62,14 @@ examples:
 docs html:
 	@${MAKE} -C docs html
 
-install: _check_variables
+_install_submodules:
+	$(GIT) submodule update --init
+	@$(PYTHON3) -m pip install -e submodules/netqasm/ ${PIP_FLAGS}
+
+install: _check_variables _install_submodules
 	@$(PYTHON3) -m pip install -e . ${PIP_FLAGS}
 
-install-dev: _check_variables
+install-dev: _check_variables _install_submodules
 	@$(PYTHON3) -m pip install -e .[dev] ${PIP_FLAGS}
 
 verify: clean tests examples _verified

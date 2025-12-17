@@ -1,0 +1,3 @@
+[submodule "submodules/netqasm"]
+	path = submodules/netqasm
+	url = git@github.com:QuTech-Delft/netqasm.git
