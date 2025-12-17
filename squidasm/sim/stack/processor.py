@@ -4,7 +4,13 @@ import math
 from typing import TYPE_CHECKING, Dict, Generator, Optional, Union
 
 import netsquid as ns
-from netqasm.lang.instr import NetQASMInstruction, core, nv, vanilla
+from netqasm.lang.instr import (
+    NetQASMInstruction,
+    core,
+    nv,
+    trapped_ion_individual,
+    vanilla,
+)
 from netqasm.lang.operand import Register
 from netqasm.lang.subroutine import Subroutine
 from netsquid.components import QuantumProcessor
@@ -31,6 +37,7 @@ from netsquid.components.instructions import Instruction as NsInstr
 from netsquid.components.qprogram import QuantumProgram
 from netsquid.nodes import Node
 from netsquid.qubits import qubitapi
+from netsquid_trappedions.instructions import INSTR_MS_INDIVIDUAL
 
 from pydynaa import EventExpression
 from squidasm.sim.stack.common import (
@@ -883,3 +890,78 @@ class NVProcessor(Processor):
             yield from self._do_controlled_rotation(app_id, instr, INSTR_CYDIR)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
+
+
+class TIProcessor(Processor):
+    """A `Processor` for nodes with a TI hardware."""
+
+    def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
+        app_mem = self.app_memories[app_id]
+
+        virt_id = app_mem.get_reg_value(instr.reg)
+        if virt_id is None:
+            raise RuntimeError(f"qubit address in register {instr.reg} is not defined")
+        self._logger.debug(f"Allocating qubit with virtual ID {virt_id}")
+
+        # All qubits are communication qubits in TI
+        phys_id = self.physical_memory.allocate_comm()
+        app_mem.map_virt_id(virt_id, phys_id)
+
+    def _interpret_init(
+        self, app_id: int, instr: core.InitInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id = app_mem.get_reg_value(instr.reg)
+        phys_id = app_mem.phys_id_for(virt_id)
+        self._logger.debug(
+            f"Performing {instr} on virtual qubit "
+            f"{virt_id} (physical ID: {phys_id})"
+        )
+        prog = QuantumProgram()
+        prog.apply(INSTR_INIT, qubit_indices=[phys_id])
+        yield self.qdevice.execute_program(prog)
+
+    def _interpret_meas(
+        self, app_id: int, instr: core.MeasInstruction
+    ) -> Generator[EventExpression, None, None]:
+        app_mem = self.app_memories[app_id]
+        virt_id = app_mem.get_reg_value(instr.qreg)
+        phys_id = app_mem.phys_id_for(virt_id)
+
+        self._logger.debug(
+            f"Measuring qubit {virt_id} (physical ID: {phys_id}), "
+            f"placing the outcome in register {instr.creg}"
+        )
+
+        prog = QuantumProgram()
+        prog.apply(INSTR_MEASURE, qubit_indices=[phys_id])
+        yield self.qdevice.execute_program(prog)
+        outcome: int = prog.output["last"][0]
+        app_mem.set_reg_value(instr.creg, outcome)
+
+    def _interpret_single_rotation_instr(
+        self, app_id: int, instr: trapped_ion_individual.RotXInstruction
+    ) -> Generator[EventExpression, None, None]:
+        if isinstance(instr, trapped_ion_individual.RotXInstruction):
+            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_X)
+        elif isinstance(instr, trapped_ion_individual.RotYInstruction):
+            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Y)
+        elif isinstance(instr, trapped_ion_individual.RotZInstruction):
+            yield from self._do_single_rotation(app_id, instr, INSTR_ROT_Z)
+        else:
+            raise RuntimeError(f"Unsupported instruction {instr}")
+
+    def _interpret_two_qubit_instr(
+        self, app_id: int, instr: core.TwoQubitRotationInstruction
+    ) -> Generator[EventExpression, None, None]:
+        assert isinstance(instr, trapped_ion_individual.MSGateInstruction)
+
+        app_mem = self.app_memories[app_id]
+        virt_id0 = app_mem.get_reg_value(instr.reg0)
+        phys_id0 = app_mem.phys_id_for(virt_id0)
+        virt_id1 = app_mem.get_reg_value(instr.reg1)
+        phys_id1 = app_mem.phys_id_for(virt_id1)
+
+        prog = QuantumProgram()
+        prog.apply(INSTR_MS_INDIVIDUAL, qubit_indices=[phys_id0, phys_id1])
+        yield self.qdevice.execute_program(prog)

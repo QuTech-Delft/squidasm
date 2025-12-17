@@ -5,6 +5,7 @@ from typing import Dict
 from netsquid_netbuilder.builder.network_builder import NetworkBuilder, NodeBuilder
 from netsquid_netbuilder.network_config import NetworkConfig
 from netsquid_netbuilder.run import get_default_builder
+from netsquid_trappedions.ion_trap import IonTrapIndividualAddressingBuilder
 
 from squidasm.sim.stack.stack import StackNode
 
@@ -36,6 +37,7 @@ class StackNodeBuilder(NodeBuilder):
 
 def create_stack_network_builder() -> NetworkBuilder:
     builder = get_default_builder()
+    builder.register_qdevice("trapped-ion", IonTrapIndividualAddressingBuilder)
     original_node_builder = builder.node_builder
 
     # replace the original node builder with new StackNodeBuilder

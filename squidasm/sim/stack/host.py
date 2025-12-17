@@ -9,7 +9,11 @@ from netqasm.backend.messages import (
     StopAppMessage,
 )
 from netqasm.sdk.epr_socket import EPRSocket
-from netqasm.sdk.transpile import NVSubroutineTranspiler, SubroutineTranspiler
+from netqasm.sdk.transpile import (
+    NVSubroutineTranspiler,
+    SubroutineTranspiler,
+    TISubroutineTranspiler,
+)
 from netsquid.components.component import Component, Port
 from netsquid.nodes import Node
 
@@ -67,6 +71,8 @@ class Host(ComponentProtocol):
             ] = NVSubroutineTranspiler
         elif qdevice_type == "generic":
             self._compiler: Optional[Type[SubroutineTranspiler]] = None
+        elif qdevice_type == "trapped-ion":
+            self._compiler = TISubroutineTranspiler
         else:
             raise ValueError
 

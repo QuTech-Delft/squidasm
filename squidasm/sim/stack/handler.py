@@ -148,6 +148,10 @@ class Handler(ComponentProtocol):
             self._flavour: Optional[flavour.Flavour] = flavour.NVFlavour()
         elif qdevice_type == "generic":
             self._flavour: Optional[flavour.Flavour] = flavour.VanillaFlavour()
+        elif qdevice_type == "trapped-ion":
+            self._flavour: Optional[
+                flavour.Flavour
+            ] = flavour.TrappedIonIndividualFlavour()
         else:
             raise ValueError
 
