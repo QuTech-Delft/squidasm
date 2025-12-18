@@ -1,0 +1,38 @@
+# Perfect 2 node network, no noise from either computation on the nodes or communication between nodes
+ion-trap-parameters: &qdevice_cfg
+    num_positions: 5
+    coherence_time: 0.
+    prob_error_0: 0.
+    prob_error_1: 0.
+    init_depolar_prob: 0.
+    rot_z_depolar_prob: 0.
+    emission_fidelity: 1.
+    collection_efficiency: 1.
+    emission_duration: 0.
+    measurement_duration: 0.
+    initialization_duration: 0.
+    z_rotation_duration: 0.
+    ms_pi_over_2_duration: 0.
+    # ms_optimization_angle:  np.pi / 2
+    ms_depolar_prob: 0.
+
+stacks:
+  - name: Alice
+    qdevice_typ: trapped-ion
+    qdevice_cfg:
+      <<: *qdevice_cfg
+  - name: Bob
+    qdevice_typ: trapped-ion
+    qdevice_cfg:
+      <<: *qdevice_cfg
+
+links:
+  - stack1: Alice
+    stack2: Bob
+    typ: perfect
+
+
+clinks:
+  - stack1: Alice
+    stack2: Bob
+    typ: instant
