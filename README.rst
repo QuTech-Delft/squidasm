@@ -145,6 +145,7 @@ Contributors
 ===============
 In alphabetical order:
 
+* Alessandro Da Ros
 * Axel Dahlberg
 * Bart van der Vecht (b.vandervecht[at]tudelft.nl)
 * Michaɫ van Hooft (M.K.vanHooft@tudelft.nl)
