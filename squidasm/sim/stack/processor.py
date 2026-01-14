@@ -231,7 +231,9 @@ class Processor(ComponentProtocol):
             pass
         elif isinstance(instr, core.SingleQubitInstruction):
             return self._interpret_single_qubit_instr(app_id, instr)
-        elif isinstance(instr, vanilla.MovInstruction) or isinstance(instr, nv.MovInstruction):
+        elif isinstance(instr, vanilla.MovInstruction) or isinstance(
+            instr, nv.MovInstruction
+        ):
             return self._interpret_mov(app_id, instr)
         elif isinstance(instr, core.TwoQubitInstruction):
             return self._interpret_two_qubit_instr(app_id, instr)
@@ -552,8 +554,7 @@ class Processor(ComponentProtocol):
             result_array_addr,
         )
         self._send_netstack_msg(msg)
-        # result = yield from self._receive_netstack_msg()
-        # self._logger.debug(f"result from netstack: {result}")
+        yield from self._receive_netstack_msg()
 
     def _interpret_recv_epr(self, app_id: int, instr: core.RecvEPRInstruction) -> None:
         app_mem = self.app_memories[app_id]
@@ -581,8 +582,7 @@ class Processor(ComponentProtocol):
             result_array_addr,
         )
         self._send_netstack_msg(msg)
-        # result = yield from self._receive_netstack_msg()
-        # self._logger.debug(f"result from netstack: {result}")
+        yield from self._receive_netstack_msg()
 
     def _interpret_wait_all(
         self, app_id: int, instr: core.WaitAllInstruction
