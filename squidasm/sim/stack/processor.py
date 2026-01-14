@@ -892,23 +892,3 @@ class NVProcessor(Processor):
             yield from self._do_controlled_rotation(app_id, instr, INSTR_CYDIR)
         else:
             raise RuntimeError(f"Unsupported instruction {instr}")
-
-    def _interpret_two_qubit_instr(
-        self, app_id: int, instr: core.SingleQubitInstruction
-    ) -> Generator[EventExpression, None, None]:
-        app_mem = self.app_memories[app_id]
-        virt_id0 = app_mem.get_reg_value(instr.reg0)
-        phys_id0 = app_mem.phys_id_for(virt_id0)
-        virt_id1 = app_mem.get_reg_value(instr.reg1)
-        phys_id1 = app_mem.phys_id_for(virt_id1)
-
-        if isinstance(instr, vanilla.CnotInstruction):
-            prog = QuantumProgram()
-            prog.apply(INSTR_CNOT, qubit_indices=[phys_id0, phys_id1])
-            yield self.qdevice.execute_program(prog)
-        elif isinstance(instr, vanilla.CphaseInstruction):
-            prog = QuantumProgram()
-            prog.apply(INSTR_CZ, qubit_indices=[phys_id0, phys_id1])
-            yield self.qdevice.execute_program(prog)
-        else:
-            raise RuntimeError(f"Unsupported instruction {instr}")

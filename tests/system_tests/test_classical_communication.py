@@ -36,7 +36,7 @@ class SenderProgram(Program):
             name="test_program",
             csockets=list(self.per_peer_messages.keys()),
             epr_sockets=[],
-            max_qubits=1,
+            max_qubits=2,
         )
 
     def run(self, context: ProgramContext):
@@ -65,7 +65,7 @@ class ReceiverProgram(Program):
             name="test_program",
             csockets=list(self.per_peer_expect_num_messages.keys()),
             epr_sockets=[],
-            max_qubits=1,
+            max_qubits=2,
         )
 
     def run(self, context: ProgramContext):
