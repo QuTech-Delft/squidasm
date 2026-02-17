@@ -44,7 +44,7 @@ ret_reg $m
         bytes(
             InitNewAppMessage(
                 app_id=app_id,
-                max_qubits=1,
+                max_qubits=2,
             )
         ),
     )

@@ -173,6 +173,7 @@ class Processor(ComponentProtocol):
         self, subroutine: Subroutine
     ) -> Generator[EventExpression, None, None]:
         """Execute a NetQASM subroutine on this processor."""
+        self._logger.info(f"Executing subroutine {subroutine}")
         app_id = subroutine.app_id
         assert app_id in self.app_memories
         app_mem = self.app_memories[app_id]
@@ -230,6 +231,10 @@ class Processor(ComponentProtocol):
             pass
         elif isinstance(instr, core.SingleQubitInstruction):
             return self._interpret_single_qubit_instr(app_id, instr)
+        elif isinstance(instr, vanilla.MovInstruction) or isinstance(
+            instr, nv.MovInstruction
+        ):
+            return self._interpret_mov(app_id, instr)
         elif isinstance(instr, core.TwoQubitInstruction):
             return self._interpret_two_qubit_instr(app_id, instr)
         elif isinstance(instr, core.RotationInstruction):
@@ -287,6 +292,12 @@ class Processor(ComponentProtocol):
     def _interpret_set(self, app_id: int, instr: core.SetInstruction) -> None:
         self._logger.debug(f"Set register {instr.reg} to {instr.imm}")
         self.app_memories[app_id].set_reg_value(instr.reg, instr.imm.value)
+
+    def _interpret_mov(self, app_id: int, instr: vanilla.MovInstruction) -> None:
+        self._logger.debug(f"Moving value from {instr.reg1} to {instr.reg0}")
+        app_mem = self.app_memories[app_id]
+        val = app_mem.get_reg_value(instr.reg1)
+        app_mem.set_reg_value(instr.reg0, val)
 
     def _interpret_qalloc(self, app_id: int, instr: core.QAllocInstruction) -> None:
         app_mem = self.app_memories[app_id]
@@ -543,8 +554,7 @@ class Processor(ComponentProtocol):
             result_array_addr,
         )
         self._send_netstack_msg(msg)
-        # result = yield from self._receive_netstack_msg()
-        # self._logger.debug(f"result from netstack: {result}")
+        yield from self._receive_netstack_msg()
 
     def _interpret_recv_epr(self, app_id: int, instr: core.RecvEPRInstruction) -> None:
         app_mem = self.app_memories[app_id]
@@ -572,8 +582,7 @@ class Processor(ComponentProtocol):
             result_array_addr,
         )
         self._send_netstack_msg(msg)
-        # result = yield from self._receive_netstack_msg()
-        # self._logger.debug(f"result from netstack: {result}")
+        yield from self._receive_netstack_msg()
 
     def _interpret_wait_all(
         self, app_id: int, instr: core.WaitAllInstruction

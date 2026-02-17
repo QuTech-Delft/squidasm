@@ -13,7 +13,7 @@ class AliceProgram(Program):
             name="tutorial_program",
             csockets=[self.PEER_NAME],
             epr_sockets=[self.PEER_NAME],
-            max_qubits=1,
+            max_qubits=2,
         )
 
     def run(self, context: ProgramContext):
@@ -55,7 +55,7 @@ class BobProgram(Program):
             name="tutorial_program",
             csockets=[self.PEER_NAME],
             epr_sockets=[self.PEER_NAME],
-            max_qubits=1,
+            max_qubits=2,
         )
 
     def run(self, context: ProgramContext):

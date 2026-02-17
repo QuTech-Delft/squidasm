@@ -31,7 +31,7 @@ class ClientProgram(Program):
             name="client_program",
             csockets=[],
             epr_sockets=[],
-            max_qubits=1,
+            max_qubits=2,
         )
 
     def run(

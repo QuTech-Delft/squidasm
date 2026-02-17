@@ -21,7 +21,7 @@ class ClientProgram(Program):
             name="client_program",
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
-            max_qubits=1,
+            max_qubits=2,
         )
 
     def run(
@@ -67,7 +67,7 @@ class ServerProgram(Program):
             name="server_program",
             csockets=[self.PEER],
             epr_sockets=[self.PEER],
-            max_qubits=1,
+            max_qubits=2,
         )
 
     def run(
